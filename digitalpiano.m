@@ -21,21 +21,12 @@ function digitalpiano(cfg)
 %    You should have received a copy of the GNU General Public License
 %    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
 
-if nargin<1
-  cfg = [];
-end
-
 if isempty(which('ft_defaults'))
   error('this function requires that the FieldTrip toolbox is installed, see http://www.fieldtriptoolbox.org');
 else
   % ensure that the FieldTrip path is properly set up
   ft_defaults
 end
-
-% get the options, use defaults where needed
-cfg.channel  = ft_getopt(cfg, 'channel', 1);
-cfg.velocity = ft_getopt(cfg, 'velocity', 64);
-cfg.output   = ft_getopt(cfg, 'output', 'midi'); % midi or wav
 
 close all
 h = figure;
@@ -45,6 +36,15 @@ pos = get(h, 'Position');
 pos(3) = 740;
 pos(4) = 140;
 set(h, 'Position', pos);
+
+if nargin<1
+  cfg = [];
+end
+
+% get the options, use defaults where needed
+cfg.channel  = ft_getopt(cfg, 'channel', 1);
+cfg.velocity = ft_getopt(cfg, 'velocity', 64);
+cfg.output   = ft_getopt(cfg, 'output', 'midi'); % midi or wav
 
 guidata(h, cfg);
 
