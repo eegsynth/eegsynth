@@ -22,6 +22,10 @@
  * $Id: midiIn.c 10331 2015-04-12 13:49:08Z roboos $
  **********************************************************************/
 
+#define char16_t uint16_t
+
+#include <unistd.h>
+#include <pthread.h>
 #include <portmidi.h>
 #include <porttime.h>
 #include <mex.h>
@@ -68,6 +72,13 @@ int isInit = 0, deviceOpen = -1, verbose = 1;
 unsigned int numReceived = 0;
 double *channel = NULL, *note = NULL, *velocity = NULL, *timestamp = NULL;
 
+char locked = 0;
+#define MUTEX_LOCK     {while(locked) {usleep(100);} locked=1;}
+#define MUTEX_UNLOCK   {locked=0;}
+#define MUTEX_ISLOCKED (locked)
+
+pthread_mutex_t lock;
+
 void reportPmError(PmError err);
 void reportPtError(PtError err);
 
@@ -76,7 +87,7 @@ void receive_poll(PtTimestamp ts, void *userData)
   int count, command;
   unsigned int latest;
   PmEvent event;
-  
+
   if (inStream==NULL)
     return;
   
@@ -97,9 +108,9 @@ void receive_poll(PtTimestamp ts, void *userData)
               (command == MIDI_TOUCH )      ||
               (command == MIDI_BEND )) {
         
-        /* store the latest event at the end of the ring buffer */
-        latest = WRAP(numReceived, INPUT_BUFFER_SIZE);
-        numReceived++;
+        pthread_mutex_lock(&lock);
+        latest       = WRAP(numReceived, INPUT_BUFFER_SIZE);
+        numReceived += (numReceived<INPUT_BUFFER_SIZE ? 1 : 0);
         
         channel   [latest] = (double)(Pm_MessageStatus(event.message) & MIDI_CHN_MASK);
         note      [latest] = (double)Pm_MessageData1(event.message);
@@ -110,6 +121,7 @@ void receive_poll(PtTimestamp ts, void *userData)
           mexPrintf("channel = %2d, note = %3d, velocity = %3d, timestamp = %g\n", (int)channel[latest], (int)note[latest], (int)velocity[latest], timestamp[latest]);
           mexEvalString("try, drawnow limitrate nocallbacks; end");
         }
+        pthread_mutex_unlock(&lock);
       }
     }
     else
@@ -229,18 +241,21 @@ mxArray *getDevices() {
 }
 
 mxArray *getEvent() {
-  unsigned int i, n;
+  unsigned int i;
   double *ptr;
   mxArray *R;
-  n = numReceived; /* should not increase while copying */
-  R = mxCreateDoubleMatrix(n, 4, mxREAL);
+  pthread_mutex_lock(&lock);
+  R = mxCreateDoubleMatrix(numReceived, 4, mxREAL);
   ptr = (double *)mxGetData(R);
-  for (i=0; i<n; i++) {
-    ptr[i + 0*n] = channel  [i];
-    ptr[i + 1*n] = note     [i];
-    ptr[i + 2*n] = velocity [i];
-    ptr[i + 3*n] = timestamp[i];
+  for (i=0; i<numReceived; i++) {
+    ptr[i + 0*numReceived] = channel  [i];
+    ptr[i + 1*numReceived] = note     [i];
+    ptr[i + 2*numReceived] = velocity [i];
+    ptr[i + 3*numReceived] = timestamp[i];
   }
+  /* reset the counter to the beginning of the buffer */
+  numReceived = 0;
+  pthread_mutex_unlock(&lock);
   return R;
 }
 
@@ -249,7 +264,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   PmError err1;
   PtError err2;
   
-  init(); /* returns immediately if already done */
+  pthread_mutex_lock(&lock);
+  init(); /* this returns immediately if already done */
   
   if (nrhs > 0) {
     char arg[2];
@@ -274,8 +290,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("No MIDI input device is opened");
       } else {
         plhs[0] = getEvent();
-        /* reset the counter to the beginning of the buffer */
-        numReceived = 0;
       }
       break;
     case 'F': /* Flush all buffered events */
@@ -331,4 +345,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     default:
       mexErrMsgTxt("Bad call\n");
   }
+  pthread_mutex_unlock(&lock);
 }

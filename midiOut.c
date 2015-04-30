@@ -22,6 +22,8 @@
  * $Id: midiOut.c 10331 2015-04-12 13:49:08Z roboos $
  **********************************************************************/
 
+#define char16_t uint16_t
+
 #include <portmidi.h>
 #include <porttime.h>
 #include <mex.h>
