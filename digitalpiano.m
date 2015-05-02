@@ -44,74 +44,78 @@ end
 % get the options, use defaults where needed
 cfg.channel  = ft_getopt(cfg, 'channel', 1);
 cfg.velocity = ft_getopt(cfg, 'velocity', 64);
-cfg.output   = ft_getopt(cfg, 'output', 'midi'); % midi or wav
+cfg.input    = ft_getopt(cfg, 'input', 'yes');    % yes, no
+cfg.output   = ft_getopt(cfg, 'output', 'midi');  % no, midi, wav
 
 guidata(h, cfg);
 
-uicontrol('tag', '2_C',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_D',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_E',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_F',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_G',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_A',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_B',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_Db', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_Eb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_Gb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_Ab', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '2_Bb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_C',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_D',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_E',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_F',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_G',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_A',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_B',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_Db', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_Eb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_Gb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_Ab', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '2_Bb', 'style', 'pushbutton', 'string', '');
 
-uicontrol('tag', '3_C',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_D',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_E',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_F',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_G',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_A',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_B',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_Db', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_Eb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_Gb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_Ab', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '3_Bb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_C',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_D',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_E',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_F',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_G',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_A',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_B',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_Db', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_Eb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_Gb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_Ab', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '3_Bb', 'style', 'pushbutton', 'string', '');
 
-uicontrol('tag', '4_C',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_D',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_E',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_F',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_G',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_A',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_B',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_Db', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_Eb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_Gb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_Ab', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '4_Bb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_C',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_D',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_E',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_F',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_G',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_A',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_B',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_Db', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_Eb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_Gb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_Ab', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '4_Bb', 'style', 'pushbutton', 'string', '');
 
-uicontrol('tag', '5_C',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_D',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_E',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_F',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_G',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_A',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_B',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_Db', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_Eb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_Gb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_Ab', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '5_Bb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_C',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_D',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_E',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_F',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_G',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_A',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_B',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_Db', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_Eb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_Gb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_Ab', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '5_Bb', 'style', 'pushbutton', 'string', '');
 
-uicontrol('tag', '6_C',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_D',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_E',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_F',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_G',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_A',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_B',  'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_Db', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_Eb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_Gb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_Ab', 'callback', @callback, 'style', 'pushbutton', 'string', '');
-uicontrol('tag', '6_Bb', 'callback', @callback, 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_C',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_D',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_E',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_F',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_G',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_A',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_B',  'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_Db', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_Eb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_Gb', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_Ab', 'style', 'pushbutton', 'string', '');
+uicontrol('tag', '6_Bb', 'style', 'pushbutton', 'string', '');
+
+% all controls have the same callback function
+ft_uilayout(h, 'tag', '^.*$', 'callback', @cb_interface); 
 
 ft_uilayout(h, 'tag', '._[CDEFGAB]$', 'position', [0 0 020 100]);
 ft_uilayout(h, 'tag', '._.b$',        'position', [0 0 014 070]);
@@ -141,11 +145,15 @@ ft_uilayout(h, 'tag', '^4', 'hshift', 2*140);
 ft_uilayout(h, 'tag', '^5', 'hshift', 3*140);
 ft_uilayout(h, 'tag', '^6', 'hshift', 4*140);
 
+if strcmp(cfg.input, 'yes')
+  t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, 'UserData', h, 'TimerFcn', @cb_timer);
+  start(t);
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function callback(h, event)
-
+function cb_interface(h, varargin)
 cfg = guidata(h);
 tag = get(h, 'tag');
 disp(tag);
