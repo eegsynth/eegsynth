@@ -6,7 +6,7 @@ function launchcontrolXL(cfg)
 %
 % Copyright (C) 2015, Robert Oostenveld
 
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of EEGSYNTH, see https://github.com/oostenveld/eegsynth-matlab
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -28,16 +28,6 @@ else
   % ensure that the FieldTrip path is properly set up
   ft_defaults
 end
-
-close all
-h = figure;
-set(h, 'MenuBar', 'none')
-set(h, 'Name', 'LaunchControl XL')
-pos = get(h, 'Position');
-pos(3) = 580;
-pos(4) = 380;
-set(h, 'Position', pos);
-set(h, 'DeleteFcn', @cb_cleanup);
 
 if nargin<1
   cfg = [];
@@ -107,7 +97,39 @@ cfg.mapping = {
   '0_sendD',  8, 0
   };
 
+close all
+h = figure;
 guidata(h, cfg);
+set(h, 'DeleteFcn', @cb_cleanup);
+creategui(h);
+
+if strcmp(cfg.input, 'yes')
+  midiOpen('input');
+end
+
+if strcmp(cfg.output, 'yes')
+  midiOpen('output');
+end
+
+if strcmp(cfg.input, 'yes')
+  t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, 'UserData', h, 'TimerFcn', @cb_timer);
+  start(t);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUBFUNCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function creategui(h)
+
+figure(h);
+
+pos = get(h, 'Position');
+pos(3) = 580;
+pos(4) = 380;
+set(h, 'Position', pos);
+set(h, 'MenuBar', 'none')
+set(h, 'Name', 'LaunchControl XL')
 
 uicontrol('tag', '1_control', 'style', 'pushbutton', 'string', '');
 uicontrol('tag', '1_focus',   'style', 'pushbutton', 'string', '');
@@ -177,7 +199,7 @@ uicontrol('tag', '0_user',    'style', 'pushbutton', 'string', '');
 uicontrol('tag', '0_factory', 'style', 'pushbutton', 'string', '');
 
 % all controls have the same callback function
-ft_uilayout(h, 'tag', '^.*$', 'callback', @cb_interface); 
+ft_uilayout(h, 'tag', '^.*$', 'callback', @cb_interface);
 
 ft_uilayout(h, 'style', 'popupmenu', 'value', 64); % set the default to '0'
 
@@ -220,10 +242,13 @@ ft_uilayout(h, 'tag', '0_sendD',   'vpos', 298, 'hshift',  15);
 ft_uilayout(h, 'tag', '0_user',    'vpos', 328, 'hshift', -15);
 ft_uilayout(h, 'tag', '0_factory', 'vpos', 328, 'hshift',  15);
 
-if strcmp(cfg.input, 'yes')
-  t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, 'UserData', h, 'TimerFcn', @cb_timer);
-  start(t);
-end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUBFUNCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function cb_interface(h, varargin)
+cfg = guidata(h);
+tag = get(h, 'tag');
+disp(tag);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
@@ -232,6 +257,13 @@ function cb_timer(t, varargin)
 persistent tag channel note
 
 dat = midiIn('G');
+
+if isempty(dat)
+  return
+else
+  disp(dat);
+end
+
 h   = get(t, 'UserData');
 cfg = guidata(h);
 
@@ -269,10 +301,4 @@ end
 function cb_cleanup(varargin)
 delete(timerfindall)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SUBFUNCTION
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_interface(h, varargin)
-cfg = guidata(h);
-tag = get(h, 'tag');
-disp(tag);
+
