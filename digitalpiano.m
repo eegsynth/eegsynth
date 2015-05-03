@@ -258,7 +258,7 @@ if strcmp(cfg.playsound, 'yes')
   fs = 22000;
   t = (1:0.5*fs)/fs;
   f = frequency.(note);
-  f = f(octave);
+  f = f(octave-1);
   s = sin(2*pi*f*t) .* tukeywin(length(t), 0.1)';
   p = audioplayer(s, fs);
   playblocking(p);
@@ -315,8 +315,6 @@ for i=1:size(dat,1)
     u = findobj(h, 'tag', tag{sel});
     if numel(u)==1
       switch lower(get(u, 'style'))
-        case 'slider'
-          set(u, 'value', dat(i,3)/127);
         case 'pushbutton'
           if dat(i,3)>0
             % pushed down
@@ -330,9 +328,7 @@ for i=1:size(dat,1)
               set(u, 'backgroundcolor', [1 1 1]);
             end
           end
-        case 'popupmenu'
-          set(u, 'value', dat(i,3));
-      end % case
+      end % switch
     else
       disp(dat);
     end

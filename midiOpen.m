@@ -50,6 +50,7 @@ end
 
 % update the size according to the number of buttons
 pos = get(h, 'position');
+pos(1) = pos(1)+pos(3)/2-360/2;
 pos(3) = 260;
 pos(4) = vpos;
 set(h, 'position', pos);

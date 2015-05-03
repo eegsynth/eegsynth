@@ -90,7 +90,7 @@ cfg.mapping = {
   '0_record',        8, 0
   '0_solo',          8, 0
   '0_mute',          8, 0
-  '0_device',        8, 0
+  '0_device',        8, 105
   '0_trackL',        8, 0
   '0_trackR',        8, 0
   '0_sendU',         8, 0
@@ -271,7 +271,7 @@ cfg = guidata(h);
 
 if isempty(tag)
   % this is only needed once
-  tag     = cfg.mapping(:,1);
+  tag     =          cfg.mapping(:,1);
   channel = cell2mat(cfg.mapping(:,2));
   note    = cell2mat(cfg.mapping(:,3));
 end
@@ -293,7 +293,7 @@ for i=1:size(dat,1)
         end
       case 'popupmenu'
         set(u, 'value', dat(i,3));
-    end
+    end % switch
   end
 end
 
