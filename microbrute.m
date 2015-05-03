@@ -3,9 +3,9 @@ function microbrute(cfg)
 % MICROBRUTE creates a GUI that emulates the Arturia MicroBrute synthesizer
 %
 % See http://www.arturia.com/products/hardware-synths/microbrute
-%
-% Copyright (C) 2015, Robert Oostenveld
 
+% Copyright (C) 2015, Robert Oostenveld
+%
 % This file is part of EEGSYNTH, see https://github.com/oostenveld/eegsynth-matlab
 % for the documentation and details.
 %
@@ -173,15 +173,18 @@ uicontrol('tag', '3_3_lfo_rate',          'style', 'popupmenu',  'string', num2c
 uicontrol('tag', '3_4_envelope_amount',   'style', 'popupmenu',  'string', num2cell(1:127));
 uicontrol('tag', '3_8_sequencer_pattern', 'style', 'popupmenu',  'string', num2cell(1:127));
 uicontrol('tag', '3_9_sequencer_rate',    'style', 'popupmenu',  'string', num2cell(1:127));
-uicontrol('tag', '1_slide',               'style', 'slider',     'string', '', 'value', 0.5);
-uicontrol('tag', '2_slide',               'style', 'slider',     'string', '', 'value', 0.5);
-uicontrol('tag', '3_slide',               'style', 'slider',     'string', '', 'value', 0.5);
-uicontrol('tag', '4_slide',               'style', 'slider',     'string', '', 'value', 0.5);
-uicontrol('tag', '5_slide',               'style', 'slider',     'string', '', 'value', 0.5);
-uicontrol('tag', '6_slide',               'style', 'slider',     'string', '', 'value', 0.5);
+uicontrol('tag', '1_slide',               'style', 'slider',     'string', '');
+uicontrol('tag', '2_slide',               'style', 'slider',     'string', '');
+uicontrol('tag', '3_slide',               'style', 'slider',     'string', '');
+uicontrol('tag', '4_slide',               'style', 'slider',     'string', '');
+uicontrol('tag', '5_slide',               'style', 'slider',     'string', '');
+uicontrol('tag', '6_slide',               'style', 'slider',     'string', '');
 
 % all controls have the same callback function
 ft_uilayout(h, 'tag', '^.*$', 'callback', @cb_interface);
+
+ft_uilayout(h, 'style', 'popupmenu', 'value', 64);  % set the default value to the middle
+ft_uilayout(h, 'style', 'slider',    'value', 0.5); % set the default value to the middle
 
 % specify the size of the keys on the keyboard
 ft_uilayout(h, 'tag', '._[CDEFGAB]$', 'position', [0 0 020 100]); % white
@@ -207,9 +210,9 @@ ft_uilayout(h, 'tag', 'Gb$', 'hpos', 093);
 ft_uilayout(h, 'tag', 'Ab$', 'hpos', 113);
 ft_uilayout(h, 'tag', 'Bb$', 'hpos', 133);
 
-ft_uilayout(h, 'tag', '^3', 'hshift', 0*140+060);
-ft_uilayout(h, 'tag', '^4', 'hshift', 1*140+060);
-ft_uilayout(h, 'tag', '^5', 'hshift', 2*140+060);
+ft_uilayout(h, 'tag', '^3', 'hshift', 0*140+080);
+ft_uilayout(h, 'tag', '^4', 'hshift', 1*140+080);
+ft_uilayout(h, 'tag', '^5', 'hshift', 2*140+080);
 
 % specify the size of the knobs and sliders
 ft_uilayout(h, 'tag', '^[123]_[1-9]',   'position', [0 0 070 030]);

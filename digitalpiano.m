@@ -5,9 +5,9 @@ function digitalpiano(cfg)
 %
 % This interface has been designed for and tested with the Yamaha P95
 % digital piano, but should also work with any other 88-key MIDI controller.
-%
-% Copyright (C) 2015, Robert Oostenveld
 
+% Copyright (C) 2015, Robert Oostenveld
+%
 % This file is part of EEGSYNTH, see https://github.com/oostenveld/eegsynth-matlab
 % for the documentation and details.
 %

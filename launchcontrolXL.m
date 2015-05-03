@@ -3,9 +3,9 @@ function launchcontrolXL(cfg)
 % LAUNCHCONTROLXL creates a GUI that emulates the Novation LaunchControl XL
 %
 % See http://global.novationmusic.com/launch/launch-control-xl
-%
-% Copyright (C) 2015, Robert Oostenveld
 
+% Copyright (C) 2015, Robert Oostenveld
+%
 % This file is part of EEGSYNTH, see https://github.com/oostenveld/eegsynth-matlab
 % for the documentation and details.
 %
