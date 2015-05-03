@@ -9,18 +9,18 @@ function launchcontrolXL(cfg)
 % This file is part of EEGSYNTH, see https://github.com/oostenveld/eegsynth-matlab
 % for the documentation and details.
 %
-%    FieldTrip is free software: you can redistribute it and/or modify
+%    EEGSYNTH is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
 %    the Free Software Foundation, either version 3 of the License, or
 %    (at your option) any later version.
 %
-%    FieldTrip is distributed in the hope that it will be useful,
+%    EEGSYNTH is distributed in the hope that it will be useful,
 %    but WITHOUT ANY WARRANTY; without even the implied warranty of
 %    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %    GNU General Public License for more details.
 %
 %    You should have received a copy of the GNU General Public License
-%    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
+%    along with EEGSYNTH. If not, see <http://www.gnu.org/licenses/>.
 
 if isempty(which('ft_defaults'))
   error('this function requires that the FieldTrip toolbox is installed, see http://www.fieldtriptoolbox.org');
