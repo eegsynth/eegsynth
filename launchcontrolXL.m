@@ -37,7 +37,7 @@ end
 cfg.input    = ft_getopt(cfg, 'input', 'yes');    % yes, no
 cfg.output   = ft_getopt(cfg, 'output', 'no');    % yes, no
 
-% this table contains the UI tag, channel and note
+% this table represents how the channel and note map onto a GUI tag
 cfg.mapping = {
   '1_control',       8, 73
   '1_focus',         8, 41
@@ -91,17 +91,13 @@ cfg.mapping = {
   '0_solo',          8, 0
   '0_mute',          8, 0
   '0_device',        8, 0
-  '0_trackL', 8, 0
-  '0_trackR', 8, 0
-  '0_sendU',  8, 0
-  '0_sendD',  8, 0
+  '0_trackL',        8, 0
+  '0_trackR',        8, 0
+  '0_sendU',         8, 0
+  '0_sendD',         8, 0
   };
 
 close all
-h = figure;
-guidata(h, cfg);
-set(h, 'DeleteFcn', @cb_cleanup);
-creategui(h);
 
 if strcmp(cfg.input, 'yes')
   midiOpen('input');
@@ -111,11 +107,15 @@ if strcmp(cfg.output, 'yes')
   midiOpen('output');
 end
 
+h = figure;
+guidata(h, cfg);
+set(h, 'DeleteFcn', @cb_cleanup);
+creategui(h);
+
 if strcmp(cfg.input, 'yes')
   t = timer('ExecutionMode', 'fixedRate', 'Period', 0.1, 'UserData', h, 'TimerFcn', @cb_timer);
   start(t);
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
@@ -260,8 +260,10 @@ dat = midiIn('G');
 
 if isempty(dat)
   return
-else
-  disp(dat);
+end
+
+for i=1:size(dat,1)
+  fprintf('input: channel %3d, note %3d, velocity %3d, timestamp %d\n', dat(i,1), dat(i,2), dat(i,3), dat(i,4));
 end
 
 h   = get(t, 'UserData');
