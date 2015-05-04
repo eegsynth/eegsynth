@@ -93,13 +93,13 @@ extern "C" {
  */
 
 #ifndef WIN32
-// Linux and OS X have stdint.h
+/* Linux and OS X have stdint.h */
 #include <stdint.h>
 #else
 #ifndef INT32_DEFINED
-// rather than having users install a special .h file for windows, 
-// just put the required definitions inline here. porttime.h uses
-// these too, so the definitions are (unfortunately) duplicated there
+/* rather than having users install a special .h file for windows, 
+   just put the required definitions inline here. porttime.h uses
+   these too, so the definitions are (unfortunately) duplicated there */
 typedef int int32_t;
 typedef unsigned int uint32_t;
 #define INT32_DEFINED

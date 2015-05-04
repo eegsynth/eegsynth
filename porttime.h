@@ -9,15 +9,15 @@
 
 #ifdef WIN32
 #ifndef INT32_DEFINED
-// rather than having users install a special .h file for windows, 
-// just put the required definitions inline here. portmidi.h uses
-// these too, so the definitions are (unfortunately) duplicated there
+/* rather than having users install a special .h file for windows, 
+   just put the required definitions inline here. portmidi.h uses
+   these too, so the definitions are (unfortunately) duplicated there */
 typedef int int32_t;
 typedef unsigned int uint32_t;
 #define INT32_DEFINED
 #endif
 #else
-#include <stdint.h> // needed for int32_t
+#include <stdint.h> /* needed for int32_t */
 #endif
 
 #ifdef __cplusplus

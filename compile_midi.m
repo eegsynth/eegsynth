@@ -8,8 +8,8 @@ elseif strcmp(computer, 'GLNX86')
   mex midiIn.c  -I../portmidi/pm_common ../portmidi/libportmidi_linux32.a
   mex midiOut.c -I../portmidi/pm_common ../portmidi/libportmidi_linux32.a
 elseif strcmp(computer, 'GLNXA64')
-  mex midiIn.c  -I../portmidi/pm_common ../portmidi/libportmidi_linux64.a
-  mex midiOut.c -I../portmidi/pm_common ../portmidi/libportmidi_linux64.a
+  mex midiIn.c  -I. -L. -lportmidi_s -lasound
+  mex midiOut.c -I. -L. -lportmidi_s -lasound
 elseif strcmp(computer, 'MACI64')
   % portmidi can be installed from MacPorts with 'sudo port install portmidi' or
   % downloaded and compiled by hand.
