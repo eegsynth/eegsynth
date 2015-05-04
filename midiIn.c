@@ -24,8 +24,14 @@
 
 #define char16_t uint16_t
 
+#ifndef _WIN32 && _WIN64
 #include <unistd.h>
-#include <pthread.h>
+#endif
+
+#ifdef _WIN32 && _WIN64
+#define usleep(x)       (Sleep((x)/1000))
+#endif
+        
 #include <portmidi.h>
 #include <porttime.h>
 #include <mex.h>
@@ -77,8 +83,6 @@ char locked = 0;
 #define MUTEX_UNLOCK   {locked=0;}
 #define MUTEX_ISLOCKED (locked)
 
-pthread_mutex_t lock;
-
 void reportPmError(PmError err);
 void reportPtError(PtError err);
 
@@ -107,7 +111,7 @@ void receive_poll(PtTimestamp ts, void *userData)
 										(command == MIDI_TOUCH )      ||
 										(command == MIDI_BEND )) {
 
-								pthread_mutex_lock(&lock);
+								MUTEX_LOCK;
 								channel   [numReceived] = (Pm_MessageStatus(event.message) & MIDI_CHN_MASK);
 								note      [numReceived] = Pm_MessageData1(event.message);
 								velocity  [numReceived] = Pm_MessageData2(event.message);
@@ -123,7 +127,7 @@ void receive_poll(PtTimestamp ts, void *userData)
 								else
 										numReceived++;
 
-								pthread_mutex_unlock(&lock);
+								MUTEX_UNLOCK;
 						}
 				}
 				else
@@ -246,7 +250,7 @@ mxArray *getEvent() {
 		unsigned int i,n;
 		double *ptr;
 		mxArray *R;
-		pthread_mutex_lock(&lock);
+		MUTEX_LOCK;
 		n = numReceived;
 		R = mxCreateDoubleMatrix(n, 4, mxREAL);
 		ptr = (double *)mxGetData(R);
@@ -258,7 +262,7 @@ mxArray *getEvent() {
 		}
 		/* reset the counter to the beginning of the buffer */
 		numReceived = 0;
-		pthread_mutex_unlock(&lock);
+		MUTEX_UNLOCK;
 		return R;
 }
 
@@ -267,7 +271,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   PmError err1;
   PtError err2;
   
-  pthread_mutex_lock(&lock);
+  MUTEX_LOCK;
   init(); /* this returns immediately if already done */
   
   if (nrhs > 0) {
@@ -348,5 +352,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     default:
       mexErrMsgTxt("Bad call\n");
   }
-  pthread_mutex_unlock(&lock);
+  MUTEX_UNLOCK;
 }
