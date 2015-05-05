@@ -22,13 +22,15 @@
  * $Id: midiIn.c 10331 2015-04-12 13:49:08Z roboos $
  **********************************************************************/
 
-#include <mex.h>
-#include <portmidi.h>
-#include <porttime.h>
-
 /* these assist in the platform and compiler specific compilation */
 #include <platform.h>
 #include <compiler.h>
+
+
+#if defined(PLATFORM_WINDOWS)
+/* only needed on Windows */
+#define usleep(x)       (Sleep((x)/1000))
+#endif
 
 #if defined(PLATFORM_OSX)
 /* only needed on OS X */
@@ -36,10 +38,9 @@
 #define char16_t uint16_t
 #endif
 
-#if defined(PLATFORM_WINDOWS)
-/* only needed on Windows */
-#define usleep(x)       (Sleep((x)/1000))
-#endif
+#include <mex.h>
+#include <portmidi.h>
+#include <porttime.h>
 
 #define FREE(x) {if (x) {free(x); x=NULL;}}
 #define WRAP(x,y) ((x) - ((int)((float)(x)/(y)))*(y))
