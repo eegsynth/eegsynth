@@ -26,7 +26,6 @@
 #include <platform.h>
 #include <compiler.h>
 
-
 #if defined(PLATFORM_WINDOWS)
 /* only needed on Windows */
 #define usleep(x)       (Sleep((x)/1000))
@@ -85,7 +84,7 @@ unsigned int numReceived = 0;
 int32_t *channel = NULL, *note = NULL, *velocity = NULL, *timestamp = NULL;
 
 char locked = 0;
-#define MUTEX_LOCK     {while(locked) {usleep(100);} locked=1;}
+#define MUTEX_LOCK     {while (locked) {usleep(100);} locked=1;}
 #define MUTEX_UNLOCK   {locked=0;}
 #define MUTEX_ISLOCKED (locked)
 
@@ -150,13 +149,15 @@ void exitFunction() {
       inStream = NULL;
     }
     Pm_Terminate();
+    MUTEX_LOCK;
     FREE(channel);
     FREE(note);
     FREE(velocity);
     FREE(timestamp);
-    isInit = 0;
-    deviceOpen = -1;
     numReceived = 0;
+    MUTEX_UNLOCK;
+    deviceOpen = -1;
+    isInit = 0;
   }
 }
 
@@ -168,6 +169,7 @@ void init() {
   
   mexPrintf("Initialising PortMidi\n");
   
+  MUTEX_LOCK;
   note      = malloc(INPUT_BUFFER_SIZE*sizeof(int32_t));
   channel   = malloc(INPUT_BUFFER_SIZE*sizeof(int32_t));
   velocity  = malloc(INPUT_BUFFER_SIZE*sizeof(int32_t));
@@ -177,7 +179,11 @@ void init() {
     FREE(note);
     FREE(velocity);
     FREE(timestamp);
+    MUTEX_UNLOCK;
     mexErrMsgTxt("Could not allocate memory");
+  }
+  else {
+    MUTEX_UNLOCK;
   }
   
   err1 = Pm_Initialize();
@@ -277,7 +283,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   PmError err1;
   PtError err2;
   
-  MUTEX_LOCK;
   init(); /* this returns immediately if already done */
   
   if (nrhs > 0) {
@@ -358,5 +363,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     default:
       mexErrMsgTxt("Bad call\n");
   }
-  MUTEX_UNLOCK;
 }

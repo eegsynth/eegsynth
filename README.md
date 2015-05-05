@@ -2,6 +2,8 @@
 Converting real-time EEG into sounds and music
 
 ## Platform specific notes for Microsoft Windows
+Development is done on a VirtualBox with Windows 7 and MATLAB 2012b.
+
 Precompiled mex file are provided, these are linked to a static version of portmidi.  To
 use these mex files in MATLAB, you might have to install the Microsoft Visual C++ 2010
 Redistributable Package, which is available from [1]. This package contains some
@@ -17,6 +19,8 @@ Software Development Kit version 7.1 (see [3]).
 [3] http://stackoverflow.com/questions/1865069/how-to-compile-a-64-bit-application-using-visual-c-2010-express
 
 ## Platform specific notes for Mac OS X
+Development is done on a MacBook Pro with OS X 10.9.5 and MATLAB 2012b.
+
 Compilation of the mex files requires that portmidi is present. This can be downloaded
 from http://portmedia.sourceforge.net/portmidi. Compilation of portmidi requires cmake.
 It is also possible to install a compiled version of portmidi using MacPorts ("sudo port

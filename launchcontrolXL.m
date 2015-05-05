@@ -201,7 +201,8 @@ uicontrol('tag', '0_factory', 'style', 'pushbutton', 'string', '');
 % all controls have the same callback function
 ft_uilayout(h, 'tag', '^.*$', 'callback', @cb_interface);
 
-ft_uilayout(h, 'style', 'popupmenu', 'value', 64); % set the default to '0'
+ft_uilayout(h, 'style', 'popupmenu', 'value', 64);  % set the default value to the middle
+ft_uilayout(h, 'style', 'slider',    'value', 0.5); % set the default value to the middle
 
 ft_uilayout(h, 'tag', 'control$', 'position', [0 0 060 030]);
 ft_uilayout(h, 'tag', 'focus$',   'position', [0 0 060 030]);
