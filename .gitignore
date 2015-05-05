@@ -1,5 +1,7 @@
 # Backup files
 *.m~
+*.c~
+*.h~
 *.asv
 *.bak
 

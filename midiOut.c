@@ -22,11 +22,19 @@
  * $Id: midiOut.c 10331 2015-04-12 13:49:08Z roboos $
  **********************************************************************/
 
-#define char16_t uint16_t
-
+#include <mex.h>
 #include <portmidi.h>
 #include <porttime.h>
-#include <mex.h>
+
+/* these assist in the platform and compiler specific compilation */
+#include <platform.h>
+#include <compiler.h>
+
+#if defined(PLATFORM_OSX)
+/* only needed on OS X */
+#include <unistd.h>
+#define char16_t uint16_t
+#endif
 
 #define OUTPUT_BUFFER_SIZE 20000
 
