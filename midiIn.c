@@ -28,6 +28,7 @@
 
 #if defined(PLATFORM_WINDOWS)
 /* only needed on Windows */
+#include <windows.h>
 #define usleep(x)       (Sleep((x)/1000))
 #endif
 
