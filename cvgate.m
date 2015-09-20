@@ -45,12 +45,12 @@ classdef cvgate
     device
     port      = '/dev/tty.usbserial-AH01DRO4'
     baudrate  = 115200;
-    delay     = 0.005;
   end
   
   properties (SetAccess = public)
-    voltage = 0;
-    gate    = 0;
+    voltage   = [];
+    gate      = [];
+    delay     = 0;
   end
   
   % Class methods
@@ -63,38 +63,47 @@ classdef cvgate
         obj.baudrate = baudrate;
       end
       obj.device = serial(obj.port, 'BaudRate', obj.baudrate);
-      fopen(obj.device);
+      try
+        fopen(obj.device);
+        pause(1);
+        flushinput(obj.device);
+      catch
+        p = instrfind('Type', 'serial', 'Port', obj.port);
+        if isobject(p)
+          delete(p);
+        end
+      end
     end % constructor
     
     function delete(obj)
-      flushinput(obj.device);
       flushoutput(obj.device);
+      flushinput(obj.device);
       fclose(obj.device);
       delete(obj.device);
     end % destructor
     
     function update(obj)
       if ~isempty(obj.voltage)
-        cmd = sprintf('*c1v%04d#', round((2^12-1)*obj.voltage/5));
+        cmd = sprintf('*c%dv%04d#', [1:numel(obj.voltage); round((2^12-1)*obj.voltage/5)]);
         fprintf(obj.device, cmd);
       end
       if ~isempty(obj.gate)
-        cmd = sprintf('*g1v%d#', double(obj.gate));
+        cmd = sprintf('*g%dv%d#', [1:numel(obj.gate); double(obj.gate)]);
         fprintf(obj.device, cmd);
       end
-      flushinput(obj.device);
       flushoutput(obj.device);
+      flushinput(obj.device);
       pause(obj.delay);
     end % update
     
     function obj = set.voltage(obj, voltage)
-      assert(isscalar(voltage));
-      obj.voltage = min(max(0, voltage), 5);
+      assert(isempty(voltage) || isvector(voltage));
+      obj.voltage = min(max(0, voltage(:)'), 5);
     end % set
     
     function obj = set.gate(obj, gate)
-      assert(isscalar(gate));
-      obj.gate = (gate~=0);
+      assert(isempty(gate) || isvector(gate));
+      obj.gate = (gate(:)'~=0);
     end % set
     
   end % methods
