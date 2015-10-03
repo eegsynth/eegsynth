@@ -87,14 +87,14 @@ cfg.mapping = {
   '8_pan',           8, 53+3
   '8_sendB',         8, 17+3
   '8_sendA',         8, 33+3
-  '0_record',        8, 0
-  '0_solo',          8, 0
-  '0_mute',          8, 0
+  '0_record',        8, 108
+  '0_solo',          8, 107
+  '0_mute',          8, 106
   '0_device',        8, 105
-  '0_trackL',        8, 0
-  '0_trackR',        8, 0
-  '0_sendU',         8, 0
-  '0_sendD',         8, 0
+  '0_trackL',        8, 0    % this one is in conflict with another
+  '0_trackR',        8, 0    % this one is in conflict with another
+  '0_sendU',         8, 104
+  '0_sendD',         8, 0    % this one is in conflict with another
   };
 
 close all
