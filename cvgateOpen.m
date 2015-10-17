@@ -10,7 +10,7 @@ function a = cvgateOpen(a)
 %   cvgateOpen(obj)
 % if the serial port has already been opened.
 %
-% See also MIDIOPEN
+% See also MIDIOPEN, CVGATE
 
 % This file is part of EEGSYNTH, see https://github.com/oostenveld/eegsynth-matlab
 % for the documentation and details.
@@ -76,6 +76,8 @@ if nargin<1
     n = str2num(guidata(h)); %#ok<*ST2NM>
     delete(h);
     a = cvgate(fullfile(prefix, L(n).name), 115200);
+    a.voltage = [0 0 0 0];
+    a.gate    = [0 0 0 0];
   else
     a = [];
   end
@@ -92,17 +94,29 @@ if ~isempty(a)
   set(h, 'ToolBar', 'none')
   set(h, 'Name', 'Set voltage and gate')
   pos = get(h, 'position');
-  pos(3) = 220;
-  pos(4) = 60;
+  pos(3) = 430;
+  pos(4) = 100;
   
   set(h, 'position', pos);
   guidata(h, a);
   
-  ch = uicontrol('style', 'slider', 'tag', 'row1', 'min', 0, 'max', 5, 'sliderstep', [0.01 0.05], 'callback', @update_voltage);
-  gh = uicontrol('style', 'slider', 'tag', 'row2', 'min', 0, 'max', 1, 'sliderstep', [1.00 1.00], 'callback', @update_gate);
+  c1 = uicontrol('style', 'slider', 'tag', 'c1', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
+  g1 = uicontrol('style', 'slider', 'tag', 'c2', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
+  c2 = uicontrol('style', 'slider', 'tag', 'c3', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
+  g2 = uicontrol('style', 'slider', 'tag', 'c4', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
+  c3 = uicontrol('style', 'slider', 'tag', 'g1', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
+  g3 = uicontrol('style', 'slider', 'tag', 'g2', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
+  c4 = uicontrol('style', 'slider', 'tag', 'g3', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
+  g4 = uicontrol('style', 'slider', 'tag', 'g4', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
   
-  ft_uilayout(h, 'tag', 'row1', 'width', 200, 'hpos', 10, 'vpos', 30);
-  ft_uilayout(h, 'tag', 'row2', 'width', 200, 'hpos', 10, 'vpos', 10);
+  ft_uilayout(h, 'tag', 'c1', 'width', 200, 'hpos', 10, 'vpos', 70);
+  ft_uilayout(h, 'tag', 'c2', 'width', 200, 'hpos', 10, 'vpos', 50);
+  ft_uilayout(h, 'tag', 'c3', 'width', 200, 'hpos', 10, 'vpos', 30);
+  ft_uilayout(h, 'tag', 'c4', 'width', 200, 'hpos', 10, 'vpos', 10);
+  ft_uilayout(h, 'tag', 'g1', 'width', 200, 'hpos', 220, 'vpos', 70);
+  ft_uilayout(h, 'tag', 'g2', 'width', 200, 'hpos', 220, 'vpos', 50);
+  ft_uilayout(h, 'tag', 'g3', 'width', 200, 'hpos', 220, 'vpos', 30);
+  ft_uilayout(h, 'tag', 'g4', 'width', 200, 'hpos', 220, 'vpos', 10);
 end
 
 if ~nargout
@@ -113,20 +127,37 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function update_voltage(h, varargin)
+function update_slider(h, varargin)
 a = guidata(h);
-a.voltage = get(h, 'value');
-set(h, 'value', a.voltage);
+switch get(h, 'tag')
+  case 'c1'
+    a.voltage(1) = get(h, 'value');
+    set(h, 'value', a.voltage(1));
+  case 'c2'
+    a.voltage(2) = get(h, 'value');
+    set(h, 'value', a.voltage(2));
+  case 'c3'
+    a.voltage(3) = get(h, 'value');
+    set(h, 'value', a.voltage(3));
+  case 'c4'
+    a.voltage(4) = get(h, 'value');
+    set(h, 'value', a.voltage(4));
+  case 'g1'
+    a.gate(1) = get(h, 'value');
+    set(h, 'value', a.gate(1));
+  case 'g2'
+    a.gate(2) = get(h, 'value');
+    set(h, 'value', a.gate(2));
+  case 'g3'
+    a.gate(3) = get(h, 'value');
+    set(h, 'value', a.gate(3));
+  case 'g4'
+    a.gate(4) = get(h, 'value');
+    set(h, 'value', a.gate(4));
+end
+disp(a);
 update(a);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SUBFUNCTION
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function update_gate(h, varargin)
-a = guidata(h);
-a.gate = get(h, 'value');
-set(h, 'value', a.gate);
-update(a);
+guidata(get(h, 'parent'), a);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION

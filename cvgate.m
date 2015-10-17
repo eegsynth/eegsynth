@@ -1,7 +1,10 @@
 classdef cvgate
   
   % CVGATE creates an object to control the Arduino based CV/Gate interface
-  % that is described at http://www.ouunpo.com/eegsynth/?p=268
+  % that is described at http://www.ouunpo.com/eegsynth/?p=268. Control
+  % voltage values are specified between 0 and 4095. For the 1-channel
+  % version this maps to 0-5 Volt, for the 4-channel version this maps to
+  % 0-10 Volt.
   %
   % Example use:
   %
@@ -13,8 +16,8 @@ classdef cvgate
   %   c = 0;
   %   t = tic;
   %   while true
-  %     a.voltage = 5 * (0.5 + sin(2*pi*toc(t))/2);  % fluctuate at 1 Hz
-  %     a.gate    = ~a.gate;                         % flip the gate on and off
+  %     a.voltage = 4095 * (0.5 + 0.5*sin(2*pi*toc(t)));  % fluctuate at 1 Hz
+  %     a.gate    = ~a.gate;                              % toggle the gate on and off
   %     update(a);
   %     c = c + 1;
   %     if mod(c, 100)==0
@@ -84,7 +87,7 @@ classdef cvgate
     
     function update(obj)
       if ~isempty(obj.voltage)
-        cmd = sprintf('*c%dv%04d#', [1:numel(obj.voltage); round((2^12-1)*obj.voltage/5)]);
+        cmd = sprintf('*c%dv%04d#', [1:numel(obj.voltage); round((2^12-1)*obj.voltage/4095)]);
         fprintf(obj.device, cmd);
       end
       if ~isempty(obj.gate)
@@ -98,7 +101,7 @@ classdef cvgate
     
     function obj = set.voltage(obj, voltage)
       assert(isempty(voltage) || isvector(voltage));
-      obj.voltage = min(max(0, voltage(:)'), 5);
+      obj.voltage = min(max(0, round(voltage(:))'), 4095);
     end % set
     
     function obj = set.gate(obj, gate)
