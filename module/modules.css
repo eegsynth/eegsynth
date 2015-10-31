@@ -1,0 +1,17 @@
+iframe:focus {
+    outline: none;
+}
+
+iframe[seamless] {
+    display: block;
+}
+
+iframe[style] {
+  border-style:none;
+}
+
+iframe {
+  frameborder:0;
+  border:0;
+  cellspacing:0;
+}
