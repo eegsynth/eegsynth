@@ -13,19 +13,37 @@ for section in config.sections():
         print " ", option, "=", config.get(section, option)
 
 
-r = redis.StrictRedis(host=config.get('input','hostname'), port=int(config.get('input','port')), db=0)
+r = redis.StrictRedis(host=config.get('input','hostname'), port=config.getint('input','port'), db=0)
 r.set('foo', 'bar')
 r.get('foo')
 
+s = serial.Serial(config.get('output','device'), config.getint('output','baudrate'), timeout=3.0)
 
-s = serial.Serial(onfig.get('output','device'), int(config.get('output','baudrate')), timeout=3.0)
+previous_offset=0
 
 while True:
-    s.write("\r\nSay something:")
-    rcv = s.read(10)
-    s.write("\r\nYou sent:" + repr(rcv))
+    val = r.get(config.get('input', 'rate'))
+    if val:
+        cv_rate = float(val)
+    else:
+        cv_rate = config.getfloat('default','rate')
 
+    val = r.get(config.get('input', 'offset'))
+    if val:
+        cv_offset = float(val)
+    else:
+        cv_offset = config.getfloat('default','offset')
 
-print "Start : %s" % time.ctime()
-time.sleep( 5 )
-print "End : %s" % time.ctime()
+    val = r.get(config.get('input', 'multiplier'))
+    if val:
+        cv_multiplier = float(val)
+    else:
+        cv_multiplier = config.getfloat('default','multiplier')
+
+    adjust_offset = previous_offset - cv_offset
+    delay = 60/(cv_rate*cv_multiplier) - adjust_offset
+
+    s.write('*g1v1#')
+    time.sleep( delay/2 )
+    s.write('*g1v0#')
+    time.sleep( delay/2 )
