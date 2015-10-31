@@ -5,13 +5,7 @@ import redis
 import serial
 
 config = ConfigParser.ConfigParser()
-config.read('vcpg.ini')
-
-for section in config.sections():
-    print section
-    for option in config.options(section):
-        print " ", option, "=", config.get(section, option)
-
+config.read('pulsegenerator.ini')
 
 r = redis.StrictRedis(host=config.get('input','hostname'), port=config.getint('input','port'), db=0)
 r.set('foo', 'bar')
