@@ -46,6 +46,7 @@ if nargin<1
   
   if ispc
     L = struct();
+    prefix = '';
     for i=1:8
       L(i).name = sprintf('COM%d', i);
     end
