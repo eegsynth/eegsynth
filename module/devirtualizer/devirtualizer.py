@@ -7,20 +7,27 @@ import serial
 config = ConfigParser.ConfigParser()
 config.read('devirtualizer.ini')
 
-r = redis.StrictRedis(host=config.get('input','hostname'), port=config.getint('input','port'), db=0)
-r.set('foo', 'bar')
-r.get('foo')
+r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
 
-s = serial.Serial(config.get('output','device'), config.getint('output','baudrate'), timeout=3.0)
+s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
 
 while True:
     time.sleep(0.01)
 
-    for chanindx in range(1, 4):
-        chanstr = "output%d" % channel
+    for chanindx in range(1, 8):
+        chanstr = "control%d" % channel
         val = r.get(config.get('input', chanstr))
         if val:
             chanval = float(val)
         else:
             chanval = config.getfloat('default', chanstr)
         s.write('*c%dv%04d#' % {chanindx, chanval})
+
+    for chanindx in range(1, 8):
+        chanstr = "gate%d" % channel
+        val = r.get(config.get('input', chanstr))
+        if val:
+            chanval = bool(val)
+        else:
+            chanval = config.getfloat('default', chanstr)
+        s.write('*g%dv%d#' % {chanindx, chanval})
