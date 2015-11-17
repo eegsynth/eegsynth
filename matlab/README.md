@@ -1,7 +1,7 @@
-# eegsynth-matlab
+# eegsynth
 Converting real-time EEG into sounds and music.
 
-This repository contains the MATLAB code for the rapid application development of http://www.eegsynth.org.
+This directory contains the MATLAB code for the rapid application development of http://www.eegsynth.org.
 
 ## Platform specific notes for Microsoft Windows
 Development is done on a VirtualBox with Windows 7, MATLAB 2012b for 64 bit and MATLAB 2011b for 32 bit.
