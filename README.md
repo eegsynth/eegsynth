@@ -18,3 +18,9 @@ sudo apt-get install redis-server
 
 ### install EEGsynth from gitub
 git clone https://github.com/robertoostenveld/eegsynth.git
+
+### install MIDO to get MIDI working with Python
+sudo pip install --upgrade pip
+sudo pip install mido
+sudo port selfupdate
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
