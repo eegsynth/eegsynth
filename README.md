@@ -17,6 +17,7 @@ sudo apt-get install node
 
 ### install redis
 sudo apt-get install redis-server
+sudo pip install redis
 
 ### install EEGsynth from gitub
 git clone https://github.com/robertoostenveld/eegsynth.git
@@ -27,8 +28,8 @@ sudo pip install mido
 sudo port selfupdate
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 
-sudo apt-get install portmidi
 sudo apt-get install libportmidi0
+sudo apt-get install libportmidi-dev
 
 Note: To use the Launch Control XL with the Raspberry Pi you must
 first switch it to low power mode. To do this hold down both the
