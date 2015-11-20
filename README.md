@@ -5,6 +5,8 @@ This repository contains all code for http://www.eegsynth.org.
 
 ## Installation instructions for Raspbian
 
+
+
 ### reconfigure the keyboard
 sudo dpkg-reconfigure console-data
 sudo dpkg-reconfigure keyboard-configuration
@@ -24,3 +26,13 @@ sudo pip install --upgrade pip
 sudo pip install mido
 sudo port selfupdate
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
+
+sudo apt-get install portmidi
+sudo apt-get install libportmidi0
+
+Note: To use the Launch Control XL with the Raspberry Pi you must
+first switch it to low power mode. To do this hold down both the
+User and Factory Template buttons and insert the USB cable. Release
+the Template buttons and press "Record Arm". Finally press the right
+arrow button.
+

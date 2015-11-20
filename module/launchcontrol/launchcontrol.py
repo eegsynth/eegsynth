@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import mido
 import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
