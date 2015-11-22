@@ -5,7 +5,14 @@ This repository contains all code for http://www.eegsynth.org.
 
 ## Installation instructions for Raspbian
 
+Use "raspi-config" to configure the correct keyboard, time-zone,
+to extend the partition on the SD card and to disable the automatic
+start of the graphical interface upon boot.
 
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install screen
+sudo apt-get install vim
 
 ### reconfigure the keyboard
 sudo dpkg-reconfigure console-data
