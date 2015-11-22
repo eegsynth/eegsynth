@@ -1,7 +1,8 @@
 Keyboard module
 ===============
 
-The goal of this module is to receive input MIDI commands from a keyboard, e.g. a digital piano. The notes corresponding to the key presses on the keyboard are translated into a control value that represents pith. The control value is send to the REDIS buffer, along with a trigger (gate) that indicates the precise onset of the key press. Information about the force with which the key is pressed and about the release of the key is not transmitted.
+The purpose of this module is to receive input MIDI commands from a keyboard, e.g. a digital piano. The key press events are translated into a control value representing the pitch. The force with which the key is pressed is send as trigger. Both the control value and the trigger are send to the REDIS buffer. It is possible to filter on key presses and/or key releases.
+
 
 ** Requirements **
 
