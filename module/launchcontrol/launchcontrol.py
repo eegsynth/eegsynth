@@ -10,11 +10,21 @@ config.read('launchcontrol.ini')
 
 r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
 
+# this is only for debugging
 mido.get_input_names()
 
 port = mido.open_input(config.get('midi','device'))
 
 while True:
     for msg in port.iter_pending():
-        # FIXME here it should decide on a key-value pair and send that to redis
+	if hasattr(msg, "control"):
+		# prefix.channel000.control000=value
+		key = "{}.channel{:0>2d}.control{:0>3d}".format(config.get('output', 'prefix'), msg.channel, msg.control)
+		val = msg.value
+		r.set(key, val)
+	elif hasattr(msg, "note"):
+		# prefix.channel000.note000=velocity
+		key = "{}.channel{:0>2d}.note{:0>3d}".format(config.get('output', 'prefix'), msg.channel, msg.note)
+		val = msg.velocity
+		r.publish(key, val)
         print(msg)
