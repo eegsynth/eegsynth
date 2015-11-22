@@ -17,14 +17,19 @@ port = mido.open_input(config.get('midi','device'))
 
 while True:
     for msg in port.iter_pending():
+        print(msg)
 	if hasattr(msg, "control"):
 		# prefix.channel000.control000=value
 		key = "{}.channel{:0>2d}.control{:0>3d}".format(config.get('output', 'prefix'), msg.channel, msg.control)
 		val = msg.value
 		r.set(key, val)
 	elif hasattr(msg, "note"):
-		# prefix.channel000.note000=velocity
-		key = "{}.channel{:0>2d}.note{:0>3d}".format(config.get('output', 'prefix'), msg.channel, msg.note)
-		val = msg.velocity
-		r.publish(key, val)
-        print(msg)
+		if config.get('output','action')=="release" and msg.velocity>0:
+			pass
+		elif config.get('output','action')=="press" and msg.velocity==0:
+			pass
+		else:
+			# prefix.channel000.note000=velocity
+			key = "{}.channel{:0>2d}.note{:0>3d}".format(config.get('output', 'prefix'), msg.channel, msg.note)
+			val = msg.velocity
+			r.publish(key, val)
