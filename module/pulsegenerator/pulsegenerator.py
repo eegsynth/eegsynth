@@ -9,8 +9,6 @@ config = ConfigParser.ConfigParser()
 config.read('pulsegenerator.ini')
 
 r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-r.set('foo', 'bar')
-r.get('foo')
 
 s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
 

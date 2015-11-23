@@ -5,6 +5,8 @@ This repository contains all code for http://www.eegsynth.org.
 
 ## Installation instructions for Raspbian
 
+## Installation instructions for Raspbian
+
 Use "raspi-config" to configure the correct keyboard, time-zone,
 to extend the partition on the SD card and to disable the automatic
 start of the graphical interface upon boot.
@@ -37,6 +39,12 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 
 sudo apt-get install libportmidi0
 sudo apt-get install libportmidi-dev
+
+sudo apt-get install python-pyaudio python3-pyaudio
+
+sudo apt-get install alsa-utils
+sudo apt-get install mpg321
+sudo apt-get install lame
 
 Note: To use the Launch Control XL with the Raspberry Pi you must
 first switch it to low power mode. To do this hold down both the
