@@ -4,6 +4,29 @@ import math
 import pyaudio
 import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
 import redis
+import threading
+
+global globvar
+
+class TriggerThread(threading.Thread):
+    def __init__(self, r, channels):
+        threading.Thread.__init__(self)
+        self.redis = r
+        self.pubsub = self.redis.pubsub()
+        self.pubsub.subscribe(channels)
+        self.time = 0
+        self.last = 0
+
+    def settime(self, t):
+        self.time = t
+
+    def getlast(self):
+        return self.last
+
+    def run(self):
+        for item in self.pubsub.listen():
+            # print item['channel'], ":", item['data']
+            self.last = self.time
 
 config = ConfigParser.ConfigParser()
 config.read('synthesizer.ini')
@@ -17,6 +40,9 @@ CHANNELS  = 1
 BITS = p.get_format_from_width(1)
 
 stream = p.open(format = BITS,channels = CHANNELS,rate = BITRATE,output = True)
+
+trigger = TriggerThread(r, config.get('input','adsr_gate'))
+trigger.start()
 
 offset = 0
 while True:
@@ -106,12 +132,49 @@ while True:
   control_vca = control_vca/127.0
 
   ################################################################################
+  # ADSR
+  ################################################################################
+
+  control_attack = r.get(config.get('input','adsr_attack'))
+  if control_attack:
+    control_attack = float(control_attack)
+  else:
+    control_attack = config.getfloat('default','adsr_attack')
+
+  control_decay = r.get(config.get('input','adsr_decay'))
+  if control_decay:
+    control_decay = float(control_decay)
+  else:
+    control_decay = config.getfloat('default','adsr_decay')
+
+  control_sustain = r.get(config.get('input','adsr_sustain'))
+  if control_sustain:
+    control_sustain = float(control_sustain)
+  else:
+    control_sustain = config.getfloat('default','adsr_sustain')
+
+  control_release = r.get(config.get('input','adsr_release'))
+  if control_release:
+    control_release = float(control_release)
+  else:
+    control_release = config.getfloat('default','adsr_release')
+
+  # convert from value between 0 and 127 into time in samples
+  control_attack  *= float(BITRATE)/127
+  control_decay   *= float(BITRATE)/127
+  control_sustain *= float(BITRATE)/127
+  control_release *= float(BITRATE)/127
+
+  ################################################################################
   # generate the signal
   ################################################################################
 
   BUFFER = ''
   PERIOD = int(BITRATE/FREQUENCY)
   for t in xrange(offset,offset+BLOCKSIZE):
+    # update the time for the trigger detection
+    trigger.settime(t)
+
     # compose the VCO
     wave_sin = control_sin * (math.sin(math.pi*FREQUENCY*t/BITRATE)+1)/2
     wave_tri = control_tri * float(abs(t % PERIOD - PERIOD/2))/PERIOD*2
@@ -122,6 +185,18 @@ while True:
     control_lfo = (math.sin(math.pi*lfo_frequency*t/BITRATE)+1)/2
     control_lfo = lfo_depth + (1-lfo_depth)*control_lfo
     waveform = control_lfo * waveform
+    # compose and apply the ADSR
+    if (t-trigger.getlast())<control_attack:
+        control_adsr = (t-trigger.getlast())/control_attack
+    elif (t-trigger.getlast()-control_attack)<control_decay:
+        control_adsr = 1.0 - 0.5*(t-trigger.getlast()-control_attack)/control_decay
+    elif (t-trigger.getlast()-control_attack-control_decay)<control_sustain:
+        control_adsr = 0.5
+    elif (t-trigger.getlast()-control_attack-control_decay-control_sustain)<control_release:
+        control_adsr = 0.5 - 0.5*(t-trigger.getlast()-control_attack-control_decay-control_sustain)/control_release
+    else:
+        control_adsr = 0
+    waveform = control_adsr * waveform
     # apply the VCA
     waveform = control_vca * waveform
     BUFFER = BUFFER+chr(int(waveform))
