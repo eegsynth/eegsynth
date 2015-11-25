@@ -32,11 +32,14 @@ while True:
     pitch = config.getfloat('default','pitch')
 
   if config.get('general','taper')=='linear':
+    # see http://www.resistorguide.com/potentiometer-taper/
     # assume that this value is between 0 and 127
     # map it to a comfortable frequency range
     FREQUENCY = 10*pitch + 1
   else:
-    FREQUENCY = math.exp(pitch);
+    # note 60 on the keyboard is the C4, which is 261.63 Hz
+    # note 72 on the keyboard is the C5, which is 523.25 Hz
+    FREQUENCY = math.pow(2, (pitch/12-5))*261.63
 
   control_sin = r.get(config.get('input','sin'))
   if control_sin:
