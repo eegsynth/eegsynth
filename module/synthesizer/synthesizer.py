@@ -4,29 +4,8 @@ import math
 import pyaudio
 import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
 import redis
-import threading
-
-global globvar
-
-class TriggerThread(threading.Thread):
-    def __init__(self, r, channels):
-        threading.Thread.__init__(self)
-        self.redis = r
-        self.pubsub = self.redis.pubsub()
-        self.pubsub.subscribe(channels)
-        self.time = 0
-        self.last = 0
-
-    def settime(self, t):
-        self.time = t
-
-    def getlast(self):
-        return self.last
-
-    def run(self):
-        for item in self.pubsub.listen():
-            # print item['channel'], ":", item['data']
-            self.last = self.time
+import multiprocessing
+import time as _time
 
 config = ConfigParser.ConfigParser()
 config.read('synthesizer.ini')
@@ -41,7 +20,17 @@ BITS = p.get_format_from_width(1)
 
 stream = p.open(format = BITS,channels = CHANNELS,rate = BITRATE,output = True)
 
-trigger = TriggerThread(r, config.get('input','adsr_gate'))
+time = multiprocessing.Value('d', 0)
+last = multiprocessing.Value('d', 0)
+
+def TriggerMonitor(r, channel):
+    pubsub = r.pubsub()
+    pubsub.subscribe(channel)
+    for item in pubsub.listen():
+        print item['channel'], ":", item['data']
+        last.value = time.value
+
+trigger = multiprocessing.Process(target=TriggerMonitor, args=(r, config.get('input','adsr_gate')))
 trigger.start()
 
 offset = 0
@@ -173,7 +162,7 @@ while True:
   PERIOD = int(BITRATE/FREQUENCY)
   for t in xrange(offset,offset+BLOCKSIZE):
     # update the time for the trigger detection
-    trigger.settime(t)
+    time.value = t
 
     # compose the VCO
     wave_sin = control_sin * (math.sin(math.pi*FREQUENCY*t/BITRATE)+1)/2
@@ -185,24 +174,26 @@ while True:
     control_lfo = (math.sin(math.pi*lfo_frequency*t/BITRATE)+1)/2
     control_lfo = lfo_depth + (1-lfo_depth)*control_lfo
     waveform = control_lfo * waveform
+
     # compose and apply the ADSR
-    if (t-trigger.getlast())<control_attack:
-        control_adsr = (t-trigger.getlast())/control_attack
-    elif (t-trigger.getlast()-control_attack)<control_decay:
-        control_adsr = 1.0 - 0.5*(t-trigger.getlast()-control_attack)/control_decay
-    elif (t-trigger.getlast()-control_attack-control_decay)<control_sustain:
+    if control_attack>0 and (t-last.value)<control_attack:
+        control_adsr = (t-last.value)/control_attack
+    elif control_decay>0 and (t-last.value-control_attack)<control_decay:
+        control_adsr = 1.0 - 0.5*(t-last.value-control_attack)/control_decay
+    elif control_sustain>0 and (t-last.value-control_attack-control_decay)<control_sustain:
         control_adsr = 0.5
-    elif (t-trigger.getlast()-control_attack-control_decay-control_sustain)<control_release:
-        control_adsr = 0.5 - 0.5*(t-trigger.getlast()-control_attack-control_decay-control_sustain)/control_release
+    elif control_release>0 and (t-last.value-control_attack-control_decay-control_sustain)<control_release:
+        control_adsr = 0.5 - 0.5*(t-last.value-control_attack-control_decay-control_sustain)/control_release
     else:
         control_adsr = 0
     waveform = control_adsr * waveform
+
     # apply the VCA
     waveform = control_vca * waveform
     BUFFER = BUFFER+chr(int(waveform))
   offset = offset+BLOCKSIZE
   stream.write(BUFFER)
-
+ 
 stream.stop_stream()
 stream.close()
 p.terminate()
