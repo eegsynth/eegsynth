@@ -39,7 +39,7 @@ while True:
   else:
     # note 60 on the keyboard is the C4, which is 261.63 Hz
     # note 72 on the keyboard is the C5, which is 523.25 Hz
-    FREQUENCY = math.pow(2, (pitch/12-5))*261.63
+    FREQUENCY = math.pow(2, (pitch/12-4))*261.63
 
   control_sin = r.get(config.get('input','sin'))
   if control_sin:
