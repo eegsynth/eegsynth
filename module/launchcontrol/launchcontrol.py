@@ -11,7 +11,10 @@ config.read('launchcontrol.ini')
 r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
 
 # this is only for debugging
-mido.get_input_names()
+print('-------------------------')
+for port in mido.get_input_names():
+  print(port)
+print('-------------------------')
 
 port = mido.open_input(config.get('midi','device'))
 
