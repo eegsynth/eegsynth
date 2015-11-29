@@ -5,7 +5,8 @@ import pyaudio
 import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
 import redis
 import multiprocessing
-import time as _time
+import threading
+import time
 
 config = ConfigParser.ConfigParser()
 config.read('synthesizer.ini')
@@ -13,187 +14,266 @@ config.read('synthesizer.ini')
 r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
 p = pyaudio.PyAudio()
 
-BITRATE   = int(config.get('general','bitrate'))
 BLOCKSIZE = int(config.get('general','blocksize'))
 CHANNELS  = 1
-BITS = p.get_format_from_width(1)
+BITRATE   = int(config.get('general','bitrate'))
+BITS      = p.get_format_from_width(1)
+
+lock = threading.Lock()
 
 stream = p.open(format = BITS,channels = CHANNELS,rate = BITRATE,output = True)
 
-time = multiprocessing.Value('d', 0)
-last = multiprocessing.Value('d', 0)
+class TriggerThread(threading.Thread):
+    def __init__(self, r, config):
+        threading.Thread.__init__(self)
+        self.r = r
+        self.config = config
+        self.stopped = False
+        lock.acquire()
+        self.time = 0
+        self.last = 0
+        lock.release()
+    def stop_thread(self):
+        self.stopped = True
+    def run(self):
+        pubsub = self.r.pubsub()
+        channel = self.config.get('input','adsr_gate')
+        pubsub.subscribe(channel)
+        for item in pubsub.listen():
+            if self.stopped:
+                break
+            else:
+                print item['channel'], ":", item['data']
+                lock.acquire()
+                self.last = self.time
+                lock.release()
 
-def TriggerMonitor(r, channel):
-    pubsub = r.pubsub()
-    pubsub.subscribe(channel)
-    for item in pubsub.listen():
-        print item['channel'], ":", item['data']
-        last.value = time.value
+class ControlThread(threading.Thread):
+    def __init__(self, r, config):
+        threading.Thread.__init__(self)
+        self.r = r
+        self.config = config
+        self.stopped = False
+        lock.acquire()
+        self.vco_pitch      = 0
+        self.vco_sin        = 0
+        self.vco_tri        = 0
+        self.vco_saw        = 0
+        self.vco_sqr        = 0
+        self.lfo_depth      = 0
+        self.lfo_frequency  = 0
+        self.adsr_attack    = 0
+        self.adsr_decay     = 0
+        self.adsr_sustain   = 0
+        self.adsr_release   = 0
+        self.vca_envelope   = 0
+        lock.release()
+    def stop_thread(self):
+        self.stopped = True
+    def run(self):
+      while not self.stopped:
 
-trigger = multiprocessing.Process(target=TriggerMonitor, args=(r, config.get('input','adsr_gate')))
+          ################################################################################
+          # VCO
+          ################################################################################
+          vco_pitch = self.r.get(config.get('input','vco_pitch'))
+          if vco_pitch:
+              vco_pitch = float(vco_pitch)
+          else:
+              vco_pitch = self.config.getfloat('default','vco_pitch')
+
+          vco_sin = self.r.get(self.config.get('input','vco_sin'))
+          if vco_sin:
+              vco_sin = float(vco_sin)
+          else:
+              vco_sin = self.config.getfloat('default','vco_sin')
+
+          vco_tri = self.r.get(self.config.get('input','vco_tri'))
+          if vco_tri:
+              vco_tri = float(vco_tri)
+          else:
+              vco_tri = self.config.getfloat('default','vco_tri')
+
+          vco_saw = self.r.get(self.config.get('input','vco_saw'))
+          if vco_saw:
+              vco_saw = float(vco_saw)
+          else:
+              vco_saw = self.config.getfloat('default','vco_saw')
+
+          vco_sqr = self.r.get(self.config.get('input','vco_sqr'))
+          if vco_sqr:
+              vco_sqr = float(vco_sqr)
+          else:
+            vco_sqr = self.config.getfloat('default','vco_sqr')
+
+          vco_total = vco_sin + vco_tri + vco_saw + vco_sqr
+          if vco_total>0:
+              # these are all scaled relatively to each other
+              vco_sin = vco_sin/vco_total
+              vco_tri = vco_tri/vco_total
+              vco_saw = vco_saw/vco_total
+              vco_sqr = vco_sqr/vco_total
+
+          ################################################################################
+          # LFO
+          ################################################################################
+          lfo_frequency = self.r.get(self.config.get('input','lfo_frequency'))
+          if lfo_frequency:
+              lfo_frequency = float(lfo_frequency)
+          else:
+              lfo_frequency = self.config.getfloat('default','lfo_frequency')
+          # assume that this value is between 0 and 127
+          lfo_frequency = lfo_frequency/3
+
+          lfo_depth = self.r.get(self.config.get('input','lfo_depth'))
+          if lfo_depth:
+              lfo_depth = float(lfo_depth)
+          else:
+              lfo_depth = self.config.getfloat('default','lfo_depth')
+          # assume that this value is between 0 and 127
+          lfo_depth = lfo_depth/127
+
+          ################################################################################
+          # ADSR
+          ################################################################################
+          adsr_attack = self.r.get(self.config.get('input','adsr_attack'))
+          if adsr_attack:
+              adsr_attack = float(adsr_attack)
+          else:
+              adsr_attack = self.config.getfloat('default','adsr_attack')
+
+          adsr_decay = self.r.get(self.config.get('input','adsr_decay'))
+          if adsr_decay:
+              adsr_decay = float(adsr_decay)
+          else:
+              adsr_decay = self.config.getfloat('default','adsr_decay')
+
+          adsr_sustain = self.r.get(self.config.get('input','adsr_sustain'))
+          if adsr_sustain:
+              adsr_sustain = float(adsr_sustain)
+          else:
+              adsr_sustain = self.config.getfloat('default','adsr_sustain')
+
+          adsr_release = self.r.get(self.config.get('input','adsr_release'))
+          if adsr_release:
+              adsr_release = float(adsr_release)
+          else:
+              adsr_release = self.config.getfloat('default','adsr_release')
+
+          # convert from value between 0 and 127 into time in samples
+          adsr_attack   *= float(BITRATE)/127
+          adsr_decay    *= float(BITRATE)/127
+          adsr_sustain  *= float(BITRATE)/127
+          adsr_release  *= float(BITRATE)/127
+
+          ################################################################################
+          # VCA
+          ################################################################################
+          vca_envelope = self.r.get(self.config.get('input','vca_envelope'))
+          if vca_envelope:
+              vca_envelope = float(vca_envelope)
+          else:
+              vca_envelope = self.config.getfloat('default','vca_envelope')
+          # assume that this value is between 0 and 127
+          vca_envelope = vca_envelope/127.0
+
+          ################################################################################
+          # store the control values in the local object
+          ################################################################################
+          lock.acquire()
+          self.vco_pitch        = vco_pitch
+          self.vco_sin          = vco_sin
+          self.vco_tri          = vco_tri
+          self.vco_saw          = vco_saw
+          self.vco_sqr          = vco_sqr
+          self.lfo_depth        = lfo_depth
+          self.lfo_frequency    = lfo_frequency
+          self.adsr_attack      = adsr_attack
+          self.adsr_decay       = adsr_decay
+          self.adsr_sustain     = adsr_sustain
+          self.adsr_release     = adsr_release
+          self.vca_envelope     = vca_envelope
+          lock.release()
+
+# start the background thread
+control = ControlThread(r, config)
+control.start()
+
+# start the background thread
+trigger = TriggerThread(r, config)
 trigger.start()
 
 offset = 0
 while True:
+    ################################################################################
+    # generate the signal
+    ################################################################################
+    BUFFER = ''
 
-  ################################################################################
-  # VCO
-  ################################################################################
+    for t in xrange(offset,offset+BLOCKSIZE):
+        # update the time for the trigger detection
 
-  pitch = r.get(config.get('input','pitch'))
-  if pitch:
-    pitch = float(pitch)
-  else:
-    pitch = config.getfloat('default','pitch')
+        lock.acquire()
+        trigger.time    = t
+        last            = trigger.last
+        vco_pitch       = control.vco_pitch
+        vco_sin         = control.vco_sin
+        vco_tri         = control.vco_tri
+        vco_saw         = control.vco_saw
+        vco_sqr         = control.vco_sqr
+        lfo_depth       = control.lfo_depth
+        lfo_frequency   = control.lfo_frequency
+        adsr_attack     = control.adsr_attack
+        adsr_decay      = control.adsr_decay
+        adsr_sustain    = control.adsr_sustain
+        adsr_release    = control.adsr_release
+        vca_envelope    = control.vca_envelope
+        lock.release()
 
-  if config.get('general','taper')=='linear':
-    # see http://www.resistorguide.com/potentiometer-taper/
-    # assume that this value is between 0 and 127
-    # map it to a comfortable frequency range
-    FREQUENCY = 10*pitch + 1
-  else:
-    # note 60 on the keyboard is the C4, which is 261.63 Hz
-    # note 72 on the keyboard is the C5, which is 523.25 Hz
-    FREQUENCY = math.pow(2, (pitch/12-4))*261.63
+        # compose the VCO waveform
+        if vco_pitch>0:
+            # note 60 on the keyboard is the C4, which is 261.63 Hz
+            # note 72 on the keyboard is the C5, which is 523.25 Hz
+            FREQUENCY = math.pow(2, (vco_pitch/12-4))*261.63
+            PERIOD = int(BITRATE/FREQUENCY)
+            wave_sin = vco_sin * (math.sin(math.pi*FREQUENCY*t/BITRATE)+1)/2
+            wave_tri = vco_tri * float(abs(t % PERIOD - PERIOD/2))/PERIOD*2
+            wave_saw = vco_saw * float(t % PERIOD)/PERIOD
+            wave_sqr = vco_sqr * float((t % PERIOD) > PERIOD/2)
+            waveform = (wave_sin + wave_tri + wave_saw + wave_sqr)*127
+        else:
+            waveform = 0
 
-  control_sin = r.get(config.get('input','sin'))
-  if control_sin:
-    control_sin = float(control_sin)
-  else:
-    control_sin = config.getfloat('default','sin')
+        # compose and apply the LFO
+        lfo_envelope = (math.sin(math.pi*lfo_frequency*t/BITRATE)+1)/2
+        lfo_envelope = lfo_depth + (1-lfo_depth)*lfo_envelope
+        waveform = lfo_envelope * waveform
 
-  control_tri = r.get(config.get('input','tri'))
-  if control_tri:
-    control_tri = float(control_tri)
-  else:
-    control_tri = config.getfloat('default','tri')
+        # compose and apply the ADSR
+        if adsr_attack>0 and (t-last)<adsr_attack:
+            adsr_envelope = (t-last)/adsr_attack
+        elif adsr_decay>0 and (t-last-adsr_attack)<adsr_decay:
+            adsr_envelope = 1.0 - 0.5*(t-last-adsr_attack)/adsr_decay
+        elif adsr_sustain>0 and (t-last-adsr_attack-adsr_decay)<adsr_sustain:
+            adsr_envelope = 0.5
+        elif adsr_release>0 and (t-last-adsr_attack-adsr_decay-adsr_sustain)<adsr_release:
+            adsr_envelope = 0.5 - 0.5*(t-last-adsr_attack-adsr_decay-adsr_sustain)/adsr_release
+        else:
+            adsr_envelope = 0
+        waveform = adsr_envelope * waveform
 
-  control_saw = r.get(config.get('input','saw'))
-  if control_saw:
-    control_saw = float(control_saw)
-  else:
-    control_saw = config.getfloat('default','saw')
+        # apply the VCA
+        waveform = vca_envelope * waveform
 
-  control_sqr = r.get(config.get('input','sqr'))
-  if control_sqr:
-    control_sqr = float(control_sqr)
-  else:
-    control_sqr = config.getfloat('default','sqr')
+        # add the current waveform sample to the buffer
+        BUFFER = BUFFER+chr(int(waveform))
 
-  control_total = control_sin + control_tri + control_saw + control_sqr
-  if control_total>0:
-      # these are all scaled relatively to each other
-      control_sin = control_sin/control_total
-      control_tri = control_tri/control_total
-      control_saw = control_saw/control_total
-      control_sqr = control_sqr/control_total
+    # write the buffer content to the audio device
+    stream.write(BUFFER)
+    offset = offset+BLOCKSIZE
 
-  ################################################################################
-  # LFO
-  ################################################################################
-
-  lfo_frequency = r.get(config.get('input','lfo_frequency'))
-  if lfo_frequency:
-    lfo_frequency = float(lfo_frequency)
-  else:
-    lfo_frequency = config.getfloat('default','lfo_frequency')
-  # assume that this value is between 0 and 127
-  lfo_frequency = lfo_frequency/3
-
-  lfo_depth = r.get(config.get('input','lfo_depth'))
-  if lfo_depth:
-    lfo_depth = float(lfo_depth)
-  else:
-    lfo_depth = config.getfloat('default','lfo_depth')
-  # assume that this value is between 0 and 127
-  lfo_depth = lfo_depth/127
-
-  ################################################################################
-  # VCA
-  ################################################################################
-
-  control_vca = r.get(config.get('input','vca'))
-  if control_vca:
-    control_vca = float(control_vca)
-  else:
-    control_vca = config.getfloat('default','vca')
-  # assume that this value is between 0 and 127
-  control_vca = control_vca/127.0
-
-  ################################################################################
-  # ADSR
-  ################################################################################
-
-  control_attack = r.get(config.get('input','adsr_attack'))
-  if control_attack:
-    control_attack = float(control_attack)
-  else:
-    control_attack = config.getfloat('default','adsr_attack')
-
-  control_decay = r.get(config.get('input','adsr_decay'))
-  if control_decay:
-    control_decay = float(control_decay)
-  else:
-    control_decay = config.getfloat('default','adsr_decay')
-
-  control_sustain = r.get(config.get('input','adsr_sustain'))
-  if control_sustain:
-    control_sustain = float(control_sustain)
-  else:
-    control_sustain = config.getfloat('default','adsr_sustain')
-
-  control_release = r.get(config.get('input','adsr_release'))
-  if control_release:
-    control_release = float(control_release)
-  else:
-    control_release = config.getfloat('default','adsr_release')
-
-  # convert from value between 0 and 127 into time in samples
-  control_attack  *= float(BITRATE)/127
-  control_decay   *= float(BITRATE)/127
-  control_sustain *= float(BITRATE)/127
-  control_release *= float(BITRATE)/127
-
-  ################################################################################
-  # generate the signal
-  ################################################################################
-
-  BUFFER = ''
-  PERIOD = int(BITRATE/FREQUENCY)
-  for t in xrange(offset,offset+BLOCKSIZE):
-    # update the time for the trigger detection
-    time.value = t
-
-    # compose the VCO
-    wave_sin = control_sin * (math.sin(math.pi*FREQUENCY*t/BITRATE)+1)/2
-    wave_tri = control_tri * float(abs(t % PERIOD - PERIOD/2))/PERIOD*2
-    wave_saw = control_saw * float(t % PERIOD)/PERIOD
-    wave_sqr = control_sqr * float((t % PERIOD) > PERIOD/2)
-    waveform = (wave_sin + wave_tri + wave_saw + wave_sqr)*127
-    # compose and apply the LFO
-    control_lfo = (math.sin(math.pi*lfo_frequency*t/BITRATE)+1)/2
-    control_lfo = lfo_depth + (1-lfo_depth)*control_lfo
-    waveform = control_lfo * waveform
-
-    # compose and apply the ADSR
-    if control_attack>0 and (t-last.value)<control_attack:
-        control_adsr = (t-last.value)/control_attack
-    elif control_decay>0 and (t-last.value-control_attack)<control_decay:
-        control_adsr = 1.0 - 0.5*(t-last.value-control_attack)/control_decay
-    elif control_sustain>0 and (t-last.value-control_attack-control_decay)<control_sustain:
-        control_adsr = 0.5
-    elif control_release>0 and (t-last.value-control_attack-control_decay-control_sustain)<control_release:
-        control_adsr = 0.5 - 0.5*(t-last.value-control_attack-control_decay-control_sustain)/control_release
-    else:
-        control_adsr = 0
-    waveform = control_adsr * waveform
-
-    # apply the VCA
-    waveform = control_vca * waveform
-    BUFFER = BUFFER+chr(int(waveform))
-  offset = offset+BLOCKSIZE
-  stream.write(BUFFER)
- 
+trigger.stop_thread()
+control.stop_thread()
 stream.stop_stream()
 stream.close()
 p.terminate()
