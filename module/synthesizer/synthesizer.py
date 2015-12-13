@@ -14,6 +14,13 @@ config.read('synthesizer.ini')
 r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
 p = pyaudio.PyAudio()
 
+count = p.get_device_count()
+devices = []
+for i in range(count):
+    devices.append(p.get_device_info_by_index(i))
+for i, dev in enumerate(devices):
+    print "%d - %s" % (i, dev['name'])
+
 BLOCKSIZE = int(config.get('general','blocksize'))
 CHANNELS  = 1
 BITRATE   = int(config.get('general','bitrate'))
@@ -21,7 +28,11 @@ BITS      = p.get_format_from_width(1)
 
 lock = threading.Lock()
 
-stream = p.open(format = BITS,channels = CHANNELS,rate = BITRATE,output = True)
+stream = p.open(format = BITS,
+		channels = CHANNELS,
+		rate = BITRATE,
+		output = True,
+		output_device_index = config.getint('pyaudio','output_device_index'))
 
 class TriggerThread(threading.Thread):
     def __init__(self, r, config):
@@ -277,3 +288,4 @@ control.stop_thread()
 stream.stop_stream()
 stream.close()
 p.terminate()
+
