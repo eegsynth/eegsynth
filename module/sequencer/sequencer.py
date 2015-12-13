@@ -24,7 +24,12 @@ while True:
 
     for note in sequence.split():
         # this will return empty if not available
-        new = int(r.get(config.get('input','pattern')))
+        new = r.get(config.get('input','pattern'))
+        if new:
+            new = int(new)
+        else:
+            new = config.getint('default','pattern')
+
         if pattern!=new:
             pattern = new
             try:

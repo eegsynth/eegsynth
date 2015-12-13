@@ -14,12 +14,13 @@ config.read('synthesizer.ini')
 r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
 p = pyaudio.PyAudio()
 
-count = p.get_device_count()
 devices = []
-for i in range(count):
+for i in range(p.get_device_count()):
     devices.append(p.get_device_info_by_index(i))
+print('-------------------------')
 for i, dev in enumerate(devices):
     print "%d - %s" % (i, dev['name'])
+print('-------------------------')
 
 BLOCKSIZE = int(config.get('general','blocksize'))
 CHANNELS  = 1
@@ -215,7 +216,8 @@ trigger = TriggerThread(r, config)
 trigger.start()
 
 offset = 0
-while True:
+try:
+  while True:
     ################################################################################
     # generate the signal
     ################################################################################
@@ -282,10 +284,11 @@ while True:
     # write the buffer content to the audio device
     stream.write(BUFFER)
     offset = offset+BLOCKSIZE
-
-trigger.stop_thread()
-control.stop_thread()
-stream.stop_stream()
-stream.close()
-p.terminate()
-
+except KeyboardInterrupt:
+    trigger.stop_thread()
+    control.stop_thread()
+    trigger.join()
+    control.join()
+    stream.stop_stream()
+    stream.close()
+    p.terminate()

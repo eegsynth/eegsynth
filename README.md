@@ -1,4 +1,5 @@
 # eegsynth-matlab
+
 Converting real-time EEG into sounds and music.
 
 This repository contains all code for http://www.eegsynth.org.
@@ -51,4 +52,20 @@ first switch it to low power mode. To do this hold down both the
 User and Factory Template buttons and insert the USB cable. Release
 the Template buttons and press "Record Arm". Finally press the right
 arrow button.
+
+### fix audio problems on Raspberry Pi
+
+See https://dbader.org/blog/crackle-free-audio-on-the-raspberry-pi-with-mpd-and-pulseaudio
+sudo apt-get install pulseaudio
+sudo apt-get install mpd
+sudo apt-get install mpc
+This did not solve it, I uninstalled them again.
+
+sudo apt-get install libasound2-dev
+sudo apt-get install python-dev
+wget https://pypi.python.org/packages/source/p/pyalsaaudio/pyalsaaudio-0.8.2.tar.gz
+tar xvzf pyalsaaudio-0.8.2.tar.gz
+cd pyalsaaudio-0.8.2
+python setup.py build
+sudo python setup.py install
 
