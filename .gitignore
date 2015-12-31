@@ -1,3 +1,7 @@
+# Misc files
+*.pid
+*.log
+
 # Backup files
 *.m~
 *.c~
