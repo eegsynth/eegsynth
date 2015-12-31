@@ -12,6 +12,12 @@ config = ConfigParser.ConfigParser()
 config.read('synthesizer.ini')
 
 r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+try:
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
 p = pyaudio.PyAudio()
 
 devices = []
