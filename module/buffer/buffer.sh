@@ -4,14 +4,18 @@ PATH=/sbin:/bin:/usr/bin
 
 COMMAND="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer 1972"
 
-DIR=`dirname $0`
-NAME=`basename $0 .sh`
+DIR=`dirname "$0"`
+NAME=`basename "$0" .sh`
 
 # helper files are stored in the directory containing this script
 PIDFILE=${DIR}/${NAME}.pid
 LOGFILE=${DIR}/${NAME}.log
 
 log_action_msg () {
+  echo $* 1>&1
+}
+
+log_action_err () {
   echo $* 1>&2
 }
 
@@ -26,7 +30,7 @@ check_running_process () {
 
 do_start () {
   log_action_msg "Starting $NAME"
-  check_running_process && log_action_msg "Error: $NAME is already started" && exit 1
+  check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
   ( $COMMAND > $LOGFILE) &
   echo $! > $PIDFILE
@@ -34,7 +38,7 @@ do_start () {
 
 do_stop () {
   log_action_msg "Stopping $NAME"
-  check_running_process || log_action_msg "Error: $NAME is already stopped"
+  check_running_process || log_action_err "Error: $NAME is already stopped"
   check_running_process || exit 1
   kill -9 `cat $PIDFILE`
   rm $PIDFILE

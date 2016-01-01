@@ -4,8 +4,8 @@ PATH=/sbin:/bin:/usr/bin
 
 COMMAND="sleep 600"
 
-DIR=`dirname $0`
-NAME=`basename $0 .sh`
+DIR=`dirname "$0"`
+NAME=`basename "$0" .sh`
 
 # helper files are stored in the directory containing this script
 PIDFILE=${DIR}/${NAME}.pid
