@@ -2,7 +2,15 @@
 
 PATH=/sbin:/bin:/usr/bin
 
-COMMAND="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer 1972"
+ini_parser () {
+  INIFILE=$1
+  SECTION=$2
+  ITEM=$3
+  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[:space:]*$ITEM[:space:]*=" | sed s/.*=[:space:]*//
+}
+
+PORT=`ini_parser buffer.ini fieldtrip port`
+COMMAND="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer $PORT"
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
@@ -52,15 +60,13 @@ do_status () {
 case "$1" in
   start)
         do_start
-        do_status
         ;;
   restart)
-        do_stop && do_start
-        do_status
+        check_running_process && do_stop
+        do_start
         ;;
   stop)
         do_stop
-        do_status
         ;;
   status)
         do_status

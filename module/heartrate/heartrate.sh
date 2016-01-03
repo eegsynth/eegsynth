@@ -52,15 +52,13 @@ do_status () {
 case "$1" in
   start)
         do_start
-        do_status
         ;;
   restart)
-        do_stop && do_start
-        do_status
+        check_running_process && do_stop
+        do_start
         ;;
   stop)
         do_stop
-        do_status
         ;;
   status)
         do_status
