@@ -1,10 +1,8 @@
-# eegsynth-matlab
+# EEGsynth
 
 Converting real-time EEG into sounds and music.
 
 This repository contains all code for http://www.eegsynth.org.
-
-## Installation instructions for Raspbian
 
 ## Installation instructions for Raspbian
 
