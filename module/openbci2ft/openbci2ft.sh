@@ -2,7 +2,12 @@
 
 PATH=/sbin:/bin:/usr/bin
 
-COMMAND="sleep 10"
+ini_parser () {
+  INIFILE="$1"
+  SECTION="$2"
+  ITEM="$3"
+  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[:space:]*$ITEM[:space:]*=" | sed s/.*=[:space:]*//
+}
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
@@ -10,6 +15,10 @@ NAME=`basename "$0" .sh`
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
+INIFILE="$DIR"/"$NAME".ini
+EXEFILE="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/openbci2ft"
+
+COMMAND="$EXEFILE $INIFILE"
 
 log_action_msg () {
   echo $* 1>&1

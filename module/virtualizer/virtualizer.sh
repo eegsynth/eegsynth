@@ -2,14 +2,14 @@
 
 PATH=/sbin:/bin:/usr/bin
 
-COMMAND="sleep 10"
-
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
 
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
+INIFILE="$DIR"/"$NAME".ini
+COMMAND="$DIR"/"$NAME".py
 
 log_action_msg () {
   echo $* 1>&1

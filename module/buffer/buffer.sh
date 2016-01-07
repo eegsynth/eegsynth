@@ -3,14 +3,11 @@
 PATH=/sbin:/bin:/usr/bin
 
 ini_parser () {
-  INIFILE=$1
-  SECTION=$2
-  ITEM=$3
+  INIFILE="$1"
+  SECTION="$2"
+  ITEM="$3"
   cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[:space:]*$ITEM[:space:]*=" | sed s/.*=[:space:]*//
 }
-
-PORT=`ini_parser buffer.ini fieldtrip port`
-COMMAND="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer $PORT"
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
@@ -18,6 +15,11 @@ NAME=`basename "$0" .sh`
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
+INIFILE="$DIR"/"$NAME".ini
+EXEFILE="Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer"
+
+PORT=`ini_parser "$INIFILE" fieldtrip port`
+COMMAND="$EXEFILE $PORT"
 
 log_action_msg () {
   echo $* 1>&1
