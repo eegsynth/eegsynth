@@ -16,7 +16,7 @@ NAME=`basename "$0" .sh`
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-EXEFILE="Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer"
+EXEFILE="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer"
 
 PORT=`ini_parser "$INIFILE" fieldtrip port`
 COMMAND="$EXEFILE $PORT"
