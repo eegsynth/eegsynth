@@ -1,0 +1,14 @@
+body {
+  font-family:"Verdana";
+  background-color: lightblue;
+}
+
+h1 {
+    color: navy;
+    margin-left: 20px;
+}
+textarea {
+	border: 3px solid #cccccc;
+	padding: 5px;
+	font-family: monospace;
+}
