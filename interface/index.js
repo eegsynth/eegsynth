@@ -55,6 +55,7 @@ switch (command) {
   case 'status':
     // construct the command line
     var filename = path.join(__dirname, '..', 'module', name, name + '.sh');
+    console.log(filename + " " + command);
     var output = spawnSync(filename, [command], {timeout: 5000});
     return output.stdout.toString();
     break;
