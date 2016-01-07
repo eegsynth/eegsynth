@@ -4,9 +4,17 @@ import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import serial
+import sys
+import os
+
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+else:
+    basis = sys.argv[0]
+installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
-config.read('devirtualizer.ini')
+config.read(os.path.join(installed_folder, 'devirtualizer.ini'))
 
 r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
 try:

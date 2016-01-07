@@ -7,9 +7,17 @@ import redis
 import multiprocessing
 import threading
 import time
+import sys
+import os
+
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+else:
+    basis = sys.argv[0]
+installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
-config.read('synthesizer.ini')
+config.read(os.path.join(installed_folder, 'synthesizer.ini'))
 
 r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
 try:
