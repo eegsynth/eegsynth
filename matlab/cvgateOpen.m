@@ -2,7 +2,7 @@ function a = cvgateOpen(a)
 
 % CVGATEOPEN opens a graphical user interface to select the serial port
 % to which the Arduino USB2CVGATE interface is connected. Subsequently, it
-% allows testing the analog (cv) and digital (gate) outputs.
+% allows testing the analog (contol voltage) and digital (gate) outputs.
 %
 % Use as
 %   obj = cvgateOpen
@@ -77,8 +77,8 @@ if nargin<1
     n = str2num(guidata(h)); %#ok<*ST2NM>
     delete(h);
     a = cvgate(fullfile(prefix, L(n).name), 115200);
-    a.voltage = [0 0 0 0];
-    a.gate    = [0 0 0 0];
+    a.voltage = [0 0 0 0 0 0 0 0];
+    a.gate    = [0 0 0 0 0 0 0 0];
   else
     a = [];
   end
@@ -95,29 +95,45 @@ if ~isempty(a)
   set(h, 'ToolBar', 'none')
   set(h, 'Name', 'Set voltage and gate')
   pos = get(h, 'position');
-  pos(3) = 430;
-  pos(4) = 100;
+  pos(3) = 250;
+  pos(4) = 190;
   
   set(h, 'position', pos);
   guidata(h, a);
   
-  c1 = uicontrol('style', 'slider', 'tag', 'c1', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
-  g1 = uicontrol('style', 'slider', 'tag', 'c2', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
-  c2 = uicontrol('style', 'slider', 'tag', 'c3', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
-  g2 = uicontrol('style', 'slider', 'tag', 'c4', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @update_slider);
-  c3 = uicontrol('style', 'slider', 'tag', 'g1', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
-  g3 = uicontrol('style', 'slider', 'tag', 'g2', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
-  c4 = uicontrol('style', 'slider', 'tag', 'g3', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
-  g4 = uicontrol('style', 'slider', 'tag', 'g4', 'min', 0, 'max',    1, 'sliderstep', [1 1], 'callback', @update_slider);
+  c1 = uicontrol('style', 'slider', 'tag', 'c1', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c2 = uicontrol('style', 'slider', 'tag', 'c2', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c3 = uicontrol('style', 'slider', 'tag', 'c3', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c4 = uicontrol('style', 'slider', 'tag', 'c4', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c5 = uicontrol('style', 'slider', 'tag', 'c5', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c6 = uicontrol('style', 'slider', 'tag', 'c6', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c7 = uicontrol('style', 'slider', 'tag', 'c7', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  c8 = uicontrol('style', 'slider', 'tag', 'c8', 'min', 0, 'max', 4095, 'sliderstep', [32 512]/4095, 'callback', @cb_update);
+  g1 = uicontrol('style', 'checkbox', 'tag', 'g1', 'callback', @cb_update);
+  g2 = uicontrol('style', 'checkbox', 'tag', 'g2', 'callback', @cb_update);
+  g3 = uicontrol('style', 'checkbox', 'tag', 'g3', 'callback', @cb_update);
+  g4 = uicontrol('style', 'checkbox', 'tag', 'g4', 'callback', @cb_update);
+  g5 = uicontrol('style', 'checkbox', 'tag', 'g5', 'callback', @cb_update);
+  g6 = uicontrol('style', 'checkbox', 'tag', 'g6', 'callback', @cb_update);
+  g7 = uicontrol('style', 'checkbox', 'tag', 'g7', 'callback', @cb_update);
+  g8 = uicontrol('style', 'checkbox', 'tag', 'g8', 'callback', @cb_update);
   
-  ft_uilayout(h, 'tag', 'c1', 'width', 200, 'hpos', 10, 'vpos', 70);
-  ft_uilayout(h, 'tag', 'c2', 'width', 200, 'hpos', 10, 'vpos', 50);
-  ft_uilayout(h, 'tag', 'c3', 'width', 200, 'hpos', 10, 'vpos', 30);
-  ft_uilayout(h, 'tag', 'c4', 'width', 200, 'hpos', 10, 'vpos', 10);
-  ft_uilayout(h, 'tag', 'g1', 'width', 200, 'hpos', 220, 'vpos', 70);
-  ft_uilayout(h, 'tag', 'g2', 'width', 200, 'hpos', 220, 'vpos', 50);
-  ft_uilayout(h, 'tag', 'g3', 'width', 200, 'hpos', 220, 'vpos', 30);
-  ft_uilayout(h, 'tag', 'g4', 'width', 200, 'hpos', 220, 'vpos', 10);
+  ft_uilayout(h, 'tag', 'c1', 'width', 200, 'hpos', 10, 'vpos', 150);
+  ft_uilayout(h, 'tag', 'c2', 'width', 200, 'hpos', 10, 'vpos', 130);
+  ft_uilayout(h, 'tag', 'c3', 'width', 200, 'hpos', 10, 'vpos', 110);
+  ft_uilayout(h, 'tag', 'c4', 'width', 200, 'hpos', 10, 'vpos',  90);
+  ft_uilayout(h, 'tag', 'c5', 'width', 200, 'hpos', 10, 'vpos',  70);
+  ft_uilayout(h, 'tag', 'c6', 'width', 200, 'hpos', 10, 'vpos',  50);
+  ft_uilayout(h, 'tag', 'c7', 'width', 200, 'hpos', 10, 'vpos',  30);
+  ft_uilayout(h, 'tag', 'c8', 'width', 200, 'hpos', 10, 'vpos',  10);
+  ft_uilayout(h, 'tag', 'g1', 'width', 30, 'hpos', 220, 'vpos', 150);
+  ft_uilayout(h, 'tag', 'g2', 'width', 30, 'hpos', 220, 'vpos', 130);
+  ft_uilayout(h, 'tag', 'g3', 'width', 30, 'hpos', 220, 'vpos', 110);
+  ft_uilayout(h, 'tag', 'g4', 'width', 30, 'hpos', 220, 'vpos',  90);
+  ft_uilayout(h, 'tag', 'g5', 'width', 30, 'hpos', 220, 'vpos',  70);
+  ft_uilayout(h, 'tag', 'g6', 'width', 30, 'hpos', 220, 'vpos',  50);
+  ft_uilayout(h, 'tag', 'g7', 'width', 30, 'hpos', 220, 'vpos',  30);
+  ft_uilayout(h, 'tag', 'g8', 'width', 30, 'hpos', 220, 'vpos',  10);
 end
 
 if ~nargout
@@ -128,7 +144,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function update_slider(h, varargin)
+function cb_update(h, varargin)
 a = guidata(h);
 switch get(h, 'tag')
   case 'c1'
@@ -143,6 +159,18 @@ switch get(h, 'tag')
   case 'c4'
     a.voltage(4) = get(h, 'value');
     set(h, 'value', a.voltage(4));
+  case 'c5'
+    a.voltage(5) = get(h, 'value');
+    set(h, 'value', a.voltage(5));
+  case 'c6'
+    a.voltage(6) = get(h, 'value');
+    set(h, 'value', a.voltage(6));
+  case 'c7'
+    a.voltage(7) = get(h, 'value');
+    set(h, 'value', a.voltage(7));
+  case 'c8'
+    a.voltage(8) = get(h, 'value');
+    set(h, 'value', a.voltage(8));
   case 'g1'
     a.gate(1) = get(h, 'value');
     set(h, 'value', a.gate(1));
@@ -155,6 +183,18 @@ switch get(h, 'tag')
   case 'g4'
     a.gate(4) = get(h, 'value');
     set(h, 'value', a.gate(4));
+  case 'g5'
+    a.gate(5) = get(h, 'value');
+    set(h, 'value', a.gate(5));
+  case 'g6'
+    a.gate(6) = get(h, 'value');
+    set(h, 'value', a.gate(6));
+  case 'g7'
+    a.gate(7) = get(h, 'value');
+    set(h, 'value', a.gate(7));
+  case 'g8'
+    a.gate(8) = get(h, 'value');
+    set(h, 'value', a.gate(8));
 end
 disp(a);
 update(a);
