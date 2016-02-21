@@ -1,3 +1,6 @@
+# these will be dynamically added by "npm install"
+interface/node_modules/*
+
 # Misc files
 *.pid
 *.log

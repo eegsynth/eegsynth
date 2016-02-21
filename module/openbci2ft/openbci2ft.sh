@@ -12,13 +12,19 @@ ini_parser () {
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
 
+if [ $ARCH=armv7l ] ; then
+  ARCH=raspberrypi
+else
+  ARCH=maci64
+fi
+
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-EXEFILE="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/openbci2ft"
 
-COMMAND="$EXEFILE $INIFILE"
+COMMAND="$HOME/matlab/fieldtrip/realtime/bin/$ARCH/openbci2ft"
+OPTIONS="$INIFILE"
 
 log_action_msg () {
   echo $* 1>&1
@@ -41,7 +47,7 @@ do_start () {
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
-  ( "$COMMAND" > "$LOGFILE" ) &
+  ( "$COMMAND" "$INIFILE" > "$LOGFILE" ) &
   echo $! > "$PIDFILE"
 }
 

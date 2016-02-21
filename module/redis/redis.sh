@@ -9,7 +9,13 @@ NAME=`basename "$0" .sh`
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-COMMAND="/opt/local/bin/redis-server"
+if [ -e "/usr/bin/redis-server" ]; then
+  # on raspberry pi
+  COMMAND="/usr/bin/redis-server"
+else
+  # on maci64
+  COMMAND="/opt/local/bin/redis-server"
+fi
 
 log_action_msg () {
   echo $* 1>&1

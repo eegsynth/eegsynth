@@ -6,20 +6,27 @@ ini_parser () {
   INIFILE="$1"
   SECTION="$2"
   ITEM="$3"
-  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[:space:]*$ITEM[:space:]*=" | sed s/.*=[:space:]*//
+  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[[:space:]]*$ITEM[[:space:]]*=" | sed s/.*=[[:space:]]*//
 }
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
 
+ARCH=`uname -m`
+
+if [ $ARCH=armv7l ] ; then
+  ARCH=raspberrypi
+else
+  ARCH=maci64
+fi
+
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-EXEFILE="/Users/roboos/matlab/fieldtrip/realtime/bin/maci64/buffer"
 
-PORT=`ini_parser "$INIFILE" fieldtrip port`
-COMMAND="$EXEFILE $PORT"
+COMMAND="$HOME/matlab/fieldtrip/realtime/bin/$ARCH/buffer"
+OPTIONS=`ini_parser "$INIFILE" fieldtrip port`
 
 log_action_msg () {
   echo $* 1>&1
@@ -42,7 +49,7 @@ do_start () {
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
-  ( "$COMMAND" > "$LOGFILE" ) &
+  ( "$COMMAND" "$OPTIONS" > "$LOGFILE" ) &
   echo $! > "$PIDFILE"
 }
 
