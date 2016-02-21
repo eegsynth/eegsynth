@@ -25,6 +25,7 @@ sudo apt-get install node
 
 ### install redis
 sudo apt-get install redis-server
+sudo easy_install pip
 sudo pip install redis
 
 ### install EEGsynth from gitub
