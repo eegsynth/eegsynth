@@ -12,7 +12,7 @@ ini_parser () {
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
 
-if [ $ARCH=armv7l ] ; then
+if [ $ARCH = armv7l ] ; then
   ARCH=raspberrypi
 else
   ARCH=maci64
