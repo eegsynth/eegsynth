@@ -49,6 +49,7 @@ while True:
     adjust_offset = previous_offset - cv_offset
     delay = 60/(cv_rate*cv_multiplier) - adjust_offset
 
+    print delay
     s.write('*g1v1#')
     time.sleep( delay/2 )
     s.write('*g1v0#')
