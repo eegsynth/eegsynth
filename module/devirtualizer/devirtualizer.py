@@ -29,19 +29,20 @@ while True:
     time.sleep(0.01)
 
     for chanindx in range(1, 8):
-        chanstr = "control%d" % channel
+        chanstr = "cv%d" % chanindx
         val = r.get(config.get('input', chanstr))
         if val:
             chanval = float(val)
         else:
             chanval = config.getfloat('default', chanstr)
-        s.write('*c%dv%04d#' % {chanindx, chanval})
+ 	chanval = chanval * config.getfloat('multiply', chanstr);
+        s.write('*c%dv%04d#' % (chanindx, chanval))
 
     for chanindx in range(1, 8):
-        chanstr = "gate%d" % channel
+        chanstr = "gate%d" % chanindx
         val = r.get(config.get('input', chanstr))
         if val:
             chanval = bool(val)
         else:
             chanval = config.getfloat('default', chanstr)
-        s.write('*g%dv%d#' % {chanindx, chanval})
+        s.write('*g%dv%d#' % (chanindx, chanval))
