@@ -158,9 +158,8 @@ while True:
             rms[i] = 0
         else:
             rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
-
             
-    #print rms
+    print rms
     
     for i,val in enumerate(rms):
         key = "%s.channel%d" % (config.get('output','prefix'), hwdataindx[i])
