@@ -8,6 +8,11 @@ import serial
 import sys
 import os
 
+# the list of MIDI control value names and corresponding codes is the only aspect that is specific to the Volca bass
+# to implement MIDI output to another device, you can copy the code and update the following two lines 
+midi_name = ['slide_time', 'expression', 'octave', 'lfo_rate', 'lfo_int', 'vco_pitch1', 'vco_pitch2', 'vco_pitch3', 'attack', 'decay_release', 'cutoff_intensity', 'gate_time']
+midi_code = [5, 11, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
+
 if hasattr(sys, 'frozen'):
     basis = sys.executable
 else:
@@ -32,13 +37,10 @@ print('-------------------------')
 
 port = mido.open_output(config.get('midi','device'))
 
-control_name = ['slide_time', 'expression', 'octave', 'lfo_rate', 'lfo_int', 'vco_pitch1', 'vco_pitch2', 'vco_pitch3', 'attack', 'decay_release', 'cutoff_intensity', 'gate_time']
-control_cmd = [5, 11, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
-
 while True:
     time.sleep(config.getfloat('general', 'delay'))
 
-    for name, cmd in zip(control_name, control_cmd):
+    for name, cmd in zip(midi_name, midi_code):
         try:
             config.get('output', name)
             # commenting it out means that the control is to be skipped
