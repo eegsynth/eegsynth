@@ -1,6 +1,6 @@
 #! /bin/sh
 
-PATH=/sbin:/bin:/usr/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
