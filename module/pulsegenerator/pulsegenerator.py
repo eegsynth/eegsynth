@@ -47,10 +47,19 @@ while True:
         cv_multiplier = config.getfloat('default','multiplier')
 
     adjust_offset = previous_offset - cv_offset
-    delay = 60/(cv_rate*cv_multiplier) - adjust_offset
+    try:
+    	delay = 60/(cv_rate*cv_multiplier) - adjust_offset
+    except:
+	pass
 
     print delay
+
     s.write('*g1v1#')
-    time.sleep( delay/2 )
+    s.write('*g2v1#')
+    # time.sleep( delay/2 )
+    time.sleep(config.getfloat('general','duration'))
     s.write('*g1v0#')
-    time.sleep( delay/2 )
+    s.write('*g2v0#')
+    # time.sleep( delay/2 )
+    time.sleep( delay - config.getfloat('general','duration') )
+
