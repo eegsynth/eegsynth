@@ -1,4 +1,5 @@
 # Misc files
+dump.rdb
 interface/node_modules
 *.pid
 *.log
