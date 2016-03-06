@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import os
 import socket
@@ -34,6 +36,8 @@ def test_handler(addr, tags, stuff, source):
 	print "typetags %s" % tags
 	print "data %s" % stuff
 	print "---"
+
+s.noCallback_handler = test_handler
 
 # adding my functions
 s.addDefaultHandlers()

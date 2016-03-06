@@ -40,14 +40,16 @@ while True:
             elif config.get('output','action')=="press" and msg.velocity==0:
                 pass
             else:
-                # send it as control value: prefix.channel000.note=note
-                key = "{}.channel{:0>2d}.note".format(config.get('output','prefix'),msg.channel)
+                # prefix.note=note
+                key = "{}.note".format(config.get('output','prefix'))
                 val = msg.note
-                r.set(key,val)
-                # send it as trigger: prefix.channel000.note=note
-                key = "{}.channel{:0>2d}.note".format(config.get('output','prefix'),msg.channel)
+                r.set(key,val)          # send it as control value
+                r.publish(key,val)      # send it as trigger
+                # prefix.noteXXX=velocity
+                key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
                 val = msg.velocity
-                r.publish(key,val)
+                r.set(key,val)          # send it as control value
+                r.publish(key,val)      # send it as trigger
         elif hasattr(msg,"control"):
             # ignore these
             pass

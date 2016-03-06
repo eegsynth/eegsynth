@@ -221,11 +221,11 @@ class ControlThread(threading.Thread):
           self.vca_envelope     = vca_envelope
           lock.release()
 
-# start the background thread
+# start the background thread that deals with control value changes
 control = ControlThread(r, config)
 control.start()
 
-# start the background thread
+# start the background thread that deals with triggers
 trigger = TriggerThread(r, config)
 trigger.start()
 

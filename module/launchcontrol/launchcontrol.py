@@ -33,10 +33,10 @@ port = mido.open_input(config.get('midi','device'))
 
 while True:
     for msg in port.iter_pending():
-        print(msg)
+        print msg
         if hasattr(msg, "control"):
-            # prefix.channel000.control000=value
-            key = "{}.channel{:0>2d}.control{:0>3d}".format(config.get('output', 'prefix'), msg.channel, msg.control)
+            # prefix.control000=value
+            key = "{}.control{:0>3d}".format(config.get('output', 'prefix'), msg.control)
             val = msg.value
             r.set(key, val)
         elif hasattr(msg, "note"):
@@ -45,12 +45,14 @@ while True:
             elif config.get('output','action')=="press" and msg.velocity==0:
                 pass
             else:
-                # send it as control value: prefix.channel000.note=note
-                key = "{}.channel{:0>2d}.note".format(config.get('output','prefix'),msg.channel)
+                # prefix.note=note
+                key = "{}.note".format(config.get('output','prefix'))
                 val = msg.note
-                r.set(key,val)
-                # send it as trigger: prefix.channel000.note=note
-                key = "{}.channel{:0>2d}.note".format(config.get('output','prefix'),msg.channel)
-                val = msg.note
-                r.publish(key,val)
+                r.set(key,val)          # send it as control value
+                r.publish(key,val)      # send it as trigger
+                # prefix.noteXXX=velocity
+                key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
+                val = msg.velocity
+                r.set(key,val)          # send it as control value
+                r.publish(key,val)      # send it as trigger
     time.sleep(0.001)

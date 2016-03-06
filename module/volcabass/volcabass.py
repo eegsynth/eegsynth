@@ -4,12 +4,12 @@ import mido
 import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
-import serial
 import sys
 import os
 
-# the list of MIDI control value names and corresponding codes is the only aspect that is specific to the Volca bass
-# to implement MIDI output to another device, you can copy the code and update the following two lines 
+# the list of MIDI commands is the only aspect that is specific to the Volca Bass
+# see http://media.aadl.org/files/catalog_guides/1444141_chart.pdf
+# to implement MIDI output to another device, you can copy the code and update the following two lines
 midi_name = ['slide_time', 'expression', 'octave', 'lfo_rate', 'lfo_int', 'vco_pitch1', 'vco_pitch2', 'vco_pitch3', 'attack', 'decay_release', 'cutoff_intensity', 'gate_time']
 midi_code = [5, 11, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
 
@@ -49,7 +49,7 @@ while True:
                 val = int(val)
             else:
                 val = config.getint('default', name)
-            msg = mido.Message('control_change', control=cmd, value=int(val))
+            msg = mido.Message('control_change', control=cmd, value=int(val), channel=config.getint('general', 'channel'))
             print cmd, val
             port.send(msg)
         except:
