@@ -9,7 +9,6 @@ import os
 
 # the list of MIDI commands is the only aspect that is specific to the Volca Bass
 # see http://media.aadl.org/files/catalog_guides/1444141_chart.pdf
-# to implement MIDI output to another device, you can copy the code and update the following two lines
 midi_name = ['slide_time', 'expression', 'octave', 'lfo_rate', 'lfo_int', 'vco_pitch1', 'vco_pitch2', 'vco_pitch3', 'attack', 'decay_release', 'cutoff_intensity', 'gate_time']
 midi_code = [5, 11, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
 
@@ -30,12 +29,14 @@ except redis.ConnectionError:
     exit()
 
 # this is only for debugging
-print('-------------------------')
+print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-port = mido.open_output(config.get('midi','device'))
+midichannel = config.getint('midi', 'channel')
+mididevice  = config.get('midi', 'device')
+outputport  = mido.open_output(mididevice)
 
 while True:
     time.sleep(config.getfloat('general', 'delay'))
@@ -49,8 +50,8 @@ while True:
                 val = int(val)
             else:
                 val = config.getint('default', name)
-            msg = mido.Message('control_change', control=cmd, value=int(val), channel=config.getint('general', 'channel'))
+            msg = mido.Message('control_change', control=cmd, value=int(val), channel=midichannel)
             print cmd, val
-            port.send(msg)
+            midiport.send(msg)
         except:
             pass
