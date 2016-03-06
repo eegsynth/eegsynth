@@ -298,6 +298,7 @@ try:
     # write the buffer content to the audio device
     stream.write(BUFFER)
     offset = offset+BLOCKSIZE
+    
 except KeyboardInterrupt:
     trigger.stop_thread()
     control.stop_thread()
