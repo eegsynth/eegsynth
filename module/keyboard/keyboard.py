@@ -80,6 +80,8 @@ for thread in trigger:
     thread.start()
 
 while True:
+    time.sleep(config.getfloat('general','delay'))
+
     for msg in inputport.iter_pending():
         if hasattr(msg,'note'):
             print(msg)
@@ -104,4 +106,3 @@ while True:
         elif hasattr(msg,"time"):
             # ignore these
             pass
-    time.sleep(config.getfloat('general','delay'))

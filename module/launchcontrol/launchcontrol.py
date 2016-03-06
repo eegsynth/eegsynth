@@ -34,6 +34,8 @@ print('-------------------------')
 port = mido.open_input(config.get('midi','device'))
 
 while True:
+    time.sleep(config.getfloat('general','delay'))
+
     for msg in port.iter_pending():
         print msg
         if hasattr(msg, "control"):
@@ -57,4 +59,3 @@ while True:
                 val = msg.velocity
                 r.set(key,val)          # send it as control value
                 r.publish(key,val)      # send it as trigger
-    time.sleep(config.getfloat('general','delay'))
