@@ -69,7 +69,7 @@ class TriggerThread(threading.Thread):
             if self.stopped:
                 break
             else:
-                print item['channel'], ":", item['data']
+                print item['channel'], "=", item['data']
                 lock.acquire()
                 self.last = self.time
                 lock.release()
