@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
 import ConfigParser
-import FieldTrip
 import os
 import redis
 import sys
 import numpy
 import mne
 import time
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, '../../lib')
+import FieldTrip
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

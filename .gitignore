@@ -1,4 +1,6 @@
 # Misc files
+bin/buffer
+bin/openbci2ft
 dump.rdb
 interface/node_modules
 *.pid
