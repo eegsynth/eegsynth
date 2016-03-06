@@ -9,8 +9,10 @@ import os
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
@@ -55,4 +57,4 @@ while True:
                 val = msg.velocity
                 r.set(key,val)          # send it as control value
                 r.publish(key,val)      # send it as trigger
-    time.sleep(0.001)
+    time.sleep(config.getfloat('general','delay'))
