@@ -9,6 +9,7 @@ The REDIS buffer should be running.
 
 ** Software Requirements **
 
-mido
+portmidi
 python 2.x
+mido python library
 redis python library
