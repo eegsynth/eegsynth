@@ -5,13 +5,16 @@ import ConfigParser # this is version 2.x specific, on version 3.x it is called 
 import redis
 import sys
 import os
-import FieldTrip
 import multiprocessing
 import threading
 
 import numpy as np
 
 from nilearn import signal
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, '../../lib')
+import FieldTrip
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -80,7 +83,7 @@ for chanindx in range(0, 9):
     try:
         chanstr = "channel%d" % (chanindx+1)
         hwchanindx.append(config.getint('input', chanstr)-1)
-        hwdataindx.append(chanindx+1) 
+        hwdataindx.append(chanindx+1)
 
     except:
         pass
@@ -110,23 +113,23 @@ while True:
     begsample = endsample-blocksize+1
     D = ftc.getData([begsample, endsample])
 
-    
+
     D = D[:,hwchanindx]
-    
+
     try:
         low_pass = config.getint('general', 'low_pass')
     except:
         low_pass = None
-        
-        
+
+
     try:
         high_pass = config.getint('general', 'high_pass')
     except:
         high_pass = None
-        
-       
-    
-    
+
+
+
+
     D_filt = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
 
 
@@ -135,9 +138,9 @@ while True:
     rms = []
     for i in range(0,len(hwchanindx)):
         rms.append(0)
-           
+
     #print len(rms)
-    
+
     for i,chanvec in enumerate(D_filt.transpose()):
         for chanval in chanvec:
             rms[i] += chanval*chanval
@@ -151,16 +154,16 @@ while True:
     minval = [min(a,b) for (a,b) in zip(rms,minval)]
     maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
 
-    
-    
+
+
     for i,val in enumerate(rms):
         if maxval[i]==minval[i]:
             rms[i] = 0
         else:
             rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
-            
+
     print rms
-    
+
     for i,val in enumerate(rms):
         key = "%s.channel%d" % (config.get('output','prefix'), hwdataindx[i])
         # send it as control value: prefix.channelX=val

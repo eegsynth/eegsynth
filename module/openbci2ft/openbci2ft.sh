@@ -11,19 +11,14 @@ ini_parser () {
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
-
-if [ $ARCH = armv7l ] ; then
-  ARCH=raspberrypi
-else
-  ARCH=maci64
-fi
+BINDIR=$DIR/../../bin
 
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
 
-COMMAND="$HOME/matlab/fieldtrip/realtime/bin/$ARCH/openbci2ft"
+COMMAND="$BINDIR/openbci2ft"
 OPTIONS="$INIFILE"
 
 log_action_msg () {
