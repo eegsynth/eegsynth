@@ -17,8 +17,10 @@ note_code = []
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
@@ -37,7 +39,7 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-midichannel = config.getint('midi', 'channel')
+midichannel = config.getint('midi', 'channel')-1
 mididevice  = config.get('midi', 'device')
 outputport  = mido.open_output(mididevice)
 

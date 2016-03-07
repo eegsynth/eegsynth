@@ -26,7 +26,7 @@ except redis.ConnectionError:
 s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
 
 while True:
-    time.sleep(0.01)
+    time.sleep(config.get('general','delay'))
 
     for chanindx in range(1, 8):
         chanstr = "cv%d" % chanindx
