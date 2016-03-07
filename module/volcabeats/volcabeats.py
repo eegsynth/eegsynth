@@ -39,7 +39,7 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-midichannel = config.getint('midi', 'channel')
+midichannel = config.getint('midi', 'channel')-1
 mididevice  = config.get('midi', 'device')
 outputport  = mido.open_output(mididevice)
 
