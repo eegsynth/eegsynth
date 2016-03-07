@@ -17,8 +17,10 @@ note_code = [36, 38, 43, 50, 42, 46, 39]
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
