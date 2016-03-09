@@ -5,11 +5,11 @@ The purpose of this module is to write control values and notes as MIDI commands
 
 Setting the MIDI channel: While holding down the MEMORY button, turn on the Volca. Specify the channel and press the REC button.
 
-** Requirements **
+## Requirements
 
 The REDIS buffer should be running.
 
-** Software Requirements **
+## Software Requirements
 
 portmidi
 python 2.x
