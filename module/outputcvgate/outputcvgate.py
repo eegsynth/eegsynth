@@ -35,10 +35,9 @@ while True:
             chanval = float(val)
         else:
             chanval = config.getfloat('default', chanstr)
- 	chanval = chanval * config.getfloat('multiply', chanstr);
+	    chanval = chanval * config.getfloat('multiply', chanstr);
         s.write('*c%dv%04d#' % (chanindx, chanval))
 
-    # this section should be commented out if you want to use it together with the pulsegenerator
     for chanindx in range(1, 8):
         chanstr = "gate%d" % chanindx
         val = r.get(config.get('input', chanstr))
@@ -46,4 +45,5 @@ while True:
             chanval = bool(val)
         else:
             chanval = config.getfloat('default', chanstr)
+	        chanval = chanval>0;
         s.write('*g%dv%d#' % (chanindx, chanval))
