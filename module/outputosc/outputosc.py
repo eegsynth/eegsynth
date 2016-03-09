@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
-import time
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import redis
 import sys
 import os
-import numpy as np
+import time
+import redis
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import OSC          # see https://trac.v2.nl/wiki/pyOSC
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
@@ -23,115 +25,44 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+s = OSC.OSCClient()
+s.connect((config.get('osc','address'), config.getint('osc','port')))
 
-# start the background thread
-lock = threading.Lock()
-trigger = TriggerThread(r, config)
-trigger.start()
+# keys should be present in both the input and output section of the *.ini file
+list_input  = config.items('input')
+list_output = config.items('output')
 
-ftc = FieldTrip.Client()
+list1 = [] # the key name that matches in the input and output section of the *.ini file
+list2 = [] # the key name in REDIS
+list3 = [] # the key name in OSC
+for i in range(len(list_input)):
+    for j in range(len(list_output)):
+        if list_input[i][0]==list_output[j][0]:
+            list1.append(list_input[i][0])
+            list2.append(list_input[i][1])
+            list3.append(list_output[j][1])
 
-H = None
-while H is None:
-    print 'Trying to connect to buffer on %s:%i ...' % (config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    ftc.connect(config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    print '\nConnected - trying to read header...'
-    H = ftc.getHeader()
-
-print H
-print H.labels
-
-blocksize = round(config.getfloat('general','blocksize') * H.fSample)
-print blocksize
-
-hwchanindx = []
-hwdataindx = []
-for chanindx in range(0, 9):
-    try:
-        chanstr = "channel%d" % (chanindx+1)
-        hwchanindx.append(config.getint('input', chanstr)-1)
-        hwdataindx.append(chanindx+1)
-
-    except:
-        pass
-
-print hwchanindx,hwdataindx
-minval = None
-maxval = None
-
-t = 0
+print config.getfloat('multiply', 'key01')
 
 while True:
-    time.sleep(config.getfloat('general','blocksize')/10)
-    t += 1
+    time.sleep(config.getfloat('general', 'delay'))
 
-    lock.acquire()
-    if trigger.last == trigger.time:
-        minval = None
-        maxval = None
-    trigger.time = t
-    lock.release()
-
-    H = ftc.getHeader()
-    endsample = H.nSamples - 1
-    if endsample<blocksize:
-        continue
-
-    begsample = endsample-blocksize+1
-    D = ftc.getData([begsample, endsample])
-
-
-    D = D[:,hwchanindx]
-
-    try:
-        low_pass = config.getint('general', 'low_pass')
-    except:
-        low_pass = None
-
-
-    try:
-        high_pass = config.getint('general', 'high_pass')
-    except:
-        high_pass = None
-
-
-
-
-    D_filt = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
-
-
-
-
-    rms = []
-    for i in range(0,len(hwchanindx)):
-        rms.append(0)
-
-    #print len(rms)
-
-    for i,chanvec in enumerate(D_filt.transpose()):
-        for chanval in chanvec:
-            rms[i] += chanval*chanval
-
-    if minval is None:
-        minval = rms
-
-    if maxval is None:
-        maxval = rms
-
-    minval = [min(a,b) for (a,b) in zip(rms,minval)]
-    maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
-
-
-
-    for i,val in enumerate(rms):
-        if maxval[i]==minval[i]:
-            rms[i] = 0
-        else:
-            rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
-
-    print rms
-
-    for i,val in enumerate(rms):
-        key = "%s.channel%d" % (config.get('output','prefix'), hwdataindx[i])
-        # send it as control value: prefix.channelX=val
-        r.set(key,int(127*val))
+    for key1,key2,key3 in zip(list1,list2,list3):
+        try:
+            val = r.get(key2)
+            if val is None:
+                val = config.getfloat('default', key1)
+            else:
+                val = float(val)
+            try:
+                val *= config.getfloat('multiply', key1)
+            except:
+                # no multiplication needs to be done
+                pass
+            print key1, key2, key3, val
+            msg = OSC.OSCMessage(key3)
+            msg.append(val)
+            s.send(msg)
+        except:
+            # the value is neither present in redis, nor in the default section of the *.ini file
+            pass
