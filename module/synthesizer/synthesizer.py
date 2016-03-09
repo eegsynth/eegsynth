@@ -69,7 +69,7 @@ class TriggerThread(threading.Thread):
             if self.stopped:
                 break
             else:
-                print item['channel'], ":", item['data']
+                print item['channel'], "=", item['data']
                 lock.acquire()
                 self.last = self.time
                 lock.release()
@@ -221,11 +221,11 @@ class ControlThread(threading.Thread):
           self.vca_envelope     = vca_envelope
           lock.release()
 
-# start the background thread
+# start the background thread that deals with control value changes
 control = ControlThread(r, config)
 control.start()
 
-# start the background thread
+# start the background thread that deals with triggers
 trigger = TriggerThread(r, config)
 trigger.start()
 
@@ -298,6 +298,7 @@ try:
     # write the buffer content to the audio device
     stream.write(BUFFER)
     offset = offset+BLOCKSIZE
+    
 except KeyboardInterrupt:
     trigger.stop_thread()
     control.stop_thread()

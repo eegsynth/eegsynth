@@ -1,7 +1,7 @@
 LaunchControl module
 ====================
 
-The purpose of this module is to provide a simple virtual synthesizer using the Raspberry Pi audio output.
+The purpose of this module is to provide a simple virtual synthesizer using the computer audio output. This virtual synthesizer consists of a few standard modules.
 
 ** VCO - voltage controlled oscillator **
 

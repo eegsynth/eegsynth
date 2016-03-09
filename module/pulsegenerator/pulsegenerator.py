@@ -3,7 +3,7 @@
 import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
-import serial
+# import serial
 import sys
 import os
 
@@ -23,9 +23,13 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+# send it to redis rather than sending it directly to the serial interface
+# s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
 
 previous_offset=0
+delay=60
+pulselength = config.getfloat('general','pulselength')
+key=config.get('output','note')
 
 while True:
     val = r.get(config.get('input', 'rate'))
@@ -47,10 +51,31 @@ while True:
         cv_multiplier = config.getfloat('default','multiplier')
 
     adjust_offset = previous_offset - cv_offset
-    delay = 60/(cv_rate*cv_multiplier) - adjust_offset
+    try:
+    	delay = 60/(cv_rate*cv_multiplier) - adjust_offset
+    except:
+        pass
 
-    print delay
-    s.write('*g1v1#')
-    time.sleep( delay/2 )
-    s.write('*g1v0#')
-    time.sleep( delay/2 )
+    print 'delay in seconds =', delay
+
+    # send it to redis rather than sending it directly to the serial interface
+    # s.write('*g1v1#')
+    # s.write('*g2v1#')
+    val = 127               # set the note on
+    r.publish(key,val)      # send it as trigger
+    if pulselength<(delay/2):
+        time.sleep(pulselength)
+    else:
+        # the desired duration between beats is too short, split the delay in half
+        time.sleep(delay/2)
+
+    # send it to redis rather than sending it directly to the serial interface
+    # s.write('*g1v0#')
+    # s.write('*g2v0#')
+    val = 0                 # set the note off
+    r.publish(key,val)      # send it as trigger
+    if pulselength<(delay/2):
+        time.sleep(delay-pulselength)
+    else:
+        # the desired duration between beats is too short, split the delay in half
+        time.sleep(delay/2)
