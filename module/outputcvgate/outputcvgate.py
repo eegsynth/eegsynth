@@ -85,7 +85,7 @@ while True:
             except:
                 offset = r.get(config.get('offset', chanstr))
         else:
-            offset = 1
+            offset = 0
         # apply the scale and offset
         val = EEGsynth.rescale(val, scale, offset)
 

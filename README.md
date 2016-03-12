@@ -24,6 +24,7 @@ sudo apt-get update
 sudo apt-get upgrade
 sudo apt-get install screen
 sudo apt-get install vim
+sudo apt-get install git
 ```
 
 ### Reconfigure the keyboard
@@ -37,26 +38,52 @@ sudo dpkg-reconfigure keyboard-configuration
 
 ### Install node.js
 
-This is used for the web interface.
+This is used for the web interface. Start with the (outdated) version that is included in raspbian, then upgrade to a later version using nvm. The advantage of npm (node package manager) and nvm (node version manager) is that they install all required files locally and don't interfere with the system installation or with the installation of other users.
 
 ```
-curl -sLS https://apt.adafruit.com/add | sudo bash
-sudo apt-get install node
+sudo apt-get install nodejs
+sudo apt-get install npm
+
+wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.31.0/install.sh | bash
+
+nvm install v4.2.6
+```
+
+The following should show the correct version
+
+```
+node -v
 ```
 
 ### Install redis
 
-This is used for inter-process communication between  modules.
+This is used for inter-process communication between modules.
 
 ```
 sudo apt-get install redis-server
-sudo easy_install pip
-sudo pip install redis
 ```
 
 The redis command line interface is an useful tool for monitoring and debugging the redis server:
 ```
 redis-cli monitoring
+```
+
+### Install portmidi
+
+This is used for MIDI communication.
+
+```
+sudo apt-get install libportmidi-dev
+```
+
+### Install python modules
+
+
+```
+wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo python
+sudo easy_install pip
+
+sudo pip install redis
 ```
 
 ### Switch to low-power mode

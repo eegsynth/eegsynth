@@ -111,15 +111,16 @@ try:
                 continue # it should be skipped when commented out in the ini file
             val = r.get(config.get('control', name))
             if val:
-                val = int(val)
+                val = float(val)
             elif config.has_option('default', name):
-                val = config.getint('default', name)
+                val = config.getfloat('default', name)
             else:
                 continue # it should be skipped when not present and no default is specified
+            val = int(val)
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
-            msg = mido.Message('control_change', control=cmd, value=int(val), channel=midichannel)
+            msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
                 print cmd, val, name
             lock.acquire()

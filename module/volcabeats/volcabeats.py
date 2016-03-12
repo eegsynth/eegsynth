@@ -12,8 +12,8 @@ import os
 # see http://media.aadl.org/files/catalog_guides/1445131_chart.pdf
 control_name = ['kick_level', 'snare_level', 'lo_tom_level', 'hi_tom_level', 'closed_hat_level', 'open_hat_level', 'clap_level', 'claves_level', 'agogo_level', 'crash_level', 'clap_speed', 'claves_speed', 'agogo_speed', 'crash_speed', 'stutter_time', 'stutter_depth', 'tom_decay', 'closed_hat_decay', 'open_hat_decay', 'hat_gra    in']
 control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
-note_name = ['kick'] # , 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
-note_code = [36] # , 38, 43, 50, 42, 46, 39]
+note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
+note_code = [36, 38, 43, 50, 42, 46, 39]
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -111,15 +111,16 @@ try:
                 continue # it should be skipped when commented out in the ini file
             val = r.get(config.get('control', name))
             if val:
-                val = int(val)
+                val = float(val)
             elif config.has_option('default', name):
-                val = config.getint('default', name)
+                val = config.getfloat('default', name)
             else:
                 continue # it should be skipped when not present and no default is specified
+            val = int(val)
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
-            msg = mido.Message('control_change', control=cmd, value=int(val), channel=midichannel)
+            msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
                 print cmd, val, name
             lock.acquire()

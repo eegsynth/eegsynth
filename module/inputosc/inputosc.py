@@ -17,17 +17,33 @@ else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'inputosc.ini'))
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+debug = config.getint('general', 'debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Started OSC server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-s = OSC.OSCServer((config.get('osc','address'), config.getint('osc','port')))
+try:
+    s = OSC.OSCServer((config.get('osc','address'), config.getint('osc','port')))
+    if debug>0:
+        print "Started OSC server"
+except:
+    print "Unexpected error:", sys.exc_info()[0]
+
+    print "Error: cannot start OSC server"
+    exit()
 
 # define a message-handler function for the server to call.
 def forward_handler(addr, tags, data, source):
@@ -38,6 +54,27 @@ def forward_handler(addr, tags, data, source):
     print "data   %s" % data
     # prefix.addr=value
     key = config.get('output', 'prefix')+addr.replace('/', '.')
+
+    # the scale option is channel specific
+    if config.has_option('output', 'scale'):
+        try:
+            scale = config.getfloat('output', 'scale')
+        except:
+            scale = r.get(config.get('output', 'scale'))
+    else:
+        scale = 1
+    # the offset option is channel specific
+    if config.has_option('output', 'offset'):
+        try:
+            offset = config.getfloat('output', 'offset')
+        except:
+            offset = r.get(config.get('output', 'offset'))
+    else:
+        offset = 0
+    # apply the scale and offset
+    for i in range(len(data)):
+        data[i] = EEGsynth.rescale(data[i], scale, offset)
+
     if tags=='f' or tags=='i':
         # send it as a single value
         val = data[0]
