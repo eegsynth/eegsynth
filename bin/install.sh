@@ -15,6 +15,5 @@ for NAME in buffer openbci2ft ; do
   echo Downloading binary from $URL
   echo See http://www.fieldtriptoolbox.org/development/realtime for details
   echo ------------------------------------------------------------------------------
-  wget $URL -O $DIR/buffer
+  wget $URL -O $DIR/$NAME
 done
-
