@@ -32,7 +32,8 @@ do_start () {
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
-  ( "$COMMAND" > "$LOGFILE" ) &
+  date > "$LOGFILE"
+  ( "$COMMAND" "$OPTIONS" >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
 }
 
