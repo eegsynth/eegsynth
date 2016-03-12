@@ -7,10 +7,6 @@ import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import OSC          # see https://trac.v2.nl/wiki/pyOSC
 
-# eegsynth/lib contains shared modules
-sys.path.insert(0, '../../lib')
-import EEGsynth
-
 if hasattr(sys, 'frozen'):
     basis = sys.executable
 elif sys.argv[0]!='':
@@ -19,18 +15,33 @@ else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'outputosc.ini'))
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-s = OSC.OSCClient()
-s.connect((config.get('osc','address'), config.getint('osc','port')))
+try:
+    s = OSC.OSCClient()
+    s.connect((config.get('osc','address'), config.getint('osc','port')))
+    if debug>0:
+        print "Connected to OSC server"
+except:
+    print "Error: cannot connect to OSC server"
+    exit()
 
 # keys should be present in both the input and output section of the *.ini file
 list_input  = config.items('input')
@@ -53,7 +64,10 @@ while True:
         try:
             val = r.get(key2)
             if val is None:
-                val = config.getfloat('default', key1)
+                if config.has_option('default', key1):
+                    val = config.getfloat('default', key1)
+                else:
+                    pass
             else:
                 val = float(val)
 
@@ -75,7 +89,6 @@ while True:
             if config.has_option('scale', key1):
                 try:
                     scale = config.getfloat('scale', key1)
-                    print 'redis = ', scale
                 except:
                     scale = r.get(config.get('scale', key1))
             else:
@@ -84,7 +97,6 @@ while True:
             if config.has_option('offset', key1):
                 try:
                     offset = config.getfloat('offset', key1)
-                    print 'redis = ', offset
                 except:
                     offset = r.get(config.get('offset', key1))
             else:
@@ -92,10 +104,13 @@ while True:
             # apply the scale and offset
             val = EEGsynth.rescale(val, scale, offset)
 
-            print key1, key2, key3, val
+            if debug>1:
+                print 'OSC message', key3, '=', val
+
             msg = OSC.OSCMessage(key3)
             msg.append(val)
             s.send(msg)
+
         except:
             # the value is neither present in redis, nor in the default section of the *.ini file
             pass

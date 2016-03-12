@@ -11,15 +11,17 @@ import numpy as np
 
 from nilearn import signal
 
-# eegsynth/lib contains shared modules
-sys.path.insert(0, '../../lib')
-import FieldTrip
-
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import FieldTrip
 
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'eyeblink.ini'))

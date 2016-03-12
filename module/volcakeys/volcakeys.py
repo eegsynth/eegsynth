@@ -26,9 +26,14 @@ installed_folder = os.path.split(basis)[0]
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'volcakeys.ini'))
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
@@ -39,9 +44,18 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-midichannel = config.getint('midi', 'channel')-1
+midichannel = config.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice  = config.get('midi', 'device')
-outputport  = mido.open_output(mididevice)
+try:
+    outputport  = mido.open_output(mididevice)
+    if debug>0:
+        print "Connected to MIDI output"
+except:
+    print "Error: cannot connect to MIDI output"
+    exit()
+
+# this is to prevent two messages from being sent at the same time
+lock = threading.Lock()
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, note):
@@ -53,47 +67,68 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
-        pubsub.subscribe(self.redischannel)
+        pubsub.subscribe('VOLCAKEYS_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe(self.redischannel)     # this message contains the note
         for item in pubsub.listen():
             if not self.running:
                 break
             else:
-                print item['channel'], "=", item['data']
+                if debug>1:
+                    print item['channel'], "=", item['data']
                 msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
+                lock.acquire()
                 outputport.send(msg)
+                lock.release()
 
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
 for name, code in zip(note_name, note_code):
-    try:
-        # start the background thread that deals with the trigger
+    if config.has_option('note', name):
+        # start the background thread that deals with this note
         this = TriggerThread(config.get('note', name), code)
         trigger.append(this)
-        print name+' OK'
-    except:
-        # this happens when it is commented out in the ini file
-        print name+' FAILED'
+        if debug>1:
+            print name, 'OK'
 
 # start the thread for each of the notes
 for thread in trigger:
-    pass
     thread.start()
 
-while True:
-    time.sleep(config.getfloat('general', 'delay'))
+# control values are only relevant when different from the previous value
+previous_val = {}
+for name in control_name:
+    previous_val[name] = None
 
-    for name, cmd in zip(control_name, control_code):
-        # loop over the control values
-        try:
-            # it should be skipped when commented out in the ini file
+try:
+    while True:
+        time.sleep(config.getfloat('general', 'delay'))
+
+        for name, cmd in zip(control_name, control_code):
+            # loop over the control values
+            if not config.has_option('control', name):
+                continue # it should be skipped when commented out in the ini file
             val = r.get(config.get('control', name))
             if val:
                 val = int(val)
-            else:
+            elif config.has_option('default', name):
                 val = config.getint('default', name)
+            else:
+                continue # it should be skipped when not present and no default is specified
+            if val==previous_val[name]:
+                continue # it should be skipped when identical to the previous value
+            previous_val[name] = val
             msg = mido.Message('control_change', control=cmd, value=int(val), channel=midichannel)
-            # print cmd, val, name
-            # print msg
+            if debug>1:
+                print cmd, val, name
+            lock.acquire()
             outputport.send(msg)
-        except:
-            pass
+            lock.release()
+
+except KeyboardInterrupt:
+    print "Closing threads"
+    for thread in trigger:
+        thread.stop()
+    r.publish('VOLCAKEYS_UNBLOCK', 1)
+    for thread in trigger:
+        thread.join()
+    sys.exit()

@@ -36,17 +36,6 @@ app.use(cookieSession({
 // app.use(bodyParser.urlencoded({ extended: true }))
 
 function moduleCommand(name, command) {
-  var allowedModules = ['buffer', 'devirtualizer', 'eeg', 'emg', 'endorphines', 'eyeblink', 'heartbeat', 'heartrate', 'keyboard', 'launchcontrol', 'openbci2ft', 'pulsegenerator', 'redis', 'sequencer', 'synthesizer', 'virtualizer'];
-
-  // ensure that the module is correct
-  okModule = false;
-  for (i=0; i<allowedModules.length; i++) {
-    if (name==allowedModules[i]) {okModule = true; break;}
-  }
-  if (!okModule) {
-    console.log('incorrect module name: ' + name);
-    return 'failed ' + name;
-  }
 
 switch (command) {
   case 'start':

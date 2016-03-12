@@ -7,10 +7,6 @@ import serial
 import sys
 import os
 
-# eegsynth/lib contains shared modules
-sys.path.insert(0, '../../lib')
-import EEGsynth
-
 if hasattr(sys, 'frozen'):
     basis = sys.executable
 elif sys.argv[0]!='':
@@ -19,17 +15,32 @@ else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'devirtualizer.ini'))
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+config = ConfigParser.ConfigParser()
+config.read(os.path.join(installed_folder, 'outputcvgate.ini'))
+
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+try:
+    s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+    if debug>0:
+        print "Connected to serial port"
+except:
+    print "Error: cannot connect to serial port"
+    exit()
 
 while True:
     time.sleep(config.get('general','delay'))

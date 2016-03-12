@@ -34,9 +34,3 @@ def limiter(xval, lo=63.5, hi=63.5, range=127.0):
     slope     = (by-ay)/(bx-ax)
     intercept = ay - ax*slope
     return (slope*xval + intercept)
-
-print clip(limiter(  0, 63.5, 63.5, range=127))
-print clip(limiter(127, 63.5, 63.5, range=127))
-
-print clip(limiter(0, 0.5+0.1, 0.5, range=1))
-print clip(limiter(1, 0.5, 0.5-0.1, range=1))
