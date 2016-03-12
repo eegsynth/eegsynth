@@ -7,6 +7,10 @@ import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import OSC          # see https://trac.v2.nl/wiki/pyOSC
 
+# eegsynth/lib contains shared modules
+sys.path.insert(0, '../../lib')
+import EEGsynth
+
 if hasattr(sys, 'frozen'):
     basis = sys.executable
 elif sys.argv[0]!='':
@@ -42,8 +46,6 @@ for i in range(len(list_input)):
             list2.append(list_input[i][1])
             list3.append(list_output[j][1])
 
-print config.getfloat('multiply', 'key01')
-
 while True:
     time.sleep(config.getfloat('general', 'delay'))
 
@@ -54,11 +56,42 @@ while True:
                 val = config.getfloat('default', key1)
             else:
                 val = float(val)
-            try:
-                val *= config.getfloat('multiply', key1)
-            except:
-                # no multiplication needs to be done
-                pass
+
+            if config.get('limiter_compressor', 'enable')=='yes':
+                # the limiter/lo option applies to all channels and must exist as float or redis key
+                try:
+                    lo = config.getfloat('limiter_compressor', 'lo')
+                except:
+                    lo = r.get(config.get('limiter_compressor', 'lo'))
+                # the limiter/hi option applies to all channels and must exist as float or redis key
+                try:
+                    hi = config.getfloat('limiter_compressor', 'hi')
+                except:
+                    hi = r.get(config.get('limiter_compressor', 'hi'))
+                # apply the limiter
+                val = EEGsynth.limiter(val, lo, hi)
+
+            # the scale option is channel specific
+            if config.has_option('scale', key1):
+                try:
+                    scale = config.getfloat('scale', key1)
+                    print 'redis = ', scale
+                except:
+                    scale = r.get(config.get('scale', key1))
+            else:
+                scale = 1
+            # the offset option is channel specific
+            if config.has_option('offset', key1):
+                try:
+                    offset = config.getfloat('offset', key1)
+                    print 'redis = ', offset
+                except:
+                    offset = r.get(config.get('offset', key1))
+            else:
+                offset = 1
+            # apply the scale and offset
+            val = EEGsynth.rescale(val, scale, offset)
+
             print key1, key2, key3, val
             msg = OSC.OSCMessage(key3)
             msg.append(val)

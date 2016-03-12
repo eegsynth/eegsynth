@@ -116,3 +116,10 @@ sudo apt-get install alsa-utils
 sudo apt-get install mpg321
 sudo apt-get install lame
 ```
+
+### Misc
+
+```
+sudo pip install pyserial
+```
+

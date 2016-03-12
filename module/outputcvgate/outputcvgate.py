@@ -7,10 +7,16 @@ import serial
 import sys
 import os
 
+# eegsynth/lib contains shared modules
+sys.path.insert(0, '../../lib')
+import EEGsynth
+
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
@@ -30,20 +36,55 @@ while True:
 
     for chanindx in range(1, 8):
         chanstr = "cv%d" % chanindx
-        val = r.get(config.get('input', chanstr))
-        if val:
-            chanval = float(val)
-        else:
+        chanval = r.get(config.get('input', chanstr))
+        if chanval is None:
             chanval = config.getfloat('default', chanstr)
+        else:
+            chanval = float(chanval)
 	    chanval = chanval * config.getfloat('multiply', chanstr);
+
+        if config.get('limiter_compressor', 'enable')=='yes':
+            # the limiter/lo option applies to all channels and must exist as float or redis key
+            try:
+                lo = config.getfloat('limiter_compressor', 'lo')
+            except:
+                lo = r.get(config.get('limiter_compressor', 'lo'))
+            # the limiter/hi option applies to all channels and must exist as float or redis key
+            try:
+                hi = config.getfloat('limiter_compressor', 'hi')
+            except:
+                hi = r.get(config.get('limiter_compressor', 'hi'))
+            # apply the limiter
+            val = EEGsynth.limiter(val, lo, hi)
+
+        # the scale option is channel specific
+        if config.has_option('scale', chanstr):
+            try:
+                scale = config.getfloat('scale', chanstr)
+                print 'redis = ', scale
+            except:
+                scale = r.get(config.get('scale', chanstr))
+        else:
+            scale = 1
+        # the offset option is channel specific
+        if config.has_option('offset', chanstr):
+            try:
+                offset = config.getfloat('offset', chanstr)
+                print 'redis = ', offset
+            except:
+                offset = r.get(config.get('offset', chanstr))
+        else:
+            offset = 1
+        # apply the scale and offset
+        val = EEGsynth.rescale(val, scale, offset)
+
         s.write('*c%dv%04d#' % (chanindx, chanval))
 
     for chanindx in range(1, 8):
         chanstr = "gate%d" % chanindx
-        val = r.get(config.get('input', chanstr))
-        if val:
-            chanval = bool(val)
+        chanval = r.get(config.get('input', chanstr))
+        if chanval is None:
+            chanval = bool(config.getint('default', chanstr))
         else:
-            chanval = config.getfloat('default', chanstr)
-	        chanval = chanval>0;
+            chanval = bool(val)
         s.write('*g%dv%d#' % (chanindx, chanval))
