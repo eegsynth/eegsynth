@@ -140,6 +140,48 @@ This is used for inter-process communication between modules.
 sudo apt-get install redis-server
 ```
 
+Redis is automatically started on Raspberry Pi. If you look for running processes, you should see
+
+```
+pi@hackpi:/etc/redis $ ps aux | grep redis
+redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379       
+```
+
+
+If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration
+
+```
+nano /etc/redis/redis.conf
+```
+
+and comment out the line "bind 127.0.0.1" like this:
+
+```
+# By default Redis listens for connections from all the network interfaces
+# available on the server. It is possible to listen to just one or multiple
+# interfaces using the "bind" configuration directive, followed by one or
+# more IP addresses.
+#
+# Examples:
+#
+# bind 192.168.1.100 10.0.0.1
+# bind 127.0.0.1                  ## COMMENTED OUT FOR EEGSYNTH
+```
+
+After changing the configuration file, you can kill the server, which will then restart with the correct configuration:
+
+```
+pi@raspberry:/etc/redis $ ps aux | grep redis
+sudo kill -9 <ID>
+```
+
+And you should see that it binds to all interfaces:
+
+```
+pi@raspberry:/etc/redis $ ps aux | grep redis
+redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/redis-server *:6379               
+```
+
 The redis command line interface is an useful tool for monitoring and debugging the redis server:
 
 ```
@@ -154,6 +196,7 @@ This is used for MIDI communication.
 sudo apt-get install libportmidi-dev
 ```
 
+
 ### Install python modules
 
 ```
@@ -163,6 +206,24 @@ sudo easy_install pip
 sudo pip install redis
 sudo pip install mido
 sudo pip install pyserial
+sudo pip install pyosc
+```
+
+### Install audio
+
+This is only needed for the software synthesizer module, which runs fine on OS X but which still has issues on the Raspberry Pi.
+
+```
+sudo apt-get install python-pyaudio
+sudo apt-get install jackd
+```
+
+The following might actually not be needed.
+
+```
+sudo apt-get install alsa-utils
+sudo apt-get install mpg321
+sudo apt-get install lame
 ```
 
 ### Switch Launchcontrol XL to low-power mode
@@ -209,16 +270,4 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 ```
 sudo apt-get install libportmidi0
 sudo apt-get install libportmidi-dev
-```
-
-### Install audio for Python
-
-```
-sudo apt-get install python-pyaudio python3-pyaudio
-```
-
-```
-sudo apt-get install alsa-utils
-sudo apt-get install mpg321
-sudo apt-get install lame
 ```
