@@ -273,3 +273,11 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 sudo apt-get install libportmidi0
 sudo apt-get install libportmidi-dev
 ```
+
+## Misc
+
+```
+hg clone ssh://hg@bitbucket.org/robertoostenveld/python-edf
+sudo python setup.py install
+```
+
