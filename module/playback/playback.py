@@ -30,7 +30,8 @@ debug = config.getint('general','debug')
 try:
     ftr_host = config.get('fieldtrip','hostname')
     ftr_port = config.getint('fieldtrip','port')
-    print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
     ftc = FieldTrip.Client()
     ftc.connect(ftr_host, ftr_port)
     if debug>0:
@@ -39,56 +40,58 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
+if debug>0:
+    print "Reading data from", config.get('playback', 'file')
 
 f = edflib.EdfReader(config.get('playback', 'file'))
 
-print f.getSignalTextLabels()
-print f.getNSamples()
-print f.getSignalFreqs()
+if debug>1:
+    print 'SignalTextLabels = ', f.getSignalTextLabels()
+    print 'NSamples         = ', f.getNSamples()
+    print 'SignalFreqs      = ', f.getSignalFreqs()
 
-nchans    = len(f.getSignalFreqs())
-fsample   = f.getSignalFreqs()[0]
-nsamples  = f.getNSamples()[0]
-blocksize = int(round(config.getfloat('playback', 'blocksize')*fsample))
+for chanindx in range(f.signals_in_file):
+    if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
+        raise IOError('unequal SignalFreqs')
+    if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
+        raise IOError('unequal NSamples')
 
 H = FieldTrip.Header()
 
-H.nChannels = nchans
-H.nSamples  = 0
+H.nChannels = len(f.getSignalFreqs())
+H.nSamples  = f.getNSamples()[0]
 H.nEvents   = 0
-H.fSample   = fsample
+H.fSample   = f.getSignalFreqs()[0]
 H.dataType  = FieldTrip.DATATYPE_FLOAT32
 
-D   = np.ndarray(shape=(nchans, blocksize), dtype=np.float64)
+ftc.putHeader(H.nChannels, H.fSample, H.dataType, labels=f.getSignalTextLabels())
 
-# print H
-# print D
+# read all the data from the file
+D = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
+for chanindx in range(H.nChannels):
+    D[:,chanindx] = f.readSignal(chanindx)
 
-begsample = 1.0
-endsample = blocksize
-
-block = 0
+blocksize = int(config.getfloat('playback', 'blocksize')*H.fSample)
+begsample = 0
+endsample = blocksize-1
+block = 1
 
 while True:
+    if endsample>H.nSamples:
+        if debug>0:
+            print "End of file reached, jumping back to start"
+        begsample = 0
+        endsample = blocksize-1
+        continue
 
-    block += 1
+    if debug>1:
+        print block, 'from', begsample, 'to', endsample
 
-    if endsample>nsamples:
-        exit()
+    ftc.putData(D[begsample:(endsample+1),:])
 
-    print block, begsample/fsample, endsample/fsample
-
-    buf = np.zeros(blocksize*nchans, dtype=np.float64)
-    for chanindx in range(nchans):
-        v = buf[chanindx*blocksize:(chanindx+1)*blocksize]
-        f.readsignal(chanindx, begsample/fsample, endsample/fsample, v)
-
-    for chanindx in range(nchans):
-        D[chanindx,:] = buf[chanindx*blocksize:(chanindx+1)*blocksize]
-
-    exit()
+    # this approximates the real time streaming speed
+    time.sleep(blocksize/(config.getfloat('playback', 'speed')*H.fSample));
 
     begsample += blocksize
     endsample += blocksize
-
-    H.nSamples  += blocksize
+    block += 1
