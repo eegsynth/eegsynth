@@ -45,27 +45,26 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-###### Parameters
-# for qrs_detector function
-Fs = H.fSample
-filter_length = str(config.getint('QRS_detection','windows_length')/10)+'s'
-# Others
-waiting = config.getint('QRS_detection','waiting')
-channel = config.getint('fieldtrip','channel')
-window  = config.getint('QRS_detection','windows_length')*Fs
+###### Processing parameters
+channel = config.getint('processing','channel')-1  # one-offset in the ini file, zero-offset in the code
+window  = config.getint('processing','window')*H.fSample
+filter_length = '3s'
 
 while True:
+    time.sleep(config.getfloat('general','delay'))
+
     H = ftc.getHeader()
-    if H.nSamples > window:
-    # There are enough samples in the buffer
-        time.sleep(1)
-        # we keep last up_period seconds of signal in the ECG channel
-        start = H.nSamples - int(window)
-        stop  = H.nSamples-1
-        ECG   = ftc.getData([start,stop])[:,channel]
+    if H.nSamples < window:
+        # there are not yet enough samples in the buffer
+        pass
 
-        Beats = mne.preprocessing.ecg.qrs_detector(Fs,ECG.astype(float),filter_length=filter_length)
-        pulse = len(Beats)*Fs*60/window;
-        print(pulse,H.nSamples)
+    # we keep last up_period seconds of signal in the ECG channel
+    start = H.nSamples - int(window)
+    stop  = H.nSamples-1
+    ECG   = ftc.getData([start,stop])[:,channel]
 
-        val = r.set(config.get('output', 'control'), pulse)
+    Beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
+    pulse = len(Beats)*H.fSample*60/window;
+    print(pulse,H.nSamples)
+
+    val = r.set(config.get('output', 'prefix'), pulse)

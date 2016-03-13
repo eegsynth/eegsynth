@@ -226,10 +226,6 @@ sudo apt-get install mpg321
 sudo apt-get install lame
 ```
 
-### Switch Launchcontrol XL to low-power mode
-
-To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
-
 ### Fix audio problems on Raspberry Pi
 
 The following are some attempts to get the software synthesizer module working nicely with the audio interface of the Raspberry Pi.
@@ -253,6 +249,12 @@ cd pyalsaaudio-0.8.2
 python setup.py build
 sudo python setup.py install
 ```
+
+### Switch the Launch Control XL to low-power mode
+
+To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
+
+
 
 ## Installation instructions for OS-X
 

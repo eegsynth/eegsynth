@@ -51,7 +51,7 @@ class TriggerThread(threading.Thread):
         self.stopped = True
     def run(self):
         pubsub = self.r.pubsub()
-        channel = self.config.get('input','calibrate')
+        channel = self.config.get('processing','calibrate')
         pubsub.subscribe(channel)
         for item in pubsub.listen():
             if self.stopped:
@@ -79,28 +79,37 @@ while H is None:
 print H
 print H.labels
 
-blocksize = round(config.getfloat('general','blocksize') * H.fSample)
-print blocksize
+window = round(config.getfloat('general','window') * H.fSample)
+print window
 
 hwchanindx = []
 hwdataindx = []
 for chanindx in range(0, 9):
     try:
+        # channel numbers are one-offset in the ini file, zero-offset in the code
         chanstr = "channel%d" % (chanindx+1)
-        hwchanindx.append(config.getint('input', chanstr)-1)
+        hwchanindx.append(config.getint('processing', chanstr)-1)
         hwdataindx.append(chanindx+1)
-
     except:
         pass
+print hwchanindx, hwdataindx
 
-print hwchanindx,hwdataindx
+try:
+    low_pass = config.getint('general', 'low_pass')
+except:
+    low_pass = None
+
+try:
+    high_pass = config.getint('general', 'high_pass')
+except:
+    high_pass = None
+
 minval = None
 maxval = None
 
 t = 0
-
 while True:
-    time.sleep(config.getfloat('general','blocksize')/10)
+    time.sleep(config.getfloat('general','delay'))
     t += 1
 
     lock.acquire()
@@ -112,33 +121,15 @@ while True:
 
     H = ftc.getHeader()
     endsample = H.nSamples - 1
-    if endsample<blocksize:
+    if endsample<window:
         continue
 
-    begsample = endsample-blocksize+1
+    begsample = endsample-window+1
     D = ftc.getData([begsample, endsample])
-
 
     D = D[:,hwchanindx]
 
-    try:
-        low_pass = config.getint('general', 'low_pass')
-    except:
-        low_pass = None
-
-
-    try:
-        high_pass = config.getint('general', 'high_pass')
-    except:
-        high_pass = None
-
-
-
-
     D_filt = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
-
-
-
 
     rms = []
     for i in range(0,len(hwchanindx)):
@@ -158,8 +149,6 @@ while True:
 
     minval = [min(a,b) for (a,b) in zip(rms,minval)]
     maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
-
-
 
     for i,val in enumerate(rms):
         if maxval[i]==minval[i]:
