@@ -24,7 +24,8 @@ import EEGsynth
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'inputosc.ini'))
 
-debug = config.getint('general', 'debug')
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)

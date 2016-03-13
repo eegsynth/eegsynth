@@ -16,8 +16,11 @@ installed_folder = os.path.split(basis)[0]
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'pulsegenerator.ini'))
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"

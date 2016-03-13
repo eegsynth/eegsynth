@@ -23,6 +23,9 @@ import FieldTrip
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'heartrate.ini'))
 
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 ftc = FieldTrip.Client()
 
 ftr_host = config.get('fieldtrip','hostname')
@@ -35,8 +38,8 @@ print 'Connected'
 H = ftc.getHeader()
 print 'Header loaded'
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"

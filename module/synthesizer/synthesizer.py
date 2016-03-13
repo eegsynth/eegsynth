@@ -19,8 +19,11 @@ installed_folder = os.path.split(basis)[0]
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'synthesizer.ini'))
 
-r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -298,7 +301,7 @@ try:
     # write the buffer content to the audio device
     stream.write(BUFFER)
     offset = offset+BLOCKSIZE
-    
+
 except KeyboardInterrupt:
     trigger.stop_thread()
     control.stop_thread()
