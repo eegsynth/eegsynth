@@ -1,11 +1,16 @@
 Keyboard module
 ===============
 
-The purpose of this module is to receive input MIDI commands from a keyboard, e.g. a digital piano. The key press events are translated into a control value representing the pitch. The force with which the key is pressed is send as trigger. Both the control value and the trigger are send to the REDIS buffer. It is possible to filter on key presses and/or key releases.
+The purpose of this module is to receive and send input MIDI commands from/to a keyboard such as a digital piano. This implementation has been tested with a [Yamaha P95](http://usa.yamaha.com/products/musical-instruments/keyboards/digitalpianos/p_series/p-95_color_variation/).
+
+
+The MIDI commands received from the piano corresponding to keys that are pressed are translated into a single control value representing the pitch. The force with which the key is pressed is send as trigger for each of the keys. Both the control value and the trigger are send to the REDIS buffer. You can filter on key press and release events.
+
+The MIDI commands that should be send to the piano correspond to pubsub messages from the REDIS buffer.
 
 ## Requirements
 
-The MIDI keyboard should be connected to the USB port.
+The keyboard should be connected with a bidirectional MIDI-to-USB cable.
 The REDIS buffer should be running.
 
 ## Software Requirements
