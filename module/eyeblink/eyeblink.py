@@ -5,8 +5,6 @@ import ConfigParser # this is version 2.x specific, on version 3.x it is called 
 import redis
 import sys
 import os
-import FieldTrip
-import multiprocessing
 import threading
 
 import numpy as np
@@ -15,15 +13,24 @@ from nilearn import signal
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'emg.ini'))
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import FieldTrip
 
-r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+config = ConfigParser.ConfigParser()
+config.read(os.path.join(installed_folder, 'eyeblink.ini'))
+
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -74,18 +81,8 @@ print H.labels
 blocksize = round(config.getfloat('general','blocksize') * H.fSample)
 print blocksize
 
-hwchanindx = []
-hwdataindx = []
-for chanindx in range(0, 9):
-    try:
-        chanstr = "channel%d" % (chanindx+1)
-        hwchanindx.append(config.getint('input', chanstr)-1)
-        hwdataindx.append(chanindx+1) 
+channel = config.getint('input','channel')-1
 
-    except:
-        pass
-
-print hwchanindx,hwdataindx
 minval = None
 maxval = None
 
@@ -109,59 +106,39 @@ while True:
 
     begsample = endsample-blocksize+1
     D = ftc.getData([begsample, endsample])
+    D = D[:,channel]
 
-    
-    D = D[:,hwchanindx]
-    
     try:
         low_pass = config.getint('general', 'low_pass')
     except:
         low_pass = None
-        
-        
+
     try:
         high_pass = config.getint('general', 'high_pass')
     except:
         high_pass = None
-        
-       
-    
-    
-    D_filt = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
 
-
-
-
-    rms = []
-    for i in range(0,len(hwchanindx)):
-        rms.append(0)
-           
-    #print len(rms)
-    
-    for i,chanvec in enumerate(D_filt.transpose()):
-        for chanval in chanvec:
-            rms[i] += chanval*chanval
+    # TODO test detection with filtering (following line)
+    # D = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
 
     if minval is None:
-        minval = rms
+        minval = np.min(D)
 
     if maxval is None:
-        maxval = rms
+        maxval = np.max(D)
 
-    minval = [min(a,b) for (a,b) in zip(rms,minval)]
-    maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
+    minval = min(minval,np.min(D))
+    maxval = max(maxval,np.max(D))
 
-    
-    
-    for i,val in enumerate(rms):
-        if maxval[i]==minval[i]:
-            rms[i] = 0
-        else:
-            rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
-            
-    print rms
-    
-    for i,val in enumerate(rms):
-        key = "%s.channel%d" % (config.get('output','prefix'), hwdataindx[i])
-        # send it as control value: prefix.channelX=val
-        r.set(key,int(127*val))
+    spread = np.max(D) - np.min(D)
+    if spread > float(config.get('input','thresh_ratio'))*(maxval-minval):
+        val = 1
+    else:
+        val = 0
+
+    print('spread ' + str(spread) +
+          '\t  max_spread : ' + str(maxval-minval) +
+          '\t  output ' + str(val))
+
+    key = "%s.channel%d" % (config.get('output','prefix'), channel)
+    r.publish(key,val)

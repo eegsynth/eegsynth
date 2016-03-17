@@ -5,7 +5,7 @@ The goal of this module is to read one or multiple channels of bipolar EMG data 
 
 This module implements automatic gain control by tracking (over time) the maximal and minimal value and scaling the output within this range. While the module is running, the gain control can be re-initialized with a key-press.
 
-** Requirements **
+## Requirements
 
 The FieldTrip buffer should be running and should receive incoming data.
 The REDIS buffer should be running.

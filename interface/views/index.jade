@@ -11,6 +11,21 @@ html(lang="en")
       tr
         td buffer
         td
+          a(href="accelerometer/status") status
+        td
+          a(href="accelerometer/start") start
+        td
+          a(href="accelerometer/restart") restart
+        td
+          a(href="accelerometer/stop") stop
+        td
+          a(href="accelerometer/log") log
+        td
+          a(href="accelerometer/edit") edit
+
+      tr
+        td buffer
+        td
           a(href="buffer/status") status
         td
           a(href="buffer/start") start
@@ -19,48 +34,69 @@ html(lang="en")
         td
           a(href="buffer/stop") stop
         td
+          a(href="buffer/log") log
+        td
           a(href="buffer/edit") edit
 
+      tr
+        td emg
+        td
+          a(href="emg/status") status
+        td
+          a(href="emg/start") start
+        td
+          a(href="emg/restart") restart
+        td
+          a(href="emg/stop") stop
+        td
+          a(href="emg/log") log
+        td
+          a(href="emg/edit") edit
 
       tr
-        td openbci2ft
+        td eyeblink
         td
-          a(href="openbci2ft/status") status
+          a(href="eyeblink/status") status
         td
-          a(href="openbci2ft/start") start
+          a(href="eyeblink/start") start
         td
-          a(href="openbci2ft/restart") restart
+          a(href="eyeblink/restart") restart
         td
-          a(href="openbci2ft/stop") stop
+          a(href="eyeblink/stop") stop
         td
-          a(href="openbci2ft/edit") edit
+          a(href="eyeblink/log") log
+        td
+          a(href="eyeblink/edit") edit
 
       tr
-        td redis
+        td heartrate
         td
-          a(href="redis/status") status
+          a(href="heartrate/status") status
         td
-          a(href="redis/start") start
+          a(href="heartrate/start") start
         td
-          a(href="redis/restart") restart
+          a(href="heartrate/restart") restart
         td
-          a(href="redis/stop") stop
+          a(href="heartrate/stop") stop
         td
-          a(href="redis/edit") edit
-
+          a(href="heartrate/log") log
+        td
+          a(href="heartrate/edit") edit
 
       tr
-        td launchcontrol
+        td inputosc
         td
-          a(href="launchcontrol/status") status
+          a(href="inputosc/status") status
         td
-          a(href="launchcontrol/start") start
+          a(href="inputosc/start") start
         td
-          a(href="launchcontrol/restart") restart
+          a(href="inputosc/restart") restart
         td
-          a(href="launchcontrol/stop") stop
+          a(href="inputosc/stop") stop
         td
-          a(href="launchcontrol/edit") edit
+          a(href="inputosc/log") log
+        td
+          a(href="inputosc/edit") edit
 
       tr
         td keyboard
@@ -73,20 +109,99 @@ html(lang="en")
         td
           a(href="keyboard/stop") stop
         td
+          a(href="keyboard/log") log
+        td
           a(href="keyboard/edit") edit
 
       tr
-        td devirtualizer
+        td launchcontrol
         td
-          a(href="devirtualizer/status") status
+          a(href="launchcontrol/status") status
         td
-          a(href="devirtualizer/start") start
+          a(href="launchcontrol/start") start
         td
-          a(href="devirtualizer/restart") restart
+          a(href="launchcontrol/restart") restart
         td
-          a(href="devirtualizer/stop") stop
+          a(href="launchcontrol/stop") stop
         td
-          a(href="devirtualizer/edit") edit
+          a(href="launchcontrol/log") log
+        td
+          a(href="launchcontrol/edit") edit
+
+      tr
+        td openbci2ft
+        td
+          a(href="openbci2ft/status") status
+        td
+          a(href="openbci2ft/start") start
+        td
+          a(href="openbci2ft/restart") restart
+        td
+          a(href="openbci2ft/stop") stop
+        td
+          a(href="openbci2ft/log") log
+        td
+          a(href="openbci2ft/edit") edit
+
+      tr
+        td outputcvgate
+        td
+          a(href="outputcvgate/status") status
+        td
+          a(href="outputcvgate/start") start
+        td
+          a(href="outputcvgate/restart") restart
+        td
+          a(href="outputcvgate/stop") stop
+        td
+          a(href="outputcvgate/log") log
+        td
+          a(href="outputcvgate/edit") edit
+
+      tr
+        td outputosc
+        td
+          a(href="outputosc/status") status
+        td
+          a(href="outputosc/start") start
+        td
+          a(href="outputosc/restart") restart
+        td
+          a(href="outputosc/stop") stop
+        td
+          a(href="outputosc/log") log
+        td
+          a(href="outputosc/edit") edit
+
+      tr
+        td pulsegenerator
+        td
+          a(href="pulsegenerator/status") status
+        td
+          a(href="pulsegenerator/start") start
+        td
+          a(href="pulsegenerator/restart") restart
+        td
+          a(href="pulsegenerator/stop") stop
+        td
+          a(href="pulsegenerator/log") log
+        td
+          a(href="pulsegenerator/edit") edit
+
+      tr
+        td redis
+        td
+          a(href="redis/status") status
+        td
+          a(href="redis/start") start
+        td
+          a(href="redis/restart") restart
+        td
+          a(href="redis/stop") stop
+        td
+          a(href="redis/log") log
+        td
+          a(href="redis/edit") edit
 
       tr
         td sequencer
@@ -98,6 +213,8 @@ html(lang="en")
           a(href="sequencer/restart") restart
         td
           a(href="sequencer/stop") stop
+        td
+          a(href="sequencer/log") log
         td
           a(href="sequencer/edit") edit
 
@@ -112,30 +229,51 @@ html(lang="en")
         td
           a(href="synthesizer/stop") stop
         td
+          a(href="synthesizer/log") log
+        td
           a(href="synthesizer/edit") edit
 
       tr
-        td heartrate
+        td volcabass
         td
-          a(href="heartrate/status") status
+          a(href="volcabass/status") status
         td
-          a(href="heartrate/start") start
+          a(href="volcabass/start") start
         td
-          a(href="heartrate/restart") restart
+          a(href="volcabass/restart") restart
         td
-          a(href="heartrate/stop") stop
+          a(href="volcabass/stop") stop
         td
-          a(href="heartrate/edit") edit
+          a(href="volcabass/log") log
+        td
+          a(href="volcabass/edit") edit
 
       tr
-        td pulsegenerator
+        td volcabeats
         td
-          a(href="pulsegenerator/status") status
+          a(href="volcabeats/status") status
         td
-          a(href="pulsegenerator/start") start
+          a(href="volcabeats/start") start
         td
-          a(href="pulsegenerator/restart") restart
+          a(href="volcabeats/restart") restart
         td
-          a(href="pulsegenerator/stop") stop
+          a(href="volcabeats/stop") stop
         td
-          a(href="pulsegenerator/edit") edit
+          a(href="volcabeats/log") log
+        td
+          a(href="volcabeats/edit") edit
+
+      tr
+        td volcakeys
+        td
+          a(href="volcakeys/status") status
+        td
+          a(href="volcakeys/start") start
+        td
+          a(href="volcakeys/restart") restart
+        td
+          a(href="volcakeys/stop") stop
+        td
+          a(href="volcakeys/log") log
+        td
+          a(href="volcakeys/edit") edit

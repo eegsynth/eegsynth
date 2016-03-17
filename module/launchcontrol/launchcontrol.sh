@@ -1,6 +1,9 @@
 #! /bin/sh
 
-PATH=/sbin:/bin:/usr/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin
+
+# the following is needed for portmidi on OS X
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
@@ -32,7 +35,8 @@ do_start () {
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
-  ( "$COMMAND" > "$LOGFILE" ) &
+  date > "$LOGFILE"
+  ( "$COMMAND" "$OPTIONS" >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
 }
 
