@@ -7,9 +7,9 @@ import sys
 import os
 import multiprocessing
 import threading
+import math
 
 import numpy as np
-
 from nilearn import signal
 
 if hasattr(sys, 'frozen'):
@@ -33,6 +33,8 @@ debug = config.getint('general','debug')
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
@@ -42,25 +44,52 @@ class TriggerThread(threading.Thread):
         threading.Thread.__init__(self)
         self.r = r
         self.config = config
-        self.stopped = False
+        self.running = True
         lock.acquire()
-        self.time = 0
-        self.last = 0
+        self.update = False
+        self.minval = None
+        self.maxval = None
         lock.release()
-    def stop_thread(self):
-        self.stopped = True
+    def stop(self):
+        self.running = False
     def run(self):
         pubsub = self.r.pubsub()
-        channel = self.config.get('processing','calibrate')
-        pubsub.subscribe(channel)
+        pubsub.subscribe(self.config.get('gain_control','recalibrate'))
+        pubsub.subscribe(self.config.get('gain_control','increase'))
+        pubsub.subscribe(self.config.get('gain_control','decrease'))
+        pubsub.subscribe('MUSCLE_UNBLOCK')  # this message unblocks the redis listen command
         for item in pubsub.listen():
-            if self.stopped:
+            if not self.running:
                 break
-            else:
-                print item['channel'], ":", item['data']
-                lock.acquire()
-                self.last = self.time
-                lock.release()
+            lock.acquire()
+            if item['channel']==self.config.get('gain_control','recalibrate'):
+                # this will cause the min/max values to be completely reset
+                self.minval = None
+                self.maxval = None
+                if debug>0:
+                    print 'recalibrate', self.minval, self.maxval
+            elif item['channel']==self.config.get('gain_control','increase'):
+                # decreasing the min/max values will increase the gain
+                if not self.minval is None:
+                    for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
+                        range = float(max-min)
+                        if range>0:
+                            self.minval[i] += range * self.config.getfloat('gain_control','stepsize')
+                            self.maxval[i] -= range * self.config.getfloat('gain_control','stepsize')
+                if debug>0:
+                    print 'increase', self.minval, self.maxval
+            elif item['channel']==self.config.get('gain_control','decrease'):
+                # increasing the min/max values will decrease the gain
+                if not self.minval is None:
+                    for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
+                        range = float(max-min)
+                        if range>0:
+                            self.minval[i] -= range * self.config.getfloat('gain_control','stepsize')
+                            self.maxval[i] += range * self.config.getfloat('gain_control','stepsize')
+                if debug>0:
+                    print 'decrease', self.minval, self.maxval
+            self.update = True
+            lock.release()
 
 # start the background thread
 lock = threading.Lock()
@@ -76,89 +105,100 @@ while H is None:
     print '\nConnected - trying to read header...'
     H = ftc.getHeader()
 
-print H
-print H.labels
+if debug>1:
+    print H
+    print H.labels
 
-window = round(config.getfloat('general','window') * H.fSample)
-print window
+channel_items = config.items('channel')
+channame = []
+chanindx = []
+for item in channel_items:
+    # channel numbers are one-offset in the ini file, zero-offset in the code
+    channame.append(item[0])
+    chanindx.append(config.getint('channel', item[0])-1)
 
-hwchanindx = []
-hwdataindx = []
-for chanindx in range(0, 9):
-    try:
-        # channel numbers are one-offset in the ini file, zero-offset in the code
-        chanstr = "channel%d" % (chanindx+1)
-        hwchanindx.append(config.getint('processing', chanstr)-1)
-        hwdataindx.append(chanindx+1)
-    except:
-        pass
-print hwchanindx, hwdataindx
+window = round(config.getfloat('processing','window') * H.fSample)
+order = config.getint('processing', 'order')
 
 try:
-    low_pass = config.getint('general', 'low_pass')
+    low_pass = config.getint('processing', 'low_pass')
 except:
     low_pass = None
 
 try:
-    high_pass = config.getint('general', 'high_pass')
+    high_pass = config.getint('processing', 'high_pass')
 except:
     high_pass = None
 
 minval = None
 maxval = None
 
-t = 0
-while True:
-    time.sleep(config.getfloat('general','delay'))
-    t += 1
+try:
+    while True:
+        time.sleep(config.getfloat('general','delay'))
 
-    lock.acquire()
-    if trigger.last == trigger.time:
-        minval = None
-        maxval = None
-    trigger.time = t
-    lock.release()
-
-    H = ftc.getHeader()
-    endsample = H.nSamples - 1
-    if endsample<window:
-        continue
-
-    begsample = endsample-window+1
-    D = ftc.getData([begsample, endsample])
-
-    D = D[:,hwchanindx]
-
-    D_filt = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
-
-    rms = []
-    for i in range(0,len(hwchanindx)):
-        rms.append(0)
-
-    #print len(rms)
-
-    for i,chanvec in enumerate(D_filt.transpose()):
-        for chanval in chanvec:
-            rms[i] += chanval*chanval
-
-    if minval is None:
-        minval = rms
-
-    if maxval is None:
-        maxval = rms
-
-    minval = [min(a,b) for (a,b) in zip(rms,minval)]
-    maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
-
-    for i,val in enumerate(rms):
-        if maxval[i]==minval[i]:
-            rms[i] = 0
+        lock.acquire()
+        if trigger.update:
+            minval = trigger.minval
+            maxval = trigger.maxval
+            trigger.update = False
         else:
-            rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
+            trigger.minval = minval
+            trigger.maxval = maxval
+        lock.release()
 
-    print rms
+        H = ftc.getHeader()
+        endsample = H.nSamples - 1
+        if endsample<window:
+            continue
 
-    for i,val in enumerate(rms):
-        key = "%s.channel%d" % (config.get('output','prefix'), hwdataindx[i])
-        # send it as control value: prefix.channelX=val
-        r.set(key,int(127*val))
+        begsample = endsample-window+1
+        D = ftc.getData([begsample, endsample])
+
+        D = D[:, chanindx]
+
+        if low_pass or high_pass:
+            D = signal.butterworth(D, H.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
+
+        rms = []
+        for i in range(0,len(chanindx)):
+            rms.append(0)
+
+        for i,chanvec in enumerate(D.transpose()):
+            for chanval in chanvec:
+                rms[i] += chanval*chanval
+            rms[i] = math.sqrt(rms[i])
+
+        # update the min/max value for the automatic gain control
+        if minval is None:
+            minval = rms
+        else:
+            minval = [min(a,b) for (a,b) in zip(rms,minval)]
+
+        if maxval is None:
+            maxval = rms
+        else:
+            maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
+
+        if debug>1:
+            print rms
+
+        # apply the gain control
+        for i,val in enumerate(rms):
+            if maxval[i]==minval[i]:
+                rms[i] = 0
+            else:
+                rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
+
+        for name,val in zip(channame, rms):
+            # send it as control value: prefix.channelX=val
+            key = "%s.%s" % (config.get('output','prefix'), name)
+            val = int(127*val)
+            r.set(key,val)
+
+except KeyboardInterrupt:
+    print "Closing threads"
+    trigger.stop()
+    r.publish('MUSCLE_UNBLOCK', 1)
+    trigger.join()
+    sys.exit()
