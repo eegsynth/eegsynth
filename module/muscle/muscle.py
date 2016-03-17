@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import FieldTrip
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'emg.ini'))
+config.read(os.path.join(installed_folder, 'muscle.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
