@@ -1,8 +1,9 @@
 EEG processing module
 =====================
 
-The goal of this module is to read EEG data from the FieldTrip buffer, to process it spatially, temporally and spectrally and to write one or multiple control signals to the REDIS buffer.
+The goal of this module is to read EEG data from the FieldTrip buffer, to Fourier transform it and compute power in specific frequency bands. The power in each frequency band in each channel is written as control values to the REDIS buffer.
 
+This module implements automatic gain control by tracking (over time) the maximal and minimal value and scaling the output within this range. While the module is running, the gain control can be re-initialized or adjusted (increased or decreased) with key-presses.
 
 ** Requirements **
 
