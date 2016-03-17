@@ -68,7 +68,7 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = r.pubsub()
         pubsub.subscribe('VOLCABASS_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)     # this message contains the note
+        pubsub.subscribe(self.redischannel)    # this message contains the note
         for item in pubsub.listen():
             if not self.running:
                 break

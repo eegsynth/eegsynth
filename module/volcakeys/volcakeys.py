@@ -68,11 +68,11 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = r.pubsub()
         pubsub.subscribe('VOLCAKEYS_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)     # this message contains the note
+        pubsub.subscribe(self.redischannel)    # this message contains the note
         for item in pubsub.listen():
             if not self.running:
                 break
-            else:
+            if item['channel']==self.redischannel:
                 if debug>1:
                     print item['channel'], "=", item['data']
                 msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
