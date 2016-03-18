@@ -5,7 +5,7 @@ The goal of this module is to read EEG data from the FieldTrip buffer, to Fourie
 
 This module implements automatic gain control by tracking (over time) the maximal and minimal value and scaling the output within this range. While the module is running, the gain control can be re-initialized or adjusted (increased or decreased) with key-presses.
 
-** Requirements **
+## Requirements
 
 The FieldTrip buffer should be running and should receive incoming data.
 The REDIS buffer should be running.
