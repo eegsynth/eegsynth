@@ -56,9 +56,9 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = self.r.pubsub()
         pubsub.subscribe(self.config.get('gain_control','recalibrate'))
+        pubsub.subscribe(self.config.get('gain_control','freeze'))
         pubsub.subscribe(self.config.get('gain_control','increase'))
         pubsub.subscribe(self.config.get('gain_control','decrease'))
-        pubsub.subscribe(self.config.get('gain_control','freeze'))
         pubsub.subscribe('BRAIN_UNBLOCK')  # this message unblocks the redis listen command
         for item in pubsub.listen():
             if not self.running:
@@ -71,10 +71,17 @@ class TriggerThread(threading.Thread):
                     self.maxval = None
                     if debug>0:
                         print 'recalibrate', self.minval, self.maxval
+                else:
+                    print 'not recalibrating, freeze is on'
             elif item['channel']==self.config.get('gain_control','freeze'):
                 # freeze the automatic adjustment of the gain control
                 # when frozen, the recalibrate should also not be done
-                self.freeze = item['value']>0:
+                self.freeze = (int(item['data'])>0)
+                if debug>1:
+                    if self.freeze:
+                        print 'freeze on'
+                    else:
+                        print 'freeze off'
             elif item['channel']==self.config.get('gain_control','increase'):
                 # decreasing the min/max values will increase the gain
                 if not self.minval is None:
@@ -205,16 +212,15 @@ try:
         if debug>1:
             print power
 
+        if minval is None:
+            minval = power
+        if maxval is None:
+            maxval = power
+
         if not freeze:
             # update the min/max value for the automatic gain control
-            if minval is None:
-                minval = power
-            else:
-                minval = [min(a,b) for (a,b) in zip(power,minval)]
-            if maxval is None:
-                maxval = power
-            else:
-                maxval = [max(a,b) for (a,b) in zip(power,maxval)]
+            minval = [min(a,b) for (a,b) in zip(power,minval)]
+            maxval = [max(a,b) for (a,b) in zip(power,maxval)]
 
         # apply the gain control
         for i,val in enumerate(power):
