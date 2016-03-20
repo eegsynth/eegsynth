@@ -1,4 +1,20 @@
 ####################################################################
+def getfloat(section, item, config, redis, multiple=False):
+    try:
+        val = config.getfloat(section, item)
+    except:
+        val = float(redis.get(config.get(section, item)))
+    return val
+
+####################################################################
+def getint(section, item, config, redis, multiple=False):
+    try:
+        val = config.getint(section, item)
+    except:
+        val = int(redis.get(config.get(section, item)))
+    return val
+
+####################################################################
 def rescale(xval, slope=1, offset=0):
     return float(slope)*xval + float(offset)
 
