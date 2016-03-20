@@ -49,6 +49,7 @@ class TriggerThread(threading.Thread):
         self.update = False
         self.minval = None
         self.maxval = None
+        self.freeze = False
         lock.release()
     def stop(self):
         self.running = False
@@ -57,17 +58,23 @@ class TriggerThread(threading.Thread):
         pubsub.subscribe(self.config.get('gain_control','recalibrate'))
         pubsub.subscribe(self.config.get('gain_control','increase'))
         pubsub.subscribe(self.config.get('gain_control','decrease'))
+        pubsub.subscribe(self.config.get('gain_control','freeze'))
         pubsub.subscribe('BRAIN_UNBLOCK')  # this message unblocks the redis listen command
         for item in pubsub.listen():
             if not self.running:
                 break
             lock.acquire()
             if item['channel']==self.config.get('gain_control','recalibrate'):
-                # this will cause the min/max values to be completely reset
-                self.minval = None
-                self.maxval = None
-                if debug>0:
-                    print 'recalibrate', self.minval, self.maxval
+                if not self.freeze:
+                    # this will cause the min/max values to be completely reset
+                    self.minval = None
+                    self.maxval = None
+                    if debug>0:
+                        print 'recalibrate', self.minval, self.maxval
+            elif item['channel']==self.config.get('gain_control','freeze'):
+                # freeze the automatic adjustment of the gain control
+                # when frozen, the recalibrate should also not be done
+                self.freeze = item['value']>0:
             elif item['channel']==self.config.get('gain_control','increase'):
                 # decreasing the min/max values will increase the gain
                 if not self.minval is None:
@@ -137,6 +144,7 @@ if debug>0:
 window = int(round(config.getfloat('processing','window') * H.fSample))
 minval = None
 maxval = None
+freeze = False
 
 taper = np.hanning(window)
 frequency = np.fft.rfftfreq(window, 1.0/H.fSample)
@@ -153,6 +161,7 @@ try:
         if trigger.update:
             minval = trigger.minval
             maxval = trigger.maxval
+            freeze = trigger.freeze
             trigger.update = False
         else:
             trigger.minval = minval
@@ -193,19 +202,19 @@ try:
                         power[i] += abs(F[sample,chan]*F[sample,chan])
                 i+=1
 
-        # update the min/max value for the automatic gain control
-        if minval is None:
-            minval = power
-        else:
-            minval = [min(a,b) for (a,b) in zip(power,minval)]
-
-        if maxval is None:
-            maxval = power
-        else:
-            maxval = [max(a,b) for (a,b) in zip(power,maxval)]
-
         if debug>1:
             print power
+
+        if not freeze:
+            # update the min/max value for the automatic gain control
+            if minval is None:
+                minval = power
+            else:
+                minval = [min(a,b) for (a,b) in zip(power,minval)]
+            if maxval is None:
+                maxval = power
+            else:
+                maxval = [max(a,b) for (a,b) in zip(power,maxval)]
 
         # apply the gain control
         for i,val in enumerate(power):
