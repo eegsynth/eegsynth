@@ -54,9 +54,9 @@ do_stop () {
   check_running_process || log_action_err "Error: $NAME is already stopped"
   check_running_process || exit 1
   # kill -9 `cat "$PIDFILE"`
-  PID1=`pgrep -F "$PIDFILE"`
-  PID2=`pgrep -P $PID1`
-  PID3=`pgrep -P $PID2`
+  PID1=`pgrep -F "$PIDFILE"` # the parallel script
+  PID2=`pgrep -P $PID1`      # the xargs process
+  PID3=`pgrep -P $PID2`      # the buffer servers
   kill -9 $PID3
   rm "$PIDFILE"
 }
