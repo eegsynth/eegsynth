@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# Bash helper script to execute multiple instances of a program in parallel.
+#
+# This script is inspired by http://stackoverflow.com/questions/356100/how-to-wait-in-bash-for-several-subprocesses-to-finish-and-return-exit-code-0
+# and by http://www.gnu.org/software/parallel/
+
+COMMAND=$1
+ARGS=`echo $2 | tr ',' ' '` 
+
+if [ -z "$COMMAND" ] ; then
+cat << EOF
+
+Use as:
+  multiple <command> <arg1,arg2,arg3>
+
+This will start in parallel
+  command arg1
+  command arg2
+  command arg3
+
+EOF
+exit 
+fi
+
+if [ -z "$ARGS" ] ; then
+$COMMAND
+else
+echo $ARGS | xargs -IARG -n 1 -P 16 $COMMAND ARG
+fi
+
