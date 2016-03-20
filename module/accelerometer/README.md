@@ -1,5 +1,5 @@
-Heart Rate Module
-=================
+Accelerometer Module
+====================
 
 The goal of this module is to read the OpenBCI accelerometer channels from the FieldTrip bufferwrite them as a continuous control value to the REDIS buffer.
 
