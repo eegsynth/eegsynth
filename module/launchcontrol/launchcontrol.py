@@ -179,7 +179,7 @@ while True:
             if debug>1:
                 print status, val
 
-            if val:
+            if not val is None:
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
                 r.set(key,val)          # send it as control value
