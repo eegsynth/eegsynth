@@ -23,6 +23,7 @@ installed_folder = os.path.split(basis)[0]
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import FieldTrip
+import EEGsynth
 
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'brain.ini'))
@@ -134,20 +135,6 @@ for item in channel_items:
 if debug>0:
     print channame, chanindx
 
-band_items = config.items('band')
-bandname = []
-bandlo   = []
-bandhi   = []
-for item in band_items:
-    # channel numbers are one-offset in the ini file, zero-offset in the code
-    lohi = config.get('band', item[0]).split("-")
-    bandname.append(item[0])
-    bandlo.append(float(lohi[0]))
-    bandhi.append(float(lohi[1]))
-
-if debug>0:
-    print bandname, bandlo, bandhi
-
 window = int(round(config.getfloat('processing','window') * H.fSample))
 minval = None
 maxval = None
@@ -163,6 +150,21 @@ if debug>0:
 try:
     while True:
         time.sleep(config.getfloat('general','delay'))
+
+        band_items = config.items('band')
+        bandname = []
+        bandlo   = []
+        bandhi   = []
+        for item in band_items:
+            # channel numbers are one-offset in the ini file, zero-offset in the code
+            lohi = EEGsynth.getfloat('band', item[0], config, r, multiple=True)
+            print item[0], lohi
+            # lohi = config.get('band', item[0]).split("-")
+            bandname.append(item[0])
+            bandlo.append(lohi[0])
+            bandhi.append(lohi[1])
+        if debug>0:
+            print bandname, bandlo, bandhi
 
         lock.acquire()
         if trigger.update:

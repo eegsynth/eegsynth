@@ -75,18 +75,20 @@ while True:
                 # the limiter/lo option applies to all channels and must exist as float or redis key
                 lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
                 hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
-                # apply the limiter
-                val = EEGsynth.limiter(val, lo, hi)
+                if lo is None or hi is None:
+                    if debug>1:
+                        print "cannot apply limiter/compressor"
+                else:
+                    # apply the limiter/compressor
+                    val = EEGsynth.limiter(val, lo, hi)
 
             # the scale option is channel specific
-            if config.has_option('scale', key1):
-                scale = EEGsynth.getfloat('scale', key1, config, r)
-            else:
+            scale = EEGsynth.getfloat('scale', key1, config, r)
+            if scale is None:
                 scale = 1
             # the offset option is channel specific
-            if config.has_option('offset', key1):
-                offset = EEGsynth.getfloat('offset', key1, config, r)
-            else:
+            offset = EEGsynth.getfloat('offset', key1, config, r)
+            if scale is None:
                 offset = 0
             # apply the scale and offset
             val = EEGsynth.rescale(val, scale, offset)
