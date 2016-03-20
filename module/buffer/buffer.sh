@@ -31,6 +31,15 @@ log_action_err () {
   echo $* 1>&2
 }
 
+killtree() {
+    local pid=$1 child
+
+    for child in $(pgrep -P $pid); do
+        killtree $child
+    done
+     [ $pid -ne $$ ] && kill -kill $pid 2> /dev/null
+}
+
 check_running_process () {
   if [ ! -f "$PIDFILE" ]; then
     return 1
@@ -53,11 +62,7 @@ do_stop () {
   log_action_msg "Stopping $NAME"
   check_running_process || log_action_err "Error: $NAME is already stopped"
   check_running_process || exit 1
-  # kill -9 `cat "$PIDFILE"`
-  PID1=`pgrep -F "$PIDFILE"` # the parallel script
-  PID2=`pgrep -P $PID1`      # the xargs process
-  PID3=`pgrep -P $PID2`      # the buffer servers
-  kill -9 $PID3
+  killtree `cat "$PIDFILE"`
   rm "$PIDFILE"
 }
 
