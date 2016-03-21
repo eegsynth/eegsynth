@@ -83,7 +83,7 @@ def ledcolor(note,color):
     if not midichannel is None:
         outputport.send(mido.Message('note_on', note=note, velocity=color, channel=midichannel))
 
-# ensure that all buttons start in the Off state
+# ensure that all buttons and published messages start in the Off state
 for note in note_list:
      ledcolor(note, Off)
 
