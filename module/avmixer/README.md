@@ -10,10 +10,10 @@ AVmixer can also be controlled using the TouchOSC app, which sends OSC messages 
 
 ![TouchOSC](./touchosc.png)
 
-## Interfacing through software MIDI
+## Interfacing through regular MIDI
 
 This works if the EEGsynth avmixer module runs on the same computer as the AVmixer software.  
 
-## Interfacing through OSC
+## Interfacing through rtpMIDI over the network
 
-This works regardless of whether the EEGsynth avmixer module is running on the same computer or not.
+This works regardless of whether the EEGsynth avmixer module is running on the same computer or not. The receiving computer should have network-MIDI, which includes every Mac and every iPhone/iPad and works with any software that uses the Core-MIDI framework. For MS Windows you can download the [driver](http://www.tobias-erichsen.de/software/rtpmidi.html) and follow the [instructions](http://www.tobias-erichsen.de/software/rtpmidi.html).
