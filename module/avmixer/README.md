@@ -10,10 +10,18 @@ AVmixer can also be controlled using the TouchOSC app, which sends OSC messages 
 
 ![TouchOSC](./touchosc.png)
 
-## Interfacing through regular MIDI
+You can control the AVmixer software both (and simultaneously) from this EEGsynth module and from the TouchOSC interface.
 
-This works if the EEGsynth avmixer module runs on the same computer as the AVmixer software.  
+## Requirements
 
-## Interfacing through rtpMIDI over the network
+AVmixer (pro or lite) software from https://neuromixer.com.
+MIDI configuration according to "preset 3", i.e. the one that also works with the TouchOSC app.
+CoreMIDI or rtpMIDI support, in case you want to control the AVmixer software on computer A while the EEGsynth module is running on computer B.
 
-This works regardless of whether the EEGsynth avmixer module is running on the same computer or not. The receiving computer should have network-MIDI, which includes every Mac and every iPhone/iPad and works with any software that uses the Core-MIDI framework. For MS Windows you can download the [driver](http://www.tobias-erichsen.de/software/rtpmidi.html) and follow the [instructions](http://www.tobias-erichsen.de/software/rtpmidi.html).
+## Software Requirements
+
+portmidi
+Python
+Python mido package
+
+
