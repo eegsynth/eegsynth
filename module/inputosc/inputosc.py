@@ -42,9 +42,11 @@ try:
         print "Started OSC server"
 except:
     print "Unexpected error:", sys.exc_info()[0]
-
     print "Error: cannot start OSC server"
     exit()
+
+# this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
+button_list = config.get('button', 'push').split(',')
 
 # define a message-handler function for the server to call.
 def forward_handler(addr, tags, data, source):
@@ -53,35 +55,31 @@ def forward_handler(addr, tags, data, source):
     print "addr   %s" % addr
     print "tags   %s" % tags
     print "data   %s" % data
+
     # prefix.addr=value
     key = config.get('output', 'prefix')+addr.replace('/', '.')
 
-    # the scale option is channel specific
-    if config.has_option('output', 'scale'):
-        try:
-            scale = config.getfloat('output', 'scale')
-        except:
-            scale = r.get(config.get('output', 'scale'))
-    else:
+    scale = EEGsynth.getfloat('output', 'scale', config, r)
+    if scale is None:
         scale = 1
-    # the offset option is channel specific
-    if config.has_option('output', 'offset'):
-        try:
-            offset = config.getfloat('output', 'offset')
-        except:
-            offset = r.get(config.get('output', 'offset'))
-    else:
+
+    offset = EEGsynth.getfloat('output', 'offset', config, r)
+    if offset is None:
         offset = 0
+
     # apply the scale and offset
     for i in range(len(data)):
         data[i] = EEGsynth.rescale(data[i], scale, offset)
 
     if tags=='f' or tags=='i':
-        # send it as a single value
+        # it is a single value
         val = data[0]
-        r.set(key, val)
+        r.set(key, val)             # send it as control value
+        if addr in button_list:
+            r.publish(key,val)      # send it as trigger
+
     else:
-        # send it as a list
+        # it is a list, send it as a list of control values
         val = data
         r.set(key, val)
 
