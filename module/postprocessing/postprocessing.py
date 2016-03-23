@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'postprocessor.ini'))
+config.read(os.path.join(installed_folder, 'postprocessing.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -37,9 +37,18 @@ except redis.ConnectionError:
 input_name, input_variable = zip(*config.items('input'))
 output_name, output_equation = zip(*config.items('output'))
 
-# FIXME
-# it would be good to do validation on the input and output
-# the string replacement below will fail if the equations and variables are invalid
+def sanitize(equation):
+    equation = equation.replace('(', '( ')
+    equation = equation.replace(')', ' )')
+    equation = equation.replace('+', ' + ')
+    equation = equation.replace('-', ' - ')
+    equation = equation.replace('*', ' * ')
+    equation = equation.replace('/', ' / ')
+    equation = equation.replace('  ', ' ')
+    return equation
+
+# make the equations robust against sub-string replacements
+output_equation = [sanitize(equation) for equation in output_equation]
 
 if debug>0:
     print '===== input variables ====='

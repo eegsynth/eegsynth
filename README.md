@@ -38,7 +38,7 @@ sudo dpkg-reconfigure keyboard-configuration
 
 ### Install the web interface
 
-EEGsynth includes a web interface that allows you to start and stop modules and to edit the patch configuration. The installation of this is detailed in the README document for the interface.
+EEGsynth includes a web interface that allows you to start and stop modules and to edit the patch configuration. The installation of this is detailed in the [README](interface/README.md) document for the interface.
 
 ### Install redis
 
@@ -59,7 +59,7 @@ redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-
 If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration
 
 ```
-nano /etc/redis/redis.conf
+sudo nano /etc/redis/redis.conf
 ```
 
 and comment out the line "bind 127.0.0.1" like this:
@@ -83,7 +83,7 @@ pi@raspberry:/etc/redis $ ps aux | grep redis
 sudo kill -9 <ID>
 ```
 
-And you should see that it binds to all interfaces:
+And you should see that it restarts and binds to all interfaces:
 
 ```
 pi@raspberry:/etc/redis $ ps aux | grep redis
@@ -163,7 +163,6 @@ sudo python setup.py install
 To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
 
 
-
 ## Installation instructions for OS-X
 
 ### Install MIDO for Python
@@ -185,6 +184,11 @@ sudo apt-get install libportmidi-dev
 ## Misc
 
 ```
-hg clone ssh://hg@bitbucket.org/robertoostenveld/python-edf
+sudo apt-get install mercurial
+sudo apt-get install python-dev
+sudo pip install cython
+
+hg clone https://bitbucket@bitbucket.org/robertoostenveld/python-edf
+cd python-edf
 sudo python setup.py install
 ```
