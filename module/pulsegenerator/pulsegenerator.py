@@ -32,10 +32,10 @@ except redis.ConnectionError:
 previous_offset=0
 delay=60
 pulselength = config.getfloat('general','pulselength')
-key=config.get('output','note')
+key=config.get('output','channel')
 
 while True:
-    val = r.get(config.get('input', 'rate'))
+    val = r.get(config.get('input', 'channel'))
     if val:
         cv_rate = float(val)
     else:
