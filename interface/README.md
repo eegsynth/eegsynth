@@ -61,7 +61,6 @@ The firewall can be used to redirect incoming traffic from the usual port 80 to 
 ```
 sudo apt-get update
 sudo apt-get install iptables iptables-persistent
-sudo /etc/init.d/iptables start
 ```
 
 Subsequently you add the rule to forward incoming connections on port 80 to port 3000 and save it so that it is persistent over reboots.
