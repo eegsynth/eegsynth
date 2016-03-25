@@ -6,7 +6,6 @@ import redis
 import sys
 import os
 import edflib
-
 import numpy as np
 
 if hasattr(sys, 'frozen'):
@@ -20,12 +19,22 @@ installed_folder = os.path.split(basis)[0]
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import FieldTrip
+import EEGsynth
 
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'playback.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
 
 try:
     ftr_host = config.get('fieldtrip','hostname')
@@ -74,7 +83,7 @@ for chanindx in range(H.nChannels):
 blocksize = int(config.getfloat('playback', 'blocksize')*H.fSample)
 begsample = 0
 endsample = blocksize-1
-block = 1
+block     = 1
 
 while True:
     if endsample>H.nSamples:
@@ -84,13 +93,25 @@ while True:
         endsample = blocksize-1
         continue
 
+    if EEGsynth.getint('playback', 'rewind', config, r):
+        if debug>0:
+            print "Rewind pressed, jumping back to start of file"
+        begsample = 0
+        endsample = blocksize-1
+
+    if not EEGsynth.getint('playback', 'play', config, r):
+        if debug>0:
+            print "Paused"
+        time.sleep(0.1);
+        continue
+
     if debug>1:
-        print block, 'from', begsample, 'to', endsample
+        print "Playing section", block, 'from', begsample, 'to', endsample
 
     ftc.putData(D[begsample:(endsample+1),:])
 
     # this approximates the real time streaming speed
-    time.sleep(blocksize/(config.getfloat('playback', 'speed')*H.fSample));
+    time.sleep(blocksize/(EEGsynth.getfloat('playback', 'speed', config, r)*H.fSample));
 
     begsample += blocksize
     endsample += blocksize
