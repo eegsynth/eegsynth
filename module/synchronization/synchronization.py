@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'pulsegenerator.ini'))
+config.read(os.path.join(installed_folder, 'synchronization.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')

@@ -115,6 +115,7 @@ sudo pip install redis
 sudo pip install mido
 sudo pip install pyserial
 sudo pip install pyosc
+sudo pip install numpy
 ```
 
 ### Install audio
@@ -191,4 +192,19 @@ sudo pip install cython
 hg clone https://bitbucket@bitbucket.org/robertoostenveld/python-edf
 cd python-edf
 sudo python setup.py install
+```
+
+### rtpmidi
+
+```
+git clone https://github.com/avsaj/rtpmidi.git
+cd rtpmidi
+sudo python setup.py install
+```
+
+for https://github.com/ravelox/pimidi
+```
+sudo apt-get install autoconf automake
+sudo apt-get install libavahi-common3
+git clone https://github.com/ravelox/pimidi.git
 ```
