@@ -2,7 +2,7 @@
 
 import mido
 import time
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import ConfigParser # this is version 2.x specific, on version 3.x it is called 'configparser' and has a different API
 import redis
 import threading
 import sys
@@ -31,7 +31,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print 'Error: cannot connect to redis server'
     exit()
 
 # this is only for debugging
@@ -49,17 +49,17 @@ mididevice  = config.get('midi', 'device')
 try:
     inputport  = mido.open_input(mididevice)
     if debug>0:
-        print "Connected to MIDI input"
+        print 'Connected to MIDI input'
 except:
-    print "Error: cannot connect to MIDI input"
+    print 'Error: cannot connect to MIDI input'
     exit()
 
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
-        print "Connected to MIDI output"
+        print 'Connected to MIDI output'
 except:
-    print "Error: cannot connect to MIDI output"
+    print 'Error: cannot connect to MIDI output'
     exit()
 
 class TriggerThread(threading.Thread):
@@ -80,7 +80,7 @@ class TriggerThread(threading.Thread):
                 break
             else:
                 if debug>1:
-                    print item['channel'], "=", item['data']
+                    print item['channel'], '=', item['data']
                 msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
                 lock.acquire()
                 outputport.send(msg)
@@ -89,9 +89,9 @@ class TriggerThread(threading.Thread):
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
 for name, code in zip(note_name, note_code):
-    if config.has_option('note', name):
+    if config.has_option('input', name):
         # start the background thread that deals with this note
-        this = TriggerThread(config.get('note', name), code)
+        this = TriggerThread(config.get('input', name), code)
         trigger.append(this)
         if debug>1:
             print name, 'OK'
@@ -107,30 +107,30 @@ try:
         for msg in inputport.iter_pending():
             if hasattr(msg,'note'):
                 print(msg)
-                if config.get('output','action')=="release" and msg.velocity>0:
+                if config.get('processing','detect')=='release' and msg.velocity>0:
                     pass
-                elif config.get('output','action')=="press" and msg.velocity==0:
+                elif config.get('processing','detect')=='press' and msg.velocity==0:
                     pass
                 else:
                     # prefix.note=note
-                    key = "{}.note".format(config.get('output','prefix'))
+                    key = '{}.note'.format(config.get('output','prefix'))
                     val = msg.note
                     r.set(key,val)          # send it as control value
                     r.publish(key,val)      # send it as trigger
                     # prefix.noteXXX=velocity
-                    key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
+                    key = '{}.note{:0>3d}'.format(config.get('output','prefix'), msg.note)
                     val = msg.velocity
                     r.set(key,val)          # send it as control value
                     r.publish(key,val)      # send it as trigger
-            elif hasattr(msg,"control"):
+            elif hasattr(msg,'control'):
                 # ignore these
                 pass
-            elif hasattr(msg,"time"):
+            elif hasattr(msg,'time'):
                 # ignore these
                 pass
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print 'Closing threads'
     for thread in trigger:
         thread.stop()
     r.publish('KEYBOARD_UNBLOCK', 1)

@@ -26,28 +26,36 @@ config.read(os.path.join(installed_folder, 'heartrate.ini'))
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
-ftc = FieldTrip.Client()
-
-ftr_host = config.get('fieldtrip','hostname')
-ftr_port = config.getint('fieldtrip','port')
-
-print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
-ftc.connect(ftr_host, ftr_port)
-print 'Connected'
+try:
+    fieldtrip_host = config.get('fieldtrip','hostname')
+    fieldtrip_port = config.getint('fieldtrip','port')
+    print 'Trying to connect to buffer on %s:%i ...' % (fieldtrip_host, fieldtrip_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(fieldtrip_host, fieldtrip_port)
+    if debug>0:
+        print "Connected to FieldTrip buffer"
+except:
+    print "Error: cannot connect to FieldTrip buffer"
+    exit()
 
 H = ftc.getHeader()
-print 'Header loaded'
+
+if debug>1:
+    print H
+    print H.labels
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-###### Processing parameters
-channel = config.getint('processing','channel')-1  # one-offset in the ini file, zero-offset in the code
-window  = config.getint('processing','window')*H.fSample
+channel = config.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
+window  = round(config.getfloat('processing','window') * H.fSample) # in samples
+
 filter_length = '3s'
 
 while True:
@@ -64,7 +72,7 @@ while True:
     ECG   = ftc.getData([start,stop])[:,channel]
 
     Beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
-    pulse = len(Beats)*H.fSample*60/window;
-    print(pulse,H.nSamples)
+    val = len(Beats)*H.fSample*60/window;
 
-    val = r.set(config.get('output', 'prefix'), pulse)
+    key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
+    val = r.set(key, val)

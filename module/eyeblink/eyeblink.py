@@ -32,9 +32,29 @@ debug = config.getint('general','debug')
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+try:
+    fieldtrip_host = config.get('fieldtrip','hostname')
+    fieldtrip_port = config.getint('fieldtrip','port')
+    print 'Trying to connect to buffer on %s:%i ...' % (fieldtrip_host, fieldtrip_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(fieldtrip_host, fieldtrip_port)
+    if debug>0:
+        print "Connected to FieldTrip buffer"
+except:
+    print "Error: cannot connect to FieldTrip buffer"
+    exit()
+
+H = ftc.getHeader()
+
+if debug>1:
+    print H
+    print H.labels
 
 class TriggerThread(threading.Thread):
     def __init__(self, r, config):
@@ -50,7 +70,7 @@ class TriggerThread(threading.Thread):
         self.stopped = True
     def run(self):
         pubsub = self.r.pubsub()
-        channel = self.config.get('input','calibrate')
+        channel = self.config.get('processing','calibrate')
         pubsub.subscribe(channel)
         for item in pubsub.listen():
             if self.stopped:
@@ -66,22 +86,8 @@ lock = threading.Lock()
 trigger = TriggerThread(r, config)
 trigger.start()
 
-ftc = FieldTrip.Client()
-
-H = None
-while H is None:
-    print 'Trying to connect to buffer on %s:%i ...' % (config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    ftc.connect(config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    print '\nConnected - trying to read header...'
-    H = ftc.getHeader()
-
-print H
-print H.labels
-
-blocksize = round(config.getfloat('general','blocksize') * H.fSample)
-print blocksize
-
-channel = config.getint('input','channel')-1
+channel = config.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
+window  = round(config.getfloat('processing','window') * H.fSample)  # in samples
 
 minval = None
 maxval = None
@@ -89,7 +95,7 @@ maxval = None
 t = 0
 
 while True:
-    time.sleep(config.getfloat('general','blocksize')/10)
+    time.sleep(config.getfloat('processing','window')/10)
     t += 1
 
     lock.acquire()
@@ -101,25 +107,30 @@ while True:
 
     H = ftc.getHeader()
     endsample = H.nSamples - 1
-    if endsample<blocksize:
+    if endsample<window:
         continue
 
-    begsample = endsample-blocksize+1
+    begsample = endsample - window + 1
     D = ftc.getData([begsample, endsample])
     D = D[:,channel]
 
     try:
-        low_pass = config.getint('general', 'low_pass')
+        low_pass = config.getint('processing', 'low_pass')
     except:
         low_pass = None
 
     try:
-        high_pass = config.getint('general', 'high_pass')
+        high_pass = config.getint('processing', 'high_pass')
     except:
         high_pass = None
 
-    # TODO test detection with filtering (following line)
-    # D = signal.butterworth(D,H.fSample, low_pass=low_pass, high_pass=high_pass, order=config.getint('general', 'order'))
+    try:
+        order = config.getint('general', 'order')
+    except:
+        order = None
+
+    # FIXME the following has not been tested yet
+    D = signal.butterworth(D, H.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
 
     if minval is None:
         minval = np.min(D)
@@ -131,7 +142,7 @@ while True:
     maxval = max(maxval,np.max(D))
 
     spread = np.max(D) - np.min(D)
-    if spread > float(config.get('input','thresh_ratio'))*(maxval-minval):
+    if spread > float(config.get('processing','threshold'))*(maxval-minval):
         val = 1
     else:
         val = 0
@@ -140,5 +151,5 @@ while True:
           '\t  max_spread : ' + str(maxval-minval) +
           '\t  output ' + str(val))
 
-    key = "%s.channel%d" % (config.get('output','prefix'), channel)
+    key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
     r.publish(key,val)

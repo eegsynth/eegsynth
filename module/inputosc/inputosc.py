@@ -56,20 +56,21 @@ def forward_handler(addr, tags, data, source):
     print "tags   %s" % tags
     print "data   %s" % data
 
-    # prefix.addr=value
-    key = config.get('output', 'prefix')+addr.replace('/', '.')
 
-    scale = EEGsynth.getfloat('output', 'scale', config, r)
+    scale = EEGsynth.getfloat('processing', 'scale', config, r)
     if scale is None:
         scale = 1
 
-    offset = EEGsynth.getfloat('output', 'offset', config, r)
+    offset = EEGsynth.getfloat('processing', 'offset', config, r)
     if offset is None:
         offset = 0
 
     # apply the scale and offset
     for i in range(len(data)):
         data[i] = EEGsynth.rescale(data[i], scale, offset)
+
+    # the results will be written to redis as "osc.1.faderA" etc.
+    key = config.get('output', 'prefix') + addr.replace('/', '.')
 
     if tags=='f' or tags=='i':
         # it is a single value
@@ -85,7 +86,7 @@ def forward_handler(addr, tags, data, source):
 
 s.noCallback_handler = forward_handler
 s.addDefaultHandlers()
-# s.addMsgHandler("/1/faderD", test_handler)
+# s.addMsgHandler("/1/faderA", test_handler)
 
 # just checking which handlers we have added
 print "Registered Callback-functions are :"

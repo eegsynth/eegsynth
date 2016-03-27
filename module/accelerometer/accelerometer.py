@@ -28,11 +28,11 @@ config.read(os.path.join(installed_folder, 'accelerometer.ini'))
 debug = config.getint('general','debug')
 
 try:
-    ftr_host = config.get('fieldtrip','hostname')
-    ftr_port = config.getint('fieldtrip','port')
-    print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
+    fieldtrip_host = config.get('fieldtrip','hostname')
+    fieldtrip_port = config.getint('fieldtrip','port')
+    print 'Trying to connect to buffer on %s:%i ...' % (fieldtrip_host, fieldtrip_port)
     ftc = FieldTrip.Client()
-    ftc.connect(ftr_host, ftr_port)
+    ftc.connect(fieldtrip_host, fieldtrip_port)
     if debug>0:
         print "Connected to FieldTrip buffer"
 except:
@@ -40,8 +40,10 @@ except:
     exit()
 
 H = ftc.getHeader()
-if debug>0:
-    print 'Header loaded'
+
+if debug>1:
+    print H
+    print H.labels
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -52,16 +54,14 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-###### Parameters
-channelY = config.getint('processing','channelY')-1 # one-offset in the ini file, zero-offset in the code
-channelZ = config.getint('processing','channelZ')-1 # one-offset in the ini file, zero-offset in the code
+# get the processing arameters
 window   = config.getfloat('processing','window')*H.fSample
 
 channel_indx = []
 channel_name = ['channelX', 'channelY', 'channelZ']
 for chan in channel_name:
     # channel numbers are one-offset in the ini file, zero-offset in the code
-    channel_indx.append(config.getint('processing',chan)-1)
+    channel_indx.append(config.getint('input',chan)-1)
 
 while True:
     time.sleep(config.getfloat('general','delay'))
