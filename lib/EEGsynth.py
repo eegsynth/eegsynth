@@ -10,7 +10,7 @@
 #   item=key1,5       get the value of key1 from redis
 #   item=0,key2       get the value of key2 from redis
 
-def getfloat(section, item, config, redis, multiple=False):
+def getfloat(section, item, config, redis, multiple=False, default=None):
 
     # get all items from the ini file, there might be one or multiple
     items = config.get(section, item).replace('-', ',').split(',')
@@ -24,7 +24,7 @@ def getfloat(section, item, config, redis, multiple=False):
             try:
                 val[i] = float(redis.get(item))
             except TypeError:
-                val[i] = None
+                val[i] = default
 
     if multiple:
         # return it as list
@@ -34,7 +34,7 @@ def getfloat(section, item, config, redis, multiple=False):
         return val[0]
 
 ####################################################################
-def getint(section, item, config, redis, multiple=False):
+def getint(section, item, config, redis, multiple=False, default=None):
 
     # get all items from the ini file, there might be one or multiple
     items = config.get(section, item).replace('-', ',').split(',')
@@ -48,7 +48,7 @@ def getint(section, item, config, redis, multiple=False):
             try:
                 val[i] = int(redis.get(item))
             except TypeError:
-                val[i] = None
+                val[i] = default
 
     if multiple:
         # return it as list

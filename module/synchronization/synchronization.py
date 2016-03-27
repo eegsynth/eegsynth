@@ -113,7 +113,9 @@ tick            = 0
 adjust_offset   = 0
 previous_offset = 0
 pulselength = config.getfloat('general','pulselength')
-key=config.get('output','channel')
+
+# FIXME this is not consistent with other modules
+key = config.get('output','prefix')
 
 # these will only be started when needed
 init_midi   = False

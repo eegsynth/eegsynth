@@ -123,7 +123,7 @@ if debug>1:
     print H
     print H.labels
 
-channel_items = config.items('channel')
+channel_items = config.items('input')
 channame = []
 chanindx = []
 for item in channel_items:
