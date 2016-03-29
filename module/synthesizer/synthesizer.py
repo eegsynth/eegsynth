@@ -29,6 +29,12 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+def default(x, y):
+    if x is None:
+        return y
+    else:
+        return x
+
 p = pyaudio.PyAudio()
 
 devices = []

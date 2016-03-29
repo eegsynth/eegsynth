@@ -13,6 +13,10 @@ else:
     basis = sys.argv[0]
 installed_folder = os.path.split(basis)[0]
 
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'sequencer.ini'))
 
@@ -26,59 +30,66 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-pattern = r.get(config.get('input','pattern'))
-if pattern:
-    pattern = int(pattern)
-else:
-    pattern = config.getint('default','pattern')
+pattern = EEGsynth.getint('input','pattern', config, r, default=0)
 previous = pattern
 
-# get the corresponding pattern
-sequence = config.get('sequence',"pattern{:0>3d}".format(pattern))
+try:
+  sequence = config.get('sequence',"pattern{:d}".format(pattern))
+except:
+  sequence = '0'
 
-while True:
+print pattern, sequence
 
-    for note in sequence.split():
-        # this will return empty if not available
-        new = r.get(config.get('input','pattern'))
-        if new:
-            new = int(new)
-        else:
-            new = config.getint('default','pattern')
+try:
+    while True:
 
-        if pattern!=new:
-            pattern = new
-            try:
-              sequence = config.get('sequence',"pattern{:0>3d}".format(pattern))
-            except:
-              pass
-            # immediately start playing the new sequence
-            break
+        for note in sequence.split():
+            note = int(note)
 
-        rate = r.get(config.get('input','rate'))
-        if rate:
-            rate = float(rate)
-        else:
-            rate = config.getfloat('default','rate')
-        # assume that value is between 0 and 127, map exponentially from 20 to 2000
-        # it should not get too low, otherwise the code with the sleep below becomes unresponsive
-        rate = 20*math.exp(rate*math.log(100)/127)
+            # this will return empty if not available
+            pattern = EEGsynth.getint('input','pattern', config, r, default=0)
 
-        offset = r.get(config.get('input','offset'))
-        if offset:
-            offset = int(offset)
-        else:
-            offset = config.getint('default','offset')
+            if pattern!=previous:
+                # get the corresponding sequence
+                pattern = EEGsynth.getint('input','pattern', config, r, default=0)
+                try:
+                  sequence = config.get('sequence',"pattern{:d}".format(pattern))
+                except:
+                  sequence = '0'
+                # immediately start playing the new sequence
+                previous = pattern
+                print 'break'
+                break
 
-        note = int(note)
+            # use a default rate of 90 bpm
+            rate = EEGsynth.getfloat('input','rate', config, r)
+            if rate is None:
+                rate = 90
 
-        print(pattern, int(rate), offset, note)
+            # use a default transposition of 48
+            transpose = EEGsynth.getint('input','transpose', config, r)
+            if transpose is None:
+                transpose = 48
 
-        key = "{}.note".format(config.get('output','prefix'))
-        val = note+offset
-        # send it as control value: prefix.channel000.note=note
-        r.set(key,val)
-        # send it as trigger: prefix.channel000.note=note
-        r.publish(key,val)
+            # assume that the rate value is between 0 and 127, map it exponentially from 20 to 2000
+            # it should not get too low, otherwise the code with the sleep below becomes unresponsive
+            rate = 20*math.exp(rate*math.log(100)/127)
 
-        time.sleep(60/rate)
+            if debug>0:
+                print pattern, rate, transpose, note
+
+            key = "{}.note".format(config.get('output','prefix'))
+            val = note + transpose
+
+            r.set(key,val)      # send it as control value: prefix.channel000.note=note
+            r.publish(key,val)  # send it as trigger: prefix.channel000.note=note
+
+            time.sleep(60/rate)
+
+except KeyboardInterrupt:
+    try:
+        print "Disabling last note"
+        r.set(key,0)
+        r.publish(key,0)
+    except:
+        pass
