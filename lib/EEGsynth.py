@@ -78,18 +78,30 @@ def limiter(xval, lo=63.5, hi=63.5, range=127.0):
     range = float(range)
     if lo>range/2:
       ax = 0.0
-      ay = lo-range/2
+      ay = lo-(range+1)/2
     else:
-      ax = range/2-lo
+      ax = (range+1)/2-lo
       ay = 0.0
 
     if hi<range/2:
-      bx = range
-      by = range/2+hi
+      bx = (range+1)
+      by = (range+1)/2+hi
     else:
-      bx = 1.5*range-hi
-      by = range
+      bx = 1.5*(range+1)-hi
+      by = (range+1)
 
-    slope     = (by-ay)/(bx-ax)
-    intercept = ay - ax*slope
-    return (slope*xval + intercept)
+    if (bx-ax)==0:
+        # threshold the value halfway
+        yval = (xval>63.5)*range
+    else:
+        # map the value according to a linear transformation
+        slope     = (by-ay)/(bx-ax)
+        intercept = ay - ax*slope
+        yval      = (slope*xval + intercept)
+
+    if yval<0:
+      yval = 0
+    elif yval>range:
+      yval = range
+
+    return yval

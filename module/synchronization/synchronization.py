@@ -3,7 +3,7 @@
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import mido
-# import serial
+import serial
 import threading
 import time
 import sys
@@ -11,7 +11,7 @@ import os
 import numpy as np
 
 if hasattr(sys, 'frozen'):
-    basis = syserialport.executable
+    basis = sys.executable
 elif sys.argv[0]!='':
     basis = sys.argv[0]
 else:
@@ -88,7 +88,7 @@ class TriggerThread(threading.Thread):
             print msg
         while self.running:
             if not self.enabled:
-                time.sleep(0.1)
+                time.sleep(float(config.get('general', 'delay')))
             else:
                 now = time.time()
                 delay = 60/self.rate      # the rate is in bpm
@@ -133,9 +133,9 @@ try:
         # measure the time to correct for the slip
         now = time.time()
 
-        use_serial = EEGsynth.getint('general', 'serial', config, r)>0 or False
-        use_midi   = EEGsynth.getint('general', 'midi', config, r)>0 or False
-        use_redis  = EEGsynth.getint('general', 'redis', config, r)>0 or False
+        use_serial = EEGsynth.getint('general', 'serial', config, r, default=0)
+        use_midi   = EEGsynth.getint('general', 'midi', config, r, default=0)
+        use_redis  = EEGsynth.getint('general', 'redis', config, r, default=0)
 
         if previous_use_serial is None:
             previous_use_serial = not(use_serial);
@@ -143,11 +143,9 @@ try:
         if previous_use_midi is None:
             previous_use_midi = not(use_midi);
 
-        print "use", use_serial, use_midi, use_redis
-
         if use_serial and not init_serial:
             # this might not be running at the start
-            s = initialize_serial()
+            serialport = initialize_serial()
             init_serial = True
 
         if use_midi and not init_midi:
@@ -164,7 +162,7 @@ try:
 
         rate = EEGsynth.getfloat('input', 'rate', config, r)
         if rate is None:
-            time.sleep(0.1)
+            time.sleep(float(config.get('general', 'delay')))
             continue
 
         offset = EEGsynth.getfloat('input', 'offset', config, r)
@@ -182,13 +180,16 @@ try:
         midisync.setRate(rate*multiplier)
 
         try:
-        	delay = 60/(rate*multiplier)
+       	    delay = 60/(rate*multiplier)
         except:
             delay = 1
         delay = max(delay, pulselength) # cannot be shorter than the pulse length
 
         adjust_offset  += offset - previous_offset  # correct for the user specified offset
         previous_offset = offset
+
+        if debug>0:
+            print use_redis, use_midi, use_serial
 
         if debug>0:
             print rate, offset, multiplier, adjust_offset, slip
@@ -198,40 +199,41 @@ try:
                 if debug>0:
                     print "skip"
                 # don't send a pulse and don't sleep at all
-                time.sleep(0)
                 adjust_offset += (delay-pulselength)
             else:
                 if debug>0:
                     print "tick", tick
                     tick+=1
                 if use_serial:
-                    serialport.write('*g2v1#')
+                    serialport.write('*g1v1#')
                 if use_redis:
                     r.publish(key,127)      # send it as trigger
+                # sleep for the duration of the pulse
                 time.sleep(pulselength)
+                if use_serial:
+                    serialport.write('*g1v0#')
+                if use_redis:
+                    r.publish(key,0)        # send it as trigger
                 # sleep a reduced amount
                 time.sleep(delay-pulselength+adjust_offset-slip)
                 adjust_offset = 0
-                if use_serial:
-                    serialport.write('*g2v0#')
-                if use_redis:
-                    r.publish(key,0)        # send it as trigger
         else:
             if debug>0:
                 print "tick", tick
                 tick+=1
             if use_serial:
-                serialport.write('*g2v1#')
+                serialport.write('*g1v1#')
             if use_redis:
                 r.publish(key,127)          # send it as trigger
+            # sleep for the duration of the pulse
             time.sleep(pulselength)
+            if use_serial:
+                serialport.write('*g1v0#')
+            if use_redis:
+                r.publish(key,0)            # send it as trigger
             # sleep an increased amount
             time.sleep(delay-pulselength+adjust_offset-slip)
             adjust_offset = 0
-            if use_serial:
-                serialport.write('*g2v0#')
-            if use_redis:
-                r.publish(key,0)            # send it as trigger
 
         # the time used in this loop will be slightly different than desired
         # this will be corrected in the next iteration

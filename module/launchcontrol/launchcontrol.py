@@ -106,15 +106,15 @@ state1value  = {0:0, 11:127}         # don't send message on 12,13
 
 state2change = {0:21, 21:22, 22:23, 23:24, 24:25, 25:0}
 state2color  = {0:Off, 21:Red_Full, 23:Yellow_Full}         # don't change color on 22,24,25
-state2value  = {0:Off, 21:int(127*1/2), 23:int(127*2/2)}    # don't send message on 22,24,25
+state2value  = {0:0, 21:int(127*1/2), 23:int(127*2/2)}    # don't send message on 22,24,25
 
 state3change = {0:31, 31:32, 32:33, 33:34, 34:35, 35:36, 36:37, 37:0}
 state3color  = {0:Off, 31:Red_Full, 33:Yellow_Full, 35:Green_Full}
-state3value  = {0:Off, 31:int(127*1/3), 33:int(127*2/3), 35:int(127*3/3)}
+state3value  = {0:0, 31:int(127*1/3), 33:int(127*2/3), 35:int(127*3/3)}
 
 state4change = {0:41, 41:42, 42:43, 43:44, 44:45, 45:46, 46:47, 47:48, 48:49, 49:0}
 state4color  = {0:Off, 41:Red_Full, 43:Yellow_Full, 45:Green_Full, 47:Amber_Full}
-state4value  = {0:Off, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
+state4value  = {0:0, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
 
 while True:
     time.sleep(config.getfloat('general','delay'))
