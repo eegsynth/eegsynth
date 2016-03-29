@@ -43,7 +43,7 @@ except:
     exit()
 
 while True:
-    time.sleep(float(config.get('general','delay')))
+    time.sleep(config.getfloat('general','delay'))
 
     for chanindx in range(1, 8):
         chanstr = "cv%d" % chanindx

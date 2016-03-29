@@ -88,7 +88,7 @@ class TriggerThread(threading.Thread):
             print msg
         while self.running:
             if not self.enabled:
-                time.sleep(float(config.get('general', 'delay')))
+                time.sleep(config.getfloat('general', 'delay'))
             else:
                 now = time.time()
                 delay = 60/self.rate      # the rate is in bpm
@@ -162,7 +162,7 @@ try:
 
         rate = EEGsynth.getfloat('input', 'rate', config, r)
         if rate is None:
-            time.sleep(float(config.get('general', 'delay')))
+            time.sleep(config.getfloat('general', 'delay'))
             continue
 
         offset = EEGsynth.getfloat('input', 'offset', config, r)

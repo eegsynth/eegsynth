@@ -142,7 +142,7 @@ while True:
     maxval = max(maxval,np.max(D))
 
     spread = np.max(D) - np.min(D)
-    if spread > float(config.get('processing','threshold'))*(maxval-minval):
+    if spread > config.getfloat('processing','threshold')*(maxval-minval):
         val = 1
     else:
         val = 0
