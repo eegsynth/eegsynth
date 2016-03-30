@@ -1,10 +1,20 @@
 Endorphines
 ===========
 
-The goal of this module is to read control values from the REDIS buffer and to pass them on over the USB MIDI interface to the Endorphines MIDI to cv/gate converter.
+The purpose of this module is to send control values from REDIS to the Endorphin.es Shuttle Control.
+
+The channels of the Shuttle Control should be configured as "Pitchwheel" and should use MIDI channel 1-16.
 
 
-** Requirements **
+## Requirements
 
 The REDIS buffer should be running.
-The Endorphines module should be connected on the USB port.
+The Shuttle Control module should be connected on the USB port.
+
+
+## Software Requirements
+
+portmidi
+Python 2.x
+mido Python library
+Redis Python library

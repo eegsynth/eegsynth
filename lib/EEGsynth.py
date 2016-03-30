@@ -13,7 +13,11 @@
 def getfloat(section, item, config, redis, multiple=False, default=None):
 
     # get all items from the ini file, there might be one or multiple
-    items = config.get(section, item).replace('-', ',').split(',')
+    items = config.get(section, item)
+    items = items.replace(' ', '')         # remove whitespace
+    if items[0]!='-':
+        items = items.replace('-', ',')    # replace minus separators by commas
+    items = items.split(',')               # split on the commas
     val = [None]*len(items)
 
     for i,item in enumerate(items):
@@ -37,7 +41,11 @@ def getfloat(section, item, config, redis, multiple=False, default=None):
 def getint(section, item, config, redis, multiple=False, default=None):
 
     # get all items from the ini file, there might be one or multiple
-    items = config.get(section, item).replace('-', ',').split(',')
+    items = config.get(section, item)
+    items = items.replace(' ', '')         # remove whitespace
+    if items[0]!='-':
+        items = items.replace('-', ',')    # replace minus separators by commas
+    items = items.split(',')               # split on the commas
     val = [None]*len(items)
 
     for i,item in enumerate(items):
