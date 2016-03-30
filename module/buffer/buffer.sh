@@ -6,27 +6,22 @@ ini_parser () {
   INIFILE="$1"
   SECTION="$2"
   ITEM="$3"
-  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[[:space:]]*$ITEM[[:space:]]*=" | sed s/.*=[[:space:]]*//
+  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[[:space:]]*$ITEM[[:space:]]*=" | sed s/.*=[[:space:]]*// | tr -d \\r
 }
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
-
-ARCH=`uname -m`
-
-if [ $ARCH=armv7l ] ; then
-  ARCH=raspberrypi
-else
-  ARCH=maci64
-fi
+BINDIR=$DIR/../../bin
 
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
 
-COMMAND="$HOME/matlab/fieldtrip/realtime/bin/$ARCH/buffer"
-OPTIONS=`ini_parser "$INIFILE" fieldtrip port`
+COMMAND="$BINDIR/parallel"
+OPTIONS="$BINDIR/buffer"
+OPTIONS+=" "
+OPTIONS+=`ini_parser "$INIFILE" fieldtrip port`
 
 log_action_msg () {
   echo $* 1>&1
@@ -34,6 +29,15 @@ log_action_msg () {
 
 log_action_err () {
   echo $* 1>&2
+}
+
+killtree() {
+    local pid=$1 child
+
+    for child in $(pgrep -P $pid); do
+        killtree $child
+    done
+     [ $pid -ne $$ ] && kill -kill $pid 2> /dev/null
 }
 
 check_running_process () {
@@ -49,7 +53,8 @@ do_start () {
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
-  ( "$COMMAND" "$OPTIONS" > "$LOGFILE" ) &
+  date > "$LOGFILE"
+  ( exec "$COMMAND" $OPTIONS >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
 }
 
@@ -57,7 +62,7 @@ do_stop () {
   log_action_msg "Stopping $NAME"
   check_running_process || log_action_err "Error: $NAME is already stopped"
   check_running_process || exit 1
-  kill -9 `cat "$PIDFILE"`
+  killtree `cat "$PIDFILE"`
   rm "$PIDFILE"
 }
 

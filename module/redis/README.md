@@ -5,6 +5,6 @@ The purpose of this module is to allow communication between (most) other module
 
 This module should be started prior to all other modules.
 
-** Requirements **
+## Requirements
 
 None.

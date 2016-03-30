@@ -1,0 +1,20 @@
+
+doctype html
+html(lang="en")
+
+  head
+    style
+      include ../public/style.css
+
+  body
+    form(name="add-estimation", method="post")
+      div.input
+        span.label Filename
+      textarea(name="form_filename", cols="80", rows="1", readonly)
+        |#{form_filename}
+      div.input
+          span.label Content
+      textarea(name="form_content", cols="80", rows="20")
+        |#{form_content}
+      div.actions
+        input(type="submit", name="form_button", value="ok")

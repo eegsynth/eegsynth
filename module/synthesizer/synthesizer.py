@@ -19,12 +19,21 @@ installed_folder = os.path.split(basis)[0]
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'synthesizer.ini'))
 
-r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+def default(x, y):
+    if x is None:
+        return y
+    else:
+        return x
 
 p = pyaudio.PyAudio()
 
@@ -69,7 +78,7 @@ class TriggerThread(threading.Thread):
             if self.stopped:
                 break
             else:
-                print item['channel'], ":", item['data']
+                print item['channel'], "=", item['data']
                 lock.acquire()
                 self.last = self.time
                 lock.release()
@@ -221,11 +230,11 @@ class ControlThread(threading.Thread):
           self.vca_envelope     = vca_envelope
           lock.release()
 
-# start the background thread
+# start the background thread that deals with control value changes
 control = ControlThread(r, config)
 control.start()
 
-# start the background thread
+# start the background thread that deals with triggers
 trigger = TriggerThread(r, config)
 trigger.start()
 
@@ -298,6 +307,7 @@ try:
     # write the buffer content to the audio device
     stream.write(BUFFER)
     offset = offset+BLOCKSIZE
+
 except KeyboardInterrupt:
     trigger.stop_thread()
     control.stop_thread()

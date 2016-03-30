@@ -36,17 +36,6 @@ app.use(cookieSession({
 // app.use(bodyParser.urlencoded({ extended: true }))
 
 function moduleCommand(name, command) {
-  var allowedModules = ['buffer', 'devirtualizer', 'eeg', 'emg', 'endorphines', 'eyeblink', 'heartbeat', 'heartrate', 'keyboard', 'launchcontrol', 'openbci2ft', 'pulsegenerator', 'redis', 'sequencer', 'synthesizer', 'virtualizer'];
-
-  // ensure that the module is correct
-  okModule = false;
-  for (i=0; i<allowedModules.length; i++) {
-    if (name==allowedModules[i]) {okModule = true; break;}
-  }
-  if (!okModule) {
-    console.log('incorrect module name: ' + name);
-    return 'failed ' + name;
-  }
 
 switch (command) {
   case 'start':
@@ -58,6 +47,10 @@ switch (command) {
     console.log(filename + " " + command);
     var output = spawnSync(filename, [command], {timeout: 5000});
     return output.stdout.toString();
+    break;
+
+  case 'log':
+    return 'failed';
     break;
 
   case 'edit':
@@ -83,12 +76,45 @@ app.post('/test', function (req, res) {
     res.end()
 });
 
+// log
+app.get('/*/log', function (req, res, next) {
+  var name    = req.url.split('/')[1];
+  var command = req.url.split('/')[2];
+  var filename = path.join(__dirname, '..', 'module', name, name + '.log');
+  fs.stat(filename, function (err, stats) {
+    if (err) {
+      res.render('log.jade', {
+        form_filename: filename,
+        form_content: ''
+      });
+      next();
+    }
+    else {
+      var content = fs.readFileSync(filename, {encoding: 'utf8'});
+      res.render('log.jade', {
+        form_filename: filename,
+        form_content: content
+      });
+      next();
+    }
+  });
+});
+
+app.post("/*/log", function(req, res) {
+  // ok
+  res.status(200);
+  res.redirect('/');
+});
+
 // edit
 app.get('/*/edit', function (req, res, next) {
   var name    = req.url.split('/')[1];
   var command = req.url.split('/')[2];
   var filename = path.join(__dirname, '..', 'module', name, name + '.ini');
-  var content = fs.readFileSync(filename, {encoding: 'utf8'});
+  if (fs.lstatSync(filename).isFile())
+    var content = fs.readFileSync(filename, {encoding: 'utf8'});
+  else
+    var content = '';
   res.render('edit.jade', {
       form_filename: filename,
       form_content: content
@@ -147,17 +173,6 @@ app.use('/*/restart', function(req, res, next) {
   });
   next();
 });
-
-// app.use('/', express.static(__dirname + '/public'));
-
-/*
-app.all('/', function (req, res, next) {
-  var filename = __dirname + '/public/index.html';
-  var txt = fs.readFileSync(filename, {encoding: 'utf8'});
-  res.send(txt);
-  next();
-});
-*/
 
 //create node.js http server and listen on port
 http.createServer(app).listen(3000)

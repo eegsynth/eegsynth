@@ -2,6 +2,13 @@
 
 PATH=/sbin:/bin:/usr/bin
 
+ini_parser () {
+  INIFILE="$1"
+  SECTION="$2"
+  ITEM="$3"
+  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[[:space:]]*$ITEM[[:space:]]*=" | sed s/.*=[[:space:]]*//
+}
+
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
 
@@ -9,13 +16,16 @@ NAME=`basename "$0" .sh`
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
+
 if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
   COMMAND="/usr/bin/redis-server"
 else
-  # on maci64
+  # on maci64, with macports
   COMMAND="/opt/local/bin/redis-server"
 fi
+
+# OPTIONS="--port `ini_parser "$INIFILE" redis port`"
 
 log_action_msg () {
   echo $* 1>&1
@@ -38,6 +48,8 @@ do_start () {
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
+  date > "$LOGFILE"
+  # ( "$COMMAND" "$OPTIONS" > "$LOGFILE" ) &
   ( "$COMMAND" > "$LOGFILE" ) &
   echo $! > "$PIDFILE"
 }
