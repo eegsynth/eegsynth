@@ -80,9 +80,9 @@ while True:
                 val = EEGsynth.limiter(val, lo, hi)
 
         # the scale option is channel specific
-        scale = EEGsynth.getfloat('scale', key1, config, r, default=1)
+        scale = EEGsynth.getfloat('scale', name, config, r, default=1)
         # the offset option is channel specific
-        offset = EEGsynth.getfloat('offset', key1, config, r, default=0)
+        offset = EEGsynth.getfloat('offset', name, config, r, default=0)
 
         # apply the scale and offset
         val = EEGsynth.rescale(val, slope=scale, offset=offset)
