@@ -72,7 +72,7 @@ while True:
                 val = float(val)
 
             if config.get('limiter_compressor', 'enable')=='yes':
-                # the limiter/lo option applies to all channels and must exist as float or redis key
+                # the limiter/compressor applies to all channels and must exist as float or redis key
                 lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
                 hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
                 if lo is None or hi is None:
@@ -83,15 +83,11 @@ while True:
                     val = EEGsynth.limiter(val, lo, hi)
 
             # the scale option is channel specific
-            scale = EEGsynth.getfloat('scale', key1, config, r)
-            if scale is None:
-                scale = 1
+            scale = EEGsynth.getfloat('scale', key1, config, r, default=1)
             # the offset option is channel specific
-            offset = EEGsynth.getfloat('offset', key1, config, r)
-            if scale is None:
-                offset = 0
+            offset = EEGsynth.getfloat('offset', key1, config, r, default=0)
             # apply the scale and offset
-            val = EEGsynth.rescale(val, scale, offset)
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
             if debug>1:
                 print 'OSC message', key3, '=', val

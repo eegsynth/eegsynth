@@ -17,14 +17,14 @@ else:
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0,os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'endorphines.ini'))
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = config.getint('general', 'debug')
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -67,14 +67,31 @@ while True:
             if debug>1:
                 print name, 'not available'
             continue
-        scale = EEGsynth.getfloat('scale', name, config, r, default=1)
-        offset = EEGsynth.getfloat('offset', name, config, r, default=0)
-        if debug>0:
-            print name, val, scale, offset
 
-        # apply the scaling and ensure that it is within limits
+        if config.get('limiter_compressor', 'enable')=='yes':
+            # the limiter/compressor applies to all channels and must exist as float or redis key
+            lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
+            hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
+            if lo is None or hi is None:
+                if debug>1:
+                    print "cannot apply limiter/compressor"
+            else:
+                # apply the limiter/compressor
+                val = EEGsynth.limiter(val, lo, hi)
+
+        # the scale option is channel specific
+        scale = EEGsynth.getfloat('scale', key1, config, r, default=1)
+        # the offset option is channel specific
+        offset = EEGsynth.getfloat('offset', key1, config, r, default=0)
+
+        # apply the scale and offset
         val = EEGsynth.rescale(val, slope=scale, offset=offset)
+
+        # ensure that it is within limits
         val = EEGsynth.clip(val, lower=-8192, upper=8191)
+
+        if debug>0:
+            print name, val
 
         if val==previous_val[name]:
             continue # it should be skipped when identical to the previous value
