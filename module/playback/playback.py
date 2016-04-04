@@ -20,6 +20,7 @@ installed_folder = os.path.split(basis)[0]
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import FieldTrip
 import EEGsynth
+import EDF
 
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, 'playback.ini'))
@@ -52,14 +53,16 @@ except:
 if debug>0:
     print "Reading data from", config.get('playback', 'file')
 
-f = edflib.EdfReader(config.get('playback', 'file'))
+f = EDF.EDFReader()
+f.open(config.get('playback', 'file'))
 
 if debug>1:
-    print 'SignalTextLabels = ', f.getSignalTextLabels()
-    print 'NSamples         = ', f.getNSamples()
-    print 'SignalFreqs      = ', f.getSignalFreqs()
+    print "NSignals", f.getNSignals()
+    print "SignalFreqs", f.getSignalFreqs()
+    print "NSamples", f.getNSamples()
+    print "SignalTextLabels", f.getSignalTextLabels()
 
-for chanindx in range(f.signals_in_file):
+for chanindx in range(f.getNSignals()):
     if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
         raise IOError('unequal SignalFreqs')
     if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
@@ -76,14 +79,15 @@ H.dataType  = FieldTrip.DATATYPE_FLOAT32
 ftc.putHeader(H.nChannels, H.fSample, H.dataType, labels=f.getSignalTextLabels())
 
 # read all the data from the file
-D = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
-for chanindx in range(H.nChannels):
-    D[:,chanindx] = f.readSignal(chanindx)
+#D = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
+#for chanindx in range(H.nChannels):#
+#    D[:,chanindx] = f.readSignal(chanindx)
 
 blocksize = int(config.getfloat('playback', 'blocksize')*H.fSample)
 begsample = 0
 endsample = blocksize-1
-block     = 1
+block     = 0
+adjust    = 1
 
 while True:
     if endsample>H.nSamples:
@@ -105,14 +109,28 @@ while True:
         time.sleep(0.1);
         continue
 
+    # measure the time that it takes
+    now = time.time()
+
     if debug>1:
         print "Playing section", block, 'from', begsample, 'to', endsample
 
-    ftc.putData(D[begsample:(endsample+1),:])
+    D = np.ndarray(shape=(blocksize, H.nChannels), dtype=np.float32)
+    for chanindx in range(H.nChannels):
+        D[:,chanindx] = f.readSamples(chanindx, begsample, endsample)
+
+    ftc.putData(D)
 
     # this approximates the real time streaming speed
-    time.sleep(blocksize/(EEGsynth.getfloat('playback', 'speed', config, r)*H.fSample));
+    desired = blocksize/(H.fSample*EEGsynth.getfloat('playback', 'speed', config, r))
+    # the adjust factor compensates for the time spent on reading and writing the data
+    time.sleep(adjust * desired);
 
     begsample += blocksize
     endsample += blocksize
     block += 1
+
+    elapsed = time.time() - now
+    # adjust the relative delay for the next iteration
+    # the adjustment factor should only change a little per iteration
+    adjust = 0.1 * desired/elapsed + 0.9 * adjust

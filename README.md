@@ -182,7 +182,7 @@ sudo apt-get install libportmidi0
 sudo apt-get install libportmidi-dev
 ```
 
-## Misc
+## EDF reading and writing
 
 ```
 sudo apt-get install mercurial
@@ -192,6 +192,10 @@ sudo pip install cython
 hg clone https://bitbucket@bitbucket.org/robertoostenveld/python-edf
 cd python-edf
 sudo python setup.py install
+```
+
+```
+sudo pip install pyedflib
 ```
 
 ### rtpmidi

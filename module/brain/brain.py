@@ -115,10 +115,16 @@ ftc = FieldTrip.Client()
 
 H = None
 while H is None:
-    print 'Trying to connect to buffer on %s:%i ...' % (config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    ftc.connect(config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    print '\nConnected - trying to read header...'
+    ftr_host = config.get('fieldtrip','hostname')
+    ftr_port = config.getint('fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(ftr_host, ftr_port)
     H = ftc.getHeader()
+
+if debug>0:
+    print "Connected to FieldTrip buffer"
 
 if debug>1:
     print H
