@@ -38,6 +38,9 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+filenumber = 0
+recording = False
+
 H = None
 while H is None:
     ftr_host = config.get('fieldtrip','hostname')
@@ -51,36 +54,42 @@ while H is None:
 if debug>0:
     print "Connected to FieldTrip buffer"
 
-if debug>1:
-    print H
-    print H.labels
-
-blocksize  = int(config.getfloat('recording', 'blocksize')*H.fSample)
-fileopen   = False
-filenumber = 0
 
 while True:
-    if not EEGsynth.getint('recording', 'record', config, r):
-        if fileopen:
-            # close the exising file
-            if debug>0:
-                print "Closing", fname
-            f.close()
-            fileopen = False
+
+    H = ftc.getHeader()
+
+    if recording and H is None:
         if debug>0:
-            print "Not recording"
-        time.sleep(0.1);
+            print "Header is empty - closing", fname
+        f.close()
+        recording = False
         continue
 
-    if not fileopen:
-        # open a new file, they get a sequence number
+    if recording and not EEGsynth.getint('recording', 'record', config, r):
+        if debug>0:
+            print "Recording disabled - closing", fname
+        f.close()
+        recording = False
+        continue
+
+    if not recording and not EEGsynth.getint('recording', 'record', config, r):
+        if debug>0:
+            print "Recording is not enabled"
+        time.sleep(1)
+
+    if not recording and EEGsynth.getint('recording', 'record', config, r):
+        recording = True
+        # open a new file
         fname = config.get('recording', 'file')
         name, ext = os.path.splitext(fname)
         fname = name + '-' + str(filenumber) + ext
-        if debug>0:
-            print "Opening", fname
-        f = EDF.EDFWriter(fname)
-        fileopen = True
+        while os.path.isfile(fname):
+            # increase the sequence number
+            filenumber += 1
+            fname = name + '-' + str(filenumber) + ext
+        # the blocksize depends on the sampling rate, which may have changed
+        blocksize = int(config.getfloat('recording', 'blocksize')*H.fSample)
         # construct the header
         meas_info = {}
         chan_info = {}
@@ -93,30 +102,42 @@ while True:
         meas_info['hour']           = now.hour
         meas_info['minute']         = now.minute
         meas_info['second']         = now.second
-        chan_info['physical_min']   = H.nChannels * [-100.] # FIXME
-        chan_info['physical_max']   = H.nChannels * [ 100.]
+        chan_info['physical_min']   = H.nChannels * [-10000.] # FIXME
+        chan_info['physical_max']   = H.nChannels * [ 10000.]
         chan_info['digital_min']    = H.nChannels * [-32768]
         chan_info['digital_max']    = H.nChannels * [ 32768]
         chan_info['ch_names']       = H.labels
         chan_info['n_samps']        = H.nChannels * [blocksize]
-        print chan_info
         # write the header to file
+        if debug>0:
+            print "Opening", fname
+        f = EDF.EDFWriter(fname)
         f.writeHeader((meas_info, chan_info))
         # determine the starting point for recording
-        H = ftc.getHeader()
-        endsample = H.nSamples - 1
-        begsample = endsample - blocksize + 1
+        if H.nSamples>blocksize:
+            endsample = H.nSamples - 1
+            begsample = endsample - blocksize + 1
+        else:
+            endsample = blocksize - 1
+            begsample = endsample - blocksize + 1
 
-
-    H = ftc.getHeader()
-    if endsample>H.nSamples-1:
+    if recording and H.nSamples<begsample-1:
+        if debug>0:
+            print "Header was reset - closing", fname
+        f.close()
+        recording = False
         continue
 
-    D = ftc.getData([begsample, endsample])
-    if debug>0:
-        print "Writing sample", begsample, "to", endsample
+    if recording and endsample>H.nSamples-1:
+        if debug>2:
+            print "Waiting for data", endsample, H.nSamples
+        time.sleep((endsample-H.nSamples)/H.fSample)
+        continue
 
-    f.writeBlock(D)
-
-    begsample += blocksize
-    endsample += blocksize
+    if recording:
+        D = ftc.getData([begsample, endsample])
+        if debug>0:
+            print "Writing sample", begsample, "to", endsample, "as", np.shape(D)
+        f.writeBlock(np.transpose(D))
+        begsample += blocksize
+        endsample += blocksize
