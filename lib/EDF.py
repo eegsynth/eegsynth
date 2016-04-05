@@ -44,6 +44,7 @@ class EDFWriter():
         # this requires copying the whole file content
         meas_info = self.meas_info
         chan_info = self.chan_info
+        # update the data_offset value in the file
         tempname = self.fname + '.bak'
         os.rename(self.fname, tempname)
         with open(tempname, 'rb') as fid1:
@@ -58,7 +59,6 @@ class EDFWriter():
                 for block in range(self.n_records):
                     fid2.write(fid1.read(blocksize))
         os.remove(tempname)
-
         self.fname = None
         self.meas_info = None
         self.chan_info = None
@@ -89,6 +89,11 @@ class EDFWriter():
                 chan_info['transducers'] = ['' for i in range(nchan)]
             if not 'units' in chan_info or len(chan_info['units'])<nchan:
                 chan_info['units'] = ['' for i in range(nchan)]
+
+            if meas_info['subtype'] in ('24BIT', 'bdf'):
+                meas_info['data_size'] = 3  # 24-bit (3 byte) integers
+            else:
+                meas_info['data_size'] = 2  # 16-bit (2 byte) integers
 
             fid.write(padtrim('0', 8))
             fid.write(padtrim(meas_info['subject_id'], 80))
@@ -125,6 +130,7 @@ class EDFWriter():
                 fid.write(padtrim(str(chan_info['n_samps'][i]), 8))
             for i in range(meas_info['nchan']):
                 fid.write(' ' * 32) # reserved
+            meas_info['data_offset'] = fid.tell()
 
         self.meas_info = meas_info
         self.chan_info = chan_info
@@ -143,8 +149,16 @@ class EDFWriter():
             assert(fid.tell() > 0)
             for i in range(meas_info['nchan']):
                 raw = deepcopy(data[i])
+
+                assert(len(raw)==chan_info['n_samps'][i])
+                if min(raw)<chan_info['physical_min'][i]:
+                    warnings.warn('Value exceeds physical_min: ' + str(min(raw)) );
+                if max(raw)>chan_info['physical_max'][i]:
+                    warnings.warn('Value exceeds physical_max: '+ str(max(raw)));
+
                 raw -= self.offset[i]  # FIXME I am not sure about the order of calibrate and offset
                 raw /= self.calibrate[i]
+
                 raw = np.asarray(raw, dtype=np.int16)
                 buf = [pack('h', x) for x in raw]
                 for val in buf:
