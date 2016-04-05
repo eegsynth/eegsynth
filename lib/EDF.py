@@ -44,7 +44,7 @@ class EDFWriter():
         # this requires copying the whole file content
         meas_info = self.meas_info
         chan_info = self.chan_info
-        # update the data_offset value in the file
+        # update the n_records value in the file
         tempname = self.fname + '.bak'
         os.rename(self.fname, tempname)
         with open(tempname, 'rb') as fid1:
@@ -220,7 +220,7 @@ class EDFReader():
             if len(subtype) > 0:
                 meas_info['subtype'] = subtype
             else:
-                meas_info['subtype'] = os.path.splitext(fname)[1][1:].lower()
+                meas_info['subtype'] = os.path.splitext(self.fname)[1][1:].lower()
 
             if meas_info['subtype'] in ('24BIT', 'bdf'):
                 meas_info['data_size'] = 3  # 24-bit (3 byte) integers
@@ -282,6 +282,11 @@ class EDFReader():
 
             fid.read(32 *meas_info['nchan']).decode()  # reserved
             assert fid.tell() == header_nbytes
+
+            if meas_info['n_records']==-1:
+                # this happens if the n_records is not updated at the end of recording
+                tot_samps = (os.path.getsize(self.fname)-meas_info['data_offset'])/meas_info['data_size']
+                meas_info['n_records'] = tot_samps/sum(n_samps)
 
         self.calibrate = (chan_info['physical_max'] - chan_info['physical_min'])/(chan_info['digital_max'] - chan_info['digital_min']);
         self.offset    =  chan_info['physical_min'] - self.calibrate * chan_info['digital_min'];

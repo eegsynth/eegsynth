@@ -7,6 +7,8 @@ import sys
 import os
 import edflib
 import numpy as np
+import datetime
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -18,12 +20,11 @@ installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import FieldTrip
 import EEGsynth
 import EDF
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'playback.ini'))
+config.read(os.path.join(installed_folder, 'controlplayback.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -37,22 +38,6 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-try:
-    ftr_host = config.get('fieldtrip','hostname')
-    ftr_port = config.getint('fieldtrip','port')
-    if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
-    ftc = FieldTrip.Client()
-    ftc.connect(ftr_host, ftr_port)
-    if debug>0:
-        print "Connected to FieldTrip buffer"
-except:
-    print "Error: cannot connect to FieldTrip buffer"
-    exit()
-
-if debug>0:
-    print "Reading data from", config.get('playback', 'file')
-
 f = EDF.EDFReader()
 f.open(config.get('playback', 'file'))
 
@@ -60,7 +45,20 @@ if debug>1:
     print "NSignals", f.getNSignals()
     print "SignalFreqs", f.getSignalFreqs()
     print "NSamples", f.getNSamples()
-    print "SignalTextLabels", f.getSignalTextLabels()
+
+channels = f.getSignalTextLabels()
+channelz = f.getSignalTextLabels()
+
+fSample = f.getSignalFreqs()[0]
+nSamples = f.getNSamples()[0]
+
+# search-and-replace to reduce the length of the channel labels
+for replace in config.items('replace'):
+    print replace
+    for i in range(len(channelz)):
+        channelz[i] = channelz[i].replace(replace[0], replace[1])
+for s,z in zip(channels, channelz):
+    print "Writing channel", s, "as control value", z
 
 for chanindx in range(f.getNSignals()):
     if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
@@ -68,40 +66,25 @@ for chanindx in range(f.getNSignals()):
     if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
         raise IOError('unequal NSamples')
 
-H = FieldTrip.Header()
-
-H.nChannels = len(f.getSignalFreqs())
-H.nSamples  = f.getNSamples()[0]
-H.nEvents   = 0
-H.fSample   = f.getSignalFreqs()[0]
-H.dataType  = FieldTrip.DATATYPE_FLOAT32
-
-ftc.putHeader(H.nChannels, H.fSample, H.dataType, labels=f.getSignalTextLabels())
-
-# read all the data from the file
-#D = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
-#for chanindx in range(H.nChannels):#
-#    D[:,chanindx] = f.readSignal(chanindx)
-
-blocksize = int(config.getfloat('playback', 'blocksize')*H.fSample)
-begsample = 0
-endsample = blocksize-1
 block     = 0
+blocksize = 1
+begsample = 0
+endsample = 0
 adjust    = 1
 
 while True:
-    if endsample>H.nSamples-1:
+    if endsample>nSamples-1:
         if debug>0:
             print "End of file reached, jumping back to start"
         begsample = 0
-        endsample = blocksize-1
+        endsample = 0
         continue
 
     if EEGsynth.getint('playback', 'rewind', config, r):
         if debug>0:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
-        endsample = blocksize-1
+        endsample = 0
 
     if not EEGsynth.getint('playback', 'play', config, r):
         if debug>0:
@@ -113,16 +96,15 @@ while True:
     now = time.time()
 
     if debug>1:
-        print "Playing section", block, 'from', begsample, 'to', endsample
+        print "Playing control value", block
 
-    D = np.ndarray(shape=(blocksize, H.nChannels), dtype=np.float32)
-    for chanindx in range(H.nChannels):
-        D[:,chanindx] = f.readSamples(chanindx, begsample, endsample)
-
-    ftc.putData(D)
+    for i,chan in enumerate(channelz):
+        key = chan
+        val = f.readSamples(chanindx, begsample, endsample)
+        r.set(key,val)
 
     # this approximates the real time streaming speed
-    desired = blocksize/(H.fSample*EEGsynth.getfloat('playback', 'speed', config, r))
+    desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))
     # the adjust factor compensates for the time spent on reading and writing the data
     time.sleep(adjust * desired);
 
