@@ -22,24 +22,30 @@ import FieldTrip
 import EEGsynth
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'accelerometer.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
 try:
-    fieldtrip_host = config.get('fieldtrip','hostname')
-    fieldtrip_port = config.getint('fieldtrip','port')
-    print 'Trying to connect to buffer on %s:%i ...' % (fieldtrip_host, fieldtrip_port)
+    ftc_host = config.get('fieldtrip','hostname')
+    ftc_port = config.getint('fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
-    ftc.connect(fieldtrip_host, fieldtrip_port)
+    ftc.connect(ftc_host, ftc_port)
     if debug>0:
         print "Connected to FieldTrip buffer"
 except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-H = ftc.getHeader()
+H = None
+while H is None:
+    if debug>0:
+        print "Waiting for data to arrive..."
+    H = ftc.getHeader()
+    time.sleep(0.2)
 
 if debug>1:
     print H

@@ -24,7 +24,7 @@ import EEGsynth
 import EDF
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'controlrecording.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')

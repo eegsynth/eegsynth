@@ -8,7 +8,6 @@ import os
 import multiprocessing
 import threading
 import math
-
 import numpy as np
 from nilearn import signal
 
@@ -25,7 +24,7 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import FieldTrip
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'muscle.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -61,7 +60,7 @@ class TriggerThread(threading.Thread):
         pubsub.subscribe(self.config.get('gain_control','decrease'))
         pubsub.subscribe('MUSCLE_UNBLOCK')  # this message unblocks the redis listen command
         for item in pubsub.listen():
-            if not self.running:
+            if not self.running or not item['type'] is 'message':
                 break
             lock.acquire()
             if item['channel']==self.config.get('gain_control','recalibrate'):
@@ -110,14 +109,25 @@ lock = threading.Lock()
 trigger = TriggerThread(r, config)
 trigger.start()
 
-ftc = FieldTrip.Client()
+try:
+    ftc_host = config.get('fieldtrip','hostname')
+    ftc_port = config.getint('fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(ftc_host, ftc_port)
+    if debug>0:
+        print "Connected to FieldTrip buffer"
+except:
+    print "Error: cannot connect to FieldTrip buffer"
+    exit()
 
 H = None
 while H is None:
-    print 'Trying to connect to buffer on %s:%i ...' % (config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    ftc.connect(config.get('fieldtrip','hostname'), config.getint('fieldtrip','port'))
-    print '\nConnected - trying to read header...'
+    if debug>0:
+        print "Waiting for data to arrive..."
     H = ftc.getHeader()
+    time.sleep(0.2)
 
 if debug>1:
     print H

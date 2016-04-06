@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'quantizer.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')

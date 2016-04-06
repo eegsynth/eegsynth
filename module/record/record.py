@@ -24,7 +24,7 @@ import EEGsynth
 import EDF
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'recording.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -38,25 +38,34 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-filenumber = 0
-recording = False
+try:
+    ftc_host = config.get('fieldtrip','hostname')
+    ftc_port = config.getint('fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(ftc_host, ftc_port)
+    if debug>0:
+        print "Connected to FieldTrip buffer"
+except:
+    print "Error: cannot connect to FieldTrip buffer"
+    exit()
 
 H = None
 while H is None:
-    ftr_host = config.get('fieldtrip','hostname')
-    ftr_port = config.getint('fieldtrip','port')
     if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
-    ftc = FieldTrip.Client()
-    ftc.connect(ftr_host, ftr_port)
+        print "Waiting for data to arrive..."
     H = ftc.getHeader()
+    time.sleep(0.2)
 
-if debug>0:
-    print "Connected to FieldTrip buffer"
+if debug>1:
+    print H
+    print H.labels
 
+filenumber = 0
+recording = False
 
 while True:
-
     H = ftc.getHeader()
 
     if recording and H is None:

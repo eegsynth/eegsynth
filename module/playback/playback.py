@@ -23,7 +23,7 @@ import EEGsynth
 import EDF
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'playback.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -38,12 +38,12 @@ except redis.ConnectionError:
     exit()
 
 try:
-    ftr_host = config.get('fieldtrip','hostname')
-    ftr_port = config.getint('fieldtrip','port')
+    ftc_host = config.get('fieldtrip','hostname')
+    ftc_port = config.getint('fieldtrip','port')
     if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
-    ftc.connect(ftr_host, ftr_port)
+    ftc.connect(ftc_host, ftc_port)
     if debug>0:
         print "Connected to FieldTrip buffer"
 except:

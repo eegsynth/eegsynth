@@ -17,7 +17,7 @@ else:
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'synthesizer.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -63,32 +63,31 @@ class TriggerThread(threading.Thread):
         threading.Thread.__init__(self)
         self.r = r
         self.config = config
-        self.stopped = False
+        self.running = True
         lock.acquire()
         self.time = 0
         self.last = 0
         lock.release()
-    def stop_thread(self):
-        self.stopped = True
+    def stop(self):
+        self.running = False
     def run(self):
         pubsub = self.r.pubsub()
         channel = self.config.get('input','adsr_gate')
         pubsub.subscribe(channel)
         for item in pubsub.listen():
-            if self.stopped:
+            if not self.running or not item['type'] is 'message':
                 break
-            else:
-                print item['channel'], "=", item['data']
-                lock.acquire()
-                self.last = self.time
-                lock.release()
+            print item['channel'], "=", item['data']
+            lock.acquire()
+            self.last = self.time
+            lock.release()
 
 class ControlThread(threading.Thread):
     def __init__(self, r, config):
         threading.Thread.__init__(self)
         self.r = r
         self.config = config
-        self.stopped = False
+        self.running = True
         lock.acquire()
         self.vco_pitch      = 0
         self.vco_sin        = 0
@@ -103,10 +102,10 @@ class ControlThread(threading.Thread):
         self.adsr_release   = 0
         self.vca_envelope   = 0
         lock.release()
-    def stop_thread(self):
-        self.stopped = True
+    def stop(self):
+        self.running = False
     def run(self):
-      while not self.stopped:
+      while self.running:
 
           ################################################################################
           # VCO
@@ -309,8 +308,8 @@ try:
     offset = offset+BLOCKSIZE
 
 except KeyboardInterrupt:
-    trigger.stop_thread()
-    control.stop_thread()
+    trigger.stop()
+    control.stop()
     trigger.join()
     control.join()
     stream.stop_stream()

@@ -24,7 +24,7 @@ else:
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'volcakeys.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -70,7 +70,7 @@ class TriggerThread(threading.Thread):
         pubsub.subscribe('VOLCAKEYS_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)    # this message contains the note
         for item in pubsub.listen():
-            if not self.running:
+            if not self.running or not item['type'] is 'message':
                 break
             if item['channel']==self.redischannel:
                 if debug>1:

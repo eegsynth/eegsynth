@@ -16,7 +16,7 @@ else:
 installed_folder = os.path.split(basis)[0]
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'launchcontrol.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')

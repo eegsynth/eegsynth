@@ -21,20 +21,43 @@ import EEGsynth
 import FieldTrip
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'preprocessing.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
-ft_input = FieldTrip.Client()
-ft_output = FieldTrip.Client()
+try:
+    ftc_host = config.get('input_fieldtrip','hostname')
+    ftc_port = config.getint('input_fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+    ft_input = FieldTrip.Client()
+    ft_input.connect(ftc_host, ftc_port)
+    if debug>0:
+        print "Connected to input FieldTrip buffer"
+except:
+    print "Error: cannot connect to input FieldTrip buffer"
+    exit()
+
+try:
+    ftc_host = config.get('output_fieldtrip','hostname')
+    ftc_port = config.getint('output_fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+    ft_output = FieldTrip.Client()
+    ft_output.connect(ftc_host, ftc_port)
+    if debug>0:
+        print "Connected to output FieldTrip buffer"
+except:
+    print "Error: cannot connect to output FieldTrip buffer"
+    exit()
 
 hdr_input = None
 while hdr_input is None:
-    print 'Trying to connect to buffer on %s:%i ...' % (config.get('input_fieldtrip','hostname'), config.getint('input_fieldtrip','port'))
-    ft_input.connect(config.get('input_fieldtrip','hostname'), config.getint('input_fieldtrip','port'))
-    print '\nConnected - trying to read header...'
+    if debug>0:
+        print "Waiting for data to arrive..."
     hdr_input = ft_input.getHeader()
+    time.sleep(0.2)
 
 if debug>1:
     print hdr_input
@@ -111,10 +134,6 @@ if debug>0:
 if debug>1:
     print '======== montage ========='
     print montage
-
-print 'Trying to connect to buffer on %s:%i ...' % (config.get('output_fieldtrip','hostname'), config.getint('output_fieldtrip','port'))
-ft_output.connect(config.get('output_fieldtrip','hostname'), config.getint('output_fieldtrip','port'))
-print '\nConnected'
 
 smoothing = config.getfloat('processing','smoothing')
 window = config.getfloat('processing','window')

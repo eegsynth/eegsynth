@@ -8,7 +8,6 @@ import os
 import multiprocessing
 import threading
 import math
-
 import numpy as np
 from nilearn import signal
 
@@ -26,7 +25,7 @@ import FieldTrip
 import EEGsynth
 
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'brain.ini'))
+config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -62,7 +61,7 @@ class TriggerThread(threading.Thread):
         pubsub.subscribe(self.config.get('gain_control','decrease'))
         pubsub.subscribe('BRAIN_UNBLOCK')  # this message unblocks the redis listen command
         for item in pubsub.listen():
-            if not self.running:
+            if not self.running or not item['type'] is 'message':
                 break
             lock.acquire()
             if item['channel']==self.config.get('gain_control','recalibrate'):
@@ -77,7 +76,7 @@ class TriggerThread(threading.Thread):
             elif item['channel']==self.config.get('gain_control','freeze'):
                 # freeze the automatic adjustment of the gain control
                 # when frozen, the recalibrate should also not be done
-                self.freeze = (int(item['data'])>0)
+                self.freeze = (item['data']>0)
                 if debug>1:
                     if self.freeze:
                         print 'freeze on'
@@ -111,20 +110,25 @@ lock = threading.Lock()
 trigger = TriggerThread(r, config)
 trigger.start()
 
-ftc = FieldTrip.Client()
+try:
+    ftc_host = config.get('fieldtrip','hostname')
+    ftc_port = config.getint('fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(ftc_host, ftc_port)
+    if debug>0:
+        print "Connected to FieldTrip buffer"
+except:
+    print "Error: cannot connect to FieldTrip buffer"
+    exit()
 
 H = None
 while H is None:
-    ftr_host = config.get('fieldtrip','hostname')
-    ftr_port = config.getint('fieldtrip','port')
     if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftr_host, ftr_port)
-    ftc = FieldTrip.Client()
-    ftc.connect(ftr_host, ftr_port)
+        print "Waiting for data to arrive..."
     H = ftc.getHeader()
-
-if debug>0:
-    print "Connected to FieldTrip buffer"
+    time.sleep(0.2)
 
 if debug>1:
     print H
@@ -136,7 +140,7 @@ chanindx = []
 for item in channel_items:
     # channel numbers are one-offset in the ini file, zero-offset in the code
     channame.append(item[0])
-    chanindx.append(config.getint('channel', item[0])-1)
+    chanindx.append(config.getint('input', item[0])-1)
 
 if debug>0:
     print channame, chanindx
@@ -149,7 +153,7 @@ freeze = False
 taper = np.hanning(window)
 frequency = np.fft.rfftfreq(window, 1.0/H.fSample)
 
-if debug>0:
+if debug>2:
     print 'taper     = ', taper
     print 'frequency = ', frequency
 
@@ -164,7 +168,8 @@ try:
         for item in band_items:
             # channel numbers are one-offset in the ini file, zero-offset in the code
             lohi = EEGsynth.getfloat('band', item[0], config, r, multiple=True)
-            print item[0], lohi
+            if debug>2:
+                print item[0], lohi
             # lohi = config.get('band', item[0]).split("-")
             bandname.append(item[0])
             bandlo.append(lohi[0])
@@ -212,13 +217,14 @@ try:
         for chan in range(F.shape[1]):
             for lo,hi in zip(bandlo,bandhi):
                 power[i] = 0
+                count = 0
                 for sample in range(len(frequency)):
                     if frequency[sample]>=lo and frequency[sample]<=hi:
                         power[i] += abs(F[sample,chan]*F[sample,chan])
+                        count    += 1
+                if count>0:
+                    power[i] /= count
                 i+=1
-
-        if debug>1:
-            print power
 
         if minval is None:
             minval = power
@@ -236,6 +242,9 @@ try:
                 power[i] = 0
             else:
                 power[i] = (power[i]-minval[i])/(maxval[i]-minval[i])
+
+        if debug>1:
+            print power
 
         i = 0
         for chan in channame:
