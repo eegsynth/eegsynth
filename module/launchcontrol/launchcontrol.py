@@ -37,8 +37,9 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
+mididevice = config.get('midi', 'device')
 try:
-    inputport  = mido.open_input(config.get('midi', 'device'))
+    inputport  = mido.open_input(mididevice)
     if debug>0:
         print "Connected to MIDI input"
 except:
@@ -46,7 +47,7 @@ except:
     exit()
 
 try:
-    outputport  = mido.open_output(config.get('midi', 'device'))
+    outputport  = mido.open_output(mididevice)
     if debug>0:
         print "Connected to MIDI output"
 except:

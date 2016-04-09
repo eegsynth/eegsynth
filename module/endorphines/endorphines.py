@@ -68,7 +68,7 @@ while True:
                 print name, 'not available'
             continue
 
-        if config.get('limiter_compressor', 'enable')=='yes':
+        if EEGsynth.getfloat('limiter_compressor', 'enable', config, r):
             # the limiter/compressor applies to all channels and must exist as float or redis key
             lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
             hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)

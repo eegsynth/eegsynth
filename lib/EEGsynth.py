@@ -1,3 +1,82 @@
+import os
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import mido
+import OSC          # see https://trac.v2.nl/wiki/pyOSC
+
+###################################################################################################
+class midiwrapper():
+    """Class to provide a generalized interface to MIDI interfaces on the local computer
+    or to MIDI interfaces that are accessed on another computer over the network
+    using the midiosc application.
+    """
+
+    def __init__(self, config):
+        self.config = config
+        self.outputport = None
+        try:
+            self.backend = config.get('midi', 'backend')
+        except ConfigParser.NoOptionError:
+            self.backend = 'mido'
+        try:
+            self.debug = config.getint('general', 'debug')
+        except ConfigParser.NoOptionError:
+            self.debug = 0
+
+    def open_output(self):
+        if self.backend == 'mido':
+            if self.debug>0:
+                print('------ OUTPUT ------')
+                for port in mido.get_output_names():
+                  print(port)
+                print('-------------------------')
+            try:
+                self.outputport  = mido.open_output(self.config.get('midi', 'device'))
+                print "Connected to MIDI output"
+            except:
+                print "Error: cannot connect to MIDI output"
+                exit()
+
+        elif self.backend == 'midiosc':
+            try:
+                self.outputport = OSC.OSCClient()
+                self.outputport.connect((self.config.get('midi','hostname'), self.config.getint('midi','port')))
+                print "Connected to OSC server"
+            except:
+                print "Error: cannot connect to OSC server"
+                exit()
+
+        else:
+            raise NameError('unsupported backend: ' + self.backend)
+
+    def send(self, mido_msg):
+        if self.backend == 'mido':
+            # send the message as is
+            self.outputport.send(mido_msg)
+        elif self.backend == 'midiosc':
+            # convert the message to an OSC message that "midiosc" understands
+            device_name = self.config.get('midi', 'device').replace(' ', '_')
+            osc_address = "/midi/" + device_name + "/0"
+            osc_msg = OSC.OSCMessage(osc_address)
+            if mido_msg.type == 'control_change':
+                osc_msg.append('controller_change')
+                osc_msg.append(mido_msg.control)
+                osc_msg.append(mido_msg.value)
+            elif mido_msg.type == 'note_on':
+                osc_msg.append('note_on')
+                osc_msg.append(mido_msg.note)
+                osc_msg.append(mido_msg.velocity)
+            elif mido_msg.type == 'note_off':
+                osc_msg.append('note_off')
+                osc_msg.append(mido_msg.note)
+                osc_msg.append(mido_msg.velocity)
+            else:
+                raise NameError('unsupported message type' + mido_msg)
+            # send the OSC message, "midiosc" will convert it back to MIDI
+            self.outputport.send(osc_msg)
+        else:
+            raise NameError('unsupported backend: ' + self.backend)
+
+
 ####################################################################
 # The formatting of the item in the ini file should be like this
 #   item=1            this returns 1
@@ -9,7 +88,6 @@
 #   item=key1,key2    get the value of key1 and key2 from redis
 #   item=key1,5       get the value of key1 from redis
 #   item=0,key2       get the value of key2 from redis
-
 def getfloat(section, item, config, redis, multiple=False, default=None):
 
     # get all items from the ini file, there might be one or multiple

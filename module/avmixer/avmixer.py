@@ -57,21 +57,9 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-# this is only for debugging
-print('------ OUTPUT ------')
-for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
-
 midichannel = config.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
-mididevice  = config.get('midi', 'device')
-try:
-    outputport  = mido.open_output(mididevice)
-    if debug>0:
-        print "Connected to MIDI output"
-except:
-    print "Error: cannot connect to MIDI output"
-    exit()
+outputport = EEGsynth.midiwrapper(config)
+outputport.open_output()
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
