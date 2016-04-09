@@ -1,4 +1,5 @@
 import os
+import sys
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import mido
 import OSC          # see https://trac.v2.nl/wiki/pyOSC
@@ -7,7 +8,7 @@ import OSC          # see https://trac.v2.nl/wiki/pyOSC
 class midiwrapper():
     """Class to provide a generalized interface to MIDI interfaces on the local computer
     or to MIDI interfaces that are accessed on another computer over the network
-    using the midiosc application.
+    using the midiosc application. It only supports sending, not receiving.
     """
 
     def __init__(self, config):

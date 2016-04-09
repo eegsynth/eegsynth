@@ -36,7 +36,7 @@ except redis.ConnectionError:
 
 try:
     s = OSC.OSCClient()
-    s.connect((config.get('osc','address'), config.getint('osc','port')))
+    s.connect((config.get('osc','hostname'), config.getint('osc','port')))
     if debug>0:
         print "Connected to OSC server"
 except:
@@ -61,41 +61,35 @@ while True:
     time.sleep(config.getfloat('general', 'delay'))
 
     for key1,key2,key3 in zip(list1,list2,list3):
-        try:
-            val = r.get(key2)
-            if val is None:
-                if config.has_option('default', key1):
-                    val = config.getfloat('default', key1)
-                else:
-                    pass
+
+        val = r.get(key2)
+        if val is None:
+            # the control value is not present in redis, skip it
+            continue
+        else:
+            val = float(val)
+
+        if config.get('limiter_compressor', 'enable')=='yes':
+            # the limiter/compressor applies to all channels and must exist as float or redis key
+            lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
+            hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
+            if lo is None or hi is None:
+                if debug>1:
+                    print "cannot apply limiter/compressor"
             else:
-                val = float(val)
+                # apply the limiter/compressor
+                val = EEGsynth.limiter(val, lo, hi)
 
-            if config.get('limiter_compressor', 'enable')=='yes':
-                # the limiter/compressor applies to all channels and must exist as float or redis key
-                lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
-                hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
-                if lo is None or hi is None:
-                    if debug>1:
-                        print "cannot apply limiter/compressor"
-                else:
-                    # apply the limiter/compressor
-                    val = EEGsynth.limiter(val, lo, hi)
+        # the scale option is channel specific
+        scale = EEGsynth.getfloat('scale', key1, config, r, default=1)
+        # the offset option is channel specific
+        offset = EEGsynth.getfloat('offset', key1, config, r, default=0)
+        # apply the scale and offset
+        val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-            # the scale option is channel specific
-            scale = EEGsynth.getfloat('scale', key1, config, r, default=1)
-            # the offset option is channel specific
-            offset = EEGsynth.getfloat('offset', key1, config, r, default=0)
-            # apply the scale and offset
-            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+        if debug>1:
+            print 'OSC message', key3, '=', val
 
-            if debug>1:
-                print 'OSC message', key3, '=', val
-
-            msg = OSC.OSCMessage(key3)
-            msg.append(val)
-            s.send(msg)
-
-        except:
-            # the value is neither present in redis, nor in the default section of the *.ini file
-            pass
+        msg = OSC.OSCMessage(key3)
+        msg.append(val)
+        s.send(msg)

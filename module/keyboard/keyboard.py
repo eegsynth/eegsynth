@@ -21,6 +21,10 @@ else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
+# eegsynth/lib contains shared modules
+sys.path.insert(0,os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
 
@@ -41,26 +45,35 @@ for port in mido.get_input_names():
 print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)
-print('---------------------')
+print('-------------------------')
 
-midichannel = config.getint('midi', 'channel')
-mididevice  = config.get('midi', 'device')
-
+mididevice = config.get('midi', 'device')
 try:
     inputport  = mido.open_input(mididevice)
     if debug>0:
-        print 'Connected to MIDI input'
+        print "Connected to MIDI input"
 except:
-    print 'Error: cannot connect to MIDI input'
+    print "Error: cannot connect to MIDI input"
     exit()
 
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
-        print 'Connected to MIDI output'
+        print "Connected to MIDI output"
 except:
-    print 'Error: cannot connect to MIDI output'
+    print "Error: cannot connect to MIDI output"
     exit()
+
+try:
+    # channel 1-16 in the ini file should be mapped to 0-15
+    midichannel = config.getint('midi', 'channel')-1
+except:
+    # this happens if it is not specified in the ini file
+    # it will be determined on the basis of the first incoming message
+    midichannel = None
+
+# this is to prevent two messages from being sent at the same time
+lock = threading.Lock()
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, note):
@@ -72,19 +85,23 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
-        pubsub.subscribe(self.redischannel)
         pubsub.subscribe('KEYBOARD_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)     # this message contains the note
-        for item in pubsub.listen():
-            if not self.running or not item['type'] is 'message':
-                break
-            if item['channel']==self.redischannel:
-                if debug>1:
-                    print item['channel'], '=', item['data']
-                msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
-                lock.acquire()
-                outputport.send(msg)
-                lock.release()
+        pubsub.subscribe(self.redischannel)   # this message contains the note
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel']==self.redischannel:
+                    if debug>1:
+                        print item['channel'], '=', item['data']
+                    if midichannel is None:
+                        msg = mido.Message('note_on', note=self.note, velocity=int(item['data']))
+                    else:
+                        msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
+                    lock.acquire()
+                    print msg
+                    outputport.send(msg)
+                    lock.release()
 
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
@@ -105,6 +122,16 @@ try:
         time.sleep(config.getfloat('general','delay'))
 
         for msg in inputport.iter_pending():
+            if midichannel is None:
+                try:
+                    # specify the MIDI channel on the basis of the first incoming message
+                    midichannel = msg.channel
+                except:
+                    pass
+
+            if debug>0 and msg.type!='clock':
+                print msg
+
             if hasattr(msg,'note'):
                 print(msg)
                 if config.get('processing','detect')=='release' and msg.velocity>0:

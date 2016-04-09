@@ -59,7 +59,7 @@ try:
     midichannel = config.getint('midi', 'channel')-1
 except:
     # this happens if it is not specified in the ini file
-    # it will be determined on teh basis of the first incoming message
+    # it will be determined on the basis of the first incoming message
     midichannel = None
 
 push     = [int(a) for a in config.get('button', 'push').split(",")]
@@ -122,10 +122,13 @@ while True:
 
     for msg in inputport.iter_pending():
         if midichannel is None:
-            # specify the MIDI channel on the basis of the first incoming message
-            midichannel = msg.channel
+            try:
+                # specify the MIDI channel on the basis of the first incoming message
+                midichannel = msg.channel
+            except:
+                pass
 
-        if debug>0:
+        if debug>0 and msg.type!='clock':
             print msg
 
         if hasattr(msg, "control"):
@@ -135,6 +138,7 @@ while True:
             r.set(key, val)
 
         elif hasattr(msg, "note"):
+            pass
             # the default is not to send a message
             val = None
             # use an local variable as abbreviation in the subsequent code

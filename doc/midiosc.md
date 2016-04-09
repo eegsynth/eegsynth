@@ -6,7 +6,19 @@ Compared to [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-mi
 
 Compared to [OSCulator](http://www.osculator.net) it has the advantage that it is free (although OSCulator is not that expensive). Furthermore, for EEGsynth it would not be so convenient to configure the mapping/translation between OSC and MIDI commands in the OSCulator application. For other situations where you don't control the OSC-sending software, this configurability would actually be an advantage.
 
-## Getting MidoOSC running on Max OS X
+## Getting MidoOSC running on Raspbian
+
+```
+sudo apt-get install scons
+sudo apt-get install liblo-dev
+sudo apt-get install libasound2-dev
+
+git clone https://github.com/jstutters/MidiOSC.git
+cd MidiOSC
+scons
+```
+
+## Getting MidoOSC running on OS X
 
 I am using [macports](https://www.macports.org) as package manager on OS X.
 
@@ -20,6 +32,8 @@ git clone https://github.com/jstutters/MidiOSC.git
 cd MidiOSC
 scons
 ```
+
+The *pyliblo* Pthon package is only needed for testing the example.py  script provided in MidiOSC.
 
 I had to make the following changes to the SConstruct file to deal with the liblo header and library being in /opt/local, which is the default place for macports.
 
