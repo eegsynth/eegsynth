@@ -181,18 +181,3 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 sudo apt-get install libportmidi0
 sudo apt-get install libportmidi-dev
 ```
-
-### rtpmidi
-
-```
-git clone https://github.com/avsaj/rtpmidi.git
-cd rtpmidi
-sudo python setup.py install
-```
-
-for https://github.com/ravelox/pimidi
-```
-sudo apt-get install autoconf automake
-sudo apt-get install libavahi-common3
-git clone https://github.com/ravelox/pimidi.git
-```
