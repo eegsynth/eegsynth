@@ -153,7 +153,7 @@ try:
             time.sleep(config.getfloat('general', 'delay'))
             continue
 
-        offset = EEGsynth.getfloat('input', 'offset', config, r, default=0)
+        offset = EEGsynth.getfloat('input', 'offset', config, r, default=64)
         # the offset value from 0-127 gets scaled to a value from -1 to +1 seconds
         offset = (offset-64)/(127/2)
 
