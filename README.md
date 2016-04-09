@@ -8,10 +8,10 @@ The EEGsynth is both a device, software and a collaborative interdisciplinary re
 
 ## Brainhack@Paris
 
-We made great progress at the BrainHack meeting in Paris. The pitch we presented there can be found on [SlideShare](http://www.slideshare.net/RobertOostenveld/eegsynth-pitch-for-brainhackparis).
+The basis for the initial Python modules was made at the BrainHack meeting in Paris. The pitch that we presented there can be found on [SlideShare](http://www.slideshare.net/RobertOostenveld/eegsynth-pitch-for-brainhackparis). It briefly explains the project goals and system design.
 
 ## More information
 
-More general information and technical documentation on teh hardware can be found on the [home page](http://www.eegsynth.org).
+More general information and technical documentation on the hardware can be found on the EEGsynth [home page](http://www.eegsynth.org).
 
-More technical documentation on the software can be found in this repository in the documentation sub-directory.
+More technical details and installation instructions can be found in the [documentation](https://github.com/eegsynth/eegsynth/tree/master/doc) directory in the EEGsynth  [github repository](https://github.com/eegsynth/eegsynth).
