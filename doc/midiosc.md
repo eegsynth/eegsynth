@@ -18,6 +18,13 @@ cd MidiOSC
 scons
 ```
 
+The previous resulted in a working application, but it would not find any of the connected MIDI devices.
+
+```
+sudo apt-get install jackd2
+```
+
+
 ## Getting MidoOSC running on OS X
 
 I am using [macports](https://www.macports.org) as package manager on OS X.

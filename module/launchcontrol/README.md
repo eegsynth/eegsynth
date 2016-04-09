@@ -1,9 +1,15 @@
-LaunchControl module
-====================
+Launch Control module
+=====================
 
-The purpose of this module is to process input MIDI commands from a Novation LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the REDIS buffer. The button press and release events are sent as triggers to the REDIS buffer.
+The purpose of this module is to process input MIDI commands from a Novation Launch Control XL digital control surface. The values of the sliders and knobs are sent as control signals to the REDIS buffer. The button press and release events are sent as triggers to the REDIS buffer.
 
-For the buttons you can specify whether they should respond as push buttons (on/off) or as toggle buttons that remain in a certain state between subsequent operations. 
+For the buttons you can specify whether they should respond as push buttons (on/off) or as toggle buttons that remain in a certain state between subsequent operations.
+
+![LaunchControlXL](./launch-control-xl.jpg)
+
+We are developing for the XL version, but expect that the same code will also work with the smaller (non-XL) version.
+
+![LaunchControl](./launch-control.jpg)
 
 ## Requirements
 
