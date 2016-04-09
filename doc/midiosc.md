@@ -2,7 +2,7 @@
 
 [MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing bidirectional conversion of MIDI to OSC. It is available for OSX and for Linux.
 
-Compared to [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-midi) it has the advantage that any MIDI messages can be transferred over the network, not only those of the TouchOSC application on a tablet/smartphone.
+Compared to [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-midi) it has the advantage that any MIDI messages can be transferred over the network, not only those from the TouchOSC application running on your tablet or smartphone.
 
 Compared to [OSCulator](http://www.osculator.net) it has the advantage that it is free (although OSCulator is not that expensive). Furthermore, for EEGsynth it would not be so convenient to configure the mapping/translation between OSC and MIDI commands in the OSCulator application. For other situations where you don't control the OSC-sending software, this configurability would actually be an advantage.
 
