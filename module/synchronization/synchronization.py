@@ -46,20 +46,8 @@ def initialize_serial():
 
 midiport = None
 def initialize_midi():
-    # this is only for debugging
-    print('------ OUTPUT ------')
-    for port in mido.get_output_names():
-      print(port)
-    print('-------------------------')
-
-    mididevice  = config.get('midi', 'device')
-    try:
-        midiport  = mido.open_output(mididevice)
-        if debug>0:
-            print "Connected to MIDI output"
-    except:
-        print "Error: cannot connect to MIDI output"
-        exit()
+    midiport = EEGsynth.midiwrapper(config)
+    midiport.open_output()
     return midiport
 
 # this is to prevent two messages from being sent at the same time

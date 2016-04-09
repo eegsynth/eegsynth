@@ -44,3 +44,7 @@ index 9bb9c7f..2dde119 100644
 -env.Program('midiosc', ['main.cpp', 'midiinput.cpp', 'RtMidi.cpp', 'anyoption.cpp', 'options.cpp'], LIBS=libs)
 +env.Program('midiosc', ['main.cpp', 'midiinput.cpp', 'RtMidi.cpp', 'anyoption.cpp', 'options.cpp'], LIBS=libs, LIBPATH='/opt/local/lib')
 ```
+
+## Translating messages
+
+The EEGsynth.midiwrapper class translates [mido](https://mido.readthedocs.org/en/latest/) messages automatically to OSC messages. The OSC messages are formatted such that the MidiOSC application will convert them back to the appropriate MIDI message on the receiving computer.

@@ -69,8 +69,11 @@ class midiwrapper():
                 osc_msg.append('note_off')
                 osc_msg.append(mido_msg.note)
                 osc_msg.append(mido_msg.velocity)
+            elif mido_msg.type == 'clock':
+                osc_msg.append('timing_tick')
             else:
-                raise NameError('unsupported message type' + mido_msg)
+                print mido_msg
+                raise NameError('unsupported message type')
             # send the OSC message, "midiosc" will convert it back to MIDI
             self.outputport.send(osc_msg)
         else:
