@@ -102,8 +102,8 @@ adjust_offset   = 0
 previous_offset = 0
 pulselength = config.getfloat('general','pulselength')
 
-# FIXME this is not consistent with other modules
-key = config.get('output','prefix')
+# this is how it will appear in REDIS
+key = "%s.%s" % (config.get('output','prefix'), config.get('input','rate'))
 
 # these will only be started when needed
 init_midi   = False
@@ -153,13 +153,11 @@ try:
             time.sleep(config.getfloat('general', 'delay'))
             continue
 
-        offset = EEGsynth.getfloat('input', 'offset', config, r)
+        offset = EEGsynth.getfloat('input', 'offset', config, r, default=0)
         # the offset value from 0-127 gets scaled to a value from -1 to +1 seconds
-        if offset is None:
-            offset = 0
         offset = (offset-64)/(127/2)
 
-        multiplier = EEGsynth.getfloat('input', 'multiplier', config, r)
+        multiplier = EEGsynth.getfloat('input', 'multiplier', config, r, default=1)
         # the multiplier value from 0-127 gets scaled to a value from 1/4 to 16/4
         idx = find_nearest_idx(multiplier_mid, multiplier)
         multiplier = multiplier_val[idx]
