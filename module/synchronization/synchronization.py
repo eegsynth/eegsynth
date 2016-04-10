@@ -53,7 +53,7 @@ def initialize_midi():
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
-class TriggerThread(threading.Thread):
+class MidiThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
@@ -94,7 +94,7 @@ def find_nearest_idx(array,value):
     return idx
 
 multiplier_mid = [   10,    30,    50,   70,   90,   110,   130 ] # lookup table
-multiplier_val = [ 1./4,  1./3,  1./1,    1,    2,     3,     4 ] # actual value
+multiplier_val = [ 1./4,  1./3,  1./2,    1,    2,     3,     4 ] # actual value
 
 slip            = 0
 tick            = 0
@@ -114,7 +114,7 @@ previous_use_serial = None
 
 try:
     # start the thread that synchronizes over MIDI
-    midisync = TriggerThread()
+    midisync = MidiThread()
     midisync.start()
 
     while True:
