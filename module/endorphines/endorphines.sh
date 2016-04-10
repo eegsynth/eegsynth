@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/bash
 
 PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin
 
