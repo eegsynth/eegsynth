@@ -39,7 +39,7 @@ See https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/C
 ### Python/MIDO
 
 This is a Python package that can use either the PortMidi interface or the RtMidi interface.
-See https://pypi.python.org/pypi/python-rtmidi
+See https://mido.readthedocs.org
 
 ### Python/RtMidi
 
