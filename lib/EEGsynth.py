@@ -72,10 +72,12 @@ class midiwrapper():
                 osc_msg.append(mido_msg.velocity)
             elif mido_msg.type == 'clock':
                 osc_msg.append('timing_tick')
+            elif mido_msg.type == 'pitchwheel':
+                osc_msg.append('pitch_bend')
+                osc_msg.append(mido_msg.pitch)
             else:
-                print mido_msg
                 raise NameError('unsupported message type')
-            # send the OSC message, "midiosc" will convert it back to MIDI
+            # send the OSC message, the receiving "midiosc" application will convert it back to MIDI
             self.outputport.send(osc_msg)
         else:
             raise NameError('unsupported backend: ' + self.backend)
@@ -94,23 +96,26 @@ class midiwrapper():
 #   item=0,key2       get the value of key2 from redis
 def getfloat(section, item, config, redis, multiple=False, default=None):
 
-    # get all items from the ini file, there might be one or multiple
-    items = config.get(section, item)
-    items = items.replace(' ', '')         # remove whitespace
-    if items[0]!='-':
-        items = items.replace('-', ',')    # replace minus separators by commas
-    items = items.split(',')               # split on the commas
-    val = [None]*len(items)
+    if config.has_option(section, item):
+        # get all items from the ini file, there might be one or multiple
+        items = config.get(section, item)
+        items = items.replace(' ', '')         # remove whitespace
+        if items[0]!='-':
+            items = items.replace('-', ',')    # replace minus separators by commas
+        items = items.split(',')               # split on the commas
+        val = [None]*len(items)
 
-    for i,item in enumerate(items):
-        # replace the item with the actual value
-        try:
-            val[i] = float(item)
-        except ValueError:
+        for i,item in enumerate(items):
+            # replace the item with the actual value
             try:
-                val[i] = float(redis.get(item))
-            except TypeError:
-                val[i] = default
+                val[i] = float(item)
+            except ValueError:
+                try:
+                    val[i] = float(redis.get(item))
+                except TypeError:
+                    val[i] = default
+    else:
+        val = [default]
 
     if multiple:
         # return it as list
@@ -122,23 +127,26 @@ def getfloat(section, item, config, redis, multiple=False, default=None):
 ####################################################################
 def getint(section, item, config, redis, multiple=False, default=None):
 
-    # get all items from the ini file, there might be one or multiple
-    items = config.get(section, item)
-    items = items.replace(' ', '')         # remove whitespace
-    if items[0]!='-':
-        items = items.replace('-', ',')    # replace minus separators by commas
-    items = items.split(',')               # split on the commas
-    val = [None]*len(items)
+    if config.has_option(section, item):
+        # get all items from the ini file, there might be one or multiple
+        items = config.get(section, item)
+        items = items.replace(' ', '')         # remove whitespace
+        if items[0]!='-':
+            items = items.replace('-', ',')    # replace minus separators by commas
+        items = items.split(',')               # split on the commas
+        val = [None]*len(items)
 
-    for i,item in enumerate(items):
-        # replace the item with the actual value
-        try:
-            val[i] = int(item)
-        except ValueError:
+        for i,item in enumerate(items):
+            # replace the item with the actual value
             try:
-                val[i] = int(redis.get(item))
-            except TypeError:
-                val[i] = default
+                val[i] = int(item)
+            except ValueError:
+                try:
+                    val[i] = int(redis.get(item))
+                except TypeError:
+                    val[i] = default
+    else:
+        val = [default]
 
     if multiple:
         # return it as list
