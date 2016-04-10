@@ -106,6 +106,10 @@ while True:
 
         # compute the mean over the window
         val = numpy.mean(dat[:,chanindx])
+
+        # this is for debugging
+        printval.append(val)
+
         # apply the scale and offset
         val = EEGsynth.rescale(val, scale, offset)
 
