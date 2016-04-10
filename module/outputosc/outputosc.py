@@ -62,12 +62,12 @@ while True:
 
     for key1,key2,key3 in zip(list1,list2,list3):
 
-        val = r.get(key2)
-        if val is None:
+        val = EEGsynth.getfloat('input', key1, config, r, multiple=True )
+        if any(item is None for item in val):
             # the control value is not present in redis, skip it
             continue
         else:
-            val = float(val)
+            val = [float(x) for x in val]
 
         if config.get('limiter_compressor', 'enable')=='yes':
             # the limiter/compressor applies to all channels and must exist as float or redis key
