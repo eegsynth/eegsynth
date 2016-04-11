@@ -51,14 +51,16 @@ while True:
         if chanval is None:
 		continue
 
-        if config.get('limiter_compressor', 'enable')=='yes':
-            # the limiter options apply to all channels and must exist as float or redis key
-            lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
-            hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
-	    if debug>1:
-		print 'limiter', lo, hi
-            # apply the limiter
-            chanval = EEGsynth.limiter(chanval, lo, hi)
+        if EEGsynth.getint('compressor_expander', 'enable', config, r):
+            # the compressor applies to all channels and must exist as float or redis key
+            lo = EEGsynth.getfloat('compressor_expander', 'lo', config, r)
+            hi = EEGsynth.getfloat('compressor_expander', 'hi', config, r)
+            if lo is None or hi is None:
+                if debug>1:
+                    print "cannot apply compressor/expander"
+            else:
+                # apply the compressor/expander
+                chanval = EEGsynth.compress(chanval, lo, hi)
 
 	scale = EEGsynth.getfloat('scale', chanstr, config, r)
 	offset = EEGsynth.getfloat('offset', chanstr, config, r)

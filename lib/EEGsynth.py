@@ -55,8 +55,9 @@ class midiwrapper():
             self.outputport.send(mido_msg)
         elif self.backend == 'midiosc':
             # convert the message to an OSC message that "midiosc" understands
-            device_name = self.config.get('midi', 'device').replace(' ', '_')
-            osc_address = "/midi/" + device_name + "/0"
+            device_name  = self.config.get('midi', 'device').replace(' ', '_')
+            midi_channel = str(self.config.get('midi', 'channel'))
+            osc_address  = "/midi/" + device_name + "/" + channel
             osc_msg = OSC.OSCMessage(osc_address)
             if mido_msg.type == 'control_change':
                 osc_msg.append('controller_change')
@@ -167,7 +168,7 @@ def rescale(xval, slope=None, offset=None):
         return float(slope)*xval + float(offset)
 
 ####################################################################
-def clip(xval, lower=0.0, upper=127.0):
+def limit(xval, lo=0.0, hi=127.0):
     if hasattr(xval, "__iter__"):
         return [clip(x, lower, upper) for x in xval]
     else:
@@ -179,7 +180,7 @@ def clip(xval, lower=0.0, upper=127.0):
             return xval
 
 ####################################################################
-def limiter(xval, lo=63.5, hi=63.5, range=127.0):
+def compress(xval, lo=63.5, hi=63.5, range=127.0):
     if hasattr(xval, "__iter__"):
         return [limiter(x, lo, hi, range) for x in xval]
     else:
@@ -187,6 +188,7 @@ def limiter(xval, lo=63.5, hi=63.5, range=127.0):
         lo    = float(lo)
         hi    = float(hi)
         range = float(range)
+
         if lo>range/2:
           ax = 0.0
           ay = lo-(range+1)/2

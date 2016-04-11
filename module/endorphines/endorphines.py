@@ -107,16 +107,16 @@ try:
                     print name, 'not available'
                 continue
 
-            if EEGsynth.getfloat('limiter_compressor', 'enable', config, r):
-                # the limiter/compressor applies to all channels and must exist as float or redis key
-                lo = EEGsynth.getfloat('limiter_compressor', 'lo', config, r)
-                hi = EEGsynth.getfloat('limiter_compressor', 'hi', config, r)
+            if EEGsynth.getint('compressor_expander', 'enable', config, r):
+                # the compressor applies to all channels and must exist as float or redis key
+                lo = EEGsynth.getfloat('compressor_expander', 'lo', config, r)
+                hi = EEGsynth.getfloat('compressor_expander', 'hi', config, r)
                 if lo is None or hi is None:
                     if debug>1:
-                        print "cannot apply limiter/compressor"
+                        print "cannot apply compressor/expander"
                 else:
-                    # apply the limiter/compressor
-                    val = EEGsynth.limiter(val, lo, hi)
+                    # apply the compressor/expander
+                    val = EEGsynth.compress(val, lo, hi)
 
             # the scale option is channel specific
             scale = EEGsynth.getfloat('scale', name, config, r, default=1)
@@ -127,7 +127,7 @@ try:
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
             # ensure that it is within limits
-            val = EEGsynth.clip(val, lower=-8192, upper=8191)
+            val = EEGsynth.limit(val, lo=-8192, hi=8191)
 
             if debug>0:
                 print name, val
