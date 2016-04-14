@@ -55,8 +55,9 @@ class midiwrapper():
             self.outputport.send(mido_msg)
         elif self.backend == 'midiosc':
             # convert the message to an OSC message that "midiosc" understands
-            device_name = self.config.get('midi', 'device').replace(' ', '_')
-            osc_address = "/midi/" + device_name + "/0"
+            device_name  = self.config.get('midi', 'device').replace(' ', '_')
+            midi_channel = str(self.config.get('midi', 'channel'))
+            osc_address  = "/midi/" + device_name + "/" + channel
             osc_msg = OSC.OSCMessage(osc_address)
             if mido_msg.type == 'control_change':
                 osc_msg.append('controller_change')
@@ -156,50 +157,64 @@ def getint(section, item, config, redis, multiple=False, default=None):
         return val[0]
 
 ####################################################################
-def rescale(xval, slope=1, offset=0):
-    return float(slope)*xval + float(offset)
+def rescale(xval, slope=None, offset=None):
+    if hasattr(xval, "__iter__"):
+        return [rescale(x, slope, offset) for x in xval]
+    else:
+        if slope is None:
+            slope = 1
+        if offset is None:
+            offset = 0
+        return float(slope)*xval + float(offset)
 
 ####################################################################
-def clip(xval, lower=0.0, upper=127.0):
-    if xval<lower:
-        return lower
-    elif xval>upper:
-        return upper
+def limit(xval, lo=0.0, hi=127.0):
+    if hasattr(xval, "__iter__"):
+        return [clip(x, lower, upper) for x in xval]
     else:
-        return xval
+        if xval<lower:
+            return lower
+        elif xval>upper:
+            return upper
+        else:
+            return xval
 
 ####################################################################
-def limiter(xval, lo=63.5, hi=63.5, range=127.0):
-    xval  = float(xval)
-    lo    = float(lo)
-    hi    = float(hi)
-    range = float(range)
-    if lo>range/2:
-      ax = 0.0
-      ay = lo-(range+1)/2
+def compress(xval, lo=63.5, hi=63.5, range=127.0):
+    if hasattr(xval, "__iter__"):
+        return [limiter(x, lo, hi, range) for x in xval]
     else:
-      ax = (range+1)/2-lo
-      ay = 0.0
+        xval  = float(xval)
+        lo    = float(lo)
+        hi    = float(hi)
+        range = float(range)
 
-    if hi<range/2:
-      bx = (range+1)
-      by = (range+1)/2+hi
-    else:
-      bx = 1.5*(range+1)-hi
-      by = (range+1)
+        if lo>range/2:
+          ax = 0.0
+          ay = lo-(range+1)/2
+        else:
+          ax = (range+1)/2-lo
+          ay = 0.0
 
-    if (bx-ax)==0:
-        # threshold the value halfway
-        yval = (xval>63.5)*range
-    else:
-        # map the value according to a linear transformation
-        slope     = (by-ay)/(bx-ax)
-        intercept = ay - ax*slope
-        yval      = (slope*xval + intercept)
+        if hi<range/2:
+          bx = (range+1)
+          by = (range+1)/2+hi
+        else:
+          bx = 1.5*(range+1)-hi
+          by = (range+1)
 
-    if yval<0:
-      yval = 0
-    elif yval>range:
-      yval = range
+        if (bx-ax)==0:
+            # threshold the value halfway
+            yval = (xval>63.5)*range
+        else:
+            # map the value according to a linear transformation
+            slope     = (by-ay)/(bx-ax)
+            intercept = ay - ax*slope
+            yval      = (slope*xval + intercept)
 
-    return yval
+        if yval<0:
+          yval = 0
+        elif yval>range:
+          yval = range
+
+        return yval
