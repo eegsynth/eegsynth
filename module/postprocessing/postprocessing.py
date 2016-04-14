@@ -6,7 +6,7 @@ import time
 import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import numpy as np
-from numpy import log, log2, log10, exp, power
+from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
