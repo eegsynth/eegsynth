@@ -72,14 +72,13 @@ while True:
         # there are not yet enough samples in the buffer
         pass
 
-    # we keep last up_period seconds of signal in the ECG channel
+    # we process the last window from the ECG channel
     start = H.nSamples - int(window)
     stop  = H.nSamples-1
     ECG   = ftc.getData([start,stop])[:,channel]
 
-    Beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
-    val = int(60/(np.mean(np.diff(Beats))/H.fSample))
-    print(val)
+    beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
+    val = float(60./(np.mean(np.diff(beats))/H.fSample))
 
     key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
     val = r.set(key, val)

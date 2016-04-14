@@ -138,8 +138,8 @@ channame = []
 chanindx = []
 for item in channel_items:
     # channel numbers are one-offset in the ini file, zero-offset in the code
-    channame.append(item[0])
-    chanindx.append(config.getint('channel', item[0])-1)
+    channame.append(item[0])                            # the channel name
+    chanindx.append(config.getint('input', item[0])-1)  # the channel number
 
 window = round(config.getfloat('processing','window') * H.fSample)
 order = config.getint('processing', 'order')

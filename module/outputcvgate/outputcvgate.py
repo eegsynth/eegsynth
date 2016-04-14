@@ -49,7 +49,7 @@ while True:
         chanstr = "cv%d" % chanindx
         chanval = EEGsynth.getfloat('input', chanstr, config, r)
         if chanval is None:
-		continue
+            continue
 
         if EEGsynth.getint('compressor_expander', 'enable', config, r):
             # the compressor applies to all channels and must exist as float or redis key
