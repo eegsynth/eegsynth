@@ -5,7 +5,7 @@ import os
 import time
 import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import numpy
+import numpy as np
 from numpy import log, log2, log10, exp, power
 
 if hasattr(sys, 'frozen'):
