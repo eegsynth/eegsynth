@@ -4,7 +4,7 @@ import ConfigParser
 import os
 import redis
 import sys
-import numpy
+import numpy as np
 import mne
 import time
 
@@ -78,7 +78,8 @@ while True:
     ECG   = ftc.getData([start,stop])[:,channel]
 
     Beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
-    val = len(Beats)*H.fSample*60/window;
+    val = int(60/(np.mean(np.diff(Beats))/H.fSample))
+    print(val)
 
     key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
     val = r.set(key, val)
