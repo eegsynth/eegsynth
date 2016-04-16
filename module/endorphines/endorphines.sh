@@ -1,6 +1,8 @@
 #!/bin/bash
 
 PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin
+
+# the following is needed for portmidi on OS X
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 
 DIR=`dirname "$0"`
