@@ -14,7 +14,7 @@ var async = require('async');
 app.use(express.static(__dirname + '/public'));
 
 var Redis = require('ioredis');
-var redis = new Redis(6379, '192.168.1.11');
+var redis = new Redis(6379, 'localhost');
 
 // app.use(cookieParser('secret'));
 // app.use(session({cookie: { maxAge: 60000 }}));
@@ -41,29 +41,28 @@ app.use(cookieSession({
 // app.use(bodyParser.urlencoded({ extended: true }))
 
 function moduleCommand(name, command) {
+  switch (command) {
+    case 'start':
+    case 'stop':
+    case 'restart':
+    case 'status':
+      // construct the command line
+      var filename = path.join(__dirname, '..', 'module', name, name + '.sh');
+      console.log(filename + " " + command);
+      var output = spawnSync(filename, [command], {timeout: 5000});
+      return output.stdout.toString();
+      break;
 
-switch (command) {
-  case 'start':
-  case 'stop':
-  case 'restart':
-  case 'status':
-    // construct the command line
-    var filename = path.join(__dirname, '..', 'module', name, name + '.sh');
-    console.log(filename + " " + command);
-    var output = spawnSync(filename, [command], {timeout: 5000});
-    return output.stdout.toString();
-    break;
+    case 'log':
+      return 'failed';
+      break;
 
-  case 'log':
-    return 'failed';
-    break;
+    case 'edit':
+      return 'failed';
+      break;
 
-  case 'edit':
-    return 'failed';
-    break;
-
-  default:
-    return 'failed';
+    default:
+      return 'failed';
   }
 }
 
@@ -95,6 +94,11 @@ app.get('/*/log', function (req, res, next) {
     }
   });
 });
+app.post('/*/log', function (req, res, next) {
+  // nothing happens on a POST
+  res.status(200);
+  res.redirect('/');
+});
 
 // edit
 app.get('/*/edit', function (req, res, next) {
@@ -111,8 +115,7 @@ app.get('/*/edit', function (req, res, next) {
   });
   next();
 });
-
-app.post("/*/edit", function(req, res) {
+app.post("/*/edit", function(req, res, next) {
   var name = req.url.split('/')[1];
   if (req.body.form_button == 'save') {
     fs.writeFileSync(req.body.form_filename, req.body.form_content, {encoding: 'utf8'});
@@ -125,6 +128,7 @@ app.post("/*/edit", function(req, res) {
     res.status(200);
     res.redirect('/');
   }
+  next();
 });
 
 // status, start, stop, restart
@@ -164,13 +168,7 @@ app.use('/*/restart', function(req, res, next) {
   next();
 });
 
-
-
-var body = [];
-var key = '';
-
-app.use('/monitor', function (req, res) {
-
+app.use('/monitor', function (req, res, next) {
   // Create a readable stream (object mode)
   var stream = redis.scanStream();
   var keys = [];
@@ -179,7 +177,6 @@ app.use('/monitor', function (req, res) {
       keys.push(someKeys[i]);
     }
   });
-
   stream.on('end', function () {
     var body = [];
     async.each(keys,
@@ -202,14 +199,14 @@ app.use('/monitor', function (req, res) {
   });
 });
 
-
-app.post('/test', function (req, res) {
+app.post('/test', function (req, res, next) {
     //res.send(JSON.stringify(req.body, null, 2));
     res.setHeader('Content-Type', 'text/plain')
     res.write('you posted:\n\n')
     res.write(req.body.title)
     res.write(req.body.description)
     res.end()
+    next();
 });
 
 //create node.js http server and listen on port
