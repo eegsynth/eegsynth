@@ -57,7 +57,7 @@ class midiwrapper():
             # convert the message to an OSC message that "midiosc" understands
             device_name  = self.config.get('midi', 'device').replace(' ', '_')
             midi_channel = str(self.config.get('midi', 'channel'))
-            osc_address  = "/midi/" + device_name + "/" + channel
+            osc_address  = "/midi/" + device_name + "/" + str(mido_msg.channel)
             osc_msg = OSC.OSCMessage(osc_address)
             if mido_msg.type == 'control_change':
                 osc_msg.append('controller_change')
