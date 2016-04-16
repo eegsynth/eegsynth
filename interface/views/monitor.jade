@@ -1,0 +1,24 @@
+doctype html
+html(lang="en")
+
+  head
+    meta(http-equiv='content-type', content='text/html; charset=utf-8')
+    meta(http-equiv="refresh", content="2")
+
+    style
+      include ../public/style.css
+
+
+  body
+    hr
+    a(href="/") settings
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    a(href="/monitor") monitor
+    hr
+
+    table
+      each item in redis.keyval
+        tr
+          td #{item.key}
+          td =
+          td #{item.val}

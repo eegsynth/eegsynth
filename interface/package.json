@@ -4,6 +4,7 @@
   "description": "EEGsynth web interface",
   "main": "index.js",
   "dependencies": {
+    "async": "^2.0.0-rc.3",
     "body-parser": "^1.14.2",
     "compression": "^1.6.0",
     "connect": "^3.4.0",
@@ -11,6 +12,7 @@
     "cookie-session": "^1.2.0",
     "express": "^4.13.3",
     "express-session": "^1.12.1",
+    "ioredis": "^1.15.1",
     "jade": "^1.11.0",
     "textangular": "^1.4.6"
   },

@@ -1,4 +1,6 @@
 var express = require('express')
+var app = express();
+
 var http = require('http')
 var spawnSync = require('child_process').spawnSync;
 var execSync = require('child_process').execSync;
@@ -7,9 +9,12 @@ var fs = require('fs');
 var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
-var app = express();
+var async = require('async');
 
 app.use(express.static(__dirname + '/public'));
+
+var Redis = require('ioredis');
+var redis = new Redis(6379, '192.168.1.11');
 
 // app.use(cookieParser('secret'));
 // app.use(session({cookie: { maxAge: 60000 }}));
@@ -29,7 +34,7 @@ app.use(compression());
 // store session state in browser cookie
 var cookieSession = require('cookie-session')
 app.use(cookieSession({
-    keys: ['secret1', 'secret2']
+    keys: ['EeC9qua7aem1', 'hieGh0lo1oor']
 }))
 
 // parse urlencoded request bodies into req.body
@@ -67,15 +72,6 @@ app.get('/', function(req, res, next) {
   next();
 });
 
-app.post('/test', function (req, res) {
-    //res.send(JSON.stringify(req.body, null, 2));
-    res.setHeader('Content-Type', 'text/plain')
-    res.write('you posted:\n\n')
-    res.write(req.body.title)
-    res.write(req.body.description)
-    res.end()
-});
-
 // log
 app.get('/*/log', function (req, res, next) {
   var name    = req.url.split('/')[1];
@@ -98,12 +94,6 @@ app.get('/*/log', function (req, res, next) {
       next();
     }
   });
-});
-
-app.post("/*/log", function(req, res) {
-  // ok
-  res.status(200);
-  res.redirect('/');
 });
 
 // edit
@@ -172,6 +162,54 @@ app.use('/*/restart', function(req, res, next) {
       message_text: moduleCommand(name, command)
   });
   next();
+});
+
+
+
+var body = [];
+var key = '';
+
+app.use('/monitor', function (req, res) {
+
+  // Create a readable stream (object mode)
+  var stream = redis.scanStream();
+  var keys = [];
+  stream.on('data', function (someKeys) {
+    for (var i = 0; i < someKeys.length; i++) {
+      keys.push(someKeys[i]);
+    }
+  });
+
+  stream.on('end', function () {
+    var body = [];
+    async.each(keys,
+      function(key, callback) {
+        redis.get(key, function (err, result) {
+          body.push({
+            key: key,
+            val: result
+          });
+          callback();
+        });
+      },
+      function (err) {
+        body.sort(function (a, b) {
+          return (a.key).localeCompare(b.key);
+        });
+        res.render('monitor', {redis: {keyval : body}});
+      }
+    );
+  });
+});
+
+
+app.post('/test', function (req, res) {
+    //res.send(JSON.stringify(req.body, null, 2));
+    res.setHeader('Content-Type', 'text/plain')
+    res.write('you posted:\n\n')
+    res.write(req.body.title)
+    res.write(req.body.description)
+    res.end()
 });
 
 //create node.js http server and listen on port
