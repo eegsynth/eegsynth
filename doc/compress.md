@@ -4,7 +4,7 @@ The compressor/expander is implemented in the postprocessing module and allows a
 
 The implementation of the compressor/expander is best explained with a figure. Along the horizontal axis you should consider the input value of the compressor/expander, along the vertical axis the output value. If there is a straight line from [0,0] to [127,127] the output is exactly the same as the input.
 
-![compress explained](figures/compress_explained.png =200x)
+![compress explained](figures/compress_explained.png)
 
 It uses two parameters: a "lo" and a "hi" value for the lower left and upper right corner of the figure below. The neutral settings for the "lo" and "hi" parameters are 63.5.
 
