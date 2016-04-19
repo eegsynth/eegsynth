@@ -62,20 +62,21 @@ while True:
                 # apply the compressor/expander
                 chanval = EEGsynth.compress(chanval, lo, hi)
 
-	scale = EEGsynth.getfloat('scale', chanstr, config, r)
-	offset = EEGsynth.getfloat('offset', chanstr, config, r)
-	if debug>1:
-		print chanstr, chanval, scale, offset
-	chanval = EEGsynth.rescale(chanval, scale, offset)
+    	scale  = EEGsynth.getfloat('scale', chanstr, config, r)
+    	offset = EEGsynth.getfloat('offset', chanstr, config, r)
+    	if debug>1:
+    		print chanstr, chanval, scale, offset
+    	chanval = EEGsynth.rescale(chanval, scale, offset)
         s.write('*c%dv%04d#' % (chanindx, chanval))
 
     for chanindx in range(1, 8):
         chanstr = "gate%d" % chanindx
         chanval = EEGsynth.getfloat('input', chanstr, config, r)
         if chanval is None:
-		continue
-	else:
-		chanval = int(chanval>0)
-	if debug>1:
-		print chanstr, chanval
+            continue
+
+        # the value for the gate should be 0 or 1
+        chanval = int(chanval>0)
+        if debug>1:
+            print chanstr, chanval
         s.write('*g%dv%d#' % (chanindx, chanval))
