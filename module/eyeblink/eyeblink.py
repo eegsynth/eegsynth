@@ -71,18 +71,19 @@ class TriggerThread(threading.Thread):
         self.last = 0
         lock.release()
     def stop(self):
-        self.running = FALSE
+        self.running = False
     def run(self):
         pubsub = self.r.pubsub()
         channel = self.config.get('processing','calibrate')
         pubsub.subscribe(channel)
-        for item in pubsub.listen():
-            if not self.running or not item['type'] is 'message':
-                break
-            print item['channel'], ":", item['data']
-            lock.acquire()
-            self.last = self.time
-            lock.release()
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                print item['channel'], ":", item['data']
+                lock.acquire()
+                self.last = self.time
+                lock.release()
 
 # start the background thread
 lock = threading.Lock()

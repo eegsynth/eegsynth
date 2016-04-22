@@ -76,16 +76,17 @@ class TriggerThread(threading.Thread):
         pubsub = r.pubsub()
         pubsub.subscribe('AVMIXER_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)    # this message contains the note
-        for item in pubsub.listen():
-            if not self.running or not item['type'] is 'message':
-                break
-            if item['channel']==self.redischannel:
-                if debug>1:
-                    print item['channel'], "=", item['data']
-                msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
-                lock.acquire()
-                outputport.send(msg)
-                lock.release()
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel']==self.redischannel:
+                    if debug>1:
+                        print item['channel'], "=", item['data']
+                    msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
+                    lock.acquire()
+                    outputport.send(msg)
+                    lock.release()
 
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []

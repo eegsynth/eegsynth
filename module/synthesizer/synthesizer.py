@@ -74,13 +74,14 @@ class TriggerThread(threading.Thread):
         pubsub = self.r.pubsub()
         channel = self.config.get('input','adsr_gate')
         pubsub.subscribe(channel)
-        for item in pubsub.listen():
-            if not self.running or not item['type'] is 'message':
-                break
-            print item['channel'], "=", item['data']
-            lock.acquire()
-            self.last = self.time
-            lock.release()
+        while self.running:
+           for item in pubsub.listen():
+               if not self.running or not item['type'] == 'message':
+                   break
+               print item['channel'], "=", item['data']
+               lock.acquire()
+               self.last = self.time
+               lock.release()
 
 class ControlThread(threading.Thread):
     def __init__(self, r, config):

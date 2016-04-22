@@ -59,50 +59,51 @@ class TriggerThread(threading.Thread):
         pubsub.subscribe(self.config.get('gain_control','increase'))
         pubsub.subscribe(self.config.get('gain_control','decrease'))
         pubsub.subscribe('MUSCLE_UNBLOCK')  # this message unblocks the redis listen command
-        for item in pubsub.listen():
-            if not self.running or not item['type'] is 'message':
-                break
-            lock.acquire()
-            if item['channel']==self.config.get('gain_control','recalibrate'):
-                if not self.freeze:
-                    # this will cause the min/max values to be completely reset
-                    self.minval = None
-                    self.maxval = None
-                    if debug>0:
-                        print 'recalibrate', self.minval, self.maxval
-                else:
-                    print 'not recalibrating, freeze is on'
-            elif item['channel']==self.config.get('gain_control','freeze'):
-                # freeze the automatic adjustment of the gain control
-                # when frozen, the recalibrate should also not be done
-                self.freeze = (int(item['data'])>0)
-                if debug>1:
-                    if self.freeze:
-                        print 'freeze on'
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                lock.acquire()
+                if item['channel']==self.config.get('gain_control','recalibrate'):
+                    if not self.freeze:
+                        # this will cause the min/max values to be completely reset
+                        self.minval = None
+                        self.maxval = None
+                        if debug>0:
+                            print 'recalibrate', self.minval, self.maxval
                     else:
-                        print 'freeze off'
-            elif item['channel']==self.config.get('gain_control','increase'):
-                # decreasing the min/max values will increase the gain
-                if not self.minval is None:
-                    for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
-                        range = float(max-min)
-                        if range>0:
-                            self.minval[i] += range * self.config.getfloat('gain_control','stepsize')
-                            self.maxval[i] -= range * self.config.getfloat('gain_control','stepsize')
-                if debug>0:
-                    print 'increase', self.minval, self.maxval
-            elif item['channel']==self.config.get('gain_control','decrease'):
-                # increasing the min/max values will decrease the gain
-                if not self.minval is None:
-                    for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
-                        range = float(max-min)
-                        if range>0:
-                            self.minval[i] -= range * self.config.getfloat('gain_control','stepsize')
-                            self.maxval[i] += range * self.config.getfloat('gain_control','stepsize')
-                if debug>0:
-                    print 'decrease', self.minval, self.maxval
-            self.update = True
-            lock.release()
+                        print 'not recalibrating, freeze is on'
+                elif item['channel']==self.config.get('gain_control','freeze'):
+                    # freeze the automatic adjustment of the gain control
+                    # when frozen, the recalibrate should also not be done
+                    self.freeze = (int(item['data'])>0)
+                    if debug>1:
+                        if self.freeze:
+                            print 'freeze on'
+                        else:
+                            print 'freeze off'
+                elif item['channel']==self.config.get('gain_control','increase'):
+                    # decreasing the min/max values will increase the gain
+                    if not self.minval is None:
+                        for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
+                            range = float(max-min)
+                            if range>0:
+                                self.minval[i] += range * self.config.getfloat('gain_control','stepsize')
+                                self.maxval[i] -= range * self.config.getfloat('gain_control','stepsize')
+                    if debug>0:
+                        print 'increase', self.minval, self.maxval
+                elif item['channel']==self.config.get('gain_control','decrease'):
+                    # increasing the min/max values will decrease the gain
+                    if not self.minval is None:
+                        for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
+                            range = float(max-min)
+                            if range>0:
+                                self.minval[i] -= range * self.config.getfloat('gain_control','stepsize')
+                                self.maxval[i] += range * self.config.getfloat('gain_control','stepsize')
+                    if debug>0:
+                        print 'decrease', self.minval, self.maxval
+                self.update = True
+                lock.release()
 
 # start the background thread
 lock = threading.Lock()
