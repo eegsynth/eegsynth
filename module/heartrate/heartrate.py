@@ -59,10 +59,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-channel = config.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
-window  = round(config.getfloat('processing','window') * H.fSample) # in samples
-
 filter_length = '3s'
+window  = round(config.getfloat('processing','window') * H.fSample) # in samples
+channel = config.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
+key     = "%s.channel%d" % (config.get('output','prefix'), channel+1)
 
 while True:
     time.sleep(config.getfloat('general','delay'))
@@ -70,7 +70,9 @@ while True:
     H = ftc.getHeader()
     if H.nSamples < window:
         # there are not yet enough samples in the buffer
-        pass
+        if debug>0:
+            print "waiting for data"
+        continue
 
     # we process the last window from the ECG channel
     start = H.nSamples - int(window)
@@ -80,5 +82,7 @@ while True:
     beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
     val = float(60./(np.mean(np.diff(beats))/H.fSample))
 
-    key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
-    val = r.set(key, val)
+    if debug>1:
+        print key, val
+    if not np.isnan(val):
+        r.set(key, val)
