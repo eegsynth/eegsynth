@@ -77,7 +77,7 @@ class TriggerThread(threading.Thread):
                 elif item['channel']==self.config.get('gain_control','freeze'):
                     # freeze the automatic adjustment of the gain control
                     # when frozen, the recalibrate should also not be done
-                    self.freeze = (item['data']>0)
+                    self.freeze = (int(item['data'])>0)
                     if debug>1:
                         if self.freeze:
                             print 'freeze on'
