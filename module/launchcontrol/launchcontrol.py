@@ -124,7 +124,7 @@ while True:
         if midichannel is None:
             try:
                 # specify the MIDI channel on the basis of the first incoming message
-                midichannel = msg.channel
+                midichannel = int(msg.channel)
             except:
                 pass
 
