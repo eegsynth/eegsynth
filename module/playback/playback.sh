@@ -13,6 +13,7 @@ PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
 COMMAND="$DIR"/"$NAME".py
+OPTIONS=""
 
 do_start () {
   status_led red

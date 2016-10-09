@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/bin:/usr/local/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
@@ -13,13 +13,15 @@ PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
 COMMAND="$DIR"/"$NAME".py
+OPTIONS=""
 
 do_start () {
   status_led red
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
-  ( "$COMMAND" > "$LOGFILE" ) &
+  date > "$LOGFILE"
+  ( "$COMMAND" "$OPTIONS" >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
   status_led green
 }

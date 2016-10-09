@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/bin:/usr/local/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
@@ -13,20 +13,9 @@ BINDIR=$DIR/../../bin
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-
-# Include library to parse ini file
-. "$(dirname "$0")/../../lib/shini.sh"
-
-# Declare the required handler for parsed variables, this creates local variables
-__shini_parsed()
-{
-export $1_$2=$3
-}
-
-shini_parse $INIFILE
-
 COMMAND="$BINDIR/jaga2ft"
-OPTIONS="$fieldtrip_hostname $fieldtrip_port"
+shini_parse $INIFILE
+OPTIONS=$ini_fieldtrip_hostname" "$ini_fieldtrip_port
 
 do_start () {
   status_led red

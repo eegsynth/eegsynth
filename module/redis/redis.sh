@@ -1,12 +1,12 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/bin:/usr/local/bin
-
-# include library with helper functions
-. "$(dirname "$0")/../../lib/EEGsynth.sh"
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
+
+# include library with helper functions
+. "$DIR/../../lib/EEGsynth.sh"
 
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
@@ -21,7 +21,8 @@ else
   COMMAND="/opt/local/bin/redis-server"
 fi
 
-# OPTIONS="--port `ini_parser "$INIFILE" redis port`"
+shini_parse $INIFILE
+OPTIONS="--port "$ini_redis_port
 
 do_start () {
   status_led red
@@ -29,8 +30,7 @@ do_start () {
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
   date > "$LOGFILE"
-  # ( "$COMMAND" "$OPTIONS" > "$LOGFILE" ) &
-  ( "$COMMAND" > "$LOGFILE" ) &
+  ( "$COMMAND" $OPTIONS >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
   status_led green
 }

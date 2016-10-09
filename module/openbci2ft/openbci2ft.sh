@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/bin:/usr/local/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
@@ -13,7 +13,6 @@ BINDIR=$DIR/../../bin
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-
 COMMAND="$BINDIR/openbci2ft"
 OPTIONS="$INIFILE"
 

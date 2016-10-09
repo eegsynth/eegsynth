@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/bin:/usr/local/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
@@ -13,15 +13,12 @@ BINDIR=$DIR/../../bin
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-
 COMMAND="$BINDIR/parallel"
-OPTIONS="$BINDIR/buffer"
-OPTIONS+=" "
-OPTIONS+=`ini_parser "$INIFILE" fieldtrip port`
+shini_parse $INIFILE
+OPTIONS="$BINDIR/buffer "$ini_fieldtrip_port
 
 killtree() {
     local pid=$1 child
-
     for child in $(pgrep -P $pid); do
         killtree $child
     done

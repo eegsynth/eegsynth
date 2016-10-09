@@ -5,9 +5,6 @@ PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
 
-# the following is needed for portmidi on OS X
-export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
-
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
 
@@ -16,6 +13,7 @@ PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
 COMMAND="$DIR"/"$NAME".py
+OPTIONS=""
 
 do_start () {
   status_led red
