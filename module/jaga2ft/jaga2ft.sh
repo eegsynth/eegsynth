@@ -1,6 +1,9 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/bin
+PATH=/sbin:/bin:/usr/bin:/usr/local/bin
+
+# include library with helper functions
+. "$(dirname "$0")/../../lib/EEGsynth.sh"
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
@@ -45,12 +48,14 @@ check_running_process () {
 }
 
 do_start () {
+  status_led red
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
   date > "$LOGFILE"
   ( "$COMMAND" $OPTIONS >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
+  status_led green
 }
 
 do_stop () {

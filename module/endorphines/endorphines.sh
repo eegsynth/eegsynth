@@ -1,6 +1,9 @@
 #!/bin/bash
 
-PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin
+PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
+
+# include library with helper functions
+. "$(dirname "$0")/../../lib/EEGsynth.sh"
 
 # the following is needed for portmidi on OS X
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
@@ -32,11 +35,13 @@ check_running_process () {
 }
 
 do_start () {
+  status_led red
   log_action_msg "Starting $NAME"
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
   ( "$COMMAND" > "$LOGFILE" ) &
   echo $! > "$PIDFILE"
+  status_led green
 }
 
 do_stop () {
