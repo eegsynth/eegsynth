@@ -1,6 +1,7 @@
 # Misc files
 bin/buffer
 bin/openbci2ft
+bin/jaga2ft
 dump.rdb
 interface/node_modules
 *.pid
