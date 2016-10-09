@@ -28,11 +28,13 @@ do_start () {
 }
 
 do_stop () {
+  status_led red
   log_action_msg "Stopping $NAME"
   check_running_process || log_action_err "Error: $NAME is already stopped"
   check_running_process || exit 1
   kill -9 `cat "$PIDFILE"`
   rm "$PIDFILE"
+  status_led green
 }
 
 do_status () {
