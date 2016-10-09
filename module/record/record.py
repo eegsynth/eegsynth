@@ -5,7 +5,6 @@ import ConfigParser # this is version 2.x specific, on version 3.x it is called 
 import redis
 import sys
 import os
-import edflib
 import numpy as np
 import datetime
 
