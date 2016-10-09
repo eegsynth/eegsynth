@@ -23,23 +23,6 @@ fi
 
 # OPTIONS="--port `ini_parser "$INIFILE" redis port`"
 
-log_action_msg () {
-  echo $* 1>&1
-}
-
-log_action_err () {
-  echo $* 1>&2
-}
-
-check_running_process () {
-  if [ ! -f "$PIDFILE" ]; then
-    return 1
-  else
-    kill -0 `cat "$PIDFILE"` 2> /dev/null
-    return $?
-  fi
-}
-
 do_start () {
   status_led red
   log_action_msg "Starting $NAME"

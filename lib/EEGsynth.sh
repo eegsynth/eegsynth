@@ -1,4 +1,21 @@
 
+log_action_msg () {
+  echo $* 1>&1
+}
+
+log_action_err () {
+  echo $* 1>&2
+}
+
+check_running_process () {
+  if [ ! -f "$PIDFILE" ]; then
+    return 1
+  else
+    kill -0 `cat "$PIDFILE"` 2> /dev/null
+    return $?
+  fi
+}
+
 ini_parser () {
   INIFILE="$1"
   SECTION="$2"

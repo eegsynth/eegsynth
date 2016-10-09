@@ -19,14 +19,6 @@ OPTIONS="$BINDIR/buffer"
 OPTIONS+=" "
 OPTIONS+=`ini_parser "$INIFILE" fieldtrip port`
 
-log_action_msg () {
-  echo $* 1>&1
-}
-
-log_action_err () {
-  echo $* 1>&2
-}
-
 killtree() {
     local pid=$1 child
 
@@ -34,15 +26,6 @@ killtree() {
         killtree $child
     done
      [ $pid -ne $$ ] && kill -kill $pid 2> /dev/null
-}
-
-check_running_process () {
-  if [ ! -f "$PIDFILE" ]; then
-    return 1
-  else
-    kill -0 `cat "$PIDFILE"` 2> /dev/null
-    return $?
-  fi
 }
 
 do_start () {
