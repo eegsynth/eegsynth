@@ -40,7 +40,7 @@ sudo dpkg-reconfigure keyboard-configuration
 
 ### Install the web interface
 
-EEGsynth includes a web interface that allows you to start and stop modules and to edit the patch configuration. The installation of this is detailed in the [README](interface/README.md) document for the interface.
+EEGsynth includes a web interface that allows you to start and stop modules and to edit the patch configuration. The installation of this is detailed in the [README](../interface/README.md) document for the interface.
 
 ### Install redis
 
