@@ -4,19 +4,26 @@ The EEGsynth software is developed with Linux and OS X in mind. In principle it 
 
 For Linux we are specifically targetting [Raspbian](http://www.raspbian.org), which is a free Debian-based operating system optimized for the [Raspberry Pi](https://www.raspberrypi.org) hardware. This allows to build a dedicated EEGsynth on the low-cost Raspberry Pi platform.
 
-## General instructions
+## General instructions that apply to all systems
 
 ### Install EEGsynth from gitub
 ```
 git clone https://github.com/eegsynth/eegsynth.git
 ```
 
-There are some dependencies from FieldTrip, which you can download and install using
+### Install the dependencies on FieldTrip
+
+For interfacing with the EEG amplifiers we use the FieldTrip buffer and the associated amplifier-specific applications. Each of them is a small executable that is implemented in C and already compiled. These executables are different for each computing platform (i386, ARM, etc.) and for each operating system. In the eegsynth/bin directory you can find a small installer script that helps you to select and download the correct ones.
 
 ```
 cd eegsynth/bin
 install.sh
 ```
+
+### Switch the Launch Control XL to low-power mode
+
+To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
+
 
 ## Installation instructions for Raspbian
 
@@ -161,10 +168,6 @@ python setup.py build
 sudo python setup.py install
 ```
 
-### Switch the Launch Control XL to low-power mode
-
-To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
-
 
 ## Installation instructions for OS-X
 
@@ -178,6 +181,8 @@ sudo pip install mido
 sudo port selfupdate
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 ```
+
+Fixme, the next does not apply to OS-X.
 
 ```
 sudo apt-get install libportmidi0
