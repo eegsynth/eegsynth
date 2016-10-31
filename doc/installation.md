@@ -188,3 +188,62 @@ Fixme, the next does not apply to OS-X.
 sudo apt-get install libportmidi0
 sudo apt-get install libportmidi-dev
 ```
+
+### Redis
+Install Rediswith brew and the python library with pip:
+```
+brew install redis
+pip install redis
+```
+
+Like for the Linux installation, you then need to edit the configuration file:
+```
+sudo nano /etc/redis/redis.conf
+```
+and comment out the line "bind 127.0.0.1"
+
+You can then, either:
+- configure it to launch Redis when computer starts:
+```
+ln -sfv /usr/local/opt/redis/*.plist ~/Library/LaunchAgents
+```
+- launch it manually:
+```
+launchctl load ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+```
+and then stop it later:
+```
+launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+```
+
+### Quick test
+
+Start the EEGsynth modules: buffer, redis, and openbci2ft
+
+Add the Fieldtrip python module to the PYTHONPATH ($EEGSYNTHPATH is the eegsynnth base folder).
+```
+export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/lib
+```
+
+Then, in a python console:
+```
+import FieldTrip
+
+c = FieldTrip.Client()
+c.connect(hostname='127.0.0.1')
+h = c.getHeader()
+print 'number of channels ' + str(h.nChannels)
+```
+
+Wait some time and then you can plot the EEG signals:
+```
+# load data
+d = c.getData()
+
+import matplotlib.pyplot as plt
+import scipy.signal
+y=scipy.signal.detrend(d[-2500:,:])
+plt.plot(y)
+plt.title('Last 10 seconds in the Fieldtrip buffer')
+plt.show()
+```
