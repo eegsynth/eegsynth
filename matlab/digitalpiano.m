@@ -38,9 +38,9 @@ end
 % get the options, use defaults where needed
 cfg.channel   = ft_getopt(cfg, 'channel', 1);
 cfg.velocity  = ft_getopt(cfg, 'velocity', 64);
-cfg.input     = ft_getopt(cfg, 'input', 'yes');
-cfg.output    = ft_getopt(cfg, 'output', 'yes');
-cfg.playsound = ft_getopt(cfg, 'playsound', 'no');
+cfg.input     = ft_getopt(cfg, 'input', 'yes');    % read from MIDI input
+cfg.playmidi  = ft_getopt(cfg, 'playmidi', 'yes'); % play notes over the MIDI interface
+cfg.playsound = ft_getopt(cfg, 'playsound', 'no'); % play notes over the computer audio
 
 % this table contains the UI tag, channel and note
 cfg.mapping = cell(120,3);
@@ -67,7 +67,7 @@ if strcmp(cfg.input, 'yes')
   midiOpen('input');
 end
 
-if strcmp(cfg.output, 'yes')
+if strcmp(cfg.playmidi, 'yes')
   midiOpen('output');
 end
 
@@ -258,13 +258,13 @@ if strcmp(cfg.playsound, 'yes')
   fs = 22000;
   t = (1:0.5*fs)/fs;
   f = frequency.(note);
-  f = f(octave-1);
+  f = f(octave+1);
   s = sin(2*pi*f*t) .* tukeywin(length(t), 0.1)';
   p = audioplayer(s, fs);
   playblocking(p);
 end
 
-if strcmp(cfg.output, 'yes')
+if strcmp(cfg.playmidi, 'yes')
   midi.C  = (1:11)*12 + 0;
   midi.Db = (1:11)*12 + 1;
   midi.D  = (1:11)*12 + 2;
