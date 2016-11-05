@@ -10,11 +10,9 @@ if [ $OS = Linux ] ; then
   elif [ $MACHINE = x86_64 ] ; then
     ARCH=glnxa64
   elif [ $MACHINE = armv6l ] ; then
-    ARCH=raspberrypi1
+    ARCH=raspberrypi
   elif [ $MACHINE = armv7l ] ; then
-    ARCH=raspberrypi2
-  elif [ $MACHINE = armv8l ] ; then
-    ARCH=raspberrypi3
+    ARCH=raspberrypi
   fi
 elif [ $OS = Darwin ] ; then
   if [ $MACHINE = i386 ] ; then
