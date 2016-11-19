@@ -24,7 +24,6 @@ install.sh
 
 To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
 
-
 ## Installation instructions for Raspbian
 
 Use "raspi-config" to configure the correct keyboard, time-zone, to extend the partition on the SD card and to disable the automatic start of the graphical interface upon boot.
@@ -45,6 +44,18 @@ sudo dpkg-reconfigure console-data
 sudo dpkg-reconfigure keyboard-configuration
 ```
 
+## Installation instructions for Linux
+
+### Package managers
+
+From [Wikipedia](https://en.wikipedia.org/wiki/Package_manager): *A package manager or package management system is a collection of software tools that automates the process of installing, upgrading, configuring, and removing computer programs for a computer's operating system in a consistent manner.*
+
+The general package manager on Linux depends on the distribution you are using. Debian-based distributions (such as Ubuntu, Raspbian, Mint, etc.) use dpkg and apt-get. Redhat-based systems (such as CentOS, Fedora) use rpm and yum.
+
+For installing Python packages there are  [easy_install](https://setuptools.readthedocs.io/en/latest/easy_install.html) and [pip](https://pip.pypa.io/en/stable/).
+
+In the subsequent Linux installation instructions we assume apt-get and pip as the primary package managers.
+
 ### Install the web interface
 
 EEGsynth includes a web interface that allows you to start and stop modules and to edit the patch configuration. The installation of this is detailed in the [README](../interface/README.md) document for the interface.
@@ -63,7 +74,6 @@ Redis is automatically started on Raspberry Pi. If you look for running processe
 pi@hackpi:/etc/redis $ ps aux | grep redis
 redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379       
 ```
-
 
 If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration
 
@@ -168,35 +178,43 @@ python setup.py build
 sudo python setup.py install
 ```
 
+## Installation instructions for OS X
 
-## Installation instructions for OS-X
+### Package managers
+
+For general software (binaries and libraries) we are using either [HomeBrew](http://brew.sh) or  [MacPorts](https://www.macports.org).
+
+When using macport: to make sure it is up to date, you should do
+
+```
+sudo port selfupdate
+```
+
+For Python packages we are using pip as the package manager. To make sure it is up to date, you should do
+
+```
+sudo pip install --upgrade pip
+```
 
 ### Install MIDO for Python
 
 MIDO is a MIDI package that is based on portaudio.
 
 ```
-sudo pip install --upgrade pip
+brew install portmidi
 sudo pip install mido
-sudo port selfupdate
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
 ```
 
-Fixme, the next does not apply to OS-X.
-
-```
-sudo apt-get install libportmidi0
-sudo apt-get install libportmidi-dev
-```
-
 ### Redis
-Install Rediswith brew and the python library with pip:
+
+Install the Redis server and command-line client with brew and install the corresponding python library with pip:
 ```
 brew install redis
 pip install redis
 ```
 
-Like for the Linux installation, you then need to edit the configuration file:
+If you want to connect between different computers, you then need to edit the configuration file:
 ```
 sudo nano /etc/redis/redis.conf
 ```
@@ -216,11 +234,11 @@ and then stop it later:
 launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
 ```
 
-### Quick test
+## Quick test
 
 Start the EEGsynth modules: buffer, redis, and openbci2ft
 
-Add the Fieldtrip python module to the PYTHONPATH ($EEGSYNTHPATH is the eegsynnth base folder).
+Add the FieldTrip python module to the PYTHONPATH ($EEGSYNTHPATH is the eegsynth base folder).
 ```
 export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/lib
 ```
@@ -244,6 +262,6 @@ import matplotlib.pyplot as plt
 import scipy.signal
 y=scipy.signal.detrend(d[-2500:,:])
 plt.plot(y)
-plt.title('Last 10 seconds in the Fieldtrip buffer')
+plt.title('Last 10 seconds in the FieldTrip buffer')
 plt.show()
 ```
