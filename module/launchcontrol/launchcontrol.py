@@ -62,11 +62,32 @@ except:
     # it will be determined on the basis of the first incoming message
     midichannel = None
 
-push     = [int(a) for a in config.get('button', 'push').split(",")]
-toggle1  = [int(a) for a in config.get('button', 'toggle1').split(",")]
-toggle2  = [int(a) for a in config.get('button', 'toggle2').split(",")]
-toggle3  = [int(a) for a in config.get('button', 'toggle3').split(",")]
-toggle4  = [int(a) for a in config.get('button', 'toggle4').split(",")]
+try:
+    # momentary push button
+    push     = [int(a) for a in config.get('button', 'push').split(",")]
+except:
+    push     = []
+try:
+    # on-off button
+    toggle1  = [int(a) for a in config.get('button', 'toggle1').split(",")]
+except:
+    toggle1  = []
+try:
+    # on1-on2-off button
+    toggle2  = [int(a) for a in config.get('button', 'toggle2').split(",")]
+except:
+    toggle2  = []
+try:
+    # on1-on2-on3-off button
+    toggle3  = [int(a) for a in config.get('button', 'toggle3').split(",")]
+except:
+    toggle3  = []
+try:
+    # on1-on2-on3-on4-off button
+    toggle4  = [int(a) for a in config.get('button', 'toggle4').split(",")]
+except:
+    toggle4  = []
+
 note_list    = push+toggle1+toggle2+toggle3+toggle4 # concatenate all buttons
 status_list  = [0] * len(note_list)
 
