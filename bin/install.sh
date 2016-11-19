@@ -5,7 +5,7 @@ OS=`uname -s`
 MACHINE=`uname -m`
 
 if [ $OS = Linux ] ; then
-  if [ $MACHINE = i386 ] ; then
+  if [ $MACHINE = i386 -o $MACHINE = i486 -o $MACHINE = i586 -o $MACHINE = i686 ] ; then
     ARCH=glnx86
   elif [ $MACHINE = x86_64 ] ; then
     ARCH=glnxa64
