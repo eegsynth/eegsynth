@@ -1,6 +1,25 @@
 
-# the following is needed for portmidi on OS X
-export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
+# determine the machine on which this is running
+UNAME=`uname`
+MACHINE=`uname -m`
+
+if [ $MACHINE=Durwin ] ; then 
+  #  OS X version 10.6  corresponds to Snow Leopard
+  #  OS X version 10.7  corresponds to Lion
+  #  OS X version 10.8  corresponds to Mountain Lion
+  #  OS X version 10.9  corresponds to Mavericks
+  #  OS X version 10.10 corresponds to Yosemite
+  #  OS X version 10.11 corresponds to El Capitan
+  # macOS version 10.12 corresponds to Sierra
+  # the following may be needed for portmidi on OS X prior to El Captain
+  MAJOR_MAC_VERSION=$(sw_vers -productVersion | awk -F '.' '{print $1 "." $2}')
+  if [ -f /usr/local/lib/libportmidi.dylib ] ; then
+    export DYLD_LIBRARY_PATH=/usr/local/lib/:$DYLD_LIBRARY_PATH
+  elif [ -f /opt/local/lib/libportmidi.dylib ] ; then
+    export DYLD_LIBRARY_PATH=/opt/local/lib/:$DYLD_LIBRARY_PATH
+  fi
+fi
+
 
 # Include library to parse ini file
 . "$(dirname "$0")/../../lib/shini.sh"
