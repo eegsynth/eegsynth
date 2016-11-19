@@ -1,11 +1,8 @@
-[architecture](architecture.md)
+The EEGsynth documentation is organized in the following sections.
 
-[compress](compress.md)
-
-[faq](faq.md)
-
-[installation](installation.md)
-
-[midi](midi.md)
-
-[midiosc](midiosc.md)
+  * [architecture](architecture.md)
+  * [compress](compress.md)
+  * [faq](faq.md)
+  * [installation](installation.md)
+  * [midi](midi.md)
+  * [midiosc](midiosc.md)
