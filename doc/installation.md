@@ -67,7 +67,7 @@ This is used for inter-process communication between modules.
 sudo apt-get install redis-server
 ```
 
-Redis is automatically started on Raspberry Pi. If you look for running processes, you should see
+Redis will be automatically started on Linux. If you look for running processes, you should see
 ```
 pi@hackpi:/etc/redis $ ps aux | grep redis
 redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379       
@@ -119,8 +119,7 @@ sudo apt-get install libportmidi-dev
 
 For Python packages we are using pip as the package manager. To install pip, use the following
 ```
-wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo python
-sudo easy_install pip
+sudo apt-get install python-pip
 ```
 
 To make sure it is up to date, you should do

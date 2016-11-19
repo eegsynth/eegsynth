@@ -3,7 +3,7 @@
 UNAME=`uname`
 MACHINE=`uname -m`
 
-if [ $MACHINE=Durwin ] ; then 
+if [ $MACHINE = Darwin ] ; then 
   #  OS X version 10.6  corresponds to Snow Leopard
   #  OS X version 10.7  corresponds to Lion
   #  OS X version 10.8  corresponds to Mountain Lion
