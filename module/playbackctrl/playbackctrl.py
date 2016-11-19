@@ -77,6 +77,7 @@ while True:
             print "End of file reached, jumping back to start"
         begsample = 0
         endsample = 0
+        block     = 0
         continue
 
     if EEGsynth.getint('playback', 'rewind', config, r):
@@ -84,6 +85,8 @@ while True:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
         endsample = 0
+        block     = 0
+        continue
 
     if not EEGsynth.getint('playback', 'play', config, r):
         if debug>0:
@@ -97,10 +100,10 @@ while True:
     if debug>1:
         print "Playing control value", block
 
-    for i,chan in enumerate(channelz):
+    for chanindx,chan in enumerate(channelz):
         key = chan
         val = f.readSamples(chanindx, begsample, endsample)
-        r.set(key,val)
+        r.set(key,int(val))
 
     # this approximates the real time streaming speed
     desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))

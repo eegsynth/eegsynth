@@ -94,6 +94,7 @@ while True:
             print "End of file reached, jumping back to start"
         begsample = 0
         endsample = blocksize-1
+        block     = 0
         continue
 
     if EEGsynth.getint('playback', 'rewind', config, r):
@@ -101,6 +102,8 @@ while True:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
         endsample = blocksize-1
+        block     = 0
+        continue
 
     if not EEGsynth.getint('playback', 'play', config, r):
         if debug>0:
