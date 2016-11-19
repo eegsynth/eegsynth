@@ -38,7 +38,6 @@ sudo apt-get install git
 ### Reconfigure the keyboard
 
 The default keyboard layout is UK-English, which is probably not what you have.
-
 ```
 sudo dpkg-reconfigure console-data
 sudo dpkg-reconfigure keyboard-configuration
@@ -69,20 +68,17 @@ sudo apt-get install redis-server
 ```
 
 Redis is automatically started on Raspberry Pi. If you look for running processes, you should see
-
 ```
 pi@hackpi:/etc/redis $ ps aux | grep redis
 redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379       
 ```
 
-If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration
-
+If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration"
 ```
 sudo nano /etc/redis/redis.conf
 ```
 
 and comment out the line "bind 127.0.0.1" like this:
-
 ```
 # By default Redis listens for connections from all the network interfaces
 # available on the server. It is possible to listen to just one or multiple
@@ -96,21 +92,18 @@ and comment out the line "bind 127.0.0.1" like this:
 ```
 
 After changing the configuration file, you can kill the server, which will then restart with the correct configuration:
-
 ```
 pi@raspberry:/etc/redis $ ps aux | grep redis
 sudo kill -9 <ID>
 ```
 
 And you should see that it restarts and binds to all interfaces:
-
 ```
 pi@raspberry:/etc/redis $ ps aux | grep redis
 redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/redis-server *:6379               
 ```
 
 The redis command line interface is an useful tool for monitoring and debugging the redis server:
-
 ```
 redis-cli monitor
 ```
@@ -118,23 +111,32 @@ redis-cli monitor
 ### Install portmidi
 
 This is used for MIDI communication.
-
 ```
 sudo apt-get install libportmidi-dev
 ```
 
-
 ### Install python modules
 
+For Python packages we are using pip as the package manager. To install pip, use the following
 ```
 wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo python
 sudo easy_install pip
+```
 
+To make sure it is up to date, you should do
+```
+sudo pip install --upgrade pip
+```
+
+Subsequently you can install the Python modules
+```
 sudo pip install redis
 sudo pip install mido
 sudo pip install pyserial
 sudo pip install pyosc
 sudo pip install numpy
+sudo pip install nilearn
+sudo pip install sklearn
 ```
 
 ### Install audio
@@ -184,16 +186,10 @@ sudo python setup.py install
 
 For general software (binaries and libraries) we are using either [HomeBrew](http://brew.sh) or  [MacPorts](https://www.macports.org).
 
-When using macport: to make sure it is up to date, you should do
+When using MacPorts: to make sure it is up to date, you should do
 
 ```
 sudo port selfupdate
-```
-
-For Python packages we are using pip as the package manager. To make sure it is up to date, you should do
-
-```
-sudo pip install --upgrade pip
 ```
 
 ### Install MIDO for Python
@@ -202,16 +198,14 @@ MIDO is a MIDI package that is based on portaudio.
 
 ```
 brew install portmidi
-sudo pip install mido
-export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/opt/local/lib
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 ```
 
 ### Redis
 
-Install the Redis server and command-line client with brew and install the corresponding python library with pip:
+Install the Redis server and command-line client with brew :
 ```
 brew install redis
-pip install redis
 ```
 
 If you want to connect between different computers, you then need to edit the configuration file:
@@ -234,11 +228,29 @@ and then stop it later:
 launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
 ```
 
+### Install python modules
+
+For Python packages we are using pip as the package manager. To make sure it is up to date, you should do
+```
+sudo pip install --upgrade pip
+```
+
+Subsequently you can install the Python modules
+```
+sudo pip install redis
+sudo pip install mido
+sudo pip install pyserial
+sudo pip install pyosc
+sudo pip install numpy
+sudo pip install nilearn
+sudo pip install sklearn
+```
+
 ## Quick test
 
 Start the EEGsynth modules: buffer, redis, and openbci2ft
 
-Add the FieldTrip python module to the PYTHONPATH ($EEGSYNTHPATH is the eegsynth base folder).
+Add the FieldTrip python module to the PYTHONPATH, where $EEGSYNTHPATH is the eegsynth base folder.
 ```
 export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/lib
 ```
@@ -255,12 +267,12 @@ print 'number of channels ' + str(h.nChannels)
 
 Wait some time and then you can plot the EEG signals:
 ```
-# load data
-d = c.getData()
-
 import matplotlib.pyplot as plt
 import scipy.signal
-y=scipy.signal.detrend(d[-2500:,:])
+
+d = c.getData()
+y = scipy.signal.detrend(d[-2500:,:])
+
 plt.plot(y)
 plt.title('Last 10 seconds in the FieldTrip buffer')
 plt.show()
