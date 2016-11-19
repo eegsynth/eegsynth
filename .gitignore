@@ -7,6 +7,7 @@ interface/node_modules
 *.pid
 *.log
 *.pyc
+*.edf
 
 # Backup files
 *.m~
