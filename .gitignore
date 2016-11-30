@@ -8,6 +8,7 @@ interface/node_modules
 *.log
 *.pyc
 *.edf
+.DS_Store
 
 # Backup files
 *.m~
