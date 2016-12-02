@@ -12,11 +12,11 @@ Push buttons are momentary, i.e. only "on" while you keep your them depressed. T
   * toggle3 buttons switch between on1-on2-on3-off
   * toggle4 buttons switch between on1-on2-on3-on4-off
 
-![LaunchControlXL](./launch-control-xl.jpg)
+![LaunchControlXL](./launchcontrolXL.jpg)
 
 We are developing for the XL version, but expect that the same code will also work with the smaller (non-XL) version.
 
-![LaunchControl](./launch-control.jpg)
+![LaunchControl](./launchcontrol.jpg)
 
 ## Requirements
 
