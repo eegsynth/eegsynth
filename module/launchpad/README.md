@@ -32,7 +32,7 @@ The REDIS buffer should be running.
 
 ## MIDI assignment
 
-The Launchpad has 8 rows with 8 buttons each, eight buttons (1-8) at the top, and eight buttons (A-H) on the right side. Here I will sketch the outline of the main control elements with the *default* MIDI codes. The MIDI codes can be probably be reassigned with the Novation LaunchControlXL Editor application (not confirmed).
+The Launchpad has 8 rows with 8 buttons each, eight buttons (1-8) at the top, and eight buttons (A-H) on the right side. Here I will sketch the outline of the main control elements with the *default* MIDI codes. The MIDI codes can be probably be reassigned with a Novation Editor application (not confirmed).
 
 ```
 (104) (105) (106) (107) (108) (109) (110) (111)
