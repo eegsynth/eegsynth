@@ -19,3 +19,11 @@ To work around this you can [disable system integrity protection](
 http://www.howtogeek.com/230424/how-to-disable-system-integrity-protection-on-a-mac-and-why-you-shouldnt/).
 
 If you run into this on older versions of OS X, it is probably due to libmacports.dylib not being installed, or due to an incorrect setting of DYLD_LIBRARY_PATH.
+
+## Localhost not recognized on OS X
+
+In some OS X installations the name "localhost" does not refer to 127.0.0.1 as it should. This can be fixed by adding the following line to /etc/hosts
+
+```
+127.0.0.1        localhost
+```
