@@ -1,7 +1,7 @@
 Output DMX512 module
 ====================
 
-The purpose of this module is to send control values from REDIS to DMX512 light systems.
+The purpose of this module is to send control values from REDIS to DMX512 light systems using an OpenDMX converter.
 
 ## Requirements
 
