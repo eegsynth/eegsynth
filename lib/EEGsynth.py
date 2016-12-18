@@ -175,12 +175,12 @@ def rescale(xval, slope=None, offset=None):
 ####################################################################
 def limit(xval, lo=0.0, hi=127.0):
     if hasattr(xval, "__iter__"):
-        return [clip(x, lower, upper) for x in xval]
+        return [clip(x, lo, hi) for x in xval]
     else:
-        if xval<lower:
-            return lower
-        elif xval>upper:
-            return upper
+        if xval<lo:
+            return lo
+        elif xval>hi:
+            return hi
         else:
             return xval
 
