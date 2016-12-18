@@ -76,13 +76,13 @@ try:
             offset = EEGsynth.getfloat('offset', chanstr, config, r, default=0)
             # apply the scale and offset
             chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
-            chanval=int(chanval)
+            chanval = int(chanval)
 
-            if dmxdata[chanindx-1]!=chr(chanval):
+            if dmxdata[chanindx-1]!=chanval:
+                # update the DMX value for this channel
+                dmxdata[chanindx-1] = chanval
                 if debug>1:
                     print "DMX channel%03d" % chanindx, '=', chanval
-                # update the DMX value for this channel
-                dmxdata[chanindx-1]=chanval
                 artnet.broadcastDMX(dmxdata,address)
 
 except KeyboardInterrupt:
