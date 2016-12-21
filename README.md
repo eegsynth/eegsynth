@@ -1,17 +1,9 @@
 # EEGsynth
 
-Converting real-time EEG into sounds, music and visual effects. This repository contains the software for http://www.eegsynth.org.
+This repository contains the software for the [EEGsynth](http://www.eegsynth.org), an  open-source project to convert real-time EEG into control signals for sounds, music and visual effects.
 
-## What is it?
+The [EEGsynth](http://www.eegsynth.org) was initiated in 2015, by the  art-science collective [1+1=3](http://www.oneplusoneisthree.org). It provides the basis for their workshop and performance activities. Since 2016, the [EEGsynth](http://www.eegsynth.org) is also used by [Brain Control Club](http://cri-paris.org/scientific-clubs/brain-control-club/) of the [Centre de Recherches Interdisciplinaires](http://cri-paris.org/) as the basis for their study of Brain-Computer-Interfaces.
 
-The EEGsynth is both a device, software and a collaborative interdisciplinary research project. As a device and software, it interfaces with the brain and body for artistic and scientific exploration, research and expression, allowing anyone to use their own brain and body activity to flexibly and powerfully control performative equipment in real-time. In short, it transforms electrophysiological signals (EEG, EMG and ECG) into analogue and digital control signals by means of sophisticated neuroscience signal analysis and custom-made hardware. As a project, it brings together musicians, artists, neuroscientists and developers to work together on technology for specific artistic performances.
+An overview of the software concept can be found on   [website](http://www.ouunpo.com/eegsynth/?page_id=514), and on some [slides](http://www.slideshare.net/RobertOostenveld/eegsynth-pitch-for-brainhackparis) we presented at the [Brainhack Paris](http://brainhack.org/brainhackparis/). More technical details and installation instructions can be found in the [documentation](https://github.com/eegsynth/eegsynth/tree/master/doc) directory of this  [github repository](https://github.com/eegsynth/eegsynth).
 
-## Brainhack@Paris
-
-The basis for the initial Python modules was made at the BrainHack meeting in Paris. The pitch that we presented there can be found on [SlideShare](http://www.slideshare.net/RobertOostenveld/eegsynth-pitch-for-brainhackparis). It briefly explains the project goals and system design.
-
-## More information
-
-More general information and technical documentation on the hardware can be found on the EEGsynth [home page](http://www.eegsynth.org).
-
-More technical details and installation instructions can be found in the [documentation](https://github.com/eegsynth/eegsynth/tree/master/doc) directory in the EEGsynth  [github repository](https://github.com/eegsynth/eegsynth).
+The EEGsynth project is open-source, non-commercial and developed by us in our own time. We are grateful to have received financial support from [Innovativ Kultur](http://www.innovativkultur.se/), [The Swedish Arts Grant Council](http://www.kulturradet.se/en/in-english/), [Kulturbryggan](http://www.konstnarsnamnden.se/default.aspx?id=18477) and [Stockholm County Council](http://www.sll.se/om-landstinget/Information-in-English1/).
