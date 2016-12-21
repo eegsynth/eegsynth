@@ -71,7 +71,16 @@ begsample = 0
 endsample = 0
 adjust    = 1
 
+# this approximates the real time streaming speed
+desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))
+elapsed = desired
+naptime = 0.02
+
 while True:
+
+    # measure the time that it takes
+    now = time.time()
+
     if endsample>nSamples-1:
         if debug>0:
             print "End of file reached, jumping back to start"
@@ -94,27 +103,28 @@ while True:
         time.sleep(0.1);
         continue
 
-    # measure the time that it takes
-    now = time.time()
-
     if debug>1:
         print "Playing control value", block
 
-    for chanindx,chan in enumerate(channelz):
-        key = chan
-        val = f.readSamples(chanindx, begsample, endsample)
-        r.set(key,int(val))
-
-    # this approximates the real time streaming speed
-    desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))
-    # the adjust factor compensates for the time spent on reading and writing the data
-    time.sleep(adjust * desired);
+    r.mset(dict(zip(channelz,f.readBlock(block))))
 
     begsample += blocksize
     endsample += blocksize
     block += 1
 
+    # the adjust factor compensates for the time spent on reading and writing the data
+    naptime = (0.95 * naptime) + 0.05 * (naptime * (desired/elapsed))
+    if naptime < 0:
+        naptime = 0
+
+    time.sleep(naptime)
+
     elapsed = time.time() - now
     # adjust the relative delay for the next iteration
     # the adjustment factor should only change a little per iteration
-    adjust = 0.1 * desired/elapsed + 0.9 * adjust
+    #adjust = (0.1 * desired/elapsed + 0.9 * adjust)
+
+    if debug>1:
+        print "It took a total of", elapsed
+        print "Of which I slept", naptime
+        print "I was off by", (desired - elapsed)
