@@ -106,7 +106,8 @@ while True:
     if debug>1:
         print "Playing control value", block
 
-    r.mset(dict(zip(channelz,f.readBlock(block))))
+    dat = map(int, f.readBlock(block))
+    r.mset(dict(zip(channelz,dat)))
 
     begsample += blocksize
     endsample += blocksize
