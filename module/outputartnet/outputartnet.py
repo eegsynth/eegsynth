@@ -36,7 +36,7 @@ except redis.ConnectionError:
     exit()
 
 # prepare the data for a single universe
-address = [0, 0, 1]
+address = [0, 0, config.getint('artnet','universe')]
 artnet = ArtNet.ArtNet(ip=config.get('artnet','broadcast'), port=config.getint('artnet','port'))
 # blank out
 dmxdata = [0] * 512
