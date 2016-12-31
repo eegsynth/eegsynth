@@ -52,7 +52,7 @@ except:
     print "Error: cannot connect to serial port"
     exit()
 
-# thisa is from http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
+# this is from http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
 DMXOPEN=chr(126)    # char 126 is 7E in hex. It's used to start all DMX512 commands
 DMXCLOSE=chr(231)   # char 231 is E7 in hex. It's used to close all DMX512 commands
 DMXINTENSITY=chr(6)+chr(1)+chr(2)
@@ -61,8 +61,7 @@ DMXINIT2=chr(10)+chr(02)+chr(0)+chr(0)+chr(0)
 
 # this writes the initialization codes to the DMX
 s.write(DMXOPEN+DMXINIT1+DMXCLOSE)
-# s.write(DMXOPEN+DMXINIT2+DMXCLOSE)
-
+s.write(DMXOPEN+DMXINIT2+DMXCLOSE)
 
 # set up an array of 513 bytes, the first item in the array ( dmxdata[0] ) is the previously
 # mentioned spacer byte following the header. This makes the array math more obvious.
@@ -117,7 +116,7 @@ while True:
         chanval=int(chanval)
 
         if dmxdata[chanindx]!=chr(chanval):
-            if debug>1:
+            if debug>0:
                 print "DMX channel%03d" % chanindx, '=', chanval
             # update the DMX value for this channel
             dmxdata = senddmx(dmxdata,chanindx,chanval)
