@@ -38,9 +38,13 @@ except redis.ConnectionError:
 # prepare the data for a single universe
 address = [0, 0, config.getint('artnet','universe')]
 artnet = ArtNet.ArtNet(ip=config.get('artnet','broadcast'), port=config.getint('artnet','port'))
+
 # blank out
 dmxdata = [0] * 512
 artnet.broadcastDMX(dmxdata,address)
+
+# keep a timer to send a packet every now and then
+prevtime = time.time()
 
 try:
     while True:
@@ -84,6 +88,10 @@ try:
                 if debug>1:
                     print "DMX channel%03d" % chanindx, '=', chanval
                 artnet.broadcastDMX(dmxdata,address)
+            elif (time.time()-prevtime)>1:
+                # send a maintenance packet now and then
+                artnet.broadcastDMX(dmxdata,address)
+                prevtime = time.time()
 
 except KeyboardInterrupt:
     # blank out
