@@ -34,7 +34,6 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-
 try:
     s = serial.Serial()
     s.port=config.get('serial','device')
@@ -52,20 +51,51 @@ except:
     print "Error: cannot connect to serial port"
     exit()
 
-# this is from http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
+# give the device some time to initialize
+time.sleep(2)
+
+# determine the size of the universe
+dmxsize = 16
+chanlist,chanvals = map(list, zip(*config.items('input')))
+for chanindx in range(1, 512):
+    chanstr = "channel%03d" % chanindx
+    if chanstr in chanlist:
+        dmxsize = chanindx
+if debug>0:
+    print "universe size = %d" % dmxsize
+
+# This is from https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
+# 
+# Reprogram Firmware Request (Label=1, no data)
+# Program Flash Page Request (Label=2) -> Program Flash Page Reply (Label=2)
+# Get Widget Parameters Request (Label=3) -> Get Widget Parameters Reply (Label=3)
+# Set Widget Parameters Request (Label=4)
+# Received DMX Packet (Label=5)
+# Output Only Send DMX Packet Request (Label=6)
+# Send RDM Packet Request (Label=7)
+# Receive DMX On Change (Label=8)
+# Received DMX Change Of State Packet (Label=9)
+# Get Widget Serial Number Request (Label = 10, no data) -> Get Widget Serial Number Reply (Label = 10)
+# Send RDM Discovery Request (Label=11)
+
+# This is from http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
 DMXOPEN=chr(126)    # char 126 is 7E in hex. It's used to start all DMX512 commands
 DMXCLOSE=chr(231)   # char 231 is E7 in hex. It's used to close all DMX512 commands
-DMXINTENSITY=chr(6)+chr(1)+chr(2)
-DMXINIT1=chr(03)+chr(02)+chr(0)+chr(0)+chr(0)
-DMXINIT2=chr(10)+chr(02)+chr(0)+chr(0)+chr(0)
+DMXSENDPACKET=chr(6)+chr(1)+chr(2) 		# this is hard-coded for a universe size of 512 (plus one)
+DMXINIT1=chr( 3)+chr(2)+chr(0)+chr(0)+chr(0)	# request widget params
+DMXINIT2=chr(10)+chr(2)+chr(0)+chr(0)+chr(0)	# request widget serial
+
+# Set up an array corresponding to the universe size plus one. The first element is the start code, which is 0.
+# The first channel is not element 0, but element 1.
+dmxdata=[chr(0)]*(dmxsize+1)
+
+MSB=int(len(dmxdata)/256)
+LSB=len(dmxdata)-MSB*256
+DMXSENDPACKET=chr(6)+chr(LSB)+chr(MSB)
 
 # this writes the initialization codes to the DMX
 s.write(DMXOPEN+DMXINIT1+DMXCLOSE)
 s.write(DMXOPEN+DMXINIT2+DMXCLOSE)
-
-# set up an array of 513 bytes, the first item in the array ( dmxdata[0] ) is the previously
-# mentioned spacer byte following the header. This makes the array math more obvious.
-dmxdata=[chr(0)]*513
 
 # senddmx accepts the 513 byte long data string to keep the state of all the channels
 # senddmx writes to the serial port then returns the modified 513 byte array
@@ -76,47 +106,61 @@ def senddmx(data, chan, intensity):
     # join turns the array data into a string we can send down the DMX
     sdata=''.join(data)
     # write the data to the serial port, this sends the data to your fixture
-    s.write(DMXOPEN+DMXINTENSITY+sdata+DMXCLOSE)
+    s.write(DMXOPEN+DMXSENDPACKET+sdata+DMXCLOSE)
     # return the data with the new value in place
     return(data)
 
-while True:
-    time.sleep(config.getfloat('general', 'delay'))
+# keep a timer to send a packet every now and then
+prevtime = time.time()
 
-    for chanindx in range(1, 256):
-        chanstr = "channel%03d" % chanindx
+try:
+    while True:
+        time.sleep(config.getfloat('general', 'delay'))
 
-        try:
-            chanval = EEGsynth.getfloat('input', chanstr, config, r)
-        except:
-            # the channel is not configured in the ini file, skip it
-            continue
+        for chanindx in range(1, 512):
+            chanstr = "channel%03d" % chanindx
 
-        if chanval==None:
-            # the value is not present in redis, skip it
-            continue
+            try:
+                chanval = EEGsynth.getfloat('input', chanstr, config, r)
+            except:
+                # the channel is not configured in the ini file, skip it
+                continue
 
-        if EEGsynth.getint('compressor_expander', 'enable', config, r):
-            # the compressor applies to all channels and must exist as float or redis key
-            lo = EEGsynth.getfloat('compressor_expander', 'lo', config, r)
-            hi = EEGsynth.getfloat('compressor_expander', 'hi', config, r)
-            if lo is None or hi is None:
-                if debug>1:
-                    print "cannot apply compressor/expander"
-            else:
-                # apply the compressor/expander
-                chanval = EEGsynth.compress(chanval, lo, hi)
+            if chanval==None:
+                # the value is not present in redis, skip it
+                continue
 
-        # the scale option is channel specific
-        scale = EEGsynth.getfloat('scale', chanstr, config, r, default=1)
-        # the offset option is channel specific
-        offset = EEGsynth.getfloat('offset', chanstr, config, r, default=0)
-        # apply the scale and offset
-        chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
-        chanval=int(chanval)
+            if EEGsynth.getint('compressor_expander', 'enable', config, r):
+                # the compressor applies to all channels and must exist as float or redis key
+                lo = EEGsynth.getfloat('compressor_expander', 'lo', config, r)
+                hi = EEGsynth.getfloat('compressor_expander', 'hi', config, r)
+                if lo is None or hi is None:
+                    if debug>1:
+                        print "cannot apply compressor/expander"
+                else:
+                    # apply the compressor/expander
+                    chanval = EEGsynth.compress(chanval, lo, hi)
 
-        if dmxdata[chanindx]!=chr(chanval):
-            if debug>0:
-                print "DMX channel%03d" % chanindx, '=', chanval
-            # update the DMX value for this channel
-            dmxdata = senddmx(dmxdata,chanindx,chanval)
+            # the scale option is channel specific
+            scale = EEGsynth.getfloat('scale', chanstr, config, r, default=1)
+            # the offset option is channel specific
+            offset = EEGsynth.getfloat('offset', chanstr, config, r, default=0)
+            # apply the scale and offset
+            chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+            chanval = int(chanval)
+
+            if dmxdata[chanindx]!=chr(chanval):
+                if debug>0:
+                    print "DMX channel%03d" % chanindx, '=', chanval
+                # update the DMX value for this channel
+                dmxdata = senddmx(dmxdata,chanindx,chanval)
+            elif (time.time()-prevtime)>1:
+                # send a maintenance packet now and then
+                dmxdata = senddmx(dmxdata,chanindx,chanval)
+                prevtime = time.time()
+
+except KeyboardInterrupt:
+    if debug>0:
+        print "closing..."
+    sys.exit()
+
