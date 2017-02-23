@@ -1,7 +1,7 @@
 Launch Control module
 =====================
 
-The purpose of this module is to process input MIDI commands from a Novation LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the REDIS buffer. The button press and release events are sent as triggers to the REDIS buffer.
+The purpose of this module is to process input MIDI commands from a Novation LaunchControl or LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the REDIS buffer. The button press and release events are sent as triggers to the REDIS buffer.
 
 For the buttons you can specify whether they should respond as push buttons (on/off) or as toggle buttons.
 
@@ -14,13 +14,13 @@ Push buttons are momentary, i.e. only "on" while you keep your them depressed. T
 
 ![LaunchControlXL](./launchcontrolXL.jpg)
 
-We are developing for the XL version, but expect that the same code will also work with the smaller (non-XL) version.
+We are primarily developing with the XL version, but the code is confirmed to also with the smaller (non-XL) version.
 
 ![LaunchControl](./launchcontrol.jpg)
 
 ## Requirements
 
-The LaunchControlXL should be connected to an USB port.
+The LaunchControl should be connected to an USB port.
 The REDIS buffer should be running.
 
 ## Software Requirements
@@ -46,3 +46,12 @@ The LaunchControlXL has three rows of 8 rotary dials each, 8 sliders, two rows w
 [41] [42] [43] [44] [57] [58] [59] [60]
 [73] [74] [75] [76] [89] [90] [91] [92]
 ```
+
+The LaunchControl has two rows of 8 rotary dials each, one row with 8 buttons, and some buttons on the right side. Here I will sketch the outline of the main control elements with the *default* MIDI codes. The MIDI codes can be reassigned with the Novation LaunchControl Editor application.
+
+```
+(21) (22) (23) (24) (25) (26) (27) (28)
+(41) (42) (43) (44) (45) (46) (47) (48)
+[ 9] [10] [11] [12] [25] [26] [27] [28]
+```
+

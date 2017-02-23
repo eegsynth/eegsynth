@@ -127,7 +127,7 @@ state1color  = {0:Off, 11:Red_Full}  # don't change color on 12,13
 state1value  = {0:0, 11:127}         # don't send message on 12,13
 
 state2change = {0:21, 21:22, 22:23, 23:24, 24:25, 25:0}
-state2color  = {0:Off, 21:Red_Full, 23:Yellow_Full}         # don't change color on 22,24,25
+state2color  = {0:Off, 21:Red_Full, 23:Yellow_Full}       # don't change color on 22,24,25
 state2value  = {0:0, 21:int(127*1/2), 23:int(127*2/2)}    # don't send message on 22,24,25
 
 state3change = {0:31, 31:32, 32:33, 33:34, 34:35, 35:36, 36:37, 37:0}
