@@ -8,6 +8,8 @@ The first section consists of the installation of the dependencies, i.e. the ext
   * [Installation instructions for OS-X](installation-osx.md)
   * [Installation instructions for Windows](installation-windows.md)
 
+After completing the external dependencies for your operating system, you should return here and continue below.
+
 ## Install EEGsynth from github
 
 ```
