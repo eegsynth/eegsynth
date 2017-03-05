@@ -6,10 +6,17 @@
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Package_manager): *A package manager or package management system is a collection of software tools that automates the process of installing, upgrading, configuring, and removing computer programs for a computer's operating system in a consistent manner.*
 
-For the general software dependencies (binaries and libraries) we are using either [HomeBrew](http://brew.sh) or  [MacPorts](https://www.macports.org). To make sure MacPorts is up to date, you should do
+For the general software dependencies (binaries and libraries) we are using either [HomeBrew](http://brew.sh) or  [MacPorts](https://www.macports.org). 
+
+To make sure MacPorts is up to date, you should do
 
 ```
 sudo port selfupdate
+```
+To make sure you have wget, you should do
+
+```
+sudo brew install wget
 ```
 
 ### Install MIDO for Python
