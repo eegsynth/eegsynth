@@ -1,0 +1,10 @@
+mode 6: dual color slider, segment can be moved along the array (between the edges)
+  channel 1  = color 1 red
+  channel 2  = color 1 green
+  channel 3  = color 1 blue
+  channel 4  = color 2 red
+  channel 5  = color 2 green
+  channel 6  = color 2 blue
+  channel 7  = intensity
+  channel 8  = position (from 0-255 or 0-360 degrees, relative to the length of the array)
+  channel 9  = width    (from 0-255 or 0-360 degrees, relative to the length of the array)

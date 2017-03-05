@@ -1,0 +1,11 @@
+mode 4: uniform color, blinking between color 1 and color 2
+  channel 1  = color 1 red
+  channel 2  = color 1 green
+  channel 3  = color 1 blue
+  channel 4  = color 2 red
+  channel 5  = color 2 green
+  channel 6  = color 2 blue
+  channel 7  = intensity
+  channel 8  = speed
+  channel 9  = ramp
+  channel 10 = duty cycle
