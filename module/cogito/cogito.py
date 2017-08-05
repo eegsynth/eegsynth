@@ -1,5 +1,4 @@
-#!/Users/kwisatz/anaconda/bin/python
-##!/usr/bin/env python
+#!/usr/bin/env python
 
 import sys
 import os
@@ -9,7 +8,8 @@ import ConfigParser # this is version 2.x specific, on version 3.x it is called 
 import numpy as np
 import pandas as pd
 
-#from obspy.signal.detrend import polynomial
+from copy import copy
+from obspy.signal.detrend import polynomial
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -164,8 +164,8 @@ while True:
     tmp = []
     for ch in range(nInputs):
         channel = np.zeros(300)
-        original = dat_input[:, ch]
-        #polynomial(original, order=10, plot=False)
+        original = copy(dat_input[:, ch])
+        polynomial(original, order=10, plot=False)
 
         # One
         channel.append(np.ones(1)*scaling/250.)
