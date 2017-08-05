@@ -21,8 +21,7 @@ do_start () {
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
   date > "$LOGFILE"
-  #( "$COMMAND" "$OPTIONS" >> "$LOGFILE" ) &
-  ( "$COMMAND" "$OPTIONS" ) &
+  ( "$COMMAND" "$OPTIONS" >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
   status_led green
 }
