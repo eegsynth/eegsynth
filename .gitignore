@@ -2,6 +2,7 @@
 bin/buffer
 bin/openbci2ft
 bin/jaga2ft
+bin/ft2audio
 dump.rdb
 interface/node_modules
 *.pid
