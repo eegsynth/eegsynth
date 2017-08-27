@@ -7,13 +7,23 @@ PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
+BINDIR=$DIR/../../bin
 
 # helper files are stored in the directory containing this script
 PIDFILE="$DIR"/"$NAME".pid
 LOGFILE="$DIR"/"$NAME".log
 INIFILE="$DIR"/"$NAME".ini
-COMMAND="$DIR"/"$NAME".py
-OPTIONS=""
+COMMAND="$BINDIR/parallel"
+shini_parse $INIFILE
+OPTIONS="$BINDIR/buffer "$ini_fieldtrip_port
+
+killtree() {
+    local pid=$1 child
+    for child in $(pgrep -P $pid); do
+        killtree $child
+    done
+     [ $pid -ne $$ ] && kill -kill $pid 2> /dev/null
+}
 
 do_start () {
   status_led red
@@ -21,17 +31,18 @@ do_start () {
   check_running_process && log_action_err "Error: $NAME is already started" && exit 1
   # start the process in the background
   date > "$LOGFILE"
-  ( "$COMMAND" "$OPTIONS" >> "$LOGFILE" ) &
+  ( exec "$COMMAND" $OPTIONS >> "$LOGFILE" ) &
   echo $! > "$PIDFILE"
   status_led green
 }
 
 do_stop () {
   status_led red
+  status_led red
   log_action_msg "Stopping $NAME"
   check_running_process || log_action_err "Error: $NAME is already stopped"
   check_running_process || exit 1
-  kill -9 `cat "$PIDFILE"`
+  killtree `cat "$PIDFILE"`
   rm "$PIDFILE"
   status_led green
 }
