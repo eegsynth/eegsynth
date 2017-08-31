@@ -37,9 +37,19 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-mididevice = config.get('midi', 'device')
+# on windows the input and output are different, on unix they are the same
+# use "input/output" when specified, or otherwise use "device" for both
 try:
-    inputport  = mido.open_input(mididevice)
+    mididevice_input  = config.get('midi', 'input')
+except:
+    mididevice_input  = config.get('midi', 'device') # fallback
+try:
+    mididevice_output = config.get('midi', 'output')
+except:
+    mididevice_output  = config.get('midi', 'device') # fallback
+
+try:
+    inputport  = mido.open_input(mididevice_input)
     if debug>0:
         print "Connected to MIDI input"
 except:
@@ -47,7 +57,7 @@ except:
     exit()
 
 try:
-    outputport  = mido.open_output(mididevice)
+    outputport  = mido.open_output(mididevice_output)
     if debug>0:
         print "Connected to MIDI output"
 except:
