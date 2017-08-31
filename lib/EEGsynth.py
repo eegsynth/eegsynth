@@ -7,6 +7,7 @@ try:
     # this one is a bit difficult to install on Raspbian
     import OSC
 except:
+    # this means that midiosc is not supported as midi backend
     print "Warning: pyOSC not found"
 
 ###################################################################################################
