@@ -37,7 +37,7 @@ except redis.ConnectionError:
     exit()
 
 try:
-    s = OSC.OSCServer((config.get('osc','hostname'), config.getint('osc','port')))
+    s = OSC.OSCServer((config.get('osc','address'), config.getint('osc','port')))
     if debug>0:
         print "Started OSC server"
 except:
