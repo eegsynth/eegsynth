@@ -20,8 +20,6 @@ CoreMIDI or rtpMIDI support, in case you want to control the AVmixer software on
 
 ## Software Requirements
 
+Python 2.x
 portmidi
-Python
-Python mido package
-
-
+mido

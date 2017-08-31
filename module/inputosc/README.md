@@ -11,5 +11,5 @@ The receiving OSC server address and port should be configured.
 ## Software Requirements
 
 Python 2.x
-Redis Python library
-pyosc Python library
+redis
+pyosc

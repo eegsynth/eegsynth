@@ -13,7 +13,7 @@ The channels of the Shuttle Control should be configured as "Pitchwheel" and sho
 
 ## Software Requirements
 
-portmidi
 Python 2.x
-mido Python library
-Redis Python library
+portmidi
+mido
+redis

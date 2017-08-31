@@ -11,5 +11,5 @@ The REDIS buffer should be running.
 ## Software Requirements
 
 Python 2.x
-Redis package for Python
-MNE-Python should be installed
+redis
+mne

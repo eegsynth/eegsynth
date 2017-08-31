@@ -9,3 +9,8 @@ This module implements automatic gain control by tracking (over time) the maxima
 
 The FieldTrip buffer should be running and should receive incoming data.
 The REDIS buffer should be running.
+
+## Software Requirements
+
+Python 2.x
+nilearn
