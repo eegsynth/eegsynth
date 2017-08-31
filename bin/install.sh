@@ -3,6 +3,7 @@
 DIR=`dirname "$0"`
 OS=`uname -s`
 MACHINE=`uname -m`
+EXT=
 
 if [ $OS = Linux ] ; then
   if [ $MACHINE = i386 -o $MACHINE = i486 -o $MACHINE = i586 -o $MACHINE = i686 ] ; then
@@ -20,6 +21,13 @@ elif [ $OS = Darwin ] ; then
   elif [ $MACHINE = x86_64 ] ; then
     ARCH=maci64
   fi
+elif [ $OS = CYGWIN_NT-10.0 ] ; then
+  EXT=.exe
+  if [ $MACHINE = i386 ] ; then
+    ARCH=win32
+  elif [ $MACHINE = x86_64 ] ; then
+    ARCH=win64
+  fi
 fi
 
 if [ -z "$ARCH" ] ; then
@@ -30,11 +38,11 @@ else
 fi
 
 for NAME in buffer openbci2ft jaga2ft ft2audio ; do
-  URL=https://github.com/fieldtrip/fieldtrip/raw/master/realtime/bin/$ARCH/$NAME
+  URL=https://github.com/fieldtrip/fieldtrip/raw/master/realtime/bin/$ARCH/$NAME$EXT
   echo ------------------------------------------------------------------------------
   echo Downloading binary from $URL
   echo See http://www.fieldtriptoolbox.org/development/realtime for details
   echo ------------------------------------------------------------------------------
-  wget $URL -O $DIR/$NAME
-  chmod +x $DIR/$NAME
+  wget $URL -O $DIR/$NAME$EXT
+  chmod +x $DIR/$NAME$EXT
 done

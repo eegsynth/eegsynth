@@ -2,8 +2,9 @@
 * text=auto
 
 # these files should be unix formatted
-*.py		text eol=lf
+*.py	text eol=lf
 *.ini 	text eol=lf
+*.sh 	text eol=lf
 
 # Custom for Visual Studio
 *.cs     diff=csharp
