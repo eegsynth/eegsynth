@@ -1,6 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+# these files should be unix formatted
+*.py		text eol=lf
+*.ini 	text eol=lf
+
 # Custom for Visual Studio
 *.cs     diff=csharp
 
