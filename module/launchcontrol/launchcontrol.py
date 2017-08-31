@@ -113,7 +113,7 @@ Green_Full  = 60
 
 def ledcolor(note,color):
     if not midichannel is None:
-	outputport.send(mido.Message('note_on', note=int(note), velocity=color, channel=midichannel))
+    	outputport.send(mido.Message('note_on', note=int(note), velocity=color, channel=midichannel))
 
 # ensure that all buttons and published messages start in the Off state
 for note in note_list:
@@ -173,6 +173,11 @@ while True:
             # the default is not to send a message
             val = None
             # use an local variable as abbreviation in the subsequent code
+            if msg.note not in note_list:
+                # this note/button was not specified in the ini file, add it
+                note_list = note_list+[msg.note]
+                status_list = status_list+[0]
+            # get the remembered status for this note/button
             status = status_list[note_list.index(msg.note)]
 
             # change to the next state
