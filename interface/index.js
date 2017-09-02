@@ -210,4 +210,4 @@ app.post('/test', function (req, res, next) {
 });
 
 //create node.js http server and listen on port
-http.createServer(app).listen(3000)
+http.createServer(app).listen(3000, '0.0.0.0')
