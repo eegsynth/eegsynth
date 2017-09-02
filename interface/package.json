@@ -4,17 +4,17 @@
   "description": "EEGsynth web interface",
   "main": "index.js",
   "dependencies": {
-    "async": "^2.0.0-rc.3",
-    "body-parser": "^1.14.2",
-    "compression": "^1.6.0",
-    "connect": "^3.4.0",
-    "cookie-parser": "^1.4.0",
-    "cookie-session": "^1.2.0",
-    "express": "^4.13.3",
-    "express-session": "^1.12.1",
+    "async": "^2.5.0",
+    "body-parser": "^1.17.2",
+    "compression": "^1.7.0",
+    "connect": "^3.6.3",
+    "cookie-parser": "^1.4.3",
+    "cookie-session": "^1.3.1",
+    "express": "^4.15.4",
+    "express-session": "^1.15.5",
     "ioredis": "^1.15.1",
     "jade": "^1.11.0",
-    "textangular": "^1.4.6"
+    "textangular": "^1.5.16"
   },
   "devDependencies": {},
   "scripts": {
