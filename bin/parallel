@@ -29,6 +29,7 @@ fi
 if [ -z "$ARGS" ] ; then
 $COMMAND
 else
-echo $ARGS | xargs -IARG -n 1 -P 16 $COMMAND ARG
+echo $ARGS
+echo $ARGS | xargs -IARG -d " " -n 1 -P 16 $COMMAND ARG
 fi
 
