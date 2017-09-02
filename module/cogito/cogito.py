@@ -123,6 +123,10 @@ f_max = config.getfloat('cogito', 'f_max')
 scaling = config.getfloat('cogito', 'scaling')
 window = int(round(window*hdr_input.fSample))
 
+# FIXME these are in Hz, but should be mapped to frequency bins
+f_min = int(f_min)
+f_max = int(f_max)
+
 begsample = -1
 while begsample < 0:
     # wait until there is enough data
@@ -148,11 +152,15 @@ while True:
         time.sleep(config.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
 
-    # if debug > 1:
-    #     print "window", window
-    #     print "nsample", hdr_input.nSamples
-    #     print "endsample", endsample
-    #     print "begsample", begsample
+    start = time.time();
+
+    if debug > 1:
+        print "begsample", begsample
+        print "endsample", endsample
+        print "nsample", hdr_input.nSamples
+        print "window", window
+    if debug > 0:
+    	print "processing incoming data from", begsample, "to", endsample
 
     dat_input = ft_input.getData([begsample, endsample])
 
@@ -163,7 +171,7 @@ while True:
 
     tmp = []
     for ch in range(nInputs):
-        channel = np.zeros(300)
+        channel = [np.zeros(300)]
         original = copy(dat_input[:, ch])
         polynomial(original, order=10, plot=False)
 
@@ -173,6 +181,7 @@ while True:
         # Spectrum
         fourier = np.fft.rfft(original, 250)[f_min:f_max]
         channel.append(fourier)
+
         # Positions
         mask = np.zeros(30)
         mask[(positions[ch][0]-1):positions[ch][0]] = scaling/250
@@ -183,6 +192,7 @@ while True:
         # Sum of all the parts
         convert = np.concatenate(channel)
         tmp.append(convert)
+
     signal = np.fft.irfft(np.concatenate(tmp), 44100)
     dat_output = np.atleast_2d(signal).T.astype(np.float32)
 
@@ -192,3 +202,6 @@ while True:
     # increment the counters for the next loop
     begsample += window
     endsample += window
+
+    if debug>0:
+	print "processed", window, "samples in", (time.time()-start)*1000, "ms"
