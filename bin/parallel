@@ -8,6 +8,9 @@
 # Killing the child processes can be difficult if you only have the PID of the parent parallel script. Please see 
 # http://stackoverflow.com/questions/392022/best-way-to-kill-all-child-processes/33556110#33556110
 
+OS=`uname -s`
+MACHINE=`uname -m`
+ 
 COMMAND=$1
 ARGS=`echo $2 | tr ',' ' '` 
 
@@ -29,6 +32,10 @@ fi
 if [ -z "$ARGS" ] ; then
 $COMMAND
 else
+if [ $OS = Linux ] ; then
 echo $ARGS | xargs -IARG -d " " -n 1 -P 16 $COMMAND ARG
+elif [ $OS = Darwin ] ; then
+echo $ARGS | xargs -IARG -n 1 -P 16 $COMMAND ARG
+fi
 fi
 
