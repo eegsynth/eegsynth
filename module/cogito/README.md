@@ -10,4 +10,5 @@ More info: http://www.ouunpo.com/eegsynth/?p=751
 ## Software Requirements
 
 Python 2.7.x
+numpy
 pandas

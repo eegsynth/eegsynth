@@ -7,9 +7,7 @@ import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import numpy as np
 import pandas as pd
-
 from copy import copy
-from obspy.signal.detrend import polynomial
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -173,7 +171,10 @@ while True:
     for ch in range(nInputs):
         channel = [np.zeros(300)]
         original = copy(dat_input[:, ch])
-        polynomial(original, order=10, plot=False)
+        # fit and subtract a 10th order polynomial
+        t = np.arange(0, len(original))
+        p = np.polynomial.polynomial.polyfit(t, original, 10)
+        original = original - np.polynomial.polynomial.polyval(t, p)
 
         # One
         channel.append(np.ones(1)*scaling/250.)
