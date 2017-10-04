@@ -141,7 +141,10 @@ def update():
 
    # get last data
    last_index = ft_input.getHeader().nSamples
-   data = ft_input.getData([(last_index-window),(last_index-1)])[:,chan_nrs]
+   begsample = (last_index-window)
+   endsample = (last_index-1)
+   data = ft_input.getData([begsample,endsample])[:,chan_nrs]
+   print "reading from sample %d to %d" % (begsample, endsample)
 
    # demean data before filtering to reduce edge artefacts and center timecourse
    data = data - np.sum(data,axis=0)/float(len(data))
