@@ -6,6 +6,7 @@ import time
 import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import numpy as np
+from numpy.matlib import repmat
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -63,81 +64,11 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-# get the input and output options
-input_number, input_channel = map(list, zip(*config.items('input_channel')))
-output_number, output_channel = map(list, zip(*config.items('output_channel')))
-montage_number, montage_equation = map(list, zip(*config.items('montage')))
-# convert to integer and make the indices zero-offset
-input_number = [int(number)-1 for number in input_number]
-output_number = [int(number)-1 for number in output_number]
-montage_number = [int(number)-1 for number in montage_number]
-
-def sanitize(equation):
-    equation = equation.replace('(', '( ')
-    equation = equation.replace(')', ' )')
-    equation = equation.replace('+', ' + ')
-    equation = equation.replace('-', ' - ')
-    equation = equation.replace('*', ' * ')
-    equation = equation.replace('/', ' / ')
-    equation = equation.replace('  ', ' ')
-    return equation
-
-# make the equations robust against sub-string replacements
-montage_equation = [sanitize(equation) for equation in montage_equation]
-
-# ensure that all input channels have a label
-nInputs = hdr_input.nChannels
-if len(hdr_input.labels)==0:
-    for i in range(nInputs):
-        hdr_input.labels.append('{}'.format(i+1))
-# update the labels with the ones specified in the ini file
-for number,channel in zip(input_number, input_channel):
-    if number<nInputs:
-        hdr_input.labels[number] = channel
-# update the input channel specification
-input_number = range(nInputs)
-input_channel = hdr_input.labels
-
-# ensure that all output channels have a label
-nOutputs = max(output_number+montage_number)+1
-tmp = ['{}'.format(i+1) for i in range(nOutputs)]
-for number,channel in zip(output_number, output_channel):
-    tmp[number] = channel
-# update the output channel specification
-output_number = range(nOutputs)
-output_channel = tmp
-
-if debug>0:
-    print '===== input channels ====='
-    for number,channel in zip(input_number, input_channel):
-        print number, '=', channel
-    print '===== output channels ====='
-    for number,channel in zip(output_number, output_channel):
-        print number, '=', channel
-
-identity = np.identity(nInputs, dtype=np.float32)
-montage  = np.zeros((nInputs,nOutputs), dtype=np.float32)
-previous = np.zeros((1,nOutputs)) # for exponential smoothing
-
-# construct a weighting matrix to map input to output data
-# replace the channel names in the output equation with the corresponding column of the identity matrix
-for index,equation in zip(montage_number,montage_equation):
-    for number,channel in zip(input_number, input_channel):
-        equation = equation.replace(channel, 'identity[:,{}]'.format(number))
-    montage[:,index] = eval(equation)
-
-if debug>0:
-    print '======== montage ========='
-    for number,equation in zip(montage_number, montage_equation):
-        print number, '=', equation
-
-if debug>1:
-    print '======== montage ========='
-    print montage
-
-smoothing = config.getfloat('processing','smoothing')
-window = config.getfloat('processing','window')
+smoothing = config.getfloat('processing', 'smoothing')
+window = config.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
+
+reference = config.get('processing','reference')
 
 begsample = -1
 while begsample<0:
@@ -147,10 +78,11 @@ while begsample<0:
     begsample = int(hdr_input.nSamples - window)
     endsample = int(hdr_input.nSamples - 1)
 
-ft_output.putHeader(nOutputs, hdr_input.fSample, hdr_input.dataType, labels=output_channel)
+ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
+
+previous = np.zeros((1, hdr_input.nChannels))
 
 while True:
-
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(config.getfloat('general', 'delay'))
@@ -160,11 +92,16 @@ while True:
         print endsample
 
     dat_input = ft_input.getData([begsample, endsample])
-    dat_output = dat_input.dot(montage).astype(np.float32)
+    dat_output = dat_input.astype(np.float32)
 
     for t in range(window):
         dat_output[t,:] = smoothing * dat_output[t,:] + (1.-smoothing)*previous
         previous = dat_output[t,:]
+
+    if reference == 'median':
+        dat_output -= np.matlib.repmat(np.median(dat_output, axis=1), dat_output.shape[1], 1).T
+    elif reference == 'mean':
+        dat_output -= np.matlib.repmat(np.mean(dat_output, axis=1), dat_output.shape[1], 1).T
 
     # write the data to the output buffer
     ft_output.putData(dat_output)
