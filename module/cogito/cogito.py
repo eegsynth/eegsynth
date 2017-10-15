@@ -173,7 +173,7 @@ while True:
         original = copy(dat_input[:, ch])
         # fit and subtract a 10th order polynomial
         t = np.arange(0, len(original))
-        p = np.polynomial.polynomial.polyfit(t, original, 10)
+        p = np.polynomial.polynomial.polyfit(t, original, config.getint('cogito', 'polyorder'))
         original = original - np.polynomial.polynomial.polyval(t, p)
 
         # One
@@ -194,7 +194,7 @@ while True:
         convert = np.concatenate(channel)
         tmp.append(convert)
 
-    signal = np.fft.irfft(np.concatenate(tmp), 44100)
+    signal = np.fft.irfft(np.concatenate(tmp), int(sample_rate))
     dat_output = np.atleast_2d(signal).T.astype(np.float32)
 
     # write the data to the output buffer
