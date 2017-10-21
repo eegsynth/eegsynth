@@ -70,7 +70,7 @@ smoothing = config.getfloat('processing', 'smoothing')
 window = config.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
-reference = config.get('processing', 'reference')
+reference = config.get('processing','reference')
 
 begsample = -1
 while begsample<0:
