@@ -5,6 +5,7 @@ import os
 import time
 import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+from copy import copy
 import numpy as np
 from numpy.matlib import repmat
 from scipy.signal import firwin
@@ -117,7 +118,8 @@ def onlinefilter(fil_state, data):
 
 
 previous = np.zeros((1, hdr_input.nChannels))
-fil_state = np.zeros((hdr_input.nChannels, filterorder-1))
+if not(highpassfilter is None) or not(lowpassfilter is None):
+    fil_state = np.zeros((hdr_input.nChannels, filterorder-1))
 
 while True:
     while endsample>hdr_input.nSamples-1:
@@ -134,18 +136,21 @@ while True:
     # Smoothing
     for t in range(window):
         dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
-        previous = dat_output[t, :]
+        previous = copy(dat_output[t, :])
 
     # Online filtering
-    for t in range(window):
-        fil_state, fil_data = onlinefilter(fil_state, dat_output[t, :])
-        dat_output[t, :] = fil_data
+    if not(highpassfilter is None) or not(lowpassfilter is None):
+        for t in range(window):
+            fil_state, fil_data = onlinefilter(fil_state, dat_output[t, :])
+            dat_output[t, :] = fil_data
 
     # Rereferencing
     if reference == 'median':
-        dat_output -= repmat(np.median(dat_output, axis=1), dat_output.shape[1], 1).T
-    elif reference == 'mean':
-        dat_output -= repmat(np.mean(dat_output, axis=1), dat_output.shape[1], 1).T
+        dat_output -= repmat(np.nanmedian(dat_output, axis=1),
+                             dat_output.shape[1], 1).T
+    elif reference == 'average':
+        dat_output -= repmat(np.nanmean(dat_output, axis=1),
+                             dat_output.shape[1], 1).T
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
