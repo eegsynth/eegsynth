@@ -7,6 +7,8 @@ import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import numpy as np
 from numpy.matlib import repmat
+from scipy.signal import firwin
+from scipy.ndimage import convolve1d
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -80,7 +82,42 @@ while begsample<0:
 
 ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
+
+# Filtering init
+try:
+    lowpassfilter = config.getfloat('processing', 'lowpassfilter')/hdr_input.fSample
+except:
+    lowpassfilter = None
+
+try:
+    highpassfilter = config.getfloat('processing', 'highpassfilter')/hdr_input.fSample
+except:
+    highpassfilter = None
+
+try:
+    filterorder = config.getint('processing', 'filterorder')
+except:
+    filterorder = None
+
+# Low pass
+if not(lowpassfilter is None) and (highpassfilter is None):
+    fir_poly = firwin(filterorder, cutoff = lowpassfilter, window = "hamming")
+# High pass
+if not(highpassfilter is None) and (lowpassfilter is None):
+    fir_poly = firwin(filterorder, cutoff = highpassfilter, window = "hanning", pass_zero=False)
+# Band pass
+if not(highpassfilter is None) and not(lowpassfilter is None):
+    fir_poly = firwin(filterorder, cutoff = [lowpassfilter, highpassfilter], window = 'blackmanharris', pass_zero = False)
+
+
+def onlinefilter(fil_state, data):
+    fil_state = np.concatenate((fil_state, np.atleast_2d(data).T), axis=1)
+    fil_data = convolve1d(fil_state, fir_poly)[:, len(fir_poly)//2]
+    return fil_state[:, 1:], fil_data
+
+
 previous = np.zeros((1, hdr_input.nChannels))
+fil_state = np.zeros((hdr_input.nChannels, filterorder-1))
 
 while True:
     while endsample>hdr_input.nSamples-1:
@@ -94,17 +131,25 @@ while True:
     dat_input = ft_input.getData([begsample, endsample])
     dat_output = dat_input.astype(np.float32)
 
+    # Smoothing
     for t in range(window):
-        dat_output[t,:] = smoothing * dat_output[t,:] + (1.-smoothing)*previous
-        previous = dat_output[t,:]
+        dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
+        previous = dat_output[t, :]
 
+    # Online filtering
+    for t in range(window):
+        fil_state, fil_data = onlinefilter(fil_state, dat_output[t, :])
+        dat_output[t, :] = fil_data
+
+    # Rereferencing
     if reference == 'median':
-        dat_output -= np.matlib.repmat(np.median(dat_output, axis=1), dat_output.shape[1], 1).T
+        dat_output -= repmat(np.median(dat_output, axis=1), dat_output.shape[1], 1).T
     elif reference == 'mean':
-        dat_output -= np.matlib.repmat(np.mean(dat_output, axis=1), dat_output.shape[1], 1).T
+        dat_output -= repmat(np.mean(dat_output, axis=1), dat_output.shape[1], 1).T
 
     # write the data to the output buffer
-    ft_output.putData(dat_output)
+    ft_output.putData(dat_output.astype(np.float32))
+
     # increment the counters for the next loop
     begsample += window
     endsample += window

@@ -119,6 +119,13 @@ window = config.getfloat('cogito', 'window')
 f_min = config.getfloat('cogito', 'f_min')
 f_max = config.getfloat('cogito', 'f_max')
 scaling = config.getfloat('cogito', 'scaling')
+
+profileMin = config.getfloat('cogito', 'profileMin')
+profileMax = config.getfloat('cogito', 'profileMax')
+profileCorrection = np.loadtxt('Dwingeloo-Transmitter-Profile.txt')
+profileCorrection = (1. - profileCorrection)*(profileMax-profileMin)
+profileCorrection += profileMin
+
 window = int(round(window*hdr_input.fSample))
 
 # FIXME these are in Hz, but should be mapped to frequency bins
@@ -191,7 +198,7 @@ while True:
         channel.append(mask)
 
         # Sum of all the parts
-        convert = np.concatenate(channel)
+        convert = np.concatenate(channel) * profileCorrection[ch]
         tmp.append(convert)
 
     signal = np.fft.irfft(np.concatenate(tmp), 44100)
