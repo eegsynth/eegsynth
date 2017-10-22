@@ -328,6 +328,10 @@ class Client:
                   chunks=None):
         haveLabels = False
         extras = ''
+
+        if (type(labels)==list) and (len(labels)==0):
+            labels=None
+
         if not(labels is None):
             serLabels = ''
             try:
