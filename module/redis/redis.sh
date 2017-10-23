@@ -17,8 +17,8 @@ if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
   COMMAND="/usr/bin/redis-server"
 else
-  # on maci64, with macports
-  COMMAND="/opt/local/bin/redis-server"
+  # on maci64
+  COMMAND=`which redis-server`
 fi
 
 shini_parse $INIFILE
