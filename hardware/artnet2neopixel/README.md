@@ -7,3 +7,5 @@ We made multiple versions of this hardware, including versions that have the LED
 The ESP8266 firmware allows you to configure whether you have RGBW or RGB LEDs and supports many different patterns.
 
 This hardware works well with the *outputartnet* Python module.
+
+The Arduino code for the firmware of this device can be found on [github](https://github.com/robertoostenveld/arduino/tree/master/esp8266_artnet_neopixel).
