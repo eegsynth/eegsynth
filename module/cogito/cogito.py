@@ -156,6 +156,7 @@ while True:
         print "begsample", begsample
         print "endsample", endsample
         print "nsample", hdr_input.nSamples
+        print "nchan", nInputs
         print "window", window
     if debug > 0:
     	print "processing incoming data from", begsample, "to", endsample
@@ -167,9 +168,9 @@ while True:
     # signal = np.sin(t*f/sample_rate)*256
     # signal = np.zeros([sample_rate, 1])
 
-    tmp = []
+    tmp = [np.zeros(300)]
+    
     for ch in range(nInputs):
-        channel = [np.zeros(300)]
         original = copy(dat_input[:, ch])
         # fit and subtract a 10th order polynomial
         t = np.arange(0, len(original))
@@ -177,7 +178,7 @@ while True:
         original = original - np.polynomial.polynomial.polyval(t, p)
 
         # One
-        channel.append(np.ones(1)*scaling/250.)
+        channel = [np.ones(1)*scaling/250.]
 
         # Spectrum
         fourier = np.fft.rfft(original, 250)[f_min:f_max]
