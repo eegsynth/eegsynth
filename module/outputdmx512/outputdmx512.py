@@ -6,6 +6,7 @@ import time
 import redis
 import serial
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -19,8 +20,12 @@ installed_folder = os.path.split(basis)[0]
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
@@ -65,7 +70,7 @@ if debug>0:
     print "universe size = %d" % dmxsize
 
 # This is from https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
-# 
+#
 # Reprogram Firmware Request (Label=1, no data)
 # Program Flash Page Request (Label=2) -> Program Flash Page Reply (Label=2)
 # Get Widget Parameters Request (Label=3) -> Get Widget Parameters Reply (Label=3)
@@ -163,4 +168,3 @@ except KeyboardInterrupt:
     if debug>0:
         print "closing..."
     sys.exit()
-

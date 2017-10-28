@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import mne
 import time
+import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -20,8 +21,12 @@ installed_folder = os.path.split(basis)[0]
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import FieldTrip
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')

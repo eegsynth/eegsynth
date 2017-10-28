@@ -10,6 +10,7 @@ import numpy as np
 from numpy.matlib import repmat
 from scipy.signal import firwin
 from scipy.ndimage import convolve1d
+import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -24,8 +25,12 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 import FieldTrip
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
