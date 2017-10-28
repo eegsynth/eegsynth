@@ -25,10 +25,11 @@ The REDIS buffer should be running.
 
 ## Software Requirements
 
-portmidi
 Python 2.x
+portmidi
+redis Python library
 mido Python library
-Redis Python library
+python-rtmidi Python library
 
 ## MIDI assignment
 
