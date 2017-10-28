@@ -18,7 +18,7 @@ if [ -z "$COMMAND" ] ; then
 cat << EOF
 
 Use as:
-  multiple <command> <arg1,arg2,arg3>
+  parallel <command> <arg1,arg2,arg3>
 
 This will start in parallel
   command arg1

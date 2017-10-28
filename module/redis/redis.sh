@@ -1,17 +1,21 @@
 #!/bin/bash
+#
+# This will start the REDIS server according to the settings
+# in the specified or the default inifile.
+#
+# Use as
+#   redis.sh [-i <inifile>] [-h] [-v]
 
-PATH=/opt/anaconda2/bin:/sbin:/bin:/usr/bin:/usr/local/bin
+# include library with helper functions
+. "$(dirname "$0")/../../lib/EEGsynth.sh"
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
+BINDIR=$DIR/../../bin
 
-# include library with helper functions
-. "$DIR/../../lib/EEGsynth.sh"
-
-# helper files are stored in the directory containing this script
-PIDFILE="$DIR"/"$NAME".pid
-LOGFILE="$DIR"/"$NAME".log
-INIFILE="$DIR"/"$NAME".ini
+# set the default
+INIFILE=${DIR}/${NAME}.ini
+VERBOSE=0
 
 if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
@@ -21,51 +25,30 @@ else
   COMMAND=`which redis-server`
 fi
 
+while getopts "hvi:" option; do
+  case "${option}" in
+    i)
+      INIFILE=${OPTARG}
+      ;;
+    v)
+      VERBOSE=1
+      ;;
+    h)
+      echo "Use as: $0 [-i <inifile>] [-h] [-v]"
+      ;;
+    \?)
+      echo "Invalid option: -${OPTARG}" >&2
+      ;;
+  esac
+done
+
+# this parses the ini file and creates local variables
 shini_parse $INIFILE
-OPTIONS="--port "$ini_redis_port
+PORT=$ini_redis_port
 
-do_start () {
-  status_led red
-  log_action_msg "Starting $NAME"
-  check_running_process && log_action_err "Error: $NAME is already started" && exit 1
-  # start the process in the background
-  date > "$LOGFILE"
-  ( "$COMMAND" $OPTIONS >> "$LOGFILE" ) &
-  echo $! > "$PIDFILE"
-  status_led green
-}
+if [ ${VERBOSE} == 1 ] ; then
+  echo INIFILE=$INIFILE
+  echo PORT=$PORT
+fi
 
-do_stop () {
-  status_led red
-  log_action_msg "Stopping $NAME"
-  check_running_process || log_action_err "Error: $NAME is already stopped"
-  check_running_process || exit 1
-  kill -9 `cat "$PIDFILE"`
-  rm "$PIDFILE"
-  status_led green
-}
-
-do_status () {
-  check_running_process && YESNO=" " || YESNO=" not "
-  log_action_msg "$NAME is${YESNO}running"
-}
-
-case "$1" in
-  start)
-        do_start
-        ;;
-  restart)
-        check_running_process && do_stop
-        do_start
-        ;;
-  stop)
-        do_stop
-        ;;
-  status)
-        do_status
-        ;;
-  *)
-        echo "Usage: $0 start|stop|restart|status" >&2
-        exit 3
-        ;;
-esac
+${COMMAND} --port ${PORT}

@@ -7,6 +7,7 @@ import threading
 import time
 import sys
 import os
+import argparse
 
 # the list of MIDI commands is the only aspect that is specific to the Volca Keys
 # see http://media.aadl.org/files/catalog_guides/1444140_chart.pdf
@@ -27,8 +28,12 @@ installed_folder = os.path.split(basis)[0]
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')

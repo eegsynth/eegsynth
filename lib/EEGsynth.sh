@@ -11,6 +11,7 @@ if [ $MACHINE = Darwin ] ; then
   #  OS X version 10.10 corresponds to Yosemite
   #  OS X version 10.11 corresponds to El Capitan
   # macOS version 10.12 corresponds to Sierra
+  # macOS version 10.13 corresponds to High Sierra
   # the following may be needed for portmidi on OS X prior to El Captain
   MAJOR_MAC_VERSION=$(sw_vers -productVersion | awk -F '.' '{print $1 "." $2}')
   if [ -f /usr/local/lib/libportmidi.dylib ] ; then

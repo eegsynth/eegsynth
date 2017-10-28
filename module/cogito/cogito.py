@@ -8,6 +8,7 @@ import ConfigParser # this is version 2.x specific, on version 3.x it is called 
 import numpy as np
 import pandas as pd
 from copy import copy
+import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -22,8 +23,12 @@ sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 import FieldTrip
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
 config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general', 'debug')
@@ -176,7 +181,7 @@ while True:
     # signal = np.zeros([sample_rate, 1])
 
     tmp = [np.zeros(300)]
-    
+
     for ch in range(nInputs):
         original = copy(dat_input[:, ch])
         # fit and subtract a 10th order polynomial

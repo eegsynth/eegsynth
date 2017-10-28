@@ -14,6 +14,8 @@ import numpy as np
 import pyqtgraph as pg
 from scipy.signal import butter, lfilter
 from scipy.interpolate import interp1d
+import argparse
+
 # basis = '/Users/stephen/eegsynth/module/plotsignal/'
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
@@ -56,13 +58,12 @@ sys.path.insert(0,'../../lib/')
 import EEGsynth
 import FieldTrip
 
-config = ConfigParser.ConfigParser()
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
 
-try:
-    config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
-except:
-    __file__ = 'plot.py'
-    config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
