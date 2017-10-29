@@ -1,5 +1,4 @@
-Cogito module
-=============
+# Cogito Module
 
 The purpose of this module is to convert an EEG buffer (channel x samples) into a single channel buffer, which can be played as audio in real time thanks to the ft2audio program.
 

@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 
-import mido
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import mido
+import os
 import redis
+import sys
 import threading
 import time
-import sys
-import os
-import argparse
-
-# the list of MIDI commands is the only aspect that is specific to the Volca Beats
-# see http://media.aadl.org/files/catalog_guides/1445131_chart.pdf
-control_name = ['kick_level', 'snare_level', 'lo_tom_level', 'hi_tom_level', 'closed_hat_level', 'open_hat_level', 'clap_level', 'claves_level', 'agogo_level', 'crash_level', 'clap_speed', 'claves_speed', 'agogo_speed', 'crash_speed', 'stutter_time', 'stutter_depth', 'tom_decay', 'closed_hat_decay', 'open_hat_decay', 'hat_gra    in']
-control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
-note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
-note_code = [36, 38, 43, 50, 42, 46, 39]
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -37,6 +30,13 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+
+# the list of MIDI commands is the only aspect that is specific to the Volca Beats
+# see http://media.aadl.org/files/catalog_guides/1445131_chart.pdf
+control_name = ['kick_level', 'snare_level', 'lo_tom_level', 'hi_tom_level', 'closed_hat_level', 'open_hat_level', 'clap_level', 'claves_level', 'agogo_level', 'crash_level', 'clap_speed', 'claves_speed', 'agogo_speed', 'crash_speed', 'stutter_time', 'stutter_depth', 'tom_decay', 'closed_hat_decay', 'open_hat_decay', 'hat_gra    in']
+control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
+note_code = [36, 38, 43, 50, 42, 46, 39]
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)

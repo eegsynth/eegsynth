@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import socket
-import time
-import threading
-import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import OSC          # see https://trac.v2.nl/wiki/pyOSC
 import argparse
+import os
+import redis
+import socket
+import sys
+import threading
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

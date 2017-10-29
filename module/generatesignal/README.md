@@ -1,5 +1,4 @@
-Generate Signal Module
-======================
+# Generate Signal Module
 
 This module generates a simulated ExG signal that consists of a sinewave
 plus additive noise. The frequency, amplitude and noise can be changed

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import ConfigParser
+import argparse
+import mne
+import numpy as np
 import os
 import redis
 import sys
-import numpy as np
-import mne
 import time
-import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

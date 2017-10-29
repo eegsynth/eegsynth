@@ -1,23 +1,43 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import redis
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.signal
-import scipy.fftpack
-import redis
-import argparse
-
 from pyqtgraph.Qt import QtGui, QtCore
-import numpy as np
-import pyqtgraph as pg
-from scipy.signal import butter, lfilter
 from scipy.interpolate import interp1d
-# basis = '/Users/stephen/eegsynth/module/plotsignal/'
+from scipy.signal import butter, lfilter
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import matplotlib.pyplot as plt
+import numpy as np
+import numpy as np
+import os
+import pyqtgraph as pg
+import redis
+import scipy.fftpack
+import scipy.signal
+import sys
+import time
+
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+elif sys.argv[0]!='':
+    basis = sys.argv[0]
+else:
+    basis = './'
+installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+import FieldTrip
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
+
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
@@ -50,7 +70,6 @@ else:
     basis = '../../eegsynth'
 
 installed_folder = os.path.split(basis)[0]
-# installed_folder = '/home/stephen/eegsynth/module/plotsignal'
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
@@ -59,16 +78,12 @@ sys.path.insert(0,'../../lib/')
 import EEGsynth
 import FieldTrip
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
-
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
 
 try:
     ftc_host = config.get('fieldtrip','hostname')
@@ -101,8 +116,6 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-#chan_nrs  = np.where(np.asarray([config.items('plot_channels')[i][1]=='on' for i in range(len(config.items('plot_channels')))]))[0]
-#chanlist  = config.getfloat('arguments','channels',config, r, multiple=True)
 chanlist = config.get('arguments','channels').split(",")
 chanarray = np.array(chanlist)
 for i in range(len(chanarray)):

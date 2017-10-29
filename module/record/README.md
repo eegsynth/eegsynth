@@ -1,5 +1,4 @@
-Recording module
-================
+# Recording Module
 
 The purpose of this module is to record EEG data from the FieldTrip buffet to an EDF file.
 

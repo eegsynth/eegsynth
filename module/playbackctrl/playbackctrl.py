@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
-import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import numpy as np
+import os
 import redis
 import sys
-import os
-import numpy as np
-import datetime
 import time
-import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -42,6 +40,9 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+if debug>0:
+    print "Reading data from", config.get('playback', 'file')
+
 f = EDF.EDFReader()
 f.open(config.get('playback', 'file'))
 
@@ -49,6 +50,13 @@ if debug>1:
     print "NSignals", f.getNSignals()
     print "SignalFreqs", f.getSignalFreqs()
     print "NSamples", f.getNSamples()
+    print "SignalTextLabels", f.getSignalTextLabels()
+
+for chanindx in range(f.getNSignals()):
+    if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
+        raise IOError('unequal SignalFreqs')
+    if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
+        raise IOError('unequal NSamples')
 
 channels = f.getSignalTextLabels()
 channelz = f.getSignalTextLabels()
@@ -64,33 +72,19 @@ for replace in config.items('replace'):
 for s,z in zip(channels, channelz):
     print "Writing channel", s, "as control value", z
 
-for chanindx in range(f.getNSignals()):
-    if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
-        raise IOError('unequal SignalFreqs')
-    if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
-        raise IOError('unequal NSamples')
-
-block     = 0
 blocksize = 1
 begsample = 0
-endsample = 0
-adjust    = 1
+endsample = blocksize-1
+block     = 0
 
-# this approximates the real time streaming speed
-desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))
-elapsed = desired
-naptime = 0.02
-
+print "STARTING STREAM"
 while True:
-
-    # measure the time that it takes
-    now = time.time()
 
     if endsample>nSamples-1:
         if debug>0:
             print "End of file reached, jumping back to start"
         begsample = 0
-        endsample = 0
+        endsample = blocksize-1
         block     = 0
         continue
 
@@ -98,7 +92,7 @@ while True:
         if debug>0:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
-        endsample = 0
+        endsample = blocksize-1
         block     = 0
         continue
 
@@ -108,8 +102,11 @@ while True:
         time.sleep(0.1);
         continue
 
+    # measure the time that it takes
+    start = time.time()
+
     if debug>1:
-        print "Playing control value", block
+        print "Playing control value", block, 'from', begsample, 'to', endsample
 
     dat = map(int, f.readBlock(block))
     r.mset(dict(zip(channelz,dat)))
@@ -118,19 +115,14 @@ while True:
     endsample += blocksize
     block += 1
 
-    # the adjust factor compensates for the time spent on reading and writing the data
-    naptime = (0.95 * naptime) + 0.05 * (naptime * (desired/elapsed))
-    if naptime < 0:
-        naptime = 0
+    # this is a short-term approach, estimating the sleep for every block
+    # this code is shared between generatesignal, playback and playbackctrl
+    desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))
+    elapsed = time.time()-start
+    naptime = desired - elapsed
+    if naptime>0:
+        # this approximates the real time streaming speed
+        time.sleep(naptime)
 
-    time.sleep(naptime)
-
-    elapsed = time.time() - now
-    # adjust the relative delay for the next iteration
-    # the adjustment factor should only change a little per iteration
-    #adjust = (0.1 * desired/elapsed + 0.9 * adjust)
-
-    if debug>1:
-        print "It took a total of", elapsed
-        print "Of which I slept", naptime
-        print "I was off by", (desired - elapsed)
+    if debug>0:
+        print "played", blocksize, "samples in", (time.time()-start)*1000, "ms"

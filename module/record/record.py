@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import datetime
+import numpy as np
+import os
 import redis
 import sys
-import os
-import numpy as np
-import datetime
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -19,8 +19,8 @@ installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import FieldTrip
 import EEGsynth
+import FieldTrip
 import EDF
 
 parser = argparse.ArgumentParser()
