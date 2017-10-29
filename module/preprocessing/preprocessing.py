@@ -115,39 +115,50 @@ if not(highpassfilter is None) and (lowpassfilter is None):
 if not(highpassfilter is None) and not(lowpassfilter is None):
     fir_poly = firwin(filterorder, cutoff = [lowpassfilter, highpassfilter], window = 'blackmanharris', pass_zero = False)
 
-
 def onlinefilter(fil_state, data):
     fil_state = np.concatenate((fil_state, np.atleast_2d(data).T), axis=1)
     fil_data = convolve1d(fil_state, fir_poly)[:, len(fir_poly)//2]
     return fil_state[:, 1:], fil_data
 
-
 previous = np.zeros((1, hdr_input.nChannels))
 if not(highpassfilter is None) or not(lowpassfilter is None):
     fil_state = np.zeros((hdr_input.nChannels, filterorder-1))
 
+if debug > 1:
+    print "nsample", hdr_input.nSamples
+    print "nchan", hdr_input.nChannels
+    print "window", window
+
+print "STARTING PREPROCESSING STREAM"
 while True:
+
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(config.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
 
-    if debug>1:
-        print endsample
+    start = time.time();
 
-    dat_input = ft_input.getData([begsample, endsample])
+    dat_input  = ft_input.getData([begsample, endsample])
     dat_output = dat_input.astype(np.float32)
+
+    if debug>1:
+        print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # Smoothing
     for t in range(window):
         dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
         previous = copy(dat_output[t, :])
+    if debug>1:
+        print "smoothed    ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # Online filtering
     if not(highpassfilter is None) or not(lowpassfilter is None):
         for t in range(window):
             fil_state, fil_data = onlinefilter(fil_state, dat_output[t, :])
             dat_output[t, :] = fil_data
+    if debug>1:
+        print "filtered    ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # Rereferencing
     if reference == 'median':
@@ -156,10 +167,18 @@ while True:
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1),
                              dat_output.shape[1], 1).T
+    if debug>1:
+        print "rereferenced", window, "samples in", (time.time()-start)*1000, "ms"
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
+    if debug>1:
+        print "wrote       ", window, "samples in", (time.time()-start)*1000, "ms"
+
     # increment the counters for the next loop
     begsample += window
     endsample += window
+
+    if debug==1:
+        print "processed", window, "samples in", (time.time()-start)*1000, "ms"
