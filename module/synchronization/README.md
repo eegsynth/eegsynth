@@ -1,5 +1,4 @@
-Synchronization Module
-======================
+# Synchronization Module
 
 The goal of this module is to use a continuous control value from the REDIS buffer for synchronization. The time between pulses scales linearly with the control value magnitude.
 

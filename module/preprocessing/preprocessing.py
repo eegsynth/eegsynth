@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import redis
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 from copy import copy
-import numpy as np
 from numpy.matlib import repmat
-from scipy.signal import firwin
 from scipy.ndimage import convolve1d
+from scipy.signal import firwin
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
+import numpy as np
+import os
+import redis
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

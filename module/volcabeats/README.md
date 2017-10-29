@@ -1,5 +1,4 @@
-Volca Bass module
-=================
+# Volca Beats Module
 
 The purpose of this module is to write control values and notes as MIDI commands to the Korg Volca Beats.
 

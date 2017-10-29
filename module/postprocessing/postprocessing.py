@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import redis
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import numpy as np
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
+import numpy as np
+import os
+import redis
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -20,6 +20,7 @@ installed_folder = os.path.split(basis)[0]
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
+
 # these function names can be used in the equation that gets parsed
 from EEGsynth import compress, limit, rescale
 

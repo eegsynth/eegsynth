@@ -1,13 +1,32 @@
 #!/usr/bin/env python
 
-import mido
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import mido
+import os
 import redis
+import sys
 import threading
 import time
-import sys
-import os
-import argparse
+
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+elif sys.argv[0]!='':
+    basis = sys.argv[0]
+else:
+    basis = './'
+installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
 
 # the settings dialog distinguishes three colors for sliders/knobs, buttons and switches
 slider_name = ['mixer/mixer1_mode', 'mixer/mixer1_fader', 'mixer/mixer2_mode', 'mixer/mixer2_fader', 'mixer/fade_to_black', 'color_fx/saturation', 'color_fx/hue1', 'color_fx/black1', 'color_fx/hue2', 'color_fx/black2', 'transform_fx/tile_mode', 'transform_fx/rotate', 'transform_fx/zoom', 'transform_fx/move_x', 'transform_fx/move_y', 'transform_fx/center_x', 'transform_fx/center_y', 'transform_fx/skew_x', 'transform_fx/skew_y', 'freeframe_fx1/pad1_x', 'freeframe_fx1/pad1_y', 'freeframe_fx1/pad2_x', 'freeframe_fx1/pad2_y', 'freeframe_fx1/pad3_x', 'freeframe_fx1/pad4_y', 'freeframe_fx2/pad1_x', 'freeframe_fx2/pad1_y', 'freeframe_fx2/pad2_x', 'freeframe_fx2/pad2_y', 'freeframe_fx2/pad3_x', 'freeframe_fx2/pad4_y', 'channelA/playback_speed', 'channelA/scrub_timeline', 'channelB/playback_speed', 'channelB/scrub_timeline', 'channelC/playback_speed', 'channelC/scrub_timeline']
@@ -30,25 +49,6 @@ control_name = slider_name
 control_code = slider_code
 note_name = button_name + switch_name
 note_code = button_code + switch_code
-
-if hasattr(sys, 'frozen'):
-    basis = sys.executable
-elif sys.argv[0]!='':
-    basis = sys.argv[0]
-else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
-
-# eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import EEGsynth
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
-
-config = ConfigParser.ConfigParser()
-config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
