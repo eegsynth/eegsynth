@@ -116,6 +116,12 @@ sudo pip install nilearn
 sudo pip install sklearn
 ```
 
+Due to the large number of non Python dependencies, installing the scipy package is easier with apt-get than with pip.
+
+```
+sudo apt-get install python-scipy
+```
+
 ### Install audio
 
 This is only needed for the software synthesizer module, which runs fine on OS X but which still has issues on the Raspberry Pi.

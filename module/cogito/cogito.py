@@ -3,7 +3,6 @@
 import sys
 import os
 import time
-# import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import numpy as np
 import pandas as pd
@@ -154,6 +153,11 @@ val = layout.loc[:, ['x', 'y', 'z']].values
 val = (val - val.min())/(val.max()-val.min())*definition
 positions = np.round(val).astype(int)
 
+if debug > 1:
+    print "nsample", hdr_input.nSamples
+    print "nchan", hdr_input.nChannels
+    print "window", window
+
 print "STARTING COGITO STREAM"
 while True:
 
@@ -163,15 +167,6 @@ while True:
         hdr_input = ft_input.getHeader()
 
     start = time.time();
-
-    if debug > 1:
-        print "begsample", begsample
-        print "endsample", endsample
-        print "nsample", hdr_input.nSamples
-        print "nchan", nInputs
-        print "window", window
-    if debug > 0:
-    	print "processing incoming data from", begsample, "to", endsample
 
     dat_input = ft_input.getData([begsample, endsample])
 
