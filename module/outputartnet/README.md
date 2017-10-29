@@ -1,5 +1,4 @@
-Output DMX512 module
-====================
+# Output DMX512 Module
 
 The purpose of this module is to send control values from REDIS over Art-Net to network-connected DMX512 devices.
 
