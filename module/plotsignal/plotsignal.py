@@ -9,13 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 import scipy.fftpack
+import redis
+import argparse
+
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
 from scipy.signal import butter, lfilter
 from scipy.interpolate import interp1d
-import argparse
-
 # basis = '/Users/stephen/eegsynth/module/plotsignal/'
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
@@ -58,6 +59,7 @@ sys.path.insert(0,'../../lib/')
 import EEGsynth
 import FieldTrip
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
@@ -90,7 +92,24 @@ while hdr_input is None:
 
 print "Data arrived"
 
-chan_nrs  = np.where(np.asarray([config.items('plot_channels')[i][1]=='on' for i in range(len(config.items('plot_channels')))]))[0]
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+    if debug>0:
+        print "Connected to redis server"
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+#chan_nrs  = np.where(np.asarray([config.items('plot_channels')[i][1]=='on' for i in range(len(config.items('plot_channels')))]))[0]
+#chanlist  = config.getfloat('arguments','channels',config, r, multiple=True)
+chanlist = config.get('arguments','channels').split(",")
+chanarray = np.array(chanlist)
+for i in range(len(chanarray)):
+    chanarray[i] = int(chanarray[i]) - 1 # since python using indexing from 0 instead of 1
+
+chan_nrs = len(chanlist)
+
 window    = config.getfloat('arguments','window')
 window    = int(round(window*hdr_input.fSample))
 clipsize  = config.getfloat('arguments','clipsize')
@@ -98,53 +117,63 @@ clipsize  = int(round(clipsize*hdr_input.fSample))
 stepsize  = config.getfloat('arguments','stepsize')
 lrate     = config.getfloat('arguments','learning_rate')
 
-# initialize window
+# initialize graphical window
 app = QtGui.QApplication([])
-win = pg.GraphicsWindow(title="Probing the Mind of Berzelius")
+win = pg.GraphicsWindow(title="EEGsynth")
 win.resize(1000,600)
-win.setWindowTitle('Probing the Mind of Berzelius')
+win.setWindowTitle('EEGsynth')
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
 
-# draw window
-p1 = win.addPlot(title="Channel 1")
-p3 = win.addPlot(title="Spectrum channel 1")
-win.nextRow()
-p2 = win.addPlot(title="Channel 2")
-p4 = win.addPlot(title="Spectrum channel 2")
-curve1 = p1.plot(pen='w')
-curve2 = p2.plot(pen='w')
-spect1 = p3.plot(pen='w')
-spect2 = p4.plot(pen='w')
-p1.setLabel('left',text = 'Amplitude')
-p2.setLabel('left',text = 'Amplitude')
-p3.setLabel('left',text = 'Power')
-p4.setLabel('left',text = 'Power')
-p1.setLabel('bottom',text = 'Time (s)')
-p2.setLabel('bottom',text = 'Time (s)')
-p3.setLabel('bottom',text = 'Frequency (Hz)')
-p4.setLabel('bottom',text = 'Frequency (Hz)')
+# Initialize variables
+timeplot = [];
+freqplot = [];
+curve = [];
+spect = [];
+redleft = [];
+redright = [];
+blueleft = [];
+blueright = [];
+fft = [];
+fft_old = [];
+specmax = [];
+specmin = [];
+curvemax = [];
 
-# initialize global variables
-curmax1  = 0
-curmax2  = 0
-specmax1 = 0
-specmax2 = 0
-specmin1 = 0
-specmin2 = 0
-fft1_old = 0
-fft2_old = 0
-counter  = 0
+# Create panels (timecourse and spectrum) for each channel
+for ichan in range(chan_nrs):
+    channr = int(chanarray[ichan]) + 1
+    timeplot.append(win.addPlot(title="%s%s" % ('Channel ',channr)))
+    timeplot[ichan].setLabel('left',text = 'Amplitude')
+    timeplot[ichan].setLabel('bottom',text = 'Time (s)')
+    curve.append(timeplot[ichan].plot(pen='w'))
+    freqplot.append(win.addPlot(title="%s%s" % ('Spectrum channel ',channr)))
+    freqplot[ichan].setLabel('left',text = 'Power')
+    freqplot[ichan].setLabel('bottom',text = 'Frequency (Hz)')
+
+    spect.append(freqplot[ichan].plot(pen='w'))
+    redleft.append(freqplot[ichan].plot(pen='r'))
+    redright.append(freqplot[ichan].plot(pen='r'))
+    blueleft.append(freqplot[ichan].plot(pen='b'))
+    blueright.append(freqplot[ichan].plot(pen='b'))
+    win.nextRow()
+
+    # initialize as lists
+    curvemax.append(0)
+    specmin.append(0)
+    specmax.append(0)
+    fft.append(0)
+    fft_old.append(0)
 
 def update():
-   global curmax1, curmax2, specmax1, specmax2, specmin1, specmin2, fft1_old, fft2_old
+   global curvemax, specmax, specmin, fft_old, redfreq, redwidth, bluefreq, bluewidth, counter
 
    # get last data
    last_index = ft_input.getHeader().nSamples
    begsample = (last_index-window)
    endsample = (last_index-1)
-   data = ft_input.getData([begsample,endsample])[:,chan_nrs]
+   data = ft_input.getData([begsample,endsample])
    print "reading from sample %d to %d" % (begsample, endsample)
 
    # demean data before filtering to reduce edge artefacts and center timecourse
@@ -152,55 +181,72 @@ def update():
    data = scipy.signal.detrend(data, axis=0)
    data = butter_bandpass_filter(data.T, 5, 40, 250, 9).T[clipsize:-clipsize]
 
-   # spectral estimate
+   # spectral estimate looping over chan_nrs
    taper = np.hanning(len(data))
-   fft1 = abs(scipy.fft(taper*data[:,0])) * lrate + fft1_old * (1-lrate)
-   fft2 = abs(scipy.fft(taper*data[:,1])) * lrate + fft2_old * (1-lrate)
-   fft1_old = fft1
-   fft2_old = fft2
 
-   # freqency axis
-   freqaxis = scipy.fftpack.fftfreq(len(data),1/hdr_input.fSample)
+   for ichan in range(chan_nrs):
 
-   # selected frequency band
-   user_freqrange = config.get('arguments','freqrange').split("-")
-   freqrange = np.greater(freqaxis,int(user_freqrange[0])) & np.less_equal(freqaxis,int(user_freqrange[1]))
+        channr = chanarray[ichan]
+        fft[ichan] = abs(scipy.fft(taper*data[:,chanarray[ichan]])) * lrate + fft_old[ichan] * (1-lrate)
+        fft_old[ichan] = fft[ichan]
 
-   # time axis
-   timeaxis = np.linspace(0,len(data)/hdr_input.fSample,len(data))
+        # freqency axis
+        freqaxis = scipy.fftpack.fftfreq(len(data),1/hdr_input.fSample)
 
-   # update timecourses
-   curve1.setData(timeaxis,data[:,0])
-   curve2.setData(timeaxis,data[:,1])
+        # user-selected frequency band
+        user_freqrange = config.get('arguments','freqrange').split("-")
+        freqrange = np.greater(freqaxis,int(user_freqrange[0])) & np.less_equal(freqaxis,int(user_freqrange[1]))
 
-   # update spectrum
-   spect1.setData(freqaxis[freqrange],fft1[freqrange])
-   spect2.setData(freqaxis[freqrange],fft2[freqrange])
+        # time axis
+        timeaxis = np.linspace(0,len(data)/hdr_input.fSample,len(data))
 
-   # adapt scale to running mean of max
-   curmax1  = curmax1  * (1-lrate) + lrate * max(abs(data[:,0]))
-   curmax2  = curmax2  * (1-lrate) + lrate * max(abs(data[:,1]))
-   specmax1 = specmax1 * (1-lrate) + lrate * max(fft1[freqrange])
-   specmax2 = specmax2 * (1-lrate) + lrate * max(fft2[freqrange])
-   specmin1 = specmin1 * (1-lrate) + lrate * min(fft1[freqrange])
-   specmin2 = specmin2 * (1-lrate) + lrate * min(fft2[freqrange])
+        # update timecourses
+        curve[ichan].setData(timeaxis,data[:,channr])
 
-   p1.setYRange(-curmax1, curmax1)
-   p2.setYRange(-curmax2, curmax2)
-   p3.setYRange(specmin1, specmax1)
-   p4.setYRange(specmin2, specmax2)
+        # update spectrum
+        spect[ichan].setData(freqaxis[freqrange],fft[ichan][freqrange])
 
-# set timer
+        # adapt scale to running mean of max
+        curvemax[ichan] = float(curvemax[ichan])  * (1-lrate) + lrate * max(abs(data[:,ichan]))
+        specmax[ichan] = float(specmax[ichan]) * (1-lrate) + lrate * max(fft[ichan][freqrange])
+        specmin[ichan] = float(specmin[ichan]) * (1-lrate) + lrate * min(fft[ichan][freqrange])
+
+        timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
+        freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
+
+        # update plotted lines
+        redfreq = EEGsynth.getfloat('input','redfreq', config, r, default=10)
+        redfreq = redfreq * float(user_freqrange[1]) * EEGsynth.getfloat('scale','red', config, r, default=1/127)
+        redwidth = EEGsynth.getfloat('input','redwidth', config, r, default=10)
+        redwidth = redwidth * float(user_freqrange[1]) * EEGsynth.getfloat('scale','red', config, r, default=1/127)
+
+        bluefreq = EEGsynth.getfloat('input','bluefreq', config, r, default=10)
+        bluefreq = bluefreq * float(user_freqrange[1]) * EEGsynth.getfloat('scale','blue', config, r, default=1/127)
+        bluewidth = EEGsynth.getfloat('input','bluewidth', config, r, default=10)
+        bluewidth = bluewidth * float(user_freqrange[1]) * EEGsynth.getfloat('scale','blue', config, r, default=1/127)
+
+        redleft[ichan].setData(x=[redfreq-redwidth,redfreq-redwidth],y=[specmin[ichan],specmax[ichan]])
+        redright[ichan].setData(x=[redfreq+redwidth,redfreq+redwidth],y=[specmin[ichan],specmax[ichan]])
+        blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
+        blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
+
+   key = "%s.%s" % (config.get('output','prefix'), 'redband')
+   r.set(key,[redfreq-redwidth,redfreq+redwidth])
+
+   key = "%s.%s" % (config.get('output','prefix'), 'blueband')
+   r.set(key,[bluefreq-bluewidth,bluefreq+bluewidth])
+
+# Set timer for update
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
 timer.setInterval(.01) # timeout
 timer.start(stepsize)
 
-# wait until there is enough data
+# Wait until there is enough data
 begsample = -1
 while begsample<0:
     hdr_input = ft_input.getHeader()
     begsample = int(hdr_input.nSamples - window)
 
-# start
+# Start
 QtGui.QApplication.instance().exec_()
