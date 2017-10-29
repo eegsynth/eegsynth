@@ -51,20 +51,17 @@ except:
     print "Error: cannot connect to output FieldTrip buffer"
     exit()
 
+datatype  = FieldTrip.DATATYPE_FLOAT32
 nchannels = config.getint('generate', 'nchannels')
 fsample   = config.getfloat('generate', 'fsample')
-window    = int(round(config.getfloat('generate', 'window') * fsample))
-datatype  = FieldTrip.DATATYPE_FLOAT32
+blocksize = int(round(config.getfloat('generate', 'window') * fsample))
 
 ft_output.putHeader(nchannels, fsample, datatype)
 
 if debug > 1:
     print "nchannels", nchannels
     print "fsample", fsample
-    print "window", window
-
-begsample = 0
-endsample = window
+    print "blocksize", blocksize
 
 scale_frequency   = config.getfloat('scale', 'frequency')
 scale_amplitude   = config.getfloat('scale', 'amplitude')
@@ -74,11 +71,19 @@ prev_frequency = -1
 prev_amplitude = -1
 prev_noise     = -1
 
+begsample = 0
+endsample = blocksize-1
+block = 0
+
 print "STARTING STREAM"
 while True:
 
+    # measure the time that it takes
     start = time.time();
-    
+
+    if debug>1:
+        print "Generating block", block, 'from', begsample, 'to', endsample
+
     frequency = EEGsynth.getfloat('signal', 'frequency', config, r, default=10) * scale_frequency
     amplitude = EEGsynth.getfloat('signal', 'amplitude', config, r, default=1)  * scale_amplitude
     noise     = EEGsynth.getfloat('signal', 'noise', config, r, default=0.5)    * scale_noise
@@ -93,21 +98,26 @@ while True:
         print "noise =", noise
         prev_noise = noise
 
-    dat_output = np.random.randn(window, nchannels) * noise
-    signal = np.sin(2*np.pi*np.arange(begsample, endsample)*frequency/fsample) * amplitude
+    dat_output = np.random.randn(blocksize, nchannels) * noise
+    signal = np.sin(2*np.pi*np.arange(begsample, endsample+1)*frequency/fsample) * amplitude
     for chan in range(nchannels):
         dat_output[:,chan] += signal
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
-    if debug>0:
-        print "generated", window, "samples in", (time.time()-start)*1000, "ms"
+    begsample += blocksize
+    endsample += blocksize
+    block += 1
 
-    begsample += window
-    endsample += window
-
-    # wait for a little bit
+    # this is a short-term approach, estimating the sleep for every block
+    # this code is shared between generatesignal, playback and playbackctrl
+    desired = blocksize/fsample
     elapsed = time.time()-start
-    time.sleep(window/fsample - elapsed); 
+    naptime = desired - elapsed
+    if naptime>0:
+        # this approximates the real time streaming speed
+        time.sleep(naptime)
 
+    if debug>0:
+        print "generated", blocksize, "samples in", (time.time()-start)*1000, "ms"
