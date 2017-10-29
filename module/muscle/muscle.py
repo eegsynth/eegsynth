@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
-import time
+from nilearn import signal
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import math
+import multiprocessing
+import numpy as np
+import os
 import redis
 import sys
-import os
-import multiprocessing
 import threading
-import math
-import numpy as np
-from nilearn import signal
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -22,6 +22,7 @@ installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
 import FieldTrip
 
 parser = argparse.ArgumentParser()

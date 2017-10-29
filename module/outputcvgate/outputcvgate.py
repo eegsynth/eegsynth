@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import os
 import redis
 import serial
 import sys
-import os
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
