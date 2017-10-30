@@ -1,21 +1,25 @@
 #!/usr/bin/env python
 
-import math
-import pyaudio
 import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
-import redis
+import argparse
+import math
 import multiprocessing
+import os
+import pyaudio
+import redis
+import sys
 import threading
 import time
-import sys
-import os
-import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
 else:
     basis = sys.argv[0]
 installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")

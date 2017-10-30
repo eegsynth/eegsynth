@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 
-import math
 import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
-import redis
-import time
-import sys
-import os
 import argparse
+import math
+import os
+import redis
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-else:
+elif sys.argv[0]!='':
     basis = sys.argv[0]
+else:
+    basis = './'
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules

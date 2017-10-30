@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import numpy as np
-import pandas as pd
 from copy import copy
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
+import numpy as np
+import os
+import pandas as pd
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

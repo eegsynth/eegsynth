@@ -1,5 +1,4 @@
-Control recording module
-========================
+# Control Recording Module
 
 The purpose of this module is to record control values from REDIS to an EDF file.
 

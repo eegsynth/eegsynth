@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import time
+from nilearn import signal
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import numpy as np
+import os
 import redis
 import sys
-import os
 import threading
-import numpy as np
-from nilearn import signal
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

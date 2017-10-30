@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import ConfigParser
+import argparse
+import mne
+import numpy
 import os
 import redis
 import sys
-import numpy
-import mne
 import time
-import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -19,8 +19,8 @@ installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import FieldTrip
 import EEGsynth
+import FieldTrip
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")

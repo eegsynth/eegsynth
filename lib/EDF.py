@@ -1,12 +1,12 @@
-import numpy as np
-import os
-import calendar
-import datetime
-import re
-import warnings
+from copy import deepcopy
 from math import ceil, floor
 from struct import pack, unpack
-from copy import deepcopy
+import calendar
+import datetime
+import numpy as np
+import os
+import re
+import warnings
 
 def padtrim(buf, num):
     num -= len(buf)
