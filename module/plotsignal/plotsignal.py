@@ -9,34 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pyqtgraph as pg
-import redis
-import scipy.fftpack
-import scipy.signal
-import sys
-import time
-
-if hasattr(sys, 'frozen'):
-    basis = sys.executable
-elif sys.argv[0]!='':
-    basis = sys.argv[0]
-else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
-
-# eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import EEGsynth
-import FieldTrip
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
-
-config = ConfigParser.ConfigParser()
-config.read(args.inifile)
-
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+from scipy.signal import butter, lfilter
+from scipy.interpolate import interp1d
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
@@ -60,6 +34,32 @@ def butter_lowpass_filter(data, lowcut, fs, order=9):
     b, a = butter_lowpass(lowcut, fs, order=order)
     y    = lfilter(b, a, data)
     return y
+
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+elif sys.argv[0]!='':
+    basis = sys.argv[0]
+else:
+    basis = '../../eegsynth'
+
+installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0,'../../lib/')
+
+import EEGsynth
+import FieldTrip
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
+
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
 
 try:
     ftc_host = config.get('fieldtrip','hostname')
@@ -103,7 +103,7 @@ window    = config.getfloat('arguments','window')
 window    = int(round(window*hdr_input.fSample))
 clipsize  = config.getfloat('arguments','clipsize')
 clipsize  = int(round(clipsize*hdr_input.fSample))
-stepsize  = config.getfloat('arguments','stepsize')
+stepsize  = int(config.getfloat('arguments','stepsize') * 1000.0)
 lrate     = config.getfloat('arguments','learning_rate')
 
 # initialize graphical window
@@ -219,11 +219,14 @@ def update():
         blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
         blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
 
-   key = "%s.%s" % (config.get('output','prefix'), 'redband')
-   r.set(key,[redfreq-redwidth,redfreq+redwidth])
-
-   key = "%s.%s" % (config.get('output','prefix'), 'blueband')
-   r.set(key,[bluefreq-bluewidth,bluefreq+bluewidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'redband','low')
+   r.set(key,[redfreq-redwidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'redband','high')
+   r.set(key,[redfreq+redwidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'blueband','low')
+   r.set(key,[bluefreq-bluewidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'blueband','high')
+   r.set(key,[bluefreq+bluewidth])
 
 # Set timer for update
 timer = QtCore.QTimer()
