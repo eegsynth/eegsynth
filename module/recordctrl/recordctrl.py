@@ -68,11 +68,7 @@ while True:
         # open a new file
         fname = config.get('recording', 'file')
         name, ext = os.path.splitext(fname)
-        fname = name + '-' + str(filenumber) + ext
-        while os.path.isfile(fname):
-            # increase the sequence number
-            filenumber += 1
-            fname = name + '-' + str(filenumber) + ext
+        fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # get the details from REDIS
         channels = sorted(r.keys('*'))
         channelz = sorted(r.keys('*'))
