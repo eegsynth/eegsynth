@@ -93,8 +93,8 @@ while True:
         print "noise =", noise
         prev_noise = noise
 
-    dat_output = np.random.randn(window, nchannels)
-    signal = np.sin(2*np.pi*np.arange(begsample, endsample)/fsample)*amplitude
+    dat_output = np.random.randn(window, nchannels) * noise
+    signal = np.sin(2*np.pi*np.arange(begsample, endsample)*frequency/fsample) * amplitude
     for chan in range(nchannels):
         dat_output[:,chan] += signal
 
