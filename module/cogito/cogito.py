@@ -119,10 +119,14 @@ if debug > 0:
 
 previous = np.zeros((1, nOutputs))  # for exponential smoothing
 sample_rate = config.getfloat('cogito', 'sample_rate')
-window = config.getfloat('cogito', 'window')
-f_min = config.getfloat('cogito', 'f_min')
-f_max = config.getfloat('cogito', 'f_max')
-scaling = config.getfloat('cogito', 'scaling')
+window      = config.getfloat('cogito', 'window')
+f_min       = config.getfloat('cogito', 'f_min')
+f_max       = config.getfloat('cogito', 'f_max')
+scaling     = config.getfloat('cogito', 'scaling')
+try:
+    polyorder = config.getint('cogito', 'polyorder')
+except:
+    polyorder = None
 
 profileMin = config.getfloat('cogito', 'profileMin')
 profileMax = config.getfloat('cogito', 'profileMax')
@@ -181,8 +185,9 @@ while True:
         original = copy(dat_input[:, ch])
         # fit and subtract a 10th order polynomial
         t = np.arange(0, len(original))
-        p = np.polynomial.polynomial.polyfit(t, original, config.getint('cogito', 'polyorder'))
-        original = original - np.polynomial.polynomial.polyval(t, p)
+        if not(polyorder == None):
+            p = np.polynomial.polynomial.polyfit(t, original, polyorder)
+            original = original - np.polynomial.polynomial.polyval(t, p)
 
         # One
         channel = [np.ones(1)*scaling/250.]
