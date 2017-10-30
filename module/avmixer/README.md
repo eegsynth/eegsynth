@@ -1,4 +1,4 @@
-# AVmixer module
+# AVmixer Module
 
 The purpose of this module is to provide an interface to the [AVmixer software](https://neuromixer.com/products/avmixer).
 

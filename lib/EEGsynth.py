@@ -1,7 +1,8 @@
-import os
-import sys
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import mido
+import os
+import sys
+
 try:
     # see https://trac.v2.nl/wiki/pyOSC
     # this one is a bit difficult to install on Raspbian

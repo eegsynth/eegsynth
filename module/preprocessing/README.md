@@ -1,5 +1,4 @@
-Pre-processing module
-=====================
+# Pre-processing Module
 
 The purpose of this module is to do filtering and re-referencing on the
 ExG data that is recorded.  The input data is read from one FieldTrip

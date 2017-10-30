@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import redis
+import argparse
 import mido
+import numpy as np
+import os
+import redis
 import serial
+import sys
 import threading
 import time
-import sys
-import os
-import numpy as np
-import argparse
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import numpy as np
+import os
 import redis
 import sys
-import os
-import numpy as np
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -18,8 +18,8 @@ installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import FieldTrip
 import EEGsynth
+import FieldTrip
 import EDF
 
 parser = argparse.ArgumentParser()
@@ -91,9 +91,10 @@ blocksize = int(config.getfloat('playback', 'blocksize')*H.fSample)
 begsample = 0
 endsample = blocksize-1
 block     = 0
-adjust    = 1
 
+print "STARTING STREAM"
 while True:
+
     if endsample>H.nSamples-1:
         if debug>0:
             print "End of file reached, jumping back to start"
@@ -117,27 +118,30 @@ while True:
         continue
 
     # measure the time that it takes
-    now = time.time()
+    start = time.time()
 
     if debug>1:
-        print "Playing section", block, 'from', begsample, 'to', endsample
+        print "Playing block", block, 'from', begsample, 'to', endsample
 
     D = np.ndarray(shape=(blocksize, H.nChannels), dtype=np.float32)
     for chanindx in range(H.nChannels):
         D[:,chanindx] = f.readSamples(chanindx, begsample, endsample)
 
+    # write the data to the output buffer
     ftc.putData(D)
-
-    # this approximates the real time streaming speed
-    desired = blocksize/(H.fSample*EEGsynth.getfloat('playback', 'speed', config, r))
-    # the adjust factor compensates for the time spent on reading and writing the data
-    time.sleep(adjust * desired);
 
     begsample += blocksize
     endsample += blocksize
     block += 1
 
-    elapsed = time.time() - now
-    # adjust the relative delay for the next iteration
-    # the adjustment factor should only change a little per iteration
-    adjust = 0.1 * desired/elapsed + 0.9 * adjust
+    # this is a short-term approach, estimating the sleep for every block
+    # this code is shared between generatesignal, playback and playbackctrl
+    desired = blocksize/(H.fSample*EEGsynth.getfloat('playback', 'speed', config, r))
+    elapsed = time.time()-start
+    naptime = desired - elapsed
+    if naptime>0:
+        # this approximates the real time streaming speed
+        time.sleep(naptime)
+
+    if debug>0:
+        print "played", blocksize, "samples in", (time.time()-start)*1000, "ms"
