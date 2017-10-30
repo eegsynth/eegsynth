@@ -17,7 +17,6 @@ import numpy as np
 import pyqtgraph as pg
 from scipy.signal import butter, lfilter
 from scipy.interpolate import interp1d
-# basis = '/Users/stephen/eegsynth/module/plotsignal/'
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
@@ -50,7 +49,6 @@ else:
     basis = '../../eegsynth'
 
 installed_folder = os.path.split(basis)[0]
-# installed_folder = '/home/stephen/eegsynth/module/plotsignal'
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
@@ -101,8 +99,6 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-#chan_nrs  = np.where(np.asarray([config.items('plot_channels')[i][1]=='on' for i in range(len(config.items('plot_channels')))]))[0]
-#chanlist  = config.getfloat('arguments','channels',config, r, multiple=True)
 chanlist = config.get('arguments','channels').split(",")
 chanarray = np.array(chanlist)
 for i in range(len(chanarray)):
@@ -114,7 +110,7 @@ window    = config.getfloat('arguments','window')
 window    = int(round(window*hdr_input.fSample))
 clipsize  = config.getfloat('arguments','clipsize')
 clipsize  = int(round(clipsize*hdr_input.fSample))
-stepsize  = config.getfloat('arguments','stepsize')
+stepsize  = int(config.getfloat('arguments','stepsize') * 1000.0)
 lrate     = config.getfloat('arguments','learning_rate')
 
 # initialize graphical window
@@ -230,11 +226,14 @@ def update():
         blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
         blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
 
-   key = "%s.%s" % (config.get('output','prefix'), 'redband')
-   r.set(key,[redfreq-redwidth,redfreq+redwidth])
-
-   key = "%s.%s" % (config.get('output','prefix'), 'blueband')
-   r.set(key,[bluefreq-bluewidth,bluefreq+bluewidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'redband','low')
+   r.set(key,[redfreq-redwidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'redband','high')
+   r.set(key,[redfreq+redwidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'blueband','low')
+   r.set(key,[bluefreq-bluewidth])
+   key = "%s.%s.%s" % (config.get('output','prefix'), 'blueband','high')
+   r.set(key,[bluefreq+bluewidth])
 
 # Set timer for update
 timer = QtCore.QTimer()
