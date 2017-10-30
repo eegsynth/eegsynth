@@ -109,5 +109,7 @@ while True:
 
     # wait for a little bit
     elapsed = time.time()-start
-    time.sleep(window/fsample - elapsed); 
+    naptime = window/fsample - elapsed
+    if naptime>0:
+        time.sleep(window/fsample - elapsed); 
 
