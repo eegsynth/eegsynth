@@ -12,6 +12,29 @@ import pyqtgraph as pg
 from scipy.signal import butter, lfilter
 from scipy.interpolate import interp1d
 
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+elif sys.argv[0]!='':
+    basis = sys.argv[0]
+else:
+    basis = './'
+installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+import FieldTrip
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
+
+# this determines how much debugging information gets printed
+debug = config.getint('general','debug')
+
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
     low = lowcut / nyq
@@ -34,32 +57,6 @@ def butter_lowpass_filter(data, lowcut, fs, order=9):
     b, a = butter_lowpass(lowcut, fs, order=order)
     y    = lfilter(b, a, data)
     return y
-
-if hasattr(sys, 'frozen'):
-    basis = sys.executable
-elif sys.argv[0]!='':
-    basis = sys.argv[0]
-else:
-    basis = '../../eegsynth'
-
-installed_folder = os.path.split(basis)[0]
-
-# eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-sys.path.insert(0,'../../lib/')
-
-import EEGsynth
-import FieldTrip
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
-
-config = ConfigParser.ConfigParser()
-config.read(args.inifile)
-
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
 
 try:
     ftc_host = config.get('fieldtrip','hostname')
