@@ -69,6 +69,9 @@ if debug>1:
 filenumber = 0
 recording = False
 
+physical_min = config.getint('recording', 'physical_min')
+physical_max = config.getint('recording', 'physical_max')
+
 while True:
     H = ftc.getHeader()
 
@@ -96,11 +99,7 @@ while True:
         # open a new file
         fname = config.get('recording', 'file')
         name, ext = os.path.splitext(fname)
-        fname = name + '-' + str(filenumber) + ext
-        while os.path.isfile(fname):
-            # increase the sequence number
-            filenumber += 1
-            fname = name + '-' + str(filenumber) + ext
+        fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # the blocksize depends on the sampling rate, which may have changed
         blocksize = int(config.getfloat('recording', 'blocksize')*H.fSample)
         # construct the header
@@ -115,12 +114,13 @@ while True:
         meas_info['hour']           = now.hour
         meas_info['minute']         = now.minute
         meas_info['second']         = now.second
-        chan_info['physical_min']   = H.nChannels * [-10000.] # FIXME
-        chan_info['physical_max']   = H.nChannels * [ 10000.]
+        chan_info['physical_min']   = H.nChannels * [ physical_min]
+        chan_info['physical_max']   = H.nChannels * [ physical_max]
         chan_info['digital_min']    = H.nChannels * [-32768]
         chan_info['digital_max']    = H.nChannels * [ 32768]
         chan_info['ch_names']       = H.labels
         chan_info['n_samps']        = H.nChannels * [blocksize]
+        print chan_info
         # write the header to file
         if debug>0:
             print "Opening", fname
