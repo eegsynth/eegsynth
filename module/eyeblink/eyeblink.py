@@ -31,6 +31,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('fieldtrip','timeout')
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -54,16 +56,16 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-H = None
-while H is None:
+hdr_input = None
+while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
-    H = ftc.getHeader()
+    hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug>1:
-    print H
-    print H.labels
+    print hdr_input
+    print hdr_input.labels
 
 class TriggerThread(threading.Thread):
     def __init__(self, r, config):
@@ -96,7 +98,7 @@ trigger = TriggerThread(r, config)
 trigger.start()
 
 channel = config.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
-window  = round(config.getfloat('processing','window') * H.fSample)  # in samples
+window  = round(config.getfloat('processing','window') * hdr_input.fSample)  # in samples
 
 minval = None
 maxval = None
@@ -114,8 +116,8 @@ while True:
     trigger.time = t
     lock.release()
 
-    H = ftc.getHeader()
-    endsample = H.nSamples - 1
+    hdr_input = ftc.getHeader()
+    endsample = hdr_input.nSamples - 1
     if endsample<window:
         continue
 
@@ -139,7 +141,7 @@ while True:
         order = None
 
     # FIXME the following has not been tested yet
-    D = signal.butterworth(D, H.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
+    D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
 
     if minval is None:
         minval = np.min(D)

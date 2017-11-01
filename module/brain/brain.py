@@ -129,16 +129,16 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-H = None
-while H is None:
+hdr_input = None
+while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
-    H = ftc.getHeader()
+    hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug>1:
-    print H
-    print H.labels
+    print hdr_input
+    print hdr_input.labels
 
 channel_items = config.items('input')
 channame = []
@@ -151,13 +151,13 @@ for item in channel_items:
 if debug>0:
     print channame, chanindx
 
-window = int(round(config.getfloat('processing','window') * H.fSample))
+window = int(round(config.getfloat('processing','window') * hdr_input.fSample))
 minval = None
 maxval = None
 freeze = False
 
 taper = np.hanning(window)
-frequency = np.fft.rfftfreq(window, 1.0/H.fSample)
+frequency = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 
 if debug>2:
     print 'taper     = ', taper
@@ -194,8 +194,8 @@ try:
             trigger.maxval = maxval
         lock.release()
 
-        H = ftc.getHeader()
-        endsample = H.nSamples - 1
+        hdr_input = ftc.getHeader()
+        endsample = hdr_input.nSamples - 1
         if endsample<window:
             continue
 

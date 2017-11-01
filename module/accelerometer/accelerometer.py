@@ -31,6 +31,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('fieldtrip','timeout')
 
 try:
     ftc_host = config.get('fieldtrip','hostname')
@@ -45,16 +47,16 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-H = None
-while H is None:
+hdr_input = None
+while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
-    H = ftc.getHeader()
+    hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug>1:
-    print H
-    print H.labels
+    print hdr_input
+    print hdr_input.labels
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -66,7 +68,7 @@ except redis.ConnectionError:
     exit()
 
 # get the processing arameters
-window   = config.getfloat('processing','window')*H.fSample
+window   = config.getfloat('processing','window')*hdr_input.fSample
 
 channel_indx = []
 channel_name = ['channelX', 'channelY', 'channelZ']
@@ -77,14 +79,14 @@ for chan in channel_name:
 while True:
     time.sleep(config.getfloat('general','delay'))
 
-    H = ftc.getHeader()
-    if H.nSamples < window:
+    hdr_input = ftc.getHeader()
+    if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
         pass
 
     # get the most recent data segment
-    start = H.nSamples - int(window)
-    stop  = H.nSamples-1
+    start = hdr_input.nSamples - int(window)
+    stop  = hdr_input.nSamples-1
     dat   = ftc.getData([start,stop])
 
     # this is for debugging

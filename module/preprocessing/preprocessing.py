@@ -34,6 +34,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('fieldtrip','timeout')
 
 try:
     ftc_host = config.get('input_fieldtrip','hostname')
