@@ -31,6 +31,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('fieldtrip','timeout')
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -54,16 +56,20 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-H = None
-while H is None:
+hdr_input = None
+start = time.time()
+while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
-    H = ftc.getHeader()
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
+    hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug>1:
-    print H
-    print H.labels
+    print hdr_input
+    print hdr_input.labels
 
 class TriggerThread(threading.Thread):
     def __init__(self, r, config):
@@ -80,6 +86,7 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = self.r.pubsub()
         channel = self.config.get('processing','calibrate')
+        pubsub.subscribe('EYEBLINK_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(channel)
         while self.running:
             for item in pubsub.listen():
@@ -90,75 +97,89 @@ class TriggerThread(threading.Thread):
                 self.last = self.time
                 lock.release()
 
-# start the background thread
-lock = threading.Lock()
-trigger = TriggerThread(r, config)
-trigger.start()
+try:
+    # start the background thread
+    lock = threading.Lock()
+    trigger = TriggerThread(r, config)
+    trigger.start()
 
-channel = config.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
-window  = round(config.getfloat('processing','window') * H.fSample)  # in samples
+    channel = config.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
+    window  = round(config.getfloat('processing','window') * hdr_input.fSample)  # in samples
 
-minval = None
-maxval = None
+    minval = None
+    maxval = None
 
-t = 0
+    t = 0
 
-while True:
-    time.sleep(config.getfloat('processing','window')/10)
-    t += 1
+    begsample = -1
+    endsample = -1
 
-    lock.acquire()
-    if trigger.last == trigger.time:
-        minval = None
-        maxval = None
-    trigger.time = t
-    lock.release()
+    while True:
+        time.sleep(config.getfloat('processing','window')/10)
+        t += 1
 
-    H = ftc.getHeader()
-    endsample = H.nSamples - 1
-    if endsample<window:
-        continue
+        lock.acquire()
+        if trigger.last == trigger.time:
+            minval = None
+            maxval = None
+        trigger.time = t
+        lock.release()
 
-    begsample = endsample - window + 1
-    D = ftc.getData([begsample, endsample])
-    D = D[:,channel]
+        hdr_input = ftc.getHeader()
+        if (hdr_input.nSamples-1)<endsample:
+            print "Error: buffer reset detected"
+            raise SystemExit
+        endsample = hdr_input.nSamples - 1
+        if endsample<window:
+            continue
 
-    try:
-        low_pass = config.getint('processing', 'low_pass')
-    except:
-        low_pass = None
+        begsample = endsample - window + 1
+        D = ftc.getData([begsample, endsample])
+        D = D[:,channel]
 
-    try:
-        high_pass = config.getint('processing', 'high_pass')
-    except:
-        high_pass = None
+        try:
+            low_pass = config.getint('processing', 'low_pass')
+        except:
+            low_pass = None
 
-    try:
-        order = config.getint('general', 'order')
-    except:
-        order = None
+        try:
+            high_pass = config.getint('processing', 'high_pass')
+        except:
+            high_pass = None
 
-    # FIXME the following has not been tested yet
-    D = signal.butterworth(D, H.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
+        try:
+            order = config.getint('general', 'order')
+        except:
+            order = None
 
-    if minval is None:
-        minval = np.min(D)
+        # FIXME the following has not been tested yet
+        # D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
 
-    if maxval is None:
-        maxval = np.max(D)
+        if minval is None:
+            minval = np.min(D)
 
-    minval = min(minval,np.min(D))
-    maxval = max(maxval,np.max(D))
+        if maxval is None:
+            maxval = np.max(D)
 
-    spread = np.max(D) - np.min(D)
-    if spread > config.getfloat('processing','threshold')*(maxval-minval):
-        val = 1
-    else:
-        val = 0
+        minval = min(minval,np.min(D))
+        maxval = max(maxval,np.max(D))
 
-    print('spread ' + str(spread) +
-          '\t  max_spread : ' + str(maxval-minval) +
-          '\t  output ' + str(val))
+        spread = np.max(D) - np.min(D)
+        if spread > config.getfloat('processing','threshold')*(maxval-minval):
+            val = 1
+        else:
+            val = 0
 
-    key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
-    r.publish(key,val)
+        print('spread ' + str(spread) +
+              '\t  max_spread : ' + str(maxval-minval) +
+              '\t  output ' + str(val))
+
+        key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
+        r.publish(key,val)
+
+except (KeyboardInterrupt, SystemExit):
+    print "Closing threads"
+    trigger.stop()
+    r.publish('EYEBLINK_UNBLOCK', 1)
+    trigger.join()
+    sys.exit()

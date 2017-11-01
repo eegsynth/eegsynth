@@ -30,6 +30,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('fieldtrip','timeout')
 
 try:
     ftc_host = config.get('fieldtrip','hostname')
@@ -44,16 +46,20 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-H = None
-while H is None:
+hdr_input = None
+start = time.time()
+while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
-    H = ftc.getHeader()
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
+    hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug>1:
-    print H
-    print H.labels
+    print hdr_input
+    print hdr_input.labels
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -65,27 +71,33 @@ except redis.ConnectionError:
     exit()
 
 filter_length = '3s'
-window  = round(config.getfloat('processing','window') * H.fSample) # in samples
+window  = round(config.getfloat('processing','window') * hdr_input.fSample) # in samples
 channel = config.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
 key     = "%s.channel%d" % (config.get('output','prefix'), channel+1)
+
+begsample = -1
+endsample = -1
 
 while True:
     time.sleep(config.getfloat('general','delay'))
 
-    H = ftc.getHeader()
-    if H.nSamples < window:
+    hdr_input = ftc.getHeader()
+    if (hdr_input.nSamples-1)<endsample:
+        print "Error: buffer reset detected"
+        raise SystemExit
+    if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
         if debug>0:
-            print "waiting for data"
+            print "Waiting for data..."
         continue
 
     # we process the last window from the ECG channel
-    start = H.nSamples - int(window)
-    stop  = H.nSamples-1
-    ECG   = ftc.getData([start,stop])[:,channel]
+    begsample = hdr_input.nSamples - int(window)
+    endample  = hdr_input.nSamples-1
+    dat       = ftc.getData([begsample,endsample])[:,channel]
 
-    beats = mne.preprocessing.ecg.qrs_detector(H.fSample,ECG.astype(float),filter_length=filter_length)
-    val = float(60./(np.mean(np.diff(beats))/H.fSample))
+    beats = mne.preprocessing.ecg.qrs_detector(hdr_input.fSample,dat.astype(float),filter_length=filter_length)
+    val = float(60./(np.mean(np.diff(beats))/hdr_input.fSample))
 
     if debug>1:
         print key, val

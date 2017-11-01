@@ -34,6 +34,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('input_fieldtrip','timeout')
 
 try:
     ftc_host = config.get('input_fieldtrip','hostname')
@@ -62,9 +64,13 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
@@ -74,14 +80,6 @@ if debug>1:
 
 window = config.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
-
-begsample = -1
-while begsample<0:
-    # wait until there is enough data
-    hdr_input = ft_input.getHeader()
-    # jump to the end of the stream
-    begsample = int(hdr_input.nSamples - window)
-    endsample = int(hdr_input.nSamples - 1)
 
 ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
@@ -116,7 +114,7 @@ if not(highpassfilter is None) and (lowpassfilter is None):
     fir_poly = firwin(filterorder, cutoff = highpassfilter, window = "hanning", pass_zero=False)
 # Band pass
 if not(highpassfilter is None) and not(lowpassfilter is None):
-    fir_poly = firwin(filterorder, cutoff = [lowpassfilter, highpassfilter], window = 'blackmanharris', pass_zero = False)
+    fir_poly = firwin(filterorder, cutoff = [highpassfilter, lowpassfilter], window = 'blackmanharris', pass_zero = False)
 
 def onlinefilter(fil_state, in_data):
     m = in_data.shape[0]
@@ -132,12 +130,30 @@ previous = np.zeros((1, hdr_input.nChannels))
 if not(highpassfilter is None) or not(lowpassfilter is None):
     fil_state = np.zeros((filterorder, hdr_input.nChannels))
 
+# jump to the end of the stream
+if hdr_input.nSamples-1<window:
+    begsample = 0
+    endsample = window-1
+else:
+    begsample = hdr_input.nSamples-window
+    endsample = hdr_input.nSamples-1
+
+print "STARTING PREPROCESSING STREAM"
 while True:
+    start = time.time()
+
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(config.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
+        if (hdr_input.nSamples-1)<(endsample-window):
+            print "Error: buffer reset detected"
+            raise SystemExit
+        if (time.time()-start)>timeout:
+            print "Error: timeout while waiting for data"
+            raise SystemExit
 
+    # determine the start of the actual processing
     start = time.time()
 
     dat_input  = ft_input.getData([begsample, endsample])

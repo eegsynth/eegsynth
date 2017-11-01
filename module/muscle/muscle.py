@@ -34,6 +34,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('fieldtrip','timeout')
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -42,6 +44,19 @@ try:
         print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
+    exit()
+
+try:
+    ftc_host = config.get('fieldtrip','hostname')
+    ftc_port = config.getint('fieldtrip','port')
+    if debug>0:
+        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+    ftc = FieldTrip.Client()
+    ftc.connect(ftc_host, ftc_port)
+    if debug>0:
+        print "Connected to FieldTrip buffer"
+except:
+    print "Error: cannot connect to FieldTrip buffer"
     exit()
 
 class TriggerThread(threading.Thread):
@@ -111,61 +126,55 @@ class TriggerThread(threading.Thread):
                 self.update = True
                 lock.release()
 
-# start the background thread
-lock = threading.Lock()
-trigger = TriggerThread(r, config)
-trigger.start()
-
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
-    if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
-    if debug>0:
-        print "Connected to FieldTrip buffer"
-except:
-    print "Error: cannot connect to FieldTrip buffer"
-    exit()
+    # start the background thread
+    lock = threading.Lock()
+    trigger = TriggerThread(r, config)
+    trigger.start()
 
-H = None
-while H is None:
-    if debug>0:
-        print "Waiting for data to arrive..."
-    H = ftc.getHeader()
-    time.sleep(0.2)
+    hdr_input = None
+    start = time.time()
+    while hdr_input is None:
+        if debug>0:
+            print "Waiting for data to arrive..."
+        if (time.time()-start)>timeout:
+            print "Error: timeout while waiting for data"
+            raise SystemExit
+        hdr_input = ftc.getHeader()
+        time.sleep(0.2)
 
-if debug>1:
-    print H
-    print H.labels
+    if debug>1:
+        print hdr_input
+        print hdr_input.labels
 
-channel_items = config.items('input')
-channame = []
-chanindx = []
-for item in channel_items:
-    # channel numbers are one-offset in the ini file, zero-offset in the code
-    channame.append(item[0])                            # the channel name
-    chanindx.append(config.getint('input', item[0])-1)  # the channel number
+    channel_items = config.items('input')
+    channame = []
+    chanindx = []
+    for item in channel_items:
+        # channel numbers are one-offset in the ini file, zero-offset in the code
+        channame.append(item[0])                            # the channel name
+        chanindx.append(config.getint('input', item[0])-1)  # the channel number
 
-window = round(config.getfloat('processing','window') * H.fSample)
-order = config.getint('processing', 'order')
+    window = round(config.getfloat('processing','window') * hdr_input.fSample)
+    order = config.getint('processing', 'order')
 
-try:
-    low_pass = config.getint('processing', 'low_pass')
-except:
-    low_pass = None
+    try:
+        low_pass = config.getint('processing', 'low_pass')
+    except:
+        low_pass = None
 
-try:
-    high_pass = config.getint('processing', 'high_pass')
-except:
-    high_pass = None
+    try:
+        high_pass = config.getint('processing', 'high_pass')
+    except:
+        high_pass = None
 
-minval = None
-maxval = None
-freeze = False
+    minval = None
+    maxval = None
+    freeze = False
 
-try:
+    begsample = -1
+    endsample = -1
+
     while True:
         time.sleep(config.getfloat('general','delay'))
 
@@ -180,8 +189,11 @@ try:
             trigger.maxval = maxval
         lock.release()
 
-        H = ftc.getHeader()
-        endsample = H.nSamples - 1
+        hdr_input = ftc.getHeader()
+        if (hdr_input.nSamples-1)<endsample:
+            print "Error: buffer reset detected"
+            raise SystemExit
+        endsample = hdr_input.nSamples - 1
         if endsample<window:
             continue
 
@@ -191,7 +203,7 @@ try:
         D = D[:, chanindx]
 
         if low_pass or high_pass:
-            D = signal.butterworth(D, H.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
+            D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
 
         rms = []
         for i in range(0,len(chanindx)):
@@ -228,7 +240,7 @@ try:
             val = int(127*val)
             r.set(key,val)
 
-except KeyboardInterrupt:
+except (KeyboardInterrupt, SystemExit):
     print "Closing threads"
     trigger.stop()
     r.publish('MUSCLE_UNBLOCK', 1)
