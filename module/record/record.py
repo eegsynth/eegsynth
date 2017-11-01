@@ -58,9 +58,13 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 

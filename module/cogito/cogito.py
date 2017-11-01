@@ -32,7 +32,7 @@ config.read(args.inifile)
 # this determines how much debugging information gets printed
 debug = config.getint('general', 'debug')
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
+timeout = config.getfloat('input_fieldtrip','timeout')
 
 try:
     ftc_host = config.get('input_fieldtrip', 'hostname')
@@ -79,20 +79,19 @@ def sanitize(equation):
     return equation
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug > 0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 if debug > 1:
     print hdr_input
     print hdr_input.labels
-
-# jump to the end of the stream
-hdr_input = ft_input.getHeader()
-begsample = int(hdr_input.nSamples - window)
-endsample = int(hdr_input.nSamples - 1)
 
 # ensure that all input channels have a label
 nInputs = hdr_input.nChannels
@@ -160,14 +159,30 @@ if debug > 1:
     print "nchan", hdr_input.nChannels
     print "window", window
 
+# jump to the end of the stream
+if hdr_input.nSamples-1<window:
+    begsample = 0
+    endsample = window-1
+else:
+    begsample = hdr_input.nSamples-window
+    endsample = hdr_input.nSamples-1
+
 print "STARTING COGITO STREAM"
 while True:
+    start = time.time();
 
-    while endsample > hdr_input.nSamples-1:
+    while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(config.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
+        if (hdr_input.nSamples-1)<(endsample-window):
+            print "Error: buffer reset detected"
+            raise SystemExit
+        if (time.time()-start)>timeout:
+            print "Error: timeout while waiting for data"
+            raise SystemExit
 
+    # determine the start of the actual processing
     start = time.time();
 
     dat_input = ft_input.getData([begsample, endsample])

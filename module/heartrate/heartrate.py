@@ -47,9 +47,13 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
@@ -71,22 +75,28 @@ window  = round(config.getfloat('processing','window') * hdr_input.fSample) # in
 channel = config.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
 key     = "%s.channel%d" % (config.get('output','prefix'), channel+1)
 
+begsample = -1
+endsample = -1
+
 while True:
     time.sleep(config.getfloat('general','delay'))
 
     hdr_input = ftc.getHeader()
+    if (hdr_input.nSamples-1)<endsample:
+        print "Error: buffer reset detected"
+        raise SystemExit
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
         if debug>0:
-            print "waiting for data"
+            print "Waiting for data..."
         continue
 
     # we process the last window from the ECG channel
-    start = hdr_input.nSamples - int(window)
-    stop  = hdr_input.nSamples-1
-    ECG   = ftc.getData([start,stop])[:,channel]
+    begsample = hdr_input.nSamples - int(window)
+    endample  = hdr_input.nSamples-1
+    dat       = ftc.getData([begsample,endsample])[:,channel]
 
-    beats = mne.preprocessing.ecg.qrs_detector(hdr_input.fSample,ECG.astype(float),filter_length=filter_length)
+    beats = mne.preprocessing.ecg.qrs_detector(hdr_input.fSample,dat.astype(float),filter_length=filter_length)
     val = float(60./(np.mean(np.diff(beats))/hdr_input.fSample))
 
     if debug>1:

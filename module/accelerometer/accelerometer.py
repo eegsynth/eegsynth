@@ -3,7 +3,7 @@
 import ConfigParser
 import argparse
 import mne
-import numpy
+import numpy as np
 import os
 import redis
 import sys
@@ -48,9 +48,13 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
@@ -68,7 +72,7 @@ except redis.ConnectionError:
     exit()
 
 # get the processing arameters
-window   = config.getfloat('processing','window')*hdr_input.fSample
+window = config.getfloat('processing','window')*hdr_input.fSample
 
 channel_indx = []
 channel_name = ['channelX', 'channelY', 'channelZ']
@@ -76,18 +80,26 @@ for chan in channel_name:
     # channel numbers are one-offset in the ini file, zero-offset in the code
     channel_indx.append(config.getint('input',chan)-1)
 
+begsample = -1
+endsample = -1
+
 while True:
     time.sleep(config.getfloat('general','delay'))
 
     hdr_input = ftc.getHeader()
+    if (hdr_input.nSamples-1)<endsample:
+        print "Error: buffer reset detected"
+        raise SystemExit
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
-        pass
+        if debug>0:
+            print "Waiting for data..."
+        continue
 
     # get the most recent data segment
-    start = hdr_input.nSamples - int(window)
-    stop  = hdr_input.nSamples-1
-    dat   = ftc.getData([start,stop])
+    begsample = hdr_input.nSamples - int(window)
+    endsample  = hdr_input.nSamples-1
+    dat        = ftc.getData([begsample,endsample])
 
     # this is for debugging
     printval = []
@@ -112,7 +124,7 @@ while True:
             offset = 0
 
         # compute the mean over the window
-        val = numpy.mean(dat[:,chanindx])
+        val = np.mean(dat[:,chanindx])
 
         # this is for debugging
         printval.append(val)
