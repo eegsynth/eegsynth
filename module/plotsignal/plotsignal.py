@@ -3,7 +3,7 @@
 #
 # Plotsignal is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
-# Copyright (C) 2007 EEGsynth project
+# Copyright (C) 2017 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
