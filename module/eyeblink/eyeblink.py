@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Eyeblink detects eyeblinks
 #
 # Eyeblink is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
@@ -16,8 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/usr/bin/env python
 
 from nilearn import signal
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Plotsignal plots raw and spectral data from the buffer and allows
 # interactive selection of frequency bands for further processing
 #
@@ -17,8 +19,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/usr/bin/env python
 
 from pyqtgraph.Qt import QtGui, QtCore
 from scipy.interpolate import interp1d

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Accelerometer records accelerometer data from OpenBCI board into FieldTrip buffer
 #
 # Accelerometer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
@@ -16,8 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/usr/bin/env python
 
 import ConfigParser
 import argparse

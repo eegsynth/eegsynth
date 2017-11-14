@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # InputOSC records OSC data into Redis
 #
 # InputOSC is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
@@ -16,8 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/usr/bin/env python
 
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import OSC          # see https://trac.v2.nl/wiki/pyOSC

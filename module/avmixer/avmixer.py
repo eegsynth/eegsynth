@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # AVmixer interfaces with the AVmixer application
 #
 # AVmixer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
@@ -16,8 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#!/usr/bin/env python
 
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
