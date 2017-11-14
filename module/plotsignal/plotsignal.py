@@ -1,3 +1,23 @@
+# Plotsignal plots raw and spectral data from the buffer and allows
+# interactive selection of frequency bands for further processing
+#
+# Plotsignal is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2007 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 #!/usr/bin/env python
 
 import sys
@@ -7,16 +27,16 @@ import redis
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.signal
-import scipy.fftpack
 import redis
 import argparse
 
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
-from scipy.signal import butter, lfilter
+
+from scipy.signal import butter, lfilter, detrend
 from scipy.interpolate import interp1d
+from scipy.fftpack import fft, fftfreq
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
@@ -131,8 +151,8 @@ redleft = [];
 redright = [];
 blueleft = [];
 blueright = [];
-fft = [];
-fft_old = [];
+FFT = [];
+FFT_old = [];
 specmax = [];
 specmin = [];
 curvemax = [];
@@ -159,11 +179,11 @@ for ichan in range(chan_nrs):
     curvemax.append(0)
     specmin.append(0)
     specmax.append(0)
-    fft.append(0)
-    fft_old.append(0)
+    FFT.append(0)
+    FFT_old.append(0)
 
 def update():
-   global curvemax, specmax, specmin, fft_old, redfreq, redwidth, bluefreq, bluewidth, counter
+   global curvemax, specmax, specmin, FFT_old, redfreq, redwidth, bluefreq, bluewidth, counter
 
    # get last data
    last_index = ft_input.getHeader().nSamples
@@ -174,7 +194,7 @@ def update():
 
    # demean data before filtering to reduce edge artefacts and center timecourse
    data = data - np.sum(data,axis=0)/float(len(data))
-   data = scipy.signal.detrend(data, axis=0)
+   data = detrend(data, axis=0)
    data = butter_bandpass_filter(data.T, 5, 40, 250, 9).T[clipsize:-clipsize]
 
    # spectral estimate looping over chan_nrs
@@ -182,12 +202,12 @@ def update():
 
    for ichan in range(chan_nrs):
 
-        channr = chanarray[ichan]
-        fft[ichan] = abs(scipy.fft(taper*data[:,chanarray[ichan]])) * lrate + fft_old[ichan] * (1-lrate)
-        fft_old[ichan] = fft[ichan]
+        channr = int(chanarray[ichan])
+        FFT[ichan] = abs(fft(taper*data[:,int(chanarray[ichan])])) * lrate + FFT_old[ichan] * (1-lrate)
+        FFT_old[ichan] = FFT[ichan]
 
         # freqency axis
-        freqaxis = scipy.fftpack.fftfreq(len(data),1/hdr_input.fSample)
+        freqaxis = fftfreq(len(data),1/hdr_input.fSample)
 
         # user-selected frequency band
         user_freqrange = config.get('arguments','freqrange').split("-")
@@ -200,12 +220,12 @@ def update():
         curve[ichan].setData(timeaxis,data[:,channr])
 
         # update spectrum
-        spect[ichan].setData(freqaxis[freqrange],fft[ichan][freqrange])
+        spect[ichan].setData(freqaxis[freqrange],FFT[ichan][freqrange])
 
         # adapt scale to running mean of max
         curvemax[ichan] = float(curvemax[ichan])  * (1-lrate) + lrate * max(abs(data[:,ichan]))
-        specmax[ichan] = float(specmax[ichan]) * (1-lrate) + lrate * max(fft[ichan][freqrange])
-        specmin[ichan] = float(specmin[ichan]) * (1-lrate) + lrate * min(fft[ichan][freqrange])
+        specmax[ichan] = float(specmax[ichan]) * (1-lrate) + lrate * max(FFT[ichan][freqrange])
+        specmin[ichan] = float(specmin[ichan]) * (1-lrate) + lrate * min(FFT[ichan][freqrange])
 
         timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
         freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
