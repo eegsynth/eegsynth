@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import redis
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 from copy import copy
-import numpy as np
 from numpy.matlib import repmat
-from scipy.signal import firwin
 from scipy.ndimage import convolve1d
+from scipy.signal import firwin
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
+import numpy as np
+import os
+import redis
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -34,6 +34,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('input_fieldtrip','timeout')
 
 try:
     ftc_host = config.get('input_fieldtrip','hostname')
@@ -62,9 +64,13 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
@@ -72,22 +78,17 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-smoothing = config.getfloat('processing', 'smoothing')
 window = config.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
-reference = config.get('processing','reference')
-
-begsample = -1
-while begsample<0:
-    # wait until there is enough data
-    hdr_input = ft_input.getHeader()
-    # jump to the end of the stream
-    begsample = int(hdr_input.nSamples - window)
-    endsample = int(hdr_input.nSamples - 1)
-
 ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
+try:
+    smoothing = config.getfloat('processing', 'smoothing')
+except:
+    smoothing = None
+
+reference = config.get('processing','reference')
 
 # Filtering init
 try:
@@ -113,41 +114,68 @@ if not(highpassfilter is None) and (lowpassfilter is None):
     fir_poly = firwin(filterorder, cutoff = highpassfilter, window = "hanning", pass_zero=False)
 # Band pass
 if not(highpassfilter is None) and not(lowpassfilter is None):
-    fir_poly = firwin(filterorder, cutoff = [lowpassfilter, highpassfilter], window = 'blackmanharris', pass_zero = False)
+    fir_poly = firwin(filterorder, cutoff = [highpassfilter, lowpassfilter], window = 'blackmanharris', pass_zero = False)
 
+def onlinefilter(fil_state, in_data):
+    m = in_data.shape[0]
+    n = len(fir_poly)
+    fil_state = np.concatenate((fil_state, np.atleast_2d(in_data)), axis=0)
+    fil_data = convolve1d(fil_state, fir_poly)
+    return fil_state[-n:, :], fil_data[-m:, :]
 
-def onlinefilter(fil_state, data):
-    fil_state = np.concatenate((fil_state, np.atleast_2d(data).T), axis=1)
-    fil_data = convolve1d(fil_state, fir_poly)[:, len(fir_poly)//2]
-    return fil_state[:, 1:], fil_data
-
-
+# initialize the state for the smoothing
 previous = np.zeros((1, hdr_input.nChannels))
-if not(highpassfilter is None) or not(lowpassfilter is None):
-    fil_state = np.zeros((hdr_input.nChannels, filterorder-1))
 
+# initialize the state for the filtering
+if not(highpassfilter is None) or not(lowpassfilter is None):
+    fil_state = np.zeros((filterorder, hdr_input.nChannels))
+
+# jump to the end of the stream
+if hdr_input.nSamples-1<window:
+    begsample = 0
+    endsample = window-1
+else:
+    begsample = hdr_input.nSamples-window
+    endsample = hdr_input.nSamples-1
+
+print "STARTING PREPROCESSING STREAM"
 while True:
+    start = time.time()
+
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(config.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
+        if (hdr_input.nSamples-1)<(endsample-window):
+            print "Error: buffer reset detected"
+            raise SystemExit
+        if (time.time()-start)>timeout:
+            print "Error: timeout while waiting for data"
+            raise SystemExit
 
-    if debug>1:
-        print endsample
+    # determine the start of the actual processing
+    start = time.time()
 
-    dat_input = ft_input.getData([begsample, endsample])
+    dat_input  = ft_input.getData([begsample, endsample])
     dat_output = dat_input.astype(np.float32)
 
+    if debug>1:
+        print "------------------------------------------------------------"
+        print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
+
     # Smoothing
-    for t in range(window):
-        dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
-        previous = copy(dat_output[t, :])
+    if not(smoothing is None):
+        for t in range(window):
+            dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
+            previous = copy(dat_output[t, :])
+    if debug>1:
+        print "smoothed    ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # Online filtering
     if not(highpassfilter is None) or not(lowpassfilter is None):
-        for t in range(window):
-            fil_state, fil_data = onlinefilter(fil_state, dat_output[t, :])
-            dat_output[t, :] = fil_data
+        fil_state, dat_output = onlinefilter(fil_state, dat_output)
+    if debug>1:
+        print "filtered    ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # Rereferencing
     if reference == 'median':
@@ -156,9 +184,16 @@ while True:
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1),
                              dat_output.shape[1], 1).T
+    if debug>1:
+        print "rereferenced", window, "samples in", (time.time()-start)*1000, "ms"
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
+
+    if debug==1:
+        print "preprocessed", window, "samples in", (time.time()-start)*1000, "ms"
+    if debug>1:
+        print "wrote       ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # increment the counters for the next loop
     begsample += window

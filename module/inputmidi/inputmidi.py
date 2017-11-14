@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import mido
-import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import mido
+import os
 import redis
 import sys
-import os
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -15,6 +15,10 @@ elif sys.argv[0]!='':
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")

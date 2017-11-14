@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import numpy as np
-import pandas as pd
 from copy import copy
+import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
+import numpy as np
+import os
+import pandas as pd
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -31,6 +31,8 @@ config.read(args.inifile)
 
 # this determines how much debugging information gets printed
 debug = config.getint('general', 'debug')
+# this is the timeout for the FieldTrip buffer
+timeout = config.getfloat('input_fieldtrip','timeout')
 
 try:
     ftc_host = config.get('input_fieldtrip', 'hostname')
@@ -58,17 +60,6 @@ except:
     print "Error: cannot connect to output FieldTrip buffer"
     exit()
 
-hdr_input = None
-while hdr_input is None:
-    if debug > 0:
-        print "Waiting for data to arrive..."
-    hdr_input = ft_input.getHeader()
-    time.sleep(0.2)
-
-if debug > 1:
-    print hdr_input
-    print hdr_input.labels
-
 # get the input and output options
 input_number, input_channel = map(list, zip(*config.items('input_channel')))
 output_number, output_channel = map(list, zip(*config.items('output_channel')))
@@ -86,6 +77,21 @@ def sanitize(equation):
     equation = equation.replace('/', ' / ')
     equation = equation.replace('  ', ' ')
     return equation
+
+hdr_input = None
+start = time.time()
+while hdr_input is None:
+    if debug > 0:
+        print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
+    hdr_input = ft_input.getHeader()
+    time.sleep(0.2)
+
+if debug > 1:
+    print hdr_input
+    print hdr_input.labels
 
 # ensure that all input channels have a label
 nInputs = hdr_input.nChannels
@@ -117,12 +123,15 @@ if debug > 0:
     for number, channel in zip(output_number, output_channel):
         print number, '=', channel
 
-previous = np.zeros((1, nOutputs))  # for exponential smoothing
 sample_rate = config.getfloat('cogito', 'sample_rate')
-window = config.getfloat('cogito', 'window')
-f_min = config.getfloat('cogito', 'f_min')
-f_max = config.getfloat('cogito', 'f_max')
-scaling = config.getfloat('cogito', 'scaling')
+window      = config.getfloat('cogito', 'window')
+f_min       = config.getfloat('cogito', 'f_min')
+f_max       = config.getfloat('cogito', 'f_max')
+scaling     = config.getfloat('cogito', 'scaling')
+try:
+    polyorder = config.getint('cogito', 'polyorder')
+except:
+    polyorder = None
 
 profileMin = config.getfloat('cogito', 'profileMin')
 profileMax = config.getfloat('cogito', 'profileMax')
@@ -135,14 +144,6 @@ window = int(round(window*hdr_input.fSample))
 # FIXME these are in Hz, but should be mapped to frequency bins
 f_min = int(f_min)
 f_max = int(f_max)
-
-begsample = -1
-while begsample < 0:
-    # wait until there is enough data
-    hdr_input = ft_input.getHeader()
-    # jump to the end of the stream
-    begsample = int(hdr_input.nSamples - window)
-    endsample = int(hdr_input.nSamples - 1)
 
 ft_output.putHeader(nOutputs, sample_rate, hdr_input.dataType, labels=output_channel)
 
@@ -158,14 +159,30 @@ if debug > 1:
     print "nchan", hdr_input.nChannels
     print "window", window
 
+# jump to the end of the stream
+if hdr_input.nSamples-1<window:
+    begsample = 0
+    endsample = window-1
+else:
+    begsample = hdr_input.nSamples-window
+    endsample = hdr_input.nSamples-1
+
 print "STARTING COGITO STREAM"
 while True:
+    start = time.time();
 
-    while endsample > hdr_input.nSamples-1:
+    while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(config.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
+        if (hdr_input.nSamples-1)<(endsample-window):
+            print "Error: buffer reset detected"
+            raise SystemExit
+        if (time.time()-start)>timeout:
+            print "Error: timeout while waiting for data"
+            raise SystemExit
 
+    # determine the start of the actual processing
     start = time.time();
 
     dat_input = ft_input.getData([begsample, endsample])
@@ -181,8 +198,9 @@ while True:
         original = copy(dat_input[:, ch])
         # fit and subtract a 10th order polynomial
         t = np.arange(0, len(original))
-        p = np.polynomial.polynomial.polyfit(t, original, config.getint('cogito', 'polyorder'))
-        original = original - np.polynomial.polynomial.polyval(t, p)
+        if not(polyorder == None):
+            p = np.polynomial.polynomial.polyfit(t, original, polyorder)
+            original = original - np.polynomial.polynomial.polyval(t, p)
 
         # One
         channel = [np.ones(1)*scaling/250.]

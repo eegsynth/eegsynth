@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import time
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import datetime
+import numpy as np
+import os
 import redis
 import sys
-import os
-import numpy as np
-import datetime
 import time
-import argparse
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -68,11 +68,7 @@ while True:
         # open a new file
         fname = config.get('recording', 'file')
         name, ext = os.path.splitext(fname)
-        fname = name + '-' + str(filenumber) + ext
-        while os.path.isfile(fname):
-            # increase the sequence number
-            filenumber += 1
-            fname = name + '-' + str(filenumber) + ext
+        fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # get the details from REDIS
         channels = sorted(r.keys('*'))
         channelz = sorted(r.keys('*'))
