@@ -1,5 +1,24 @@
 #!/usr/bin/env python
 
+# Spectral outputs power envelopes of user-defined frequency bands
+#
+# Spectral is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2017 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from nilearn import signal
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
@@ -35,7 +54,7 @@ config.read(args.inifile)
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
+timeout = config.getfloat('fieldtrip', 'timeout')
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -79,7 +98,7 @@ class TriggerThread(threading.Thread):
         pubsub.subscribe(self.config.get('gain_control','freeze'))
         pubsub.subscribe(self.config.get('gain_control','increase'))
         pubsub.subscribe(self.config.get('gain_control','decrease'))
-        pubsub.subscribe('MUSCLE_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe('BRAIN_UNBLOCK')  # this message unblocks the redis listen command
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
@@ -152,31 +171,45 @@ try:
     chanindx = []
     for item in channel_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
-        channame.append(item[0])                            # the channel name
-        chanindx.append(config.getint('input', item[0])-1)  # the channel number
+        channame.append(item[0])
+        chanindx.append(config.getint('input', item[0])-1)
 
-    window = round(config.getfloat('processing','window') * hdr_input.fSample)
-    order = config.getint('processing', 'order')
+    if debug>0:
+        print channame, chanindx
 
-    try:
-        low_pass = config.getint('processing', 'low_pass')
-    except:
-        low_pass = None
-
-    try:
-        high_pass = config.getint('processing', 'high_pass')
-    except:
-        high_pass = None
-
+    window = int(round(config.getfloat('processing','window') * hdr_input.fSample))
     minval = None
     maxval = None
     freeze = False
+
+    taper = np.hanning(window)
+    frequency = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
+
+    if debug>2:
+        print 'taper     = ', taper
+        print 'frequency = ', frequency
 
     begsample = -1
     endsample = -1
 
     while True:
         time.sleep(config.getfloat('general','delay'))
+
+        band_items = config.items('band')
+        bandname = []
+        bandlo   = []
+        bandhi   = []
+        for item in band_items:
+            # channel numbers are one-offset in the ini file, zero-offset in the code
+            lohi = EEGsynth.getfloat('band', item[0], config, r, multiple=True)
+            if debug>2:
+                print item[0], lohi
+            # lohi = config.get('band', item[0]).split("-")
+            bandname.append(item[0])
+            bandlo.append(lohi[0])
+            bandhi.append(lohi[1])
+        if debug>0:
+            print bandname, bandlo, bandhi
 
         lock.acquire()
         if trigger.update:
@@ -200,49 +233,68 @@ try:
         begsample = endsample-window+1
         D = ftc.getData([begsample, endsample])
 
+        power = []
+        for chan in channame:
+            for band in bandname:
+                power.append(0)
+
         D = D[:, chanindx]
+        M = D.mean(0)
 
-        if low_pass or high_pass:
-            D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
+        # subtract the channel mean and apply the taper to each sample
+        for chan in range(D.shape[1]):
+            for sample in range(D.shape[0]):
+                D[sample,chan] -= M[chan]
+                D[sample,chan] *= taper[sample]
 
-        rms = []
-        for i in range(0,len(chanindx)):
-            rms.append(0)
+        # compute the FFT over the sample direction
+        F = np.fft.rfft(D,axis=0)
 
-        for i,chanvec in enumerate(D.transpose()):
-            for chanval in chanvec:
-                rms[i] += chanval*chanval
-            rms[i] = math.sqrt(rms[i])
-
-        if debug>1:
-            print rms
+        i = 0
+        for chan in range(F.shape[1]):
+            for lo,hi in zip(bandlo,bandhi):
+                power[i] = 0
+                count = 0
+                for sample in range(len(frequency)):
+                    if frequency[sample]>=lo and frequency[sample]<=hi:
+                        power[i] += abs(F[sample,chan]*F[sample,chan])
+                        count    += 1
+                if count>0:
+                    power[i] /= count
+                i+=1
 
         if minval is None:
-            minval = rms
+            minval = power
         if maxval is None:
-            maxval = rms
+            maxval = power
 
         if not freeze:
             # update the min/max value for the automatic gain control
-            minval = [min(a,b) for (a,b) in zip(rms,minval)]
-            maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
+            minval = [min(a,b) for (a,b) in zip(power,minval)]
+            maxval = [max(a,b) for (a,b) in zip(power,maxval)]
 
         # apply the gain control
-        for i,val in enumerate(rms):
+        for i,val in enumerate(power):
             if maxval[i]==minval[i]:
-                rms[i] = 0
+                power[i] = 0
             else:
-                rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
+                power[i] = (power[i]-minval[i])/(maxval[i]-minval[i])
 
-        for name,val in zip(channame, rms):
-            # send it as control value: prefix.channelX=val
-            key = "%s.%s" % (config.get('output','prefix'), name)
-            val = int(127*val)
-            r.set(key,val)
+        if debug>1:
+            print power
+
+        i = 0
+        for chan in channame:
+            for band in bandname:
+                # send the control value prefix.channel.band=value
+                key = "%s.%s.%s" % (config.get('output','prefix'), chan, band)
+                val = int(127.0*power[i])
+                r.set(key,val)
+                i+=1
 
 except (KeyboardInterrupt, SystemExit):
     print "Closing threads"
     trigger.stop()
-    r.publish('MUSCLE_UNBLOCK', 1)
+    r.publish('BRAIN_UNBLOCK', 1)
     trigger.join()
     sys.exit()
