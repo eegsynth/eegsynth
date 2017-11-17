@@ -109,6 +109,7 @@ Subsequently you can install the Python modules
 ```
 sudo pip install redis
 sudo pip install mido
+sudo pip install python-rtmidi --pre
 sudo pip install pyserial
 sudo pip install pyosc
 sudo pip install numpy
@@ -116,7 +117,7 @@ sudo pip install nilearn
 sudo pip install sklearn
 ```
 
-Due to the large number of non Python dependencies, installing the scipy package is easier with apt-get than with pip.
+Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.
 
 ```
 sudo apt-get install python-scipy
