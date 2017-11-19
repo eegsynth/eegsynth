@@ -2,21 +2,37 @@
 
 ## Installation instructions for OS X
 
+On Mac OS-X there are multiple options for Python: you can either use the built-in version of python (which is /usr/bin/python) supplied by Apple, you can install Python (and most other dependencies) through the macports or homebrew package manager (see below), or you can use the Anaconda python distribution.
+
+
 ### Package managers
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Package_manager): *A package manager or package management system is a collection of software tools that automates the process of installing, upgrading, configuring, and removing computer programs for a computer's operating system in a consistent manner.*
 
-For the general software dependencies (binaries and libraries) we are using either [HomeBrew](http://brew.sh) or  [MacPorts](https://www.macports.org). 
+For the general software dependencies (binaries and libraries) we are using either [HomeBrew](http://brew.sh) or [MacPorts](https://www.macports.org).
 
-To make sure MacPorts is up to date, you should do
+To make sure your package manager is up to date, you should do
+
+```
+brew update
+```
+
+or
 
 ```
 sudo port selfupdate
 ```
+
 To make sure you have wget, you should do
 
 ```
-sudo brew install wget
+sudo port install wget
+```
+
+or
+
+```
+brew install wget
 ```
 
 ### Install MIDO for Python
@@ -57,14 +73,21 @@ launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
 
 ### Install python modules
 
-For the Python dependencies (packages) we are using pip. To install pip for the default OS-X Python version 2.7, you should do
+For the Python dependencies (packages) we are using pip. To install pip, you should do
 
 ```
 sudo port install py27-pip
 sudo port select --set pip pip27
+sudo port select --set python python27
 ```
 
-To make sure it is up to date, you should do
+The graphical user interfaces of plotsignal and plotcontrol are generated using Qt4. This requires the bindings between Python and Qt to be installed with
+
+```
+sudo port install py27-pyside
+```
+
+To make sure the Python package manager is up to date, you should do
 ```
 sudo pip install --upgrade pip
 ```
@@ -78,4 +101,7 @@ sudo pip install pyosc
 sudo pip install numpy
 sudo pip install nilearn
 sudo pip install sklearn
+sudo pip install pyqtgraph
+sudo pip install scipy
+sudo pip install matplotlib
 ```
