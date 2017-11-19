@@ -103,10 +103,13 @@ while True:
     historic['range']   = historic['maximum'] - historic['minimum']
     # use some robust estimators
     historic['median']  = np.nanmedian(history, axis=1)
+    # see https://en.wikipedia.org/wiki/Median_absolute_deviation
     historic['mad']     = mad(history, axis=1)
     # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
     historic['p16']     = np.percentile(history, 16, axis=1)
     historic['p84']     = np.percentile(history, 84, axis=1)
+    # see https://en.wikipedia.org/wiki/Interquartile_range
+    historic['iqr']     = historic['p84'] - historic['p16']
 
     if debug>1:
         print historic
