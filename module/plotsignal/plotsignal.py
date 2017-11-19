@@ -120,11 +120,11 @@ for i in range(len(chanarray)):
 
 chan_nrs = len(chanlist)
 
-window    = config.getfloat('arguments','window')
-window    = int(round(window*hdr_input.fSample))
-clipsize  = config.getfloat('arguments','clipsize')
-clipsize  = int(round(clipsize*hdr_input.fSample))
-stepsize  = int(config.getfloat('arguments','stepsize') * 1000.0)
+window    = config.getfloat('arguments','window')   # in seconds
+window    = int(round(window*hdr_input.fSample))    # in samples
+clipsize  = config.getfloat('arguments','clipsize') # in seconds
+clipsize  = int(round(clipsize*hdr_input.fSample))  # in samples
+stepsize  = config.getfloat('arguments','stepsize') # in seconds
 lrate     = config.getfloat('arguments','learning_rate')
 
 # initialize graphical window
@@ -252,8 +252,8 @@ def update():
 # Set timer for update
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.setInterval(.01) # timeout
-timer.start(stepsize)
+timer.setInterval(10)                   # timeout in milliseconds
+timer.start(int(round(stepsize*1000)))  # in milliseconds
 
 # Wait until there is enough data
 begsample = -1
