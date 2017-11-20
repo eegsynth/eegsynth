@@ -106,8 +106,10 @@ while True:
     # see https://en.wikipedia.org/wiki/Median_absolute_deviation
     historic['mad']     = mad(history, axis=1)
     # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
-    historic['p16']     = np.percentile(history, 16, axis=1)
-    historic['p84']     = np.percentile(history, 84, axis=1)
+    historic['p03']     = np.percentile(history,  3, axis=1) # mean minus 2x standard deviation
+    historic['p16']     = np.percentile(history, 16, axis=1) # mean minus 1x standard deviation
+    historic['p84']     = np.percentile(history, 84, axis=1) # mean plus 1x standard deviation
+    historic['p97']     = np.percentile(history, 97, axis=1) # mean plus 2x standard deviation
     # see https://en.wikipedia.org/wiki/Interquartile_range
     historic['iqr']     = historic['p84'] - historic['p16']
 
@@ -116,11 +118,11 @@ while True:
 
     for operation in historic.keys():
         for channel in range(numchannel):
-            key = prefix + "." + operation + "." + inputlist[channel]
+            key = operation + "." + prefix + "." + inputlist[channel]
             val = historic[operation][channel]
             r.set(key, val)
 
-    elapsed = time.time()-start
+    elapsed = time.time() - start
     naptime = stepsize - elapsed
     if naptime>0:
         # this approximates the desired update speed
