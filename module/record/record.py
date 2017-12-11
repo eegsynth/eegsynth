@@ -27,6 +27,7 @@ import os
 import redis
 import sys
 import time
+import wave
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -94,8 +95,9 @@ if debug>1:
 filenumber = 0
 recording = False
 
-physical_min = config.getint('recording', 'physical_min')
-physical_max = config.getint('recording', 'physical_max')
+physical_min = config.getfloat('recording', 'physical_min')
+physical_max = config.getfloat('recording', 'physical_max')
+fileformat = config.get('recording', 'format')
 
 while True:
     hdr_input = ftc.getHeader()
@@ -124,33 +126,42 @@ while True:
         # open a new file
         fname = config.get('recording', 'file')
         name, ext = os.path.splitext(fname)
+        if len(ext)==0:
+            ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # the blocksize depends on the sampling rate, which may have changed
         blocksize = int(config.getfloat('recording', 'blocksize')*hdr_input.fSample)
-        # construct the header
-        meas_info = {}
-        chan_info = {}
-        meas_info['record_length']  = blocksize/hdr_input.fSample
-        meas_info['nchan']          = hdr_input.nChannels
-        now = datetime.datetime.now()
-        meas_info['year']           = now.year
-        meas_info['month']          = now.month
-        meas_info['day']            = now.day
-        meas_info['hour']           = now.hour
-        meas_info['minute']         = now.minute
-        meas_info['second']         = now.second
-        chan_info['physical_min']   = hdr_input.nChannels * [ physical_min]
-        chan_info['physical_max']   = hdr_input.nChannels * [ physical_max]
-        chan_info['digital_min']    = hdr_input.nChannels * [-32768]
-        chan_info['digital_max']    = hdr_input.nChannels * [ 32768]
-        chan_info['ch_names']       = hdr_input.labels
-        chan_info['n_samps']        = hdr_input.nChannels * [blocksize]
-        print chan_info
         # write the header to file
         if debug>0:
             print "Opening", fname
-        f = EDF.EDFWriter(fname)
-        f.writeHeader((meas_info, chan_info))
+        if fileformat=='edf':
+            # construct the header
+            meas_info = {}
+            chan_info = {}
+            meas_info['record_length']  = blocksize/hdr_input.fSample
+            meas_info['nchan']          = hdr_input.nChannels
+            now = datetime.datetime.now()
+            meas_info['year']           = now.year
+            meas_info['month']          = now.month
+            meas_info['day']            = now.day
+            meas_info['hour']           = now.hour
+            meas_info['minute']         = now.minute
+            meas_info['second']         = now.second
+            chan_info['physical_min']   = hdr_input.nChannels * [ physical_min]
+            chan_info['physical_max']   = hdr_input.nChannels * [ physical_max]
+            chan_info['digital_min']    = hdr_input.nChannels * [-32768]
+            chan_info['digital_max']    = hdr_input.nChannels * [ 32768]
+            chan_info['ch_names']       = hdr_input.labels
+            chan_info['n_samps']        = hdr_input.nChannels * [blocksize]
+            print chan_info
+            f = EDF.EDFWriter(fname)
+            f.writeHeader((meas_info, chan_info))
+        elif fileformat=='wav':
+            f = wave.open(fname, 'w')
+            f.setnchannels(hdr_input.nChannels)
+            f.setnframes(0)
+            f.setsampwidth(4) # 1 to 4
+            f.setframerate(hdr_input.fSample)
         # determine the starting point for recording
         if hdr_input.nSamples>blocksize:
             endsample = hdr_input.nSamples - 1
@@ -176,6 +187,11 @@ while True:
         D = ftc.getData([begsample, endsample])
         if debug>0:
             print "Writing sample", begsample, "to", endsample, "as", np.shape(D)
-        f.writeBlock(np.transpose(D))
+        if fileformat=='edf':
+            f.writeBlock(np.transpose(D))
+        elif fileformat=='wav':
+            D = D/(max(-physical_min,physical_max))
+            for sample in range(blocksize):
+                f.writeframes(D[sample,:])
         begsample += blocksize
         endsample += blocksize
