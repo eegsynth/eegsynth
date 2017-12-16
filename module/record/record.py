@@ -28,6 +28,7 @@ import redis
 import sys
 import time
 import wave
+import struct
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -190,8 +191,15 @@ while True:
         if fileformat=='edf':
             f.writeBlock(np.transpose(D))
         elif fileformat=='wav':
-            D = D/(max(-physical_min,physical_max))
-            for sample in range(blocksize):
-                f.writeframes(D[sample,:])
+            MAXINT = np.power(2,31)-1
+            for sample in range(len(D)):
+                x = D[sample,:]
+                # scale the floating point values between -1 and 1
+                y = x / ((physical_max-physical_min)/2)
+                # scale the floating point values between -MAXINT and MAXINT
+                y = y * MAXINT
+                # convert them to packed binary data
+                z = "".join((wave.struct.pack('i', item) for item in y))
+                f.writeframes(z)
         begsample += blocksize
         endsample += blocksize
