@@ -54,9 +54,9 @@ if debug>1:
 
 for chanindx in range(f.getNSignals()):
     if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
-        raise IOError('unequal SignalFreqs')
+        raise AssertionError('unequal SignalFreqs')
     if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
-        raise IOError('unequal NSamples')
+        raise AssertionError('unequal NSamples')
 
 channels = f.getSignalTextLabels()
 channelz = f.getSignalTextLabels()
