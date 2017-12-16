@@ -44,6 +44,11 @@ import EEGsynth
 import FieldTrip
 import EDF
 
+MININT16 = -np.power(2,15)
+MAXINT16 =  np.power(2,15)-1
+MININT32 = -np.power(2,31)
+MAXINT32 =  np.power(2,31)-1
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
@@ -93,12 +98,17 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-filenumber = 0
 recording = False
 
 physical_min = config.getfloat('recording', 'physical_min')
 physical_max = config.getfloat('recording', 'physical_max')
-fileformat = config.get('recording', 'format')
+
+try:
+    fileformat = config.get('recording', 'format')
+except:
+    fname = config.get('recording', 'file')
+    name, ext = os.path.splitext(fname)
+    fileformat = ext[1:]
 
 while True:
     hdr_input = ftc.getHeader()
@@ -148,10 +158,10 @@ while True:
             meas_info['hour']           = now.hour
             meas_info['minute']         = now.minute
             meas_info['second']         = now.second
-            chan_info['physical_min']   = hdr_input.nChannels * [ physical_min]
-            chan_info['physical_max']   = hdr_input.nChannels * [ physical_max]
-            chan_info['digital_min']    = hdr_input.nChannels * [-32768]
-            chan_info['digital_max']    = hdr_input.nChannels * [ 32768]
+            chan_info['physical_min']   = hdr_input.nChannels * [physical_min]
+            chan_info['physical_max']   = hdr_input.nChannels * [physical_max]
+            chan_info['digital_min']    = hdr_input.nChannels * [MININT16]
+            chan_info['digital_max']    = hdr_input.nChannels * [MAXINT16]
             chan_info['ch_names']       = hdr_input.labels
             chan_info['n_samps']        = hdr_input.nChannels * [blocksize]
             print chan_info
@@ -161,8 +171,10 @@ while True:
             f = wave.open(fname, 'w')
             f.setnchannels(hdr_input.nChannels)
             f.setnframes(0)
-            f.setsampwidth(4) # 1 to 4
+            f.setsampwidth(4) # 1, 2 or 4
             f.setframerate(hdr_input.fSample)
+        else:
+            raise NotImplementedError('unsupported file format')
         # determine the starting point for recording
         if hdr_input.nSamples>blocksize:
             endsample = hdr_input.nSamples - 1
@@ -191,13 +203,12 @@ while True:
         if fileformat=='edf':
             f.writeBlock(np.transpose(D))
         elif fileformat=='wav':
-            MAXINT = np.power(2,31)-1
             for sample in range(len(D)):
                 x = D[sample,:]
                 # scale the floating point values between -1 and 1
                 y = x / ((physical_max-physical_min)/2)
-                # scale the floating point values between -MAXINT and MAXINT
-                y = y * MAXINT
+                # scale the floating point values between MININT32 and MAXINT32
+                y = y * ((float(MAXINT32)-float(MININT32))/2)
                 # convert them to packed binary data
                 z = "".join((wave.struct.pack('i', item) for item in y))
                 f.writeframes(z)
