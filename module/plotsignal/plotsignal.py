@@ -26,7 +26,6 @@ from scipy.signal import butter, lfilter
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import argparse
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pyqtgraph as pg
