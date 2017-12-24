@@ -29,14 +29,14 @@ import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0,os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0,os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
@@ -47,16 +47,18 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = config.getint('general', 'debug')
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-# this is only for debugging
+notescale = config.getfloat('scale', 'note')
+
+# this is only for debugging, and check which MIDI devices are accessible
 print('------ INPUT ------')
 for port in mido.get_input_names():
   print(port)
@@ -68,25 +70,25 @@ print('-------------------------')
 # on windows the input and output are different, on unix they are the same
 # use "input/output" when specified, or otherwise use "device" for both
 try:
-    mididevice_input  = config.get('midi', 'input')
+    mididevice_input = config.get('midi', 'input')
 except:
-    mididevice_input  = config.get('midi', 'device') # fallback
+    mididevice_input = config.get('midi', 'device') # fallback
 try:
     mididevice_output = config.get('midi', 'output')
 except:
-    mididevice_output  = config.get('midi', 'device') # fallback
+    mididevice_output = config.get('midi', 'device') # fallback
 
 try:
-    inputport  = mido.open_input(mididevice_input)
-    if debug>0:
+    inputport = mido.open_input(mididevice_input)
+    if debug > 0:
         print "Connected to MIDI input"
 except:
     print "Error: cannot connect to MIDI input"
     exit()
 
 try:
-    outputport  = mido.open_output(mididevice_output)
-    if debug>0:
+    outputport = mido.open_output(mididevice_output)
+    if debug > 0:
         print "Connected to MIDI output"
 except:
     print "Error: cannot connect to MIDI output"
@@ -102,32 +104,33 @@ except:
 
 try:
     # momentary push button
-    push     = [int(a) for a in config.get('button', 'push').split(",")]
+    push = [int(a) for a in config.get('button', 'push').split(",")]
 except:
-    push     = []
+    push = []
 try:
     # on-off button
-    toggle1  = [int(a) for a in config.get('button', 'toggle1').split(",")]
+    toggle1 = [int(a) for a in config.get('button', 'toggle1').split(",")]
 except:
-    toggle1  = []
+    toggle1 = []
 try:
     # on1-on2-off button
-    toggle2  = [int(a) for a in config.get('button', 'toggle2').split(",")]
+    toggle2 = [int(a) for a in config.get('button', 'toggle2').split(",")]
 except:
-    toggle2  = []
+    toggle2 = []
 try:
     # on1-on2-on3-off button
-    toggle3  = [int(a) for a in config.get('button', 'toggle3').split(",")]
+    toggle3 = [int(a) for a in config.get('button', 'toggle3').split(",")]
 except:
-    toggle3  = []
+    toggle3 = []
 try:
     # on1-on2-on3-on4-off button
-    toggle4  = [int(a) for a in config.get('button', 'toggle4').split(",")]
+    toggle4 = [int(a) for a in config.get('button', 'toggle4').split(",")]
 except:
-    toggle4  = []
+    toggle4 = []
 
-note_list    = push+toggle1+toggle2+toggle3+toggle4 # concatenate all buttons
-status_list  = [0] * len(note_list)
+# concatenate all buttons
+note_list = push+toggle1+toggle2+toggle3+toggle4
+status_list = [0] * len(note_list)
 
 # these are the MIDI values for the LED color
 Off         = 12
@@ -177,7 +180,7 @@ state4color  = {0:Off, 41:Red_Full, 43:Yellow_Full, 45:Green_Full, 47:Amber_Full
 state4value  = {0:0, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
 
 while True:
-    time.sleep(config.getfloat('general','delay'))
+    time.sleep(config.getfloat('general', 'delay'))
 
     for msg in inputport.iter_pending():
         if midichannel is None:
@@ -187,13 +190,13 @@ while True:
             except:
                 pass
 
-        if debug>0 and msg.type!='clock':
+        if debug > 0 and msg.type != 'clock':
             print msg
 
         if hasattr(msg, "control"):
-            # prefix.control000=value
+            # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(config.get('output', 'prefix'), msg.control)
-            val = msg.value
+            val = msg.value * notescale
             r.set(key, val)
 
         elif hasattr(msg, "note"):
@@ -245,15 +248,15 @@ while True:
                 if status in state0value.keys():
                     val = state0value[status]
 
-            if debug>1:
+            if debug > 1:
                 print status, val
 
             if not val is None:
                 # prefix.noteXXX=value
-                key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
-                r.set(key,val)          # send it as control value
-                r.publish(key,val)      # send it as trigger
+                key = "{}.note{:0>3d}".format(config.get('output', 'prefix'), msg.note)
+                r.set(key, val * notescale)          # send it as control value
+                r.publish(key, val * notescale)      # send it as trigger
                 # prefix.note=note
-                key = "{}.note".format(config.get('output','prefix'))
-                r.set(key,msg.note)          # send it as control value
-                r.publish(key,msg.note)      # send it as trigger
+                key = "{}.note".format(config.get('output', 'prefix'))
+                r.set(key, msg.note)          # send it as control value
+                r.publish(key, msg.note)      # send it as trigger

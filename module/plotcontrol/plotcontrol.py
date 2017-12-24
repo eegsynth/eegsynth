@@ -26,15 +26,12 @@ from scipy.signal import butter, lfilter
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import argparse
-# import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pyqtgraph as pg
 import sys
+import math
 import time
-# from scipy.signal import butter, lfilter, detrend
-# from scipy.interpolate import interp1d
-# from scipy.fftpack import fft, fftfreq
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -60,7 +57,7 @@ config.read(args.inifile)
 debug = config.getint('general', 'debug')
 
 try:
-    r = redis.StrictRedis(host=config.get('redis',  'hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis',  'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
     if debug>0:
         print "Connected to redis server"
@@ -87,7 +84,6 @@ pg.setConfigOptions(antialias=True)
 # Initialize variables
 inputhistory = np.ones((input_nrs, historysize))
 calibhistory = np.ones((input_nrs, historysize))
-
 inputplot = []
 inputcurve = []
 inputmincurve = []
@@ -103,13 +99,13 @@ calibcurve = []
 attcurvemax = []
 attcurvemin = []
 
-
 # Create panel for each channel
 for iplot in range(input_nrs):
 
     inputplot.append(win.addPlot(title="%s" % (inputlist[iplot])))
-    inputplot[iplot].setLabel('left', text = 'Value')
     inputplot[iplot].setLabel('bottom', text = 'Time (sec)')
+    xax = inputplot[iplot].getAxis('left')
+    xax.setStyle(showValues=False)
 
     attcurvemax.append(inputplot[iplot].plot(pen=[128, 128, 128]))
     attcurvemin.append(inputplot[iplot].plot(pen=[128, 128, 128]))
@@ -119,11 +115,13 @@ for iplot in range(input_nrs):
     inputmaxcurveadd.append(inputplot[iplot].plot(pen=[255, 0, 0]))
     inputmincurveadd.append(inputplot[iplot].plot(pen=[0, 255, 0]))
 
-    calibplot.append(win.addPlot(title="%s%s" % (inputlist[iplot], ' calibrated')))
+    calibplot.append(win.addPlot(title="%s%s" % (inputlist[iplot], '.calib')))
     calibplot[iplot].setLabel('left', text = 'Value')
     calibplot[iplot].setLabel('bottom', text = 'Time (sec)')
     calibplot[iplot].setYRange(0.0, 1.0)
+    calibplot[iplot].setMouseEnabled(False, False)
 
+    calibplot[iplot].showGrid(x=False, y=True, alpha=0.5)
     calibcurve.append(calibplot[iplot].plot(pen='w'))
 
     win.nextRow()
@@ -162,18 +160,23 @@ def update():
 
         # determine max and min, with learning rate and attenuated history
         thistory = inputhistory[iplot, 0:historysize-2]
-        tmed = np.mean(inputhistory)
+        tmed = np.mean(inputhistory[iplot, 0:historysize-2])
+
         thistory = (thistory-tmed) * np.linspace(learning_att, 1, len(thistory)) + tmed
         inputmax[iplot, historysize-1] = max(thistory) * learning_rate + inputmax[iplot, historysize-1] * (1-learning_rate)
         inputmin[iplot, historysize-1] = min(thistory) * learning_rate + inputmin[iplot, historysize-1] * (1-learning_rate)
-        inputmaxadd[iplot, historysize-1] = inputmax[iplot, historysize-1] + (inputmax[iplot, historysize-1] - ((inputmax[iplot, historysize-1] + inputmin[iplot, historysize-1])/2)) * gain_att
-        inputminadd[iplot, historysize-1] = inputmin[iplot, historysize-1] - (inputmax[iplot, historysize-1] - ((inputmax[iplot, historysize-1] + inputmin[iplot, historysize-1])/2)) * gain_att
+        inputmaxadd[iplot, historysize-1] = inputmax[iplot, historysize-1] + (inputmax[iplot, historysize-1] - ((inputmax[iplot, historysize-1] + inputmin[iplot, historysize-1])/2)) * gain_att * 2
+        inputminadd[iplot, historysize-1] = inputmin[iplot, historysize-1] - (inputmax[iplot, historysize-1] - ((inputmax[iplot, historysize-1] + inputmin[iplot, historysize-1])/2)) * gain_att * 2
 
         l = int(historysize * learning_att)
         attcurvemaxvalues = np.linspace(tmed, inputmax[iplot, historysize-1], l)
         attcurveminvalues = np.linspace(tmed, inputmin[iplot, historysize-1], l)
 
-        calibhistory[iplot, historysize-1] = (inputhistory[iplot, historysize - 1] - inputminadd[iplot, historysize-1]) / inputmaxadd[iplot, historysize-1]
+        # calibration, avoiding divide by zero
+        if (inputmaxadd[iplot, historysize-1] - inputminadd[iplot, historysize-1]) > 0:
+            calibhistory[iplot, historysize-1] = (inputhistory[iplot, historysize - 1] - inputminadd[iplot, historysize-1]) / (inputmaxadd[iplot, historysize-1] - inputminadd[iplot, historysize-1])
+        else:
+            calibhistory[iplot, historysize - 1] = 0.5
 
 
         # time axis
@@ -193,9 +196,9 @@ def update():
 
         # output min/max and calibrated to redis, appended to input keys
         key = (inputlist[iplot] + '.min')
-        r.set(key, inputmin[iplot, historysize-1])
+        r.set(key, inputminadd[iplot, historysize-1])
         key = (inputlist[iplot] + '.max')
-        r.set(key, inputmax[iplot, historysize-1])
+        r.set(key, inputmaxadd[iplot, historysize-1])
         key = (inputlist[iplot] + '.calib')
         r.set(key, calibhistory[iplot, historysize-1])
 
