@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-# Plotcontrol plots the (history of) control signals, and adds an adaptive
-# min and max for subsequent scaling using e.g. the postprocessing module
+# Plotcontrol plots the (history of) control values
 #
 # Plotcontrol is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
@@ -35,7 +34,7 @@ import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
@@ -65,12 +64,19 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-inputlist = config.get('input', 'channels').split(",")
-input_nrs = int(len(inputlist))
-stepsize = config.getfloat('arguments', 'stepsize')
-historysize = int(config.getfloat('arguments', 'window') / stepsize)
-learning_rate = config.getfloat('arguments', 'learning_rate')
-secwindow = config.getfloat('arguments', 'window')
+input_name, input_variable = zip(*config.items('input'))
+
+# count total nr. of curves to be drawm
+curve_nrs = 0
+for i in range(len(input_name)):
+    temp = input_variable[i].split(",")
+    for ii in range(len(temp)):
+        curve_nrs += 1
+
+ylim_name, ylim_value = zip(*config.items('ylim'))
+delay = config.getfloat('general', 'delay')
+historysize = int(config.getfloat('general', 'window') / delay)
+secwindow = config.getfloat('general', 'window')
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -82,131 +88,60 @@ win.setWindowTitle('EEGsynth')
 pg.setConfigOptions(antialias=True)
 
 # Initialize variables
-inputhistory = np.ones((input_nrs, historysize))
-calibhistory = np.ones((input_nrs, historysize))
+inputhistory = np.ones((curve_nrs, historysize))
 inputplot = []
 inputcurve = []
-inputmincurve = []
-inputmaxcurve = []
-inputmincurveadd = []
-inputmaxcurveadd = []
-inputmin = np.ones((input_nrs, historysize))
-inputmax = np.ones((input_nrs, historysize))
-inputminadd = np.ones((input_nrs, historysize))
-inputmaxadd = np.ones((input_nrs, historysize))
-calibplot = []
-calibcurve = []
-attcurvemax = []
-attcurvemin = []
 
 # Create panel for each channel
-for iplot in range(input_nrs):
+for iplot in range(len(input_name)):
 
-    inputplot.append(win.addPlot(title="%s" % (inputlist[iplot])))
+    inputplot.append(win.addPlot(title="%s" % (input_name[iplot])))
     inputplot[iplot].setLabel('bottom', text = 'Time (sec)')
-    xax = inputplot[iplot].getAxis('left')
-    xax.setStyle(showValues=False)
+    inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
-    attcurvemax.append(inputplot[iplot].plot(pen=[128, 128, 128]))
-    attcurvemin.append(inputplot[iplot].plot(pen=[128, 128, 128]))
-    inputcurve.append(inputplot[iplot].plot(pen='w'))
-    inputmaxcurve.append(inputplot[iplot].plot(pen=[128, 0, 0]))
-    inputmincurve.append(inputplot[iplot].plot(pen=[0, 128, 0]))
-    inputmaxcurveadd.append(inputplot[iplot].plot(pen=[255, 0, 0]))
-    inputmincurveadd.append(inputplot[iplot].plot(pen=[0, 255, 0]))
+    try:
+        index = ylim_name.index(input_name[iplot])
+        temp = ylim_value[index].split(",")
+        inputplot[iplot].setRange(yRange=(int(temp[0]), int(temp[1])))
+        print "Setting Ylim according to user input"
+    except:
+        print "No Ylim giving, will let it flow"
 
-    calibplot.append(win.addPlot(title="%s%s" % (inputlist[iplot], '.calib')))
-    calibplot[iplot].setLabel('left', text = 'Value')
-    calibplot[iplot].setLabel('bottom', text = 'Time (sec)')
-    calibplot[iplot].setYRange(0.0, 1.0)
-    calibplot[iplot].setMouseEnabled(False, False)
+    # if input_name == ylim_name
+    # if any(input_name in s for s in ylim_name):
 
-    calibplot[iplot].showGrid(x=False, y=True, alpha=0.5)
-    calibcurve.append(calibplot[iplot].plot(pen='w'))
+    temp = input_variable[iplot].split(",")
+    for icurve in range(len(temp)):
+        inputcurve.append(inputplot[iplot].plot(pen='w'))
 
     win.nextRow()
 
 def update():
 
-   learning_att = EEGsynth.getfloat('attenuation_history', 'value', config, r, default=63)
-   learning_att = learning_att + EEGsynth.getfloat('attenuation_history', 'offset', config, r, default=0)
-   learning_att = learning_att * EEGsynth.getfloat('attenuation_history', 'scaling', config, r, default=1)
-   if learning_att > 1.0:
-        learning_att = 1
-   if learning_att < 0.0:
-        learning_att = 0
-   learning_att = 1 - learning_att
-
-   gain_att = EEGsynth.getfloat('expansion', 'value', config, r, default=63)
-   gain_att = gain_att + EEGsynth.getfloat('expansion', 'offset', config, r, default=0)
-   gain_att = gain_att * EEGsynth.getfloat('expansion', 'scaling', config, r, default=1)
-   if gain_att > 1.0:
-        gain_att = 1
-   if gain_att < 0.0:
-        gain_att = 0
-
    # shift data to next sample
    inputhistory[:, :-1] = inputhistory[:, 1:]
-   inputmax[:, :-1] = inputmax[:, 1:]
-   inputmin[:, :-1] = inputmin[:, 1:]
-   inputmaxadd[:, :-1] = inputmaxadd[:, 1:]
-   inputminadd[:, :-1] = inputminadd[:, 1:]
-   calibhistory[:, :-1] = calibhistory[:, 1:]
 
    # update with current data
-   for iplot in range(input_nrs):
+   counter = 0
+   for iplot in range(len(input_name)):
 
-        inputhistory[iplot, historysize-1] = r.get(inputlist[iplot])
+       temp = input_variable[iplot].split(",")
 
-        # determine max and min, with learning rate and attenuated history
-        thistory = inputhistory[iplot, 0:historysize-2]
-        tmed = np.mean(inputhistory[iplot, 0:historysize-2])
+       for ivar in range(len(temp)):
+            inputhistory[counter, historysize-1] = r.get(temp[ivar])
 
-        thistory = (thistory-tmed) * np.linspace(learning_att, 1, len(thistory)) + tmed
-        inputmax[iplot, historysize-1] = max(thistory) * learning_rate + inputmax[iplot, historysize-1] * (1-learning_rate)
-        inputmin[iplot, historysize-1] = min(thistory) * learning_rate + inputmin[iplot, historysize-1] * (1-learning_rate)
-        inputmaxadd[iplot, historysize-1] = inputmax[iplot, historysize-1] + (inputmax[iplot, historysize-1] - ((inputmax[iplot, historysize-1] + inputmin[iplot, historysize-1])/2)) * gain_att * 2
-        inputminadd[iplot, historysize-1] = inputmin[iplot, historysize-1] - (inputmax[iplot, historysize-1] - ((inputmax[iplot, historysize-1] + inputmin[iplot, historysize-1])/2)) * gain_att * 2
+            # time axis
+            timeaxis = np.linspace(-secwindow, 0, historysize)
 
-        l = int(historysize * learning_att)
-        attcurvemaxvalues = np.linspace(tmed, inputmax[iplot, historysize-1], l)
-        attcurveminvalues = np.linspace(tmed, inputmin[iplot, historysize-1], l)
-
-        # calibration, avoiding divide by zero
-        if (inputmaxadd[iplot, historysize-1] - inputminadd[iplot, historysize-1]) > 0:
-            calibhistory[iplot, historysize-1] = (inputhistory[iplot, historysize - 1] - inputminadd[iplot, historysize-1]) / (inputmaxadd[iplot, historysize-1] - inputminadd[iplot, historysize-1])
-        else:
-            calibhistory[iplot, historysize - 1] = 0.5
-
-
-        # time axis
-        timeaxis = np.linspace(-secwindow, 0, historysize)
-
-        # update timecourses
-        inputcurve[iplot].setData(timeaxis, inputhistory[iplot, :])
-        inputmaxcurve[iplot].setData(timeaxis, inputmax[iplot, :])
-        inputmincurve[iplot].setData(timeaxis, inputmin[iplot, :])
-        inputmaxcurveadd[iplot].setData(timeaxis, inputmaxadd[iplot, :])
-        inputmincurveadd[iplot].setData(timeaxis, inputminadd[iplot, :])
-
-        attcurvemin[iplot].setData(timeaxis[historysize-l:historysize], attcurveminvalues)
-        attcurvemax[iplot].setData(timeaxis[historysize-l:historysize], attcurvemaxvalues)
-
-        calibcurve[iplot].setData(timeaxis, calibhistory[iplot, :])
-
-        # output min/max and calibrated to redis, appended to input keys
-        key = (inputlist[iplot] + '.min')
-        r.set(key, inputminadd[iplot, historysize-1])
-        key = (inputlist[iplot] + '.max')
-        r.set(key, inputmaxadd[iplot, historysize-1])
-        key = (inputlist[iplot] + '.calib')
-        r.set(key, calibhistory[iplot, historysize-1])
+            # update timecourses
+            inputcurve[counter].setData(timeaxis, inputhistory[counter, :])
+            counter += 1
 
 # Set timer for update
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.setInterval(.01) # timeout
-timer.start(stepsize*1000)
+timer.setInterval(.01)  # timeout
+timer.start(delay*1000)
 
 # Start
 QtGui.QApplication.instance().exec_()
