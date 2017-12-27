@@ -240,7 +240,7 @@ while True:
             if not val is None:
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
-                val = EEGsynth.rescale(val, scale=notescale, offset=noteoffset)
+                val = EEGsynth.rescale(val, slope=notescale, offset=noteoffset)
                 r.set(key, val)          # send it as control value
                 r.publish(key, val)      # send it as trigger
                 # prefix.note=note

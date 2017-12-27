@@ -200,7 +200,7 @@ while True:
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(config.get('output', 'prefix'), msg.control)
-            val = EEGsynth.rescale(msg.value, scale=scalecontrol, offset=offsetcontrol)
+            val = EEGsynth.rescale(msg.value, slope=scalecontrol, offset=offsetcontrol)
             r.set(key, val)
 
         elif hasattr(msg, "note"):
@@ -258,7 +258,7 @@ while True:
             if not val is None:
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(config.get('output', 'prefix'), msg.note)
-                val = EEGsynth.rescale(val, scale=scalenote, offset=offsetnote)
+                val = EEGsynth.rescale(val, slope=scalenote, offset=offsetnote)
                 r.set(key, val)          # send it as control value
                 r.publish(key, val)      # send it as trigger
                 # prefix.note=note

@@ -119,12 +119,16 @@ for i in range(len(chanarray)):
 
 chan_nrs = len(chanlist)
 
-window    = config.getfloat('arguments','window')   # in seconds
-window    = int(round(window*hdr_input.fSample))    # in samples
-clipsize  = config.getfloat('arguments','clipsize') # in seconds
-clipsize  = int(round(clipsize*hdr_input.fSample))  # in samples
-stepsize  = config.getfloat('arguments','stepsize') # in seconds
-lrate     = config.getfloat('arguments','learning_rate')
+window     = config.getfloat('arguments','window')   # in seconds
+window     = int(round(window*hdr_input.fSample))    # in samples
+clipsize   = config.getfloat('arguments','clipsize') # in seconds
+clipsize   = int(round(clipsize*hdr_input.fSample))  # in samples
+stepsize   = config.getfloat('arguments','stepsize') # in seconds
+lrate      = config.getfloat('arguments','learning_rate')
+scalered   = config.getfloat('scale','red')
+scaleblue  = config.getfloat('scale','blue')
+offsetred  = config.getfloat('offset','red')
+offsetblue = config.getfloat('offset','blue')
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -136,19 +140,19 @@ win.setWindowTitle('EEGsynth')
 pg.setConfigOptions(antialias=True)
 
 # Initialize variables
-timeplot = []
-freqplot = []
-curve = []
-spect = []
-redleft = []
-redright = []
-blueleft = []
+timeplot  = []
+freqplot  = []
+curve     = []
+spect     = []
+redleft   = []
+redright  = []
+blueleft  = []
 blueright = []
-FFT = []
-FFT_old = []
-specmax = []
-specmin = []
-curvemax = []
+FFT       = []
+FFT_old   = []
+specmax   = []
+specmin   = []
+curvemax  = []
 
 # Create panels (timecourse and spectrum) for each channel
 for ichan in range(chan_nrs):
@@ -203,8 +207,9 @@ def update():
         freqaxis = fftfreq(len(data), 1/hdr_input.fSample)
 
         # user-selected frequency band
-        user_freqrange = config.get('arguments', 'freqrange').split("-")
-        freqrange = np.greater(freqaxis, int(user_freqrange[0])) & np.less_equal(freqaxis,int(user_freqrange[1]))
+        arguments_freqrange = config.get('arguments', 'freqrange').split("-")
+        arguments_freqrange = [float(s) for s in arguments_freqrange]
+        freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
         # time axis
         timeaxis = np.linspace(0,len(data)/hdr_input.fSample,len(data))
@@ -215,7 +220,7 @@ def update():
         # update spectrum
         spect[ichan].setData(freqaxis[freqrange],FFT[ichan][freqrange])
 
-        # adapt scale to running mean of max
+        # adapt the vertical scale to the running mean of max
         curvemax[ichan] = float(curvemax[ichan])  * (1-lrate) + lrate * max(abs(data[:,ichan]))
         specmax[ichan] = float(specmax[ichan]) * (1-lrate) + lrate * max(FFT[ichan][freqrange])
         specmin[ichan] = float(specmin[ichan]) * (1-lrate) + lrate * min(FFT[ichan][freqrange])
@@ -224,15 +229,17 @@ def update():
         freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
 
         # update plotted lines
-        redfreq = EEGsynth.getfloat('input', 'redfreq', config, r, default=10)
-        redfreq = redfreq * float(user_freqrange[1]) * EEGsynth.getfloat('scale','red', config, r, default=1/127)
-        redwidth = EEGsynth.getfloat('input', 'redwidth', config, r, default=10)
-        redwidth = redwidth * float(user_freqrange[1]) * EEGsynth.getfloat('scale','red', config, r, default=1/127)
+        redfreq = EEGsynth.getfloat('input', 'redfreq', config, r, default=10./arguments_freqrange[1])
+        redfreq = EEGsynth.rescale(redfreq, slope=scalered, offset=offsetred) * arguments_freqrange[1]
 
-        bluefreq = EEGsynth.getfloat('input', 'bluefreq', config, r, default=10)
-        bluefreq = bluefreq * float(user_freqrange[1]) * EEGsynth.getfloat('scale','blue', config, r, default=1/127)
-        bluewidth = EEGsynth.getfloat('input', 'bluewidth', config, r, default=10)
-        bluewidth = bluewidth * float(user_freqrange[1]) * EEGsynth.getfloat('scale','blue', config, r, default=1/127)
+        redwidth = EEGsynth.getfloat('input', 'redwidth', config, r, default=1./arguments_freqrange[1])
+        redwidth = EEGsynth.rescale(redwidth, slope=scalered, offset=offsetred) * arguments_freqrange[1]
+
+        bluefreq = EEGsynth.getfloat('input', 'bluefreq', config, r, default=20./arguments_freqrange[1])
+        bluefreq = EEGsynth.rescale(bluefreq, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
+
+        bluewidth = EEGsynth.getfloat('input', 'bluewidth', config, r, default=4./arguments_freqrange[1])
+        bluewidth = EEGsynth.rescale(bluewidth, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
 
         redleft[ichan].setData(x=[redfreq-redwidth,redfreq-redwidth],y=[specmin[ichan],specmax[ichan]])
         redright[ichan].setData(x=[redfreq+redwidth,redfreq+redwidth],y=[specmin[ichan],specmax[ichan]])
