@@ -166,6 +166,10 @@ state4change = {0:41, 41:42, 42:43, 43:44, 44:45, 45:46, 46:47, 47:48, 48:49, 49
 state4color  = {0:Off, 41:Red_Full, 43:Yellow_Full, 45:Green_Full, 47:Amber_Full}
 state4value  = {0:0, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
 
+# it is preferred to use floating point control values between 0 and 1
+scalenote     = config.getfloat('scale', 'note')
+offsetnote    = config.getfloat('offset', 'note')
+
 while True:
     time.sleep(config.getfloat('general','delay'))
 
@@ -236,9 +240,10 @@ while True:
             if not val is None:
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
-                r.set(key,val)          # send it as control value
-                r.publish(key,val)      # send it as trigger
+                val = EEGsynth.rescale(val, scale=notescale, offset=noteoffset)
+                r.set(key, val)          # send it as control value
+                r.publish(key, val)      # send it as trigger
                 # prefix.note=note
                 key = "{}.note".format(config.get('output','prefix'))
-                r.set(key,msg.note)          # send it as control value
-                r.publish(key,msg.note)      # send it as trigger
+                r.set(key, msg.note)          # send it as control value
+                r.publish(key, msg.note)      # send it as trigger
