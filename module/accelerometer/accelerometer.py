@@ -129,21 +129,9 @@ while True:
     for chanstr,chanindx in zip(channel_name, channel_indx):
 
         # the scale option is channel specific
-        if config.has_option('scale', chanstr):
-            try:
-                scale = patch.getfloat('scale', chanstr)
-            except:
-                scale = r.get(patch.getstring('scale', chanstr))
-        else:
-            scale = 1
+        scale = patch.getfloat('scale', chanstr, default=1)
         # the offset option is channel specific
-        if config.has_option('offset', chanstr):
-            try:
-                offset = patch.getfloat('offset', chanstr)
-            except:
-                offset = r.get(patch.getstring('offset', chanstr))
-        else:
-            offset = 0
+        offset = patch.getfloat('offset', chanstr, default=0)
 
         # compute the mean over the window
         val = np.mean(dat[:,chanindx])

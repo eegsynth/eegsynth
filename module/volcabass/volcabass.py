@@ -126,14 +126,9 @@ try:
 
         for name, cmd in zip(control_name, control_code):
             # loop over the control values
-            if not config.has_option('control', name):
-                continue # it should be skipped when commented out in the ini file
-            val = r.get(patch.getstring('control', name))
-            if val:
-                val = float(val)
-            else:
+            val = patch.getint('control', name)
+            if val==None:
                 continue # it should be skipped when not present
-            val = int(val)
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
