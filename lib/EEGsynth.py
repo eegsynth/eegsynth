@@ -92,18 +92,20 @@ class midiwrapper():
 
 
 class patch():
-    ######################################################################################
-    # The formatting of the item in the ini file should be like this
-    #   item=1            this returns 1
-    #   item=key          get the value of the key from redis
-    # or if multiple is True
-    #   item=1-20         this returns [1,20]
-    #   item=1,2,3        this returns [1,2,3]
-    #   item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
-    #   item=key1,key2    get the value of key1 and key2 from redis
-    #   item=key1,5       get the value of key1 from redis
-    #   item=0,key2       get the value of key2 from redis
-    ######################################################################################
+    """Class to provide a generalized interface for patching modules using
+    configuration files and Redis.
+
+    The formatting of the item in the ini file should be like this
+      item=1            this returns 1
+      item=key          get the value of the key from redis
+    or if multiple is True
+      item=1-20         this returns [1,20]
+      item=1,2,3        this returns [1,2,3]
+      item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
+      item=key1,key2    get the value of key1 and key2 from redis
+      item=key1,5       get the value of key1 from redis
+      item=0,key2       get the value of key2 from redis
+    """
 
     def __init__(self, c, r):
         self.config = c
@@ -176,11 +178,10 @@ class patch():
             return val[0]
 
     ####################################################################
-    def getstring(self, section, item):
+    def getstring(self, section, item, multiple=False):
         # get one items from the ini file
         # multiple items and default values are not yet supported
-        val = self.config.get(section, item)
-        return val
+        return self.config.get(section, item)
 
 ####################################################################
 def rescale(xval, slope=None, offset=None):

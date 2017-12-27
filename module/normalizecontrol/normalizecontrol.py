@@ -75,7 +75,7 @@ del config
 debug = patch.getint('general', 'debug')
 
 # read configuration settings
-inputlist       = patch.getstring('input', 'channels').split(",")
+inputlist       = patch.getstring('input', 'channels').split(',')
 input_nrs       = int(len(inputlist))
 stepsize        = patch.getfloat('general', 'stepsize')
 historysize     = int(patch.getfloat('general', 'window') / stepsize)
@@ -96,7 +96,7 @@ while True:
 
    gain_att = patch.getfloat('attenuation', 'value', default=0.5)
    gain_att = gain_att + patch.getfloat('attenuation', 'offset', default=0)
-   gain_att = gain_att * patch.getfloat('attenuation', 'scaling', default=1)
+   gain_att = gain_att * patch.getfloat('attenuation', 'scale', default=1)
    if gain_att < 0.0:
         gain_att = 0
 

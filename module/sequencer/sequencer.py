@@ -70,12 +70,12 @@ offset_transpose = patch.getfloat('offset', 'transpose', default=0)
 offset_rate      = patch.getfloat('offset', 'rate',      default=0)
 
 if debug>0:
-    print 'scale_pattern', scale_pattern
-    print 'scale_transpose', scale_transpose
-    print 'scale_rate', scale_rate
-    print 'offset_pattern', offset_pattern
-    print 'offset_transpose', offset_transpose
-    print 'offset_rate', offset_rate
+    print 'scale_pattern    =', scale_pattern
+    print 'scale_transpose  =', scale_transpose
+    print 'scale_rate       =', scale_rate
+    print 'offset_pattern   =', offset_pattern
+    print 'offset_transpose =', offset_transpose
+    print 'offset_rate      =', offset_rate
 
 # the pattern should be an integer between 0 and 127
 pattern = patch.getfloat('control','pattern', default=0)
@@ -96,6 +96,7 @@ try:
     while True:
 
         for note in sequence.split():
+            # the note should be an integer between 0 and 127
             note = int(note)
 
             # the pattern should be an integer between 0 and 127
@@ -112,7 +113,7 @@ try:
 
                 # immediately start playing the new sequence
                 previous = pattern
-                print 'break'
+                print "switching to pattern", pattern
                 break
 
             # use a default transposition of 48
@@ -127,7 +128,7 @@ try:
             # it should not get too low, otherwise the code with the sleep below becomes unresponsive
             rate = 60. * math.exp(math.log(10) * rate/127)
 
-            if debug>0:
+            if debug>1:
                 print '-----------------------'
                 print 'pattern   =', pattern
                 print 'rate      =', rate
