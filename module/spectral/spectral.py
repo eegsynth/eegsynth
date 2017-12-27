@@ -58,8 +58,13 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+
 # this is the timeout for the FieldTrip buffer
 timeout = config.getfloat('fieldtrip', 'timeout')
 
@@ -199,7 +204,7 @@ try:
         bandhi   = []
         for item in band_items:
             # channel numbers are one-offset in the ini file, zero-offset in the code
-            lohi = EEGsynth.getfloat('band', item[0], config, r, multiple=True)
+            lohi = patch.getfloat('band', item[0], multiple=True)
             if debug>2:
                 print item[0], lohi
             # lohi = config.get('band', item[0]).split("-")

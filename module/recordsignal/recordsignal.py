@@ -63,8 +63,13 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
+
 # this is the timeout for the FieldTrip buffer
 timeout = config.getfloat('fieldtrip','timeout')
 
@@ -118,19 +123,19 @@ while True:
         recording = False
         continue
 
-    if recording and not EEGsynth.getint('recording', 'record', config, r):
+    if recording and not patch.getint('recording', 'record'):
         if debug>0:
             print "Recording disabled - closing", fname
         f.close()
         recording = False
         continue
 
-    if not recording and not EEGsynth.getint('recording', 'record', config, r):
+    if not recording and not patch.getint('recording', 'record'):
         if debug>0:
             print "Recording is not enabled"
         time.sleep(1)
 
-    if not recording and EEGsynth.getint('recording', 'record', config, r):
+    if not recording and patch.getint('recording', 'record'):
         recording = True
         # open a new file
         fname = config.get('recording', 'file')

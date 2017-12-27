@@ -54,6 +54,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -103,9 +107,9 @@ while True:
     if debug>1:
         print "Generating block", block, 'from', begsample, 'to', endsample
 
-    frequency = EEGsynth.getfloat('signal', 'frequency', config, r, default=10) * scale_frequency
-    amplitude = EEGsynth.getfloat('signal', 'amplitude', config, r, default=1)  * scale_amplitude
-    noise     = EEGsynth.getfloat('signal', 'noise', config, r, default=0.5)    * scale_noise
+    frequency = patch.getfloat('signal', 'frequency', default=10) * scale_frequency
+    amplitude = patch.getfloat('signal', 'amplitude', default=1)  * scale_amplitude
+    noise     = patch.getfloat('signal', 'noise', default=0.5)    * scale_noise
 
     if frequency != prev_frequency:
         print "frequency", frequency

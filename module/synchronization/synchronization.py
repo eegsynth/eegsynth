@@ -56,6 +56,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -145,9 +149,9 @@ try:
         # measure the time to correct for the slip
         now = time.time()
 
-        use_serial = EEGsynth.getint('general', 'serial', config, r, default=0)
-        use_midi   = EEGsynth.getint('general', 'midi', config, r, default=0)
-        use_redis  = EEGsynth.getint('general', 'redis', config, r, default=0)
+        use_serial = patch.getint('general', 'serial', default=0)
+        use_midi   = patch.getint('general', 'midi', default=0)
+        use_redis  = patch.getint('general', 'redis', default=0)
 
         if previous_use_serial is None:
             previous_use_serial = not(use_serial);
@@ -172,16 +176,16 @@ try:
             midisync.disable()
             previous_use_midi = False
 
-        rate = EEGsynth.getfloat('input', 'rate', config, r)
+        rate = patch.getfloat('input', 'rate')
         if rate is None:
             time.sleep(config.getfloat('general', 'delay'))
             continue
 
-        offset = EEGsynth.getfloat('input', 'offset', config, r, default=64)
+        offset = patch.getfloat('input', 'offset', default=64)
         # the offset value from 0-127 gets scaled to a value from -1 to +1 seconds
         offset = (offset-64)/(127/2)
 
-        multiplier = EEGsynth.getfloat('input', 'multiplier', config, r, default=1)
+        multiplier = patch.getfloat('input', 'multiplier', default=1)
         # the multiplier value from 0-127 gets scaled to a value from 1/4 to 16/4
         idx = find_nearest_idx(multiplier_mid, multiplier)
         multiplier = multiplier_val[idx]

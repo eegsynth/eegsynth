@@ -53,10 +53,14 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
-pattern = EEGsynth.getint('input','pattern', config, r, default=0)
+pattern = patch.getint('input','pattern', default=0)
 previous = pattern
 
 try:
@@ -73,11 +77,11 @@ try:
             note = int(note)
 
             # this will return empty if not available
-            pattern = EEGsynth.getint('input','pattern', config, r, default=0)
+            pattern = patch.getint('input','pattern', default=0)
 
             if pattern!=previous:
                 # get the corresponding sequence
-                pattern = EEGsynth.getint('input','pattern', config, r, default=0)
+                pattern = patch.getint('input','pattern', default=0)
                 try:
                   sequence = config.get('sequence',"pattern{:d}".format(pattern))
                 except:
@@ -88,12 +92,12 @@ try:
                 break
 
             # use a default rate of 90 bpm
-            rate = EEGsynth.getfloat('input','rate', config, r)
+            rate = patch.getfloat('input','rate')
             if rate is None:
                 rate = 90
 
             # use a default transposition of 48
-            transpose = EEGsynth.getint('input','transpose', config, r)
+            transpose = patch.getint('input','transpose')
             if transpose is None:
                 transpose = 48
 

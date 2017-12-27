@@ -57,6 +57,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -92,7 +96,7 @@ while True:
 
     actual_value = [];
     for name in input_name:
-        actual_value.append(EEGsynth.getfloat('input', name, config, r))
+        actual_value.append(patch.getfloat('input', name))
 
     for key,equation in zip(output_name, output_equation):
         for name,value in zip(input_name, actual_value):

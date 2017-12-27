@@ -54,6 +54,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -140,7 +144,7 @@ try:
         for name, cmd in zip(control_name, control_code):
             split_name = name.split('/')
             # loop over the control values
-            val = EEGsynth.getint(split_name[0], split_name[1], config, r)
+            val = patch.getint(split_name[0], split_name[1])
             if val is None:
                 continue#  it should be skipped when not present in the ini or redis
             if val==previous_val[name]:

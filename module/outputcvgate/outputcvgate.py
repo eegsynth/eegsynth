@@ -53,6 +53,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -69,14 +73,14 @@ while True:
 
     for chanindx in range(1, 8):
         chanstr = "cv%d" % chanindx
-        chanval = EEGsynth.getfloat('input', chanstr, config, r)
+        chanval = patch.getfloat('input', chanstr)
         if chanval is None:
             continue
 
-        if EEGsynth.getint('compressor_expander', 'enable', config, r):
+        if patch.getint('compressor_expander', 'enable'):
             # the compressor applies to all channels and must exist as float or redis key
-            lo = EEGsynth.getfloat('compressor_expander', 'lo', config, r)
-            hi = EEGsynth.getfloat('compressor_expander', 'hi', config, r)
+            lo = patch.getfloat('compressor_expander', 'lo')
+            hi = patch.getfloat('compressor_expander', 'hi')
             if lo is None or hi is None:
                 if debug>1:
                     print "cannot apply compressor/expander"
@@ -84,8 +88,8 @@ while True:
                 # apply the compressor/expander
                 chanval = EEGsynth.compress(chanval, lo, hi)
 
-    	scale  = EEGsynth.getfloat('scale', chanstr, config, r)
-    	offset = EEGsynth.getfloat('offset', chanstr, config, r)
+    	scale  = patch.getfloat('scale', chanstr)
+    	offset = patch.getfloat('offset', chanstr)
     	if debug>1:
     		print chanstr, chanval, scale, offset
     	chanval = EEGsynth.rescale(chanval, scale, offset)
@@ -93,7 +97,7 @@ while True:
 
     for chanindx in range(1, 8):
         chanstr = "gate%d" % chanindx
-        chanval = EEGsynth.getfloat('input', chanstr, config, r)
+        chanval = patch.getfloat('input', chanstr)
         if chanval is None:
             continue
 

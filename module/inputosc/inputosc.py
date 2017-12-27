@@ -55,6 +55,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -79,11 +83,11 @@ def forward_handler(addr, tags, data, source):
     print "data   %s" % data
 
 
-    scale = EEGsynth.getfloat('processing', 'scale', config, r)
+    scale = patch.getfloat('processing', 'scale')
     if scale is None:
         scale = 1
 
-    offset = EEGsynth.getfloat('processing', 'offset', config, r)
+    offset = patch.getfloat('processing', 'offset')
     if offset is None:
         offset = 0
 

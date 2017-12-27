@@ -67,32 +67,36 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general', 'debug')
 
-# read ini file
-inputlist = config.get('input', 'channels').split(",")
-input_nrs = int(len(inputlist))
-stepsize = config.getfloat('general', 'stepsize')
-historysize = int(config.getfloat('general', 'window') / stepsize)
-learning_rate = config.getfloat('general', 'learning_rate')
-secwindow = config.getfloat('general', 'window')
-outputminmax = config.getint('general', 'outputminmax')
+# read configuration settings
+inputlist       = config.get('input', 'channels').split(",")
+input_nrs       = int(len(inputlist))
+stepsize        = config.getfloat('general', 'stepsize')
+historysize     = int(config.getfloat('general', 'window') / stepsize)
+learning_rate   = config.getfloat('general', 'learning_rate')
+secwindow       = config.getfloat('general', 'window')
+outputminmax    = config.getint('general', 'outputminmax')
 
 # Initialize variables
-inputhistory = np.ones((input_nrs, historysize))
-calibhistory = np.ones((input_nrs, historysize))
-inputmin = np.ones((input_nrs, historysize))
-inputmax = np.ones((input_nrs, historysize))
-inputminadd = np.ones((input_nrs, historysize))
-inputmaxadd = np.ones((input_nrs, historysize))
+inputhistory    = np.ones((input_nrs, historysize))
+calibhistory    = np.ones((input_nrs, historysize))
+inputmin        = np.ones((input_nrs, historysize))
+inputmax        = np.ones((input_nrs, historysize))
+inputminadd     = np.ones((input_nrs, historysize))
+inputmaxadd     = np.ones((input_nrs, historysize))
 
 while True:
    time.sleep(config.getfloat('general', 'delay'))
 
-   gain_att = EEGsynth.getfloat('attenuation', 'value', config, r, default=0.5)
-   gain_att = gain_att + EEGsynth.getfloat('attenuation', 'offset', config, r, default=0)
-   gain_att = gain_att * EEGsynth.getfloat('attenuation', 'scaling', config, r, default=1)
+   gain_att = patch.getfloat('attenuation', 'value', default=0.5)
+   gain_att = gain_att + patch.getfloat('attenuation', 'offset', default=0)
+   gain_att = gain_att * patch.getfloat('attenuation', 'scaling', default=1)
    if gain_att < 0.0:
         gain_att = 0
 

@@ -35,6 +35,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -86,7 +90,7 @@ while True:
         block     = 0
         continue
 
-    if EEGsynth.getint('playback', 'rewind', config, r):
+    if patch.getint('playback', 'rewind'):
         if debug>0:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
@@ -94,7 +98,7 @@ while True:
         block     = 0
         continue
 
-    if not EEGsynth.getint('playback', 'play', config, r):
+    if not patch.getint('playback', 'play'):
         if debug>0:
             print "Paused"
         time.sleep(0.1);
@@ -115,7 +119,7 @@ while True:
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize/(fSample*EEGsynth.getfloat('playback', 'speed', config, r))
+    desired = blocksize/(fSample*patch.getfloat('playback', 'speed'))
     elapsed = time.time()-start
     naptime = desired - elapsed
     if naptime>0:

@@ -62,6 +62,10 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -227,16 +231,16 @@ def update():
         freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
 
         # update plotted lines
-        redfreq = EEGsynth.getfloat('input', 'redfreq', config, r, default=10./arguments_freqrange[1])
+        redfreq = patch.getfloat('input', 'redfreq', default=10./arguments_freqrange[1])
         redfreq = EEGsynth.rescale(redfreq, slope=scalered, offset=offsetred) * arguments_freqrange[1]
 
-        redwidth = EEGsynth.getfloat('input', 'redwidth', config, r, default=1./arguments_freqrange[1])
+        redwidth = patch.getfloat('input', 'redwidth', default=1./arguments_freqrange[1])
         redwidth = EEGsynth.rescale(redwidth, slope=scalered, offset=offsetred) * arguments_freqrange[1]
 
-        bluefreq = EEGsynth.getfloat('input', 'bluefreq', config, r, default=20./arguments_freqrange[1])
+        bluefreq = patch.getfloat('input', 'bluefreq', default=20./arguments_freqrange[1])
         bluefreq = EEGsynth.rescale(bluefreq, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
 
-        bluewidth = EEGsynth.getfloat('input', 'bluewidth', config, r, default=4./arguments_freqrange[1])
+        bluewidth = patch.getfloat('input', 'bluewidth', default=4./arguments_freqrange[1])
         bluewidth = EEGsynth.rescale(bluewidth, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
 
         redleft[ichan].setData(x=[redfreq-redwidth,redfreq-redwidth],y=[specmin[ichan],specmax[ichan]])
