@@ -26,7 +26,6 @@ from scipy.signal import butter, lfilter
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import argparse
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -45,7 +44,7 @@ else:
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 import FieldTrip
 
@@ -137,30 +136,30 @@ win.setWindowTitle('EEGsynth')
 pg.setConfigOptions(antialias=True)
 
 # Initialize variables
-timeplot = [];
-freqplot = [];
-curve = [];
-spect = [];
-redleft = [];
-redright = [];
-blueleft = [];
-blueright = [];
-FFT = [];
-FFT_old = [];
-specmax = [];
-specmin = [];
-curvemax = [];
+timeplot = []
+freqplot = []
+curve = []
+spect = []
+redleft = []
+redright = []
+blueleft = []
+blueright = []
+FFT = []
+FFT_old = []
+specmax = []
+specmin = []
+curvemax = []
 
 # Create panels (timecourse and spectrum) for each channel
 for ichan in range(chan_nrs):
     channr = int(chanarray[ichan]) + 1
-    timeplot.append(win.addPlot(title="%s%s" % ('Channel ',channr)))
-    timeplot[ichan].setLabel('left',text = 'Amplitude')
-    timeplot[ichan].setLabel('bottom',text = 'Time (s)')
+    timeplot.append(win.addPlot(title="%s%s" % ('Channel ', channr)))
+    timeplot[ichan].setLabel('left', text='Amplitude')
+    timeplot[ichan].setLabel('bottom', text='Time (s)')
     curve.append(timeplot[ichan].plot(pen='w'))
-    freqplot.append(win.addPlot(title="%s%s" % ('Spectrum channel ',channr)))
-    freqplot[ichan].setLabel('left',text = 'Power')
-    freqplot[ichan].setLabel('bottom',text = 'Frequency (Hz)')
+    freqplot.append(win.addPlot(title="%s%s" % ('Spectrum channel ', channr)))
+    freqplot[ichan].setLabel('left', text = 'Power')
+    freqplot[ichan].setLabel('bottom', text = 'Frequency (Hz)')
 
     spect.append(freqplot[ichan].plot(pen='w'))
     redleft.append(freqplot[ichan].plot(pen='r'))
@@ -187,7 +186,7 @@ def update():
    print "reading from sample %d to %d" % (begsample, endsample)
 
    # demean data before filtering to reduce edge artefacts and center timecourse
-   data = data - np.sum(data,axis=0)/float(len(data))
+   data = data - np.sum(data, axis=0)/float(len(data))
    data = detrend(data, axis=0)
    data = butter_bandpass_filter(data.T, 5, 40, 250, 9).T[clipsize:-clipsize]
 
@@ -197,15 +196,15 @@ def update():
    for ichan in range(chan_nrs):
 
         channr = int(chanarray[ichan])
-        FFT[ichan] = abs(fft(taper*data[:,int(chanarray[ichan])])) * lrate + FFT_old[ichan] * (1-lrate)
+        FFT[ichan] = abs(fft(taper*data[:, int(chanarray[ichan])])) * lrate + FFT_old[ichan] * (1-lrate)
         FFT_old[ichan] = FFT[ichan]
 
         # freqency axis
-        freqaxis = fftfreq(len(data),1/hdr_input.fSample)
+        freqaxis = fftfreq(len(data), 1/hdr_input.fSample)
 
         # user-selected frequency band
-        user_freqrange = config.get('arguments','freqrange').split("-")
-        freqrange = np.greater(freqaxis,int(user_freqrange[0])) & np.less_equal(freqaxis,int(user_freqrange[1]))
+        user_freqrange = config.get('arguments', 'freqrange').split("-")
+        freqrange = np.greater(freqaxis, int(user_freqrange[0])) & np.less_equal(freqaxis,int(user_freqrange[1]))
 
         # time axis
         timeaxis = np.linspace(0,len(data)/hdr_input.fSample,len(data))
@@ -225,14 +224,14 @@ def update():
         freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
 
         # update plotted lines
-        redfreq = EEGsynth.getfloat('input','redfreq', config, r, default=10)
+        redfreq = EEGsynth.getfloat('input', 'redfreq', config, r, default=10)
         redfreq = redfreq * float(user_freqrange[1]) * EEGsynth.getfloat('scale','red', config, r, default=1/127)
-        redwidth = EEGsynth.getfloat('input','redwidth', config, r, default=10)
+        redwidth = EEGsynth.getfloat('input', 'redwidth', config, r, default=10)
         redwidth = redwidth * float(user_freqrange[1]) * EEGsynth.getfloat('scale','red', config, r, default=1/127)
 
-        bluefreq = EEGsynth.getfloat('input','bluefreq', config, r, default=10)
+        bluefreq = EEGsynth.getfloat('input', 'bluefreq', config, r, default=10)
         bluefreq = bluefreq * float(user_freqrange[1]) * EEGsynth.getfloat('scale','blue', config, r, default=1/127)
-        bluewidth = EEGsynth.getfloat('input','bluewidth', config, r, default=10)
+        bluewidth = EEGsynth.getfloat('input', 'bluewidth', config, r, default=10)
         bluewidth = bluewidth * float(user_freqrange[1]) * EEGsynth.getfloat('scale','blue', config, r, default=1/127)
 
         redleft[ichan].setData(x=[redfreq-redwidth,redfreq-redwidth],y=[specmin[ichan],specmax[ichan]])
@@ -240,14 +239,14 @@ def update():
         blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
         blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
 
-   key = "%s.%s.%s" % (config.get('output','prefix'), 'redband','low')
-   r.set(key,[redfreq-redwidth])
-   key = "%s.%s.%s" % (config.get('output','prefix'), 'redband','high')
-   r.set(key,[redfreq+redwidth])
-   key = "%s.%s.%s" % (config.get('output','prefix'), 'blueband','low')
-   r.set(key,[bluefreq-bluewidth])
-   key = "%s.%s.%s" % (config.get('output','prefix'), 'blueband','high')
-   r.set(key,[bluefreq+bluewidth])
+   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'redband', 'low')
+   r.set(key, [redfreq-redwidth])
+   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'redband', 'high')
+   r.set(key, [redfreq+redwidth])
+   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'blueband', 'low')
+   r.set(key, [bluefreq-bluewidth])
+   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'blueband', 'high')
+   r.set(key, [bluefreq+bluewidth])
 
 # Set timer for update
 timer = QtCore.QTimer()
