@@ -47,6 +47,13 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -56,15 +63,6 @@ control_name = ['kick_level', 'snare_level', 'lo_tom_level', 'hi_tom_level', 'cl
 control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
 note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
 note_code = [36, 38, 43, 50, 42, 46, 39]
-
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
 
 # this is only for debugging
 print('------ OUTPUT ------')

@@ -47,6 +47,13 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 # this is the timeout for the FieldTrip buffer
@@ -80,14 +87,6 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
 
 filter_length = '3s'
 window  = round(config.getfloat('processing','window') * hdr_input.fSample) # in samples

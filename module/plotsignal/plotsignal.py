@@ -55,6 +55,13 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
 # this determines how much debugging information gets printed
 debug = config.getint('general','debug')
 
@@ -102,15 +109,6 @@ while hdr_input is None:
     time.sleep(0.2)
 
 print "Data arrived"
-
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
 
 chanlist = config.get('arguments','channels').split(",")
 chanarray = np.array(chanlist)

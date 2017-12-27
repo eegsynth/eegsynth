@@ -56,20 +56,19 @@ import FieldTrip
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
+
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
-
-# this determines how much debugging information gets printed
-debug = config.getint('general', 'debug')
 
 try:
     r = redis.StrictRedis(host=config.get('redis',  'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
-    if debug > 0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# this determines how much debugging information gets printed
+debug = config.getint('general', 'debug')
 
 # read ini file
 inputlist = config.get('input', 'channels').split(",")
@@ -139,4 +138,3 @@ while True:
         # output min/max to redis, appended to input keys
         key = (inputlist[iinput] + '.norm')
         r.set(key, calibhistory[iinput, historysize-1])
-
