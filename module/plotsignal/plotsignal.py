@@ -67,7 +67,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
@@ -93,8 +93,8 @@ def butter_lowpass_filter(data, lowcut, fs, order=9):
     return y
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_input = FieldTrip.Client()
@@ -114,23 +114,23 @@ while hdr_input is None:
 
 print "Data arrived"
 
-chanlist = config.get('arguments','channels').split(",")
+chanlist = patch.getstring('arguments','channels').split(",")
 chanarray = np.array(chanlist)
 for i in range(len(chanarray)):
     chanarray[i] = int(chanarray[i]) - 1 # since python using indexing from 0 instead of 1
 
 chan_nrs = len(chanlist)
 
-window     = config.getfloat('arguments','window')   # in seconds
+window     = patch.getfloat('arguments','window')   # in seconds
 window     = int(round(window*hdr_input.fSample))    # in samples
-clipsize   = config.getfloat('arguments','clipsize') # in seconds
+clipsize   = patch.getfloat('arguments','clipsize') # in seconds
 clipsize   = int(round(clipsize*hdr_input.fSample))  # in samples
-stepsize   = config.getfloat('arguments','stepsize') # in seconds
-lrate      = config.getfloat('arguments','learning_rate')
-scalered   = config.getfloat('scale','red')
-scaleblue  = config.getfloat('scale','blue')
-offsetred  = config.getfloat('offset','red')
-offsetblue = config.getfloat('offset','blue')
+stepsize   = patch.getfloat('arguments','stepsize') # in seconds
+lrate      = patch.getfloat('arguments','learning_rate')
+scalered   = patch.getfloat('scale','red')
+scaleblue  = patch.getfloat('scale','blue')
+offsetred  = patch.getfloat('offset','red')
+offsetblue = patch.getfloat('offset','blue')
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -209,7 +209,7 @@ def update():
         freqaxis = fftfreq(len(data), 1/hdr_input.fSample)
 
         # user-selected frequency band
-        arguments_freqrange = config.get('arguments', 'freqrange').split("-")
+        arguments_freqrange = patch.getstring('arguments', 'freqrange').split("-")
         arguments_freqrange = [float(s) for s in arguments_freqrange]
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
@@ -248,13 +248,13 @@ def update():
         blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
         blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
 
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'redband', 'low')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'low')
    r.set(key, [redfreq-redwidth])
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'redband', 'high')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'high')
    r.set(key, [redfreq+redwidth])
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'blueband', 'low')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'low')
    r.set(key, [bluefreq-bluewidth])
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'blueband', 'high')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'high')
    r.set(key, [bluefreq+bluewidth])
 
 # Set timer for update

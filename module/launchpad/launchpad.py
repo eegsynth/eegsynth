@@ -47,7 +47,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=patch.get('redis','hostname'), port=patch.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -69,7 +69,7 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-mididevice = patch.get('midi', 'device')
+mididevice = patch.getstring('midi', 'device')
 try:
     inputport  = mido.open_input(mididevice)
     if debug>0:
@@ -96,27 +96,27 @@ except:
 
 try:
     # momentary push button
-    push     = [int(a) for a in patch.get('button', 'push').split(",")]
+    push     = [int(a) for a in patch.getstring('button', 'push').split(",")]
 except:
     push     = []
 try:
     # on-off button
-    toggle1  = [int(a) for a in patch.get('button', 'toggle1').split(",")]
+    toggle1  = [int(a) for a in patch.getstring('button', 'toggle1').split(",")]
 except:
     toggle1  = []
 try:
     # on1-on2-off button
-    toggle2  = [int(a) for a in patch.get('button', 'toggle2').split(",")]
+    toggle2  = [int(a) for a in patch.getstring('button', 'toggle2').split(",")]
 except:
     toggle2  = []
 try:
     # on1-on2-on3-off button
-    toggle3  = [int(a) for a in patch.get('button', 'toggle3').split(",")]
+    toggle3  = [int(a) for a in patch.getstring('button', 'toggle3').split(",")]
 except:
     toggle3  = []
 try:
     # on1-on2-on3-on4-off button
-    toggle4  = [int(a) for a in patch.get('button', 'toggle4').split(",")]
+    toggle4  = [int(a) for a in patch.getstring('button', 'toggle4').split(",")]
 except:
     toggle4  = []
 
@@ -190,7 +190,7 @@ while True:
 
         if hasattr(msg, "control"):
             # prefix.control000=value
-            key = "{}.control{:0>3d}".format(patch.get('output', 'prefix'), msg.control)
+            key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = msg.value
             r.set(key, val)
 
@@ -243,11 +243,11 @@ while True:
 
             if not val is None:
                 # prefix.noteXXX=value
-                key = "{}.note{:0>3d}".format(patch.get('output','prefix'), msg.note)
+                key = "{}.note{:0>3d}".format(patch.getstring('output','prefix'), msg.note)
                 val = EEGsynth.rescale(val, slope=notescale, offset=noteoffset)
                 r.set(key, val)          # send it as control value
                 r.publish(key, val)      # send it as trigger
                 # prefix.note=note
-                key = "{}.note".format(patch.get('output','prefix'))
+                key = "{}.note".format(patch.getstring('output','prefix'))
                 r.set(key, msg.note)          # send it as control value
                 r.publish(key, msg.note)      # send it as trigger

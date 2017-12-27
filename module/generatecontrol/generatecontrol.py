@@ -58,13 +58,13 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
-update            = config.getfloat('generate', 'update') # in seconds
-scale_frequency   = config.getfloat('scale', 'frequency')
-scale_amplitude   = config.getfloat('scale', 'amplitude')
-scale_offset      = config.getfloat('scale', 'offset')
-scale_noise       = config.getfloat('scale', 'noise')
+update            = patch.getfloat('generate', 'update') # in seconds
+scale_frequency   = patch.getfloat('scale', 'frequency')
+scale_amplitude   = patch.getfloat('scale', 'amplitude')
+scale_offset      = patch.getfloat('scale', 'offset')
+scale_noise       = patch.getfloat('scale', 'noise')
 
 if debug > 1:
     print "update", update
@@ -103,19 +103,19 @@ while True:
     t = sample * update
     sample += 1
 
-    key = config.get('output', 'prefix') + '.sin'
+    key = patch.getstring('output', 'prefix') + '.sin'
     val = np.sin(2 * np.pi * frequency * t) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 
-    key = config.get('output', 'prefix') + '.square'
+    key = patch.getstring('output', 'prefix') + '.square'
     val = signal.square(2 * np.pi * frequency * t, 0.5) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 
-    key = config.get('output', 'prefix') + '.triangle'
+    key = patch.getstring('output', 'prefix') + '.triangle'
     val = signal.sawtooth(2 * np.pi * frequency * t, 0.5) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 
-    key = config.get('output', 'prefix') + '.sawtooth'
+    key = patch.getstring('output', 'prefix') + '.sawtooth'
     val = signal.sawtooth(2 * np.pi * frequency * t, 1) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 

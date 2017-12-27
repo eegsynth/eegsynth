@@ -62,7 +62,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # get the input and output options
 input_name, input_variable = zip(*config.items('input'))
@@ -92,7 +92,7 @@ if debug>0:
 
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     actual_value = [];
     for name in input_name:

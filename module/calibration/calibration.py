@@ -62,11 +62,11 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
-prefix      = config.get('output','prefix')
-inputlist   = config.get('input','channels').split(",")
-stepsize    = config.getfloat('calibration','stepsize')   # in seconds
+prefix      = patch.getstring('output','prefix')
+inputlist   = patch.getstring('input','channels').split(",")
+stepsize    = patch.getfloat('calibration','stepsize')   # in seconds
 numchannel  = len(inputlist)
 
 # this will contain the initial and calibrated values

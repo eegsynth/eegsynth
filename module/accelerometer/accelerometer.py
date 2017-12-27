@@ -60,14 +60,14 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
+timeout = patch.getfloat('fieldtrip','timeout')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -94,19 +94,19 @@ if debug>1:
     print hdr_input.labels
 
 # get the processing arameters
-window = config.getfloat('processing','window')*hdr_input.fSample
+window = patch.getfloat('processing','window')*hdr_input.fSample
 
 channel_indx = []
 channel_name = ['channelX', 'channelY', 'channelZ']
 for chan in channel_name:
     # channel numbers are one-offset in the ini file, zero-offset in the code
-    channel_indx.append(config.getint('input',chan)-1)
+    channel_indx.append(patch.getint('input',chan)-1)
 
 begsample = -1
 endsample = -1
 
 while True:
-    time.sleep(config.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general','delay'))
 
     hdr_input = ftc.getHeader()
     if (hdr_input.nSamples-1)<endsample:
@@ -131,17 +131,17 @@ while True:
         # the scale option is channel specific
         if config.has_option('scale', chanstr):
             try:
-                scale = config.getfloat('scale', chanstr)
+                scale = patch.getfloat('scale', chanstr)
             except:
-                scale = r.get(config.get('scale', chanstr))
+                scale = r.get(patch.getstring('scale', chanstr))
         else:
             scale = 1
         # the offset option is channel specific
         if config.has_option('offset', chanstr):
             try:
-                offset = config.getfloat('offset', chanstr)
+                offset = patch.getfloat('offset', chanstr)
             except:
-                offset = r.get(config.get('offset', chanstr))
+                offset = r.get(patch.getstring('offset', chanstr))
         else:
             offset = 0
 
@@ -157,7 +157,7 @@ while True:
         # this is for debugging
         printval.append(val)
 
-        r.set(config.get('output', 'prefix') + '.' + chanstr, val)
+        r.set(patch.getstring('output', 'prefix') + '.' + chanstr, val)
 
     if debug>1:
         print printval

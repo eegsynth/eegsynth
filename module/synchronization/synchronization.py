@@ -61,12 +61,12 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 serialport = None
 def initialize_serial():
     try:
-        serialport = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+        serialport = serial.Serial(patch.getstring('serial','device'), patch.getint('serial','baudrate'), timeout=3.0)
     except:
         print "Error: cannot connect to serial output"
         exit()
@@ -104,7 +104,7 @@ class MidiThread(threading.Thread):
             print msg
         while self.running:
             if not self.enabled:
-                time.sleep(config.getfloat('general', 'delay'))
+                time.sleep(patch.getfloat('general', 'delay'))
             else:
                 now = time.time()
                 delay = 60/self.rate      # the rate is in bpm
@@ -128,10 +128,10 @@ slip            = 0
 tick            = 0
 adjust_offset   = 0
 previous_offset = 0
-pulselength = config.getfloat('general','pulselength')
+pulselength = patch.getfloat('general','pulselength')
 
 # this is how it will appear in REDIS
-key = "%s.%s" % (config.get('output','prefix'), config.get('input','rate'))
+key = "%s.%s" % (patch.getstring('output','prefix'), patch.getstring('input','rate'))
 
 # these will only be started when needed
 init_midi   = False
@@ -178,7 +178,7 @@ try:
 
         rate = patch.getfloat('input', 'rate')
         if rate is None:
-            time.sleep(config.getfloat('general', 'delay'))
+            time.sleep(patch.getfloat('general', 'delay'))
             continue
 
         offset = patch.getfloat('input', 'offset', default=64)

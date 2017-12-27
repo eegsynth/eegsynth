@@ -60,14 +60,14 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
+timeout = patch.getfloat('fieldtrip','timeout')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -107,7 +107,7 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = self.r.pubsub()
-        channel = self.config.get('processing','calibrate')
+        channel = self.patch.getstring('processing','calibrate')
         pubsub.subscribe('EYEBLINK_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(channel)
         while self.running:
@@ -125,8 +125,8 @@ try:
     trigger = TriggerThread(r, config)
     trigger.start()
 
-    channel = config.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
-    window  = round(config.getfloat('processing','window') * hdr_input.fSample)  # in samples
+    channel = patch.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
+    window  = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
 
     minval = None
     maxval = None
@@ -137,7 +137,7 @@ try:
     endsample = -1
 
     while True:
-        time.sleep(config.getfloat('processing','window')/10)
+        time.sleep(patch.getfloat('processing','window')/10)
         t += 1
 
         lock.acquire()
@@ -160,17 +160,17 @@ try:
         D = D[:,channel]
 
         try:
-            low_pass = config.getint('processing', 'low_pass')
+            low_pass = patch.getint('processing', 'low_pass')
         except:
             low_pass = None
 
         try:
-            high_pass = config.getint('processing', 'high_pass')
+            high_pass = patch.getint('processing', 'high_pass')
         except:
             high_pass = None
 
         try:
-            order = config.getint('general', 'order')
+            order = patch.getint('general', 'order')
         except:
             order = None
 
@@ -187,7 +187,7 @@ try:
         maxval = max(maxval,np.max(D))
 
         spread = np.max(D) - np.min(D)
-        if spread > config.getfloat('processing','threshold')*(maxval-minval):
+        if spread > patch.getfloat('processing','threshold')*(maxval-minval):
             val = 1
         else:
             val = 0
@@ -196,7 +196,7 @@ try:
               '\t  max_spread : ' + str(maxval-minval) +
               '\t  output ' + str(val))
 
-        key = "%s.channel%d" % (config.get('output','prefix'), channel+1)
+        key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
         r.publish(key,val)
 
 except (KeyboardInterrupt, SystemExit):

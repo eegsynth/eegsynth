@@ -62,11 +62,11 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -78,14 +78,14 @@ except:
     exit()
 
 try:
-    fileformat = config.get('playback', 'format')
+    fileformat = patch.getstring('playback', 'format')
 except:
-    fname = config.get('playback', 'file')
+    fname = patch.getstring('playback', 'file')
     name, ext = os.path.splitext(fname)
     fileformat = ext[1:]
 
 if debug>0:
-    print "Reading data from", config.get('playback', 'file')
+    print "Reading data from", patch.getstring('playback', 'file')
 
 H = FieldTrip.Header()
 
@@ -98,7 +98,7 @@ MAXINT32 =  np.power(2,31)-1
 
 if fileformat=='edf':
     f = EDF.EDFReader()
-    f.open(config.get('playback', 'file'))
+    f.open(patch.getstring('playback', 'file'))
     for chanindx in range(f.getNSignals()):
         if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
             raise AssertionError('unequal SignalFreqs')
@@ -119,14 +119,14 @@ if fileformat=='edf':
 
 elif fileformat=='wav':
     try:
-        physical_min = config.getfloat('playback', 'physical_min')
+        physical_min = patch.getfloat('playback', 'physical_min')
     except:
         physical_min = -1
     try:
-        physical_max = config.getfloat('playback', 'physical_max')
+        physical_max = patch.getfloat('playback', 'physical_max')
     except:
         physical_max =  1
-    f = wave.open(config.get('playback', 'file'), 'r')
+    f = wave.open(patch.getstring('playback', 'file'), 'r')
     resolution = f.getsampwidth() # 1, 2 or 4
     # 8-bit samples are stored as unsigned bytes, ranging from 0 to 255.
     # 16-bit samples are stored as signed integers in 2's-complement.
@@ -164,7 +164,7 @@ if debug>1:
 
 ftc.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
 
-blocksize = int(config.getfloat('playback', 'blocksize')*H.fSample)
+blocksize = int(patch.getfloat('playback', 'blocksize')*H.fSample)
 begsample = 0
 endsample = blocksize-1
 block     = 0

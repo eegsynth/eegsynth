@@ -58,7 +58,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is only for debugging
 print('------ INPUT ------')
@@ -67,7 +67,7 @@ for port in mido.get_input_names():
 print('-------------------------')
 
 try:
-    inputport  = mido.open_input(config.get('midi', 'device'))
+    inputport  = mido.open_input(patch.getstring('midi', 'device'))
     if debug>0:
         print "Connected to MIDI input"
 except:
@@ -75,7 +75,7 @@ except:
     exit()
 
 while True:
-    time.sleep(config.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general','delay'))
 
     for msg in inputport.iter_pending():
 
@@ -84,16 +84,16 @@ while True:
 
         if hasattr(msg, "control"):
             # prefix.control000=value
-            key = "{}.control{:0>3d}".format(config.get('output', 'prefix'), msg.control)
+            key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = msg.value
             r.set(key, val)
 
         elif hasattr(msg, "note"):
             # prefix.noteXXX=value
-            key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
+            key = "{}.note{:0>3d}".format(patch.getstring('output','prefix'), msg.note)
             r.set(key,msg.value)          # send it as control value
             r.publish(key,msg.value)      # send it as trigger
             # prefix.note=note
-            key = "{}.note".format(config.get('output','prefix'))
+            key = "{}.note".format(patch.getstring('output','prefix'))
             r.set(key,msg.note)          # send it as control value
             r.publish(key,msg.note)      # send it as trigger

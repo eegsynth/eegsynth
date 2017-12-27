@@ -58,11 +58,11 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 try:
     s = OSC.OSCClient()
-    s.connect((config.get('osc','hostname'), config.getint('osc','port')))
+    s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
     if debug>0:
         print "Connected to OSC server"
 except:
@@ -84,7 +84,7 @@ for i in range(len(list_input)):
             list3.append(list_output[j][1])
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     for key1,key2,key3 in zip(list1,list2,list3):
 

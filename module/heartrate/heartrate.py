@@ -59,14 +59,14 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
+timeout = patch.getfloat('fieldtrip','timeout')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -94,15 +94,15 @@ if debug>1:
 
 
 filter_length = '3s'
-window  = round(config.getfloat('processing','window') * hdr_input.fSample) # in samples
-channel = config.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
-key     = "%s.channel%d" % (config.get('output','prefix'), channel+1)
+window  = round(patch.getfloat('processing','window') * hdr_input.fSample) # in samples
+channel = patch.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
+key     = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
 
 begsample = -1
 endsample = -1
 
 while True:
-    time.sleep(config.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general','delay'))
 
     hdr_input = ftc.getHeader()
     if (hdr_input.nSamples-1)<endsample:

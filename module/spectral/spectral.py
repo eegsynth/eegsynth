@@ -63,14 +63,14 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip', 'timeout')
+timeout = patch.getfloat('fieldtrip', 'timeout')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -97,17 +97,17 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = self.r.pubsub()
-        pubsub.subscribe(self.config.get('gain_control','recalibrate'))
-        pubsub.subscribe(self.config.get('gain_control','freeze'))
-        pubsub.subscribe(self.config.get('gain_control','increase'))
-        pubsub.subscribe(self.config.get('gain_control','decrease'))
+        pubsub.subscribe(self.patch.getstring('gain_control','recalibrate'))
+        pubsub.subscribe(self.patch.getstring('gain_control','freeze'))
+        pubsub.subscribe(self.patch.getstring('gain_control','increase'))
+        pubsub.subscribe(self.patch.getstring('gain_control','decrease'))
         pubsub.subscribe('BRAIN_UNBLOCK')  # this message unblocks the redis listen command
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
                 lock.acquire()
-                if item['channel']==self.config.get('gain_control','recalibrate'):
+                if item['channel']==self.patch.getstring('gain_control','recalibrate'):
                     if not self.freeze:
                         # this will cause the min/max values to be completely reset
                         self.minval = None
@@ -116,7 +116,7 @@ class TriggerThread(threading.Thread):
                             print 'recalibrate', self.minval, self.maxval
                     else:
                         print 'not recalibrating, freeze is on'
-                elif item['channel']==self.config.get('gain_control','freeze'):
+                elif item['channel']==self.patch.getstring('gain_control','freeze'):
                     # freeze the automatic adjustment of the gain control
                     # when frozen, the recalibrate should also not be done
                     self.freeze = (int(item['data'])>0)
@@ -125,24 +125,24 @@ class TriggerThread(threading.Thread):
                             print 'freeze on'
                         else:
                             print 'freeze off'
-                elif item['channel']==self.config.get('gain_control','increase'):
+                elif item['channel']==self.patch.getstring('gain_control','increase'):
                     # decreasing the min/max values will increase the gain
                     if not self.minval is None:
                         for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
                             range = float(max-min)
                             if range>0:
-                                self.minval[i] += range * self.config.getfloat('gain_control','stepsize')
-                                self.maxval[i] -= range * self.config.getfloat('gain_control','stepsize')
+                                self.minval[i] += range * self.patch.getfloat('gain_control','stepsize')
+                                self.maxval[i] -= range * self.patch.getfloat('gain_control','stepsize')
                     if debug>0:
                         print 'increase', self.minval, self.maxval
-                elif item['channel']==self.config.get('gain_control','decrease'):
+                elif item['channel']==self.patch.getstring('gain_control','decrease'):
                     # increasing the min/max values will decrease the gain
                     if not self.minval is None:
                         for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
                             range = float(max-min)
                             if range>0:
-                                self.minval[i] -= range * self.config.getfloat('gain_control','stepsize')
-                                self.maxval[i] += range * self.config.getfloat('gain_control','stepsize')
+                                self.minval[i] -= range * self.patch.getfloat('gain_control','stepsize')
+                                self.maxval[i] += range * self.patch.getfloat('gain_control','stepsize')
                     if debug>0:
                         print 'decrease', self.minval, self.maxval
                 self.update = True
@@ -175,12 +175,12 @@ try:
     for item in channel_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
         channame.append(item[0])
-        chanindx.append(config.getint('input', item[0])-1)
+        chanindx.append(patch.getint('input', item[0])-1)
 
     if debug>0:
         print channame, chanindx
 
-    window = int(round(config.getfloat('processing','window') * hdr_input.fSample))
+    window = int(round(patch.getfloat('processing','window') * hdr_input.fSample))
     minval = None
     maxval = None
     freeze = False
@@ -196,7 +196,7 @@ try:
     endsample = -1
 
     while True:
-        time.sleep(config.getfloat('general','delay'))
+        time.sleep(patch.getfloat('general','delay'))
 
         band_items = config.items('band')
         bandname = []
@@ -207,7 +207,7 @@ try:
             lohi = patch.getfloat('band', item[0], multiple=True)
             if debug>2:
                 print item[0], lohi
-            # lohi = config.get('band', item[0]).split("-")
+            # lohi = patch.getstring('band', item[0]).split("-")
             bandname.append(item[0])
             bandlo.append(lohi[0])
             bandhi.append(lohi[1])
@@ -290,7 +290,7 @@ try:
         for chan in channame:
             for band in bandname:
                 # send the control value prefix.channel.band=value
-                key = "%s.%s.%s" % (config.get('output','prefix'), chan, band)
+                key = "%s.%s.%s" % (patch.getstring('output','prefix'), chan, band)
                 val = int(127.0*power[i])
                 r.set(key,val)
                 i+=1

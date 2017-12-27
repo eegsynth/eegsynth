@@ -63,14 +63,14 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
+timeout = patch.getfloat('fieldtrip','timeout')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -97,17 +97,17 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = self.r.pubsub()
-        pubsub.subscribe(self.config.get('gain_control','recalibrate'))
-        pubsub.subscribe(self.config.get('gain_control','freeze'))
-        pubsub.subscribe(self.config.get('gain_control','increase'))
-        pubsub.subscribe(self.config.get('gain_control','decrease'))
+        pubsub.subscribe(self.patch.getstring('gain_control','recalibrate'))
+        pubsub.subscribe(self.patch.getstring('gain_control','freeze'))
+        pubsub.subscribe(self.patch.getstring('gain_control','increase'))
+        pubsub.subscribe(self.patch.getstring('gain_control','decrease'))
         pubsub.subscribe('MUSCLE_UNBLOCK')  # this message unblocks the redis listen command
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
                 lock.acquire()
-                if item['channel']==self.config.get('gain_control','recalibrate'):
+                if item['channel']==self.patch.getstring('gain_control','recalibrate'):
                     if not self.freeze:
                         # this will cause the min/max values to be completely reset
                         self.minval = None
@@ -116,7 +116,7 @@ class TriggerThread(threading.Thread):
                             print 'recalibrate', self.minval, self.maxval
                     else:
                         print 'not recalibrating, freeze is on'
-                elif item['channel']==self.config.get('gain_control','freeze'):
+                elif item['channel']==self.patch.getstring('gain_control','freeze'):
                     # freeze the automatic adjustment of the gain control
                     # when frozen, the recalibrate should also not be done
                     self.freeze = (int(item['data'])>0)
@@ -125,24 +125,24 @@ class TriggerThread(threading.Thread):
                             print 'freeze on'
                         else:
                             print 'freeze off'
-                elif item['channel']==self.config.get('gain_control','increase'):
+                elif item['channel']==self.patch.getstring('gain_control','increase'):
                     # decreasing the min/max values will increase the gain
                     if not self.minval is None:
                         for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
                             range = float(max-min)
                             if range>0:
-                                self.minval[i] += range * self.config.getfloat('gain_control','stepsize')
-                                self.maxval[i] -= range * self.config.getfloat('gain_control','stepsize')
+                                self.minval[i] += range * self.patch.getfloat('gain_control','stepsize')
+                                self.maxval[i] -= range * self.patch.getfloat('gain_control','stepsize')
                     if debug>0:
                         print 'increase', self.minval, self.maxval
-                elif item['channel']==self.config.get('gain_control','decrease'):
+                elif item['channel']==self.patch.getstring('gain_control','decrease'):
                     # increasing the min/max values will decrease the gain
                     if not self.minval is None:
                         for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
                             range = float(max-min)
                             if range>0:
-                                self.minval[i] -= range * self.config.getfloat('gain_control','stepsize')
-                                self.maxval[i] += range * self.config.getfloat('gain_control','stepsize')
+                                self.minval[i] -= range * self.patch.getfloat('gain_control','stepsize')
+                                self.maxval[i] += range * self.patch.getfloat('gain_control','stepsize')
                     if debug>0:
                         print 'decrease', self.minval, self.maxval
                 self.update = True
@@ -175,18 +175,18 @@ try:
     for item in channel_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
         channame.append(item[0])                            # the channel name
-        chanindx.append(config.getint('input', item[0])-1)  # the channel number
+        chanindx.append(patch.getint('input', item[0])-1)  # the channel number
 
-    window = round(config.getfloat('processing','window') * hdr_input.fSample)
-    order = config.getint('processing', 'order')
+    window = round(patch.getfloat('processing','window') * hdr_input.fSample)
+    order = patch.getint('processing', 'order')
 
     try:
-        low_pass = config.getint('processing', 'low_pass')
+        low_pass = patch.getint('processing', 'low_pass')
     except:
         low_pass = None
 
     try:
-        high_pass = config.getint('processing', 'high_pass')
+        high_pass = patch.getint('processing', 'high_pass')
     except:
         high_pass = None
 
@@ -198,7 +198,7 @@ try:
     endsample = -1
 
     while True:
-        time.sleep(config.getfloat('general','delay'))
+        time.sleep(patch.getfloat('general','delay'))
 
         lock.acquire()
         if trigger.update:
@@ -258,7 +258,7 @@ try:
 
         for name,val in zip(channame, rms):
             # send it as control value: prefix.channelX=val
-            key = "%s.%s" % (config.get('output','prefix'), name)
+            key = "%s.%s" % (patch.getstring('output','prefix'), name)
             val = int(127*val)
             r.set(key,val)
 

@@ -47,7 +47,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -58,13 +58,13 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 pattern = patch.getint('input','pattern', default=0)
 previous = pattern
 
 try:
-  sequence = config.get('sequence',"pattern{:d}".format(pattern))
+  sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
 except:
   sequence = '0'
 
@@ -83,7 +83,7 @@ try:
                 # get the corresponding sequence
                 pattern = patch.getint('input','pattern', default=0)
                 try:
-                  sequence = config.get('sequence',"pattern{:d}".format(pattern))
+                  sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
                 except:
                   sequence = '0'
                 # immediately start playing the new sequence
@@ -108,7 +108,7 @@ try:
             if debug>0:
                 print pattern, rate, transpose, note
 
-            key = "{}.note".format(config.get('output','prefix'))
+            key = "{}.note".format(patch.getstring('output','prefix'))
             val = note + transpose
 
             r.set(key,val)      # send it as control value: prefix.channel000.note=note

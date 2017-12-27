@@ -59,11 +59,11 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_output = FieldTrip.Client()
@@ -75,9 +75,9 @@ except:
     exit()
 
 datatype  = FieldTrip.DATATYPE_FLOAT32
-nchannels = config.getint('generate', 'nchannels')
-fsample   = config.getfloat('generate', 'fsample')
-blocksize = int(round(config.getfloat('generate', 'window') * fsample))
+nchannels = patch.getint('generate', 'nchannels')
+fsample   = patch.getfloat('generate', 'fsample')
+blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
 
 ft_output.putHeader(nchannels, fsample, datatype)
 
@@ -86,9 +86,9 @@ if debug > 1:
     print "fsample", fsample
     print "blocksize", blocksize
 
-scale_frequency   = config.getfloat('scale', 'frequency')
-scale_amplitude   = config.getfloat('scale', 'amplitude')
-scale_noise       = config.getfloat('scale', 'noise')
+scale_frequency   = patch.getfloat('scale', 'frequency')
+scale_amplitude   = patch.getfloat('scale', 'amplitude')
+scale_noise       = patch.getfloat('scale', 'noise')
 
 prev_frequency = -1
 prev_amplitude = -1

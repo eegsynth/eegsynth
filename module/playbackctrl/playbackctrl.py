@@ -40,13 +40,13 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 if debug>0:
-    print "Reading data from", config.get('playback', 'file')
+    print "Reading data from", patch.getstring('playback', 'file')
 
 f = EDF.EDFReader()
-f.open(config.get('playback', 'file'))
+f.open(patch.getstring('playback', 'file'))
 
 if debug>1:
     print "NSignals", f.getNSignals()

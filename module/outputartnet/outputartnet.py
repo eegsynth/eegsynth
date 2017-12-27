@@ -59,11 +59,11 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # prepare the data for a single universe
-address = [0, 0, config.getint('artnet','universe')]
-artnet = ArtNet.ArtNet(ip=config.get('artnet','broadcast'), port=config.getint('artnet','port'))
+address = [0, 0, patch.getint('artnet','universe')]
+artnet = ArtNet.ArtNet(ip=patch.getstring('artnet','broadcast'), port=patch.getint('artnet','port'))
 
 # blank out
 dmxdata = [0] * 512
@@ -74,7 +74,7 @@ prevtime = time.time()
 
 try:
     while True:
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
         for chanindx in range(1, 256):
             chanstr = "channel%03d" % chanindx

@@ -62,7 +62,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # see https://en.wikipedia.org/wiki/Median_absolute_deviation
 def mad(arr, axis=None):
@@ -72,10 +72,10 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-prefix      = config.get('output','prefix')
-inputlist   = config.get('input','channels').split(",")
-stepsize    = config.getfloat('smoothing','stepsize')   # in seconds
-window      = config.getfloat('smoothing','window')     # in seconds
+prefix      = patch.getstring('output','prefix')
+inputlist   = patch.getstring('input','channels').split(",")
+stepsize    = patch.getfloat('smoothing','stepsize')   # in seconds
+window      = patch.getfloat('smoothing','window')     # in seconds
 numchannel  = len(inputlist)
 numhistory  = int(round(window/stepsize))
 

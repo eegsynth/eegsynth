@@ -48,7 +48,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -59,7 +59,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 def default(x, y):
     if x is None:
@@ -77,9 +77,9 @@ for i, dev in enumerate(devices):
     print "%d - %s" % (i, dev['name'])
 print('-------------------------')
 
-BLOCKSIZE = int(config.get('general','blocksize'))
+BLOCKSIZE = int(patch.getstring('general','blocksize'))
 CHANNELS  = 1
-BITRATE   = int(config.get('general','bitrate'))
+BITRATE   = int(patch.getstring('general','bitrate'))
 BITS      = p.get_format_from_width(1)
 
 lock = threading.Lock()
@@ -88,7 +88,7 @@ stream = p.open(format = BITS,
 		channels = CHANNELS,
 		rate = BITRATE,
 		output = True,
-		output_device_index = config.getint('pyaudio','output_device_index'))
+		output_device_index = patch.getint('pyaudio','output_device_index'))
 
 class TriggerThread(threading.Thread):
     def __init__(self, r, config):
@@ -104,7 +104,7 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = self.r.pubsub()
-        channel = self.config.get('input','adsr_gate')
+        channel = self.patch.getstring('input','adsr_gate')
         pubsub.subscribe(channel)
         while self.running:
            for item in pubsub.listen():
@@ -143,35 +143,35 @@ class ControlThread(threading.Thread):
           ################################################################################
           # VCO
           ################################################################################
-          vco_pitch = self.r.get(config.get('input','vco_pitch'))
+          vco_pitch = self.r.get(patch.getstring('input','vco_pitch'))
           if vco_pitch:
               vco_pitch = float(vco_pitch)
           else:
-              vco_pitch = self.config.getfloat('default','vco_pitch')
+              vco_pitch = self.patch.getfloat('default','vco_pitch')
 
-          vco_sin = self.r.get(self.config.get('input','vco_sin'))
+          vco_sin = self.r.get(self.patch.getstring('input','vco_sin'))
           if vco_sin:
               vco_sin = float(vco_sin)
           else:
-              vco_sin = self.config.getfloat('default','vco_sin')
+              vco_sin = self.patch.getfloat('default','vco_sin')
 
-          vco_tri = self.r.get(self.config.get('input','vco_tri'))
+          vco_tri = self.r.get(self.patch.getstring('input','vco_tri'))
           if vco_tri:
               vco_tri = float(vco_tri)
           else:
-              vco_tri = self.config.getfloat('default','vco_tri')
+              vco_tri = self.patch.getfloat('default','vco_tri')
 
-          vco_saw = self.r.get(self.config.get('input','vco_saw'))
+          vco_saw = self.r.get(self.patch.getstring('input','vco_saw'))
           if vco_saw:
               vco_saw = float(vco_saw)
           else:
-              vco_saw = self.config.getfloat('default','vco_saw')
+              vco_saw = self.patch.getfloat('default','vco_saw')
 
-          vco_sqr = self.r.get(self.config.get('input','vco_sqr'))
+          vco_sqr = self.r.get(self.patch.getstring('input','vco_sqr'))
           if vco_sqr:
               vco_sqr = float(vco_sqr)
           else:
-            vco_sqr = self.config.getfloat('default','vco_sqr')
+            vco_sqr = self.patch.getfloat('default','vco_sqr')
 
           vco_total = vco_sin + vco_tri + vco_saw + vco_sqr
           if vco_total>0:
@@ -184,48 +184,48 @@ class ControlThread(threading.Thread):
           ################################################################################
           # LFO
           ################################################################################
-          lfo_frequency = self.r.get(self.config.get('input','lfo_frequency'))
+          lfo_frequency = self.r.get(self.patch.getstring('input','lfo_frequency'))
           if lfo_frequency:
               lfo_frequency = float(lfo_frequency)
           else:
-              lfo_frequency = self.config.getfloat('default','lfo_frequency')
+              lfo_frequency = self.patch.getfloat('default','lfo_frequency')
           # assume that this value is between 0 and 127
           lfo_frequency = lfo_frequency/3
 
-          lfo_depth = self.r.get(self.config.get('input','lfo_depth'))
+          lfo_depth = self.r.get(self.patch.getstring('input','lfo_depth'))
           if lfo_depth:
               lfo_depth = float(lfo_depth)
           else:
-              lfo_depth = self.config.getfloat('default','lfo_depth')
+              lfo_depth = self.patch.getfloat('default','lfo_depth')
           # assume that this value is between 0 and 127
           lfo_depth = lfo_depth/127
 
           ################################################################################
           # ADSR
           ################################################################################
-          adsr_attack = self.r.get(self.config.get('input','adsr_attack'))
+          adsr_attack = self.r.get(self.patch.getstring('input','adsr_attack'))
           if adsr_attack:
               adsr_attack = float(adsr_attack)
           else:
-              adsr_attack = self.config.getfloat('default','adsr_attack')
+              adsr_attack = self.patch.getfloat('default','adsr_attack')
 
-          adsr_decay = self.r.get(self.config.get('input','adsr_decay'))
+          adsr_decay = self.r.get(self.patch.getstring('input','adsr_decay'))
           if adsr_decay:
               adsr_decay = float(adsr_decay)
           else:
-              adsr_decay = self.config.getfloat('default','adsr_decay')
+              adsr_decay = self.patch.getfloat('default','adsr_decay')
 
-          adsr_sustain = self.r.get(self.config.get('input','adsr_sustain'))
+          adsr_sustain = self.r.get(self.patch.getstring('input','adsr_sustain'))
           if adsr_sustain:
               adsr_sustain = float(adsr_sustain)
           else:
-              adsr_sustain = self.config.getfloat('default','adsr_sustain')
+              adsr_sustain = self.patch.getfloat('default','adsr_sustain')
 
-          adsr_release = self.r.get(self.config.get('input','adsr_release'))
+          adsr_release = self.r.get(self.patch.getstring('input','adsr_release'))
           if adsr_release:
               adsr_release = float(adsr_release)
           else:
-              adsr_release = self.config.getfloat('default','adsr_release')
+              adsr_release = self.patch.getfloat('default','adsr_release')
 
           # convert from value between 0 and 127 into time in samples
           adsr_attack   *= float(BITRATE)/127
@@ -236,11 +236,11 @@ class ControlThread(threading.Thread):
           ################################################################################
           # VCA
           ################################################################################
-          vca_envelope = self.r.get(self.config.get('input','vca_envelope'))
+          vca_envelope = self.r.get(self.patch.getstring('input','vca_envelope'))
           if vca_envelope:
               vca_envelope = float(vca_envelope)
           else:
-              vca_envelope = self.config.getfloat('default','vca_envelope')
+              vca_envelope = self.patch.getfloat('default','vca_envelope')
           # assume that this value is between 0 and 127
           vca_envelope = vca_envelope/127.0
 

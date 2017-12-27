@@ -59,7 +59,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general', 'debug')
+debug = patch.getint('general', 'debug')
 
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
@@ -95,7 +95,7 @@ class TriggerThread(threading.Thread):
                     outputport.send(msg)
                     lock.release()
                     # keep it at the present value for a minimal amount of time
-                    time.sleep(config.getfloat('general','pulselength'))
+                    time.sleep(patch.getfloat('general','pulselength'))
 
 # each of the gates that can be triggered is mapped onto a different message
 gate = []
@@ -104,7 +104,7 @@ for channel in range(0, 16):
     name = 'channel{}'.format(channel+1)
     if config.has_option('gate', name):
         # start the background thread that deals with this channel
-        this = TriggerThread(config.get('gate', name), channel)
+        this = TriggerThread(patch.getstring('gate', name), channel)
         gate.append(this)
         if debug>1:
             print name, 'OK'
@@ -121,7 +121,7 @@ for channel in range(1, 16):
 
 try:
     while True:
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
         # loop over the control values
         for channel in range(0, 16):

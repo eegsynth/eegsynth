@@ -48,14 +48,26 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
-debug = config.getint('general', 'debug')
+debug = patch.getint('general', 'debug')
+
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('input_fieldtrip','timeout')
+timeout = patch.getfloat('input_fieldtrip','timeout')
 
 try:
-    ftc_host = config.get('input_fieldtrip', 'hostname')
-    ftc_port = config.getint('input_fieldtrip', 'port')
+    ftc_host = patch.getstring('input_fieldtrip', 'hostname')
+    ftc_port = patch.getint('input_fieldtrip', 'port')
     if debug > 0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_input = FieldTrip.Client()
@@ -67,8 +79,8 @@ except:
     exit()
 
 try:
-    ftc_host = config.get('output_fieldtrip', 'hostname')
-    ftc_port = config.getint('output_fieldtrip', 'port')
+    ftc_host = patch.getstring('output_fieldtrip', 'hostname')
+    ftc_port = patch.getint('output_fieldtrip', 'port')
     if debug > 0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_output = FieldTrip.Client()
@@ -142,18 +154,18 @@ if debug > 0:
     for number, channel in zip(output_number, output_channel):
         print number, '=', channel
 
-sample_rate = config.getfloat('cogito', 'sample_rate')
-window      = config.getfloat('cogito', 'window')
-f_min       = config.getfloat('cogito', 'f_min')
-f_max       = config.getfloat('cogito', 'f_max')
-scaling     = config.getfloat('cogito', 'scaling')
+sample_rate = patch.getfloat('cogito', 'sample_rate')
+window      = patch.getfloat('cogito', 'window')
+f_min       = patch.getfloat('cogito', 'f_min')
+f_max       = patch.getfloat('cogito', 'f_max')
+scaling     = patch.getfloat('cogito', 'scaling')
 try:
-    polyorder = config.getint('cogito', 'polyorder')
+    polyorder = patch.getint('cogito', 'polyorder')
 except:
     polyorder = None
 
-profileMin = config.getfloat('cogito', 'profileMin')
-profileMax = config.getfloat('cogito', 'profileMax')
+profileMin = patch.getfloat('cogito', 'profileMin')
+profileMax = patch.getfloat('cogito', 'profileMax')
 profileCorrection = np.loadtxt('Dwingeloo-Transmitter-Profile.txt')
 profileCorrection = (1. - profileCorrection)*(profileMax-profileMin)
 profileCorrection += profileMin
@@ -192,7 +204,7 @@ while True:
 
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if (hdr_input.nSamples-1)<(endsample-window):
             print "Error: buffer reset detected"

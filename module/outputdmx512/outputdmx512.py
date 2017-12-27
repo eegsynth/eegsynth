@@ -58,12 +58,12 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 try:
     s = serial.Serial()
-    s.port=config.get('serial','device')
-    s.baudrate=config.get('serial','baudrate')
+    s.port=patch.getstring('serial','device')
+    s.baudrate=patch.getstring('serial','baudrate')
     s.bytesize=8
     s.parity='N'
     s.stopbits=2
@@ -141,7 +141,7 @@ prevtime = time.time()
 
 try:
     while True:
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
         for chanindx in range(1, 512):
             chanstr = "channel%03d" % chanindx

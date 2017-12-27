@@ -58,7 +58,7 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # get the input and output options
 input_channel, input_name = map(list, zip(*config.items('input')))
@@ -81,7 +81,7 @@ def find_nearest_idx(array,value):
     return idx
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     for channel,name in zip(input_channel, input_name):
         val = patch.getfloat('input', channel)

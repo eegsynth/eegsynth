@@ -61,11 +61,11 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 filenumber  = 0
 recording   = False
-delay       = config.getfloat('general','delay')
+delay       = patch.getfloat('general','delay')
 adjust      = 1
 
 while True:
@@ -87,7 +87,7 @@ while True:
     if not recording and patch.getint('recording', 'record'):
         recording = True
         # open a new file
-        fname = config.get('recording', 'file')
+        fname = patch.getstring('recording', 'file')
         name, ext = os.path.splitext(fname)
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # get the details from REDIS

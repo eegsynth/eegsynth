@@ -61,7 +61,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis',  'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -72,16 +72,16 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general', 'debug')
+debug = patch.getint('general', 'debug')
 
 # read configuration settings
-inputlist       = config.get('input', 'channels').split(",")
+inputlist       = patch.getstring('input', 'channels').split(",")
 input_nrs       = int(len(inputlist))
-stepsize        = config.getfloat('general', 'stepsize')
-historysize     = int(config.getfloat('general', 'window') / stepsize)
-learning_rate   = config.getfloat('general', 'learning_rate')
-secwindow       = config.getfloat('general', 'window')
-outputminmax    = config.getint('general', 'outputminmax')
+stepsize        = patch.getfloat('general', 'stepsize')
+historysize     = int(patch.getfloat('general', 'window') / stepsize)
+learning_rate   = patch.getfloat('general', 'learning_rate')
+secwindow       = patch.getfloat('general', 'window')
+outputminmax    = patch.getint('general', 'outputminmax')
 
 # Initialize variables
 inputhistory    = np.ones((input_nrs, historysize))
@@ -92,7 +92,7 @@ inputminadd     = np.ones((input_nrs, historysize))
 inputmaxadd     = np.ones((input_nrs, historysize))
 
 while True:
-   time.sleep(config.getfloat('general', 'delay'))
+   time.sleep(patch.getfloat('general', 'delay'))
 
    gain_att = patch.getfloat('attenuation', 'value', default=0.5)
    gain_att = gain_att + patch.getfloat('attenuation', 'offset', default=0)

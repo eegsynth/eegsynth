@@ -58,10 +58,10 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 try:
-    s = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+    s = serial.Serial(patch.getstring('serial','device'), patch.getint('serial','baudrate'), timeout=3.0)
     if debug>0:
         print "Connected to serial port"
 except:
@@ -69,7 +69,7 @@ except:
     exit()
 
 while True:
-    time.sleep(config.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general','delay'))
 
     for chanindx in range(1, 8):
         chanstr = "cv%d" % chanindx

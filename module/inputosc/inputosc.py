@@ -60,10 +60,10 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 try:
-    s = OSC.OSCServer((config.get('osc','address'), config.getint('osc','port')))
+    s = OSC.OSCServer((patch.getstring('osc','address'), patch.getint('osc','port')))
     if debug>0:
         print "Started OSC server"
 except:
@@ -72,7 +72,7 @@ except:
     exit()
 
 # this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
-button_list = config.get('button', 'push').split(',')
+button_list = patch.getstring('button', 'push').split(',')
 
 # define a message-handler function for the server to call.
 def forward_handler(addr, tags, data, source):
@@ -96,7 +96,7 @@ def forward_handler(addr, tags, data, source):
         data[i] = EEGsynth.rescale(data[i], scale, offset)
 
     # the results will be written to redis as "osc.1.faderA" etc.
-    key = config.get('output', 'prefix') + addr.replace('/', '.')
+    key = patch.getstring('output', 'prefix') + addr.replace('/', '.')
 
     if tags=='f' or tags=='i':
         # it is a single value

@@ -47,7 +47,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -72,13 +72,13 @@ print('-------------------------')
 # on windows the input and output are different, on unix they are the same
 # use "input/output" when specified, or otherwise use "device" for both
 try:
-    mididevice_input = patch.getstring('midi', 'input')
+    mididevice_input = patch.getstringstring('midi', 'input')
 except:
-    mididevice_input = patch.getstring('midi', 'device') # fallback
+    mididevice_input = patch.getstringstring('midi', 'device') # fallback
 try:
-    mididevice_output = patch.getstring('midi', 'output')
+    mididevice_output = patch.getstringstring('midi', 'output')
 except:
-    mididevice_output = patch.getstring('midi', 'device') # fallback
+    mididevice_output = patch.getstringstring('midi', 'device') # fallback
 
 print mididevice_input
 print mididevice_output
@@ -109,27 +109,27 @@ except:
 
 try:
     # momentary push button
-    push = [int(a) for a in patch.getstring('button', 'push').split(",")]
+    push = [int(a) for a in patch.getstringstring('button', 'push').split(",")]
 except:
     push = []
 try:
     # on-off button
-    toggle1 = [int(a) for a in patch.getstring('button', 'toggle1').split(",")]
+    toggle1 = [int(a) for a in patch.getstringstring('button', 'toggle1').split(",")]
 except:
     toggle1 = []
 try:
     # on1-on2-off button
-    toggle2 = [int(a) for a in patch.getstring('button', 'toggle2').split(",")]
+    toggle2 = [int(a) for a in patch.getstringstring('button', 'toggle2').split(",")]
 except:
     toggle2 = []
 try:
     # on1-on2-on3-off button
-    toggle3 = [int(a) for a in patch.getstring('button', 'toggle3').split(",")]
+    toggle3 = [int(a) for a in patch.getstringstring('button', 'toggle3').split(",")]
 except:
     toggle3 = []
 try:
     # on1-on2-on3-on4-off button
-    toggle4 = [int(a) for a in patch.getstring('button', 'toggle4').split(",")]
+    toggle4 = [int(a) for a in patch.getstringstring('button', 'toggle4').split(",")]
 except:
     toggle4 = []
 
@@ -206,7 +206,7 @@ while True:
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
-            key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
+            key = "{}.control{:0>3d}".format(patch.getstringstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scalecontrol, offset=offsetcontrol)
             r.set(key, val)
 
@@ -264,11 +264,11 @@ while True:
 
             if not val is None:
                 # prefix.noteXXX=value
-                key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
+                key = "{}.note{:0>3d}".format(patch.getstringstring('output', 'prefix'), msg.note)
                 val = EEGsynth.rescale(val, slope=scalenote, offset=offsetnote)
                 r.set(key, val)          # send it as control value
                 r.publish(key, val)      # send it as trigger
                 # prefix.note=note
-                key = "{}.note".format(patch.getstring('output', 'prefix'))
+                key = "{}.note".format(patch.getstringstring('output', 'prefix'))
                 r.set(key, msg.note)          # send it as control value
                 r.publish(key, msg.note)      # send it as trigger

@@ -51,19 +51,26 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('input_fieldtrip','timeout')
+timeout = patch.getfloat('input_fieldtrip','timeout')
 
 try:
-    ftc_host = config.get('input_fieldtrip','hostname')
-    ftc_port = config.getint('input_fieldtrip','port')
+    ftc_host = patch.getstring('input_fieldtrip','hostname')
+    ftc_port = patch.getint('input_fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_input = FieldTrip.Client()
@@ -75,8 +82,8 @@ except:
     exit()
 
 try:
-    ftc_host = config.get('output_fieldtrip','hostname')
-    ftc_port = config.getint('output_fieldtrip','port')
+    ftc_host = patch.getstring('output_fieldtrip','hostname')
+    ftc_port = patch.getint('output_fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_output = FieldTrip.Client()
@@ -102,31 +109,31 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-window = config.getfloat('processing', 'window')
+window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
 ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
 try:
-    smoothing = config.getfloat('processing', 'smoothing')
+    smoothing = patch.getfloat('processing', 'smoothing')
 except:
     smoothing = None
 
-reference = config.get('processing','reference')
+reference = patch.getstring('processing','reference')
 
 # Filtering init
 try:
-    lowpassfilter = config.getfloat('processing', 'lowpassfilter')/hdr_input.fSample
+    lowpassfilter = patch.getfloat('processing', 'lowpassfilter')/hdr_input.fSample
 except:
     lowpassfilter = None
 
 try:
-    highpassfilter = config.getfloat('processing', 'highpassfilter')/hdr_input.fSample
+    highpassfilter = patch.getfloat('processing', 'highpassfilter')/hdr_input.fSample
 except:
     highpassfilter = None
 
 try:
-    filterorder = config.getint('processing', 'filterorder')
+    filterorder = patch.getint('processing', 'filterorder')
 except:
     filterorder = None
 
@@ -168,7 +175,7 @@ while True:
 
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if (hdr_input.nSamples-1)<(endsample-window):
             print "Error: buffer reset detected"
