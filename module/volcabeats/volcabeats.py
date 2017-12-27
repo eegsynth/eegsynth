@@ -47,8 +47,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 # the list of MIDI commands is the only aspect that is specific to the Volca Beats
 # see http://media.aadl.org/files/catalog_guides/1445131_chart.pdf
@@ -57,22 +68,13 @@ control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 
 note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
 note_code = [36, 38, 43, 50, 42, 46, 39]
 
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
-
 # this is only for debugging
 print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-midichannel = config.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
+midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
 
@@ -108,7 +110,7 @@ trigger = []
 for name, code in zip(note_name, note_code):
     try:
         # start the background thread that deals with the trigger
-        this = TriggerThread(config.get('note', name), code)
+        this = TriggerThread(patch.getstring('note', name), code)
         trigger.append(this)
         print name+' OK'
     except:
@@ -126,18 +128,13 @@ for name in control_name:
 
 try:
     while True:
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
         for name, cmd in zip(control_name, control_code):
             # loop over the control values
-            if not config.has_option('control', name):
-                continue # it should be skipped when commented out in the ini file
-            val = r.get(config.get('control', name))
-            if val:
-                val = float(val)
-            else:
+            val = patch.getint('control', name)
+            if val==None:
                 continue # it should be skipped when not present
-            val = int(val)
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val

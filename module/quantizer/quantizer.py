@@ -46,17 +46,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
 
 # get the input and output options
 input_channel, input_name = map(list, zip(*config.items('input')))
@@ -64,7 +66,7 @@ quantized_name, quantized_value = map(list, zip(*config.items('quantization')))
 
 # get the list of values for each of the quantization levels
 for i,name in enumerate(quantized_name):
-    quantized_value[i] = EEGsynth.getfloat('quantization', name, config, r, multiple=True)
+    quantized_value[i] = patch.getfloat('quantization', name, multiple=True)
 
 # find the level to which the data is to be quantized
 index =  quantized_name.index('level')
@@ -79,10 +81,10 @@ def find_nearest_idx(array,value):
     return idx
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     for channel,name in zip(input_channel, input_name):
-        val = EEGsynth.getfloat('input', channel, config, r)
+        val = patch.getfloat('input', channel)
         if val is None:
             pass
         else:

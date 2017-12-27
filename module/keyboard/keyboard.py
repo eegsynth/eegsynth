@@ -52,15 +52,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print 'Error: cannot connect to redis server'
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+# del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
 
 # this is only for debugging
 print('------ INPUT ------')
@@ -71,7 +75,7 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-mididevice = config.get('midi', 'device')
+mididevice = patch.getstring('midi', 'device')
 try:
     inputport  = mido.open_input(mididevice)
     if debug>0:
@@ -90,7 +94,7 @@ except:
 
 try:
     # channel 1-16 in the ini file should be mapped to 0-15
-    midichannel = config.getint('midi', 'channel')-1
+    midichannel = patch.getint('midi', 'channel')-1
 except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
@@ -132,7 +136,7 @@ trigger = []
 for name, code in zip(note_name, note_code):
     if config.has_option('input', name):
         # start the background thread that deals with this note
-        this = TriggerThread(config.get('input', name), code)
+        this = TriggerThread(patch.getstring('input', name), code)
         trigger.append(this)
         if debug>1:
             print name, 'OK'
@@ -143,7 +147,7 @@ for thread in trigger:
 
 try:
     while True:
-        time.sleep(config.getfloat('general','delay'))
+        time.sleep(patch.getfloat('general','delay'))
 
         for msg in inputport.iter_pending():
             if midichannel is None:
@@ -158,18 +162,18 @@ try:
 
             if hasattr(msg,'note'):
                 print(msg)
-                if config.get('processing','detect')=='release' and msg.velocity>0:
+                if patch.getstring('processing','detect')=='release' and msg.velocity>0:
                     pass
-                elif config.get('processing','detect')=='press' and msg.velocity==0:
+                elif patch.getstring('processing','detect')=='press' and msg.velocity==0:
                     pass
                 else:
                     # prefix.note=note
-                    key = '{}.note'.format(config.get('output','prefix'))
+                    key = '{}.note'.format(patch.getstring('output','prefix'))
                     val = msg.note
                     r.set(key,val)          # send it as control value
                     r.publish(key,val)      # send it as trigger
                     # prefix.noteXXX=velocity
-                    key = '{}.note{:0>3d}'.format(config.get('output','prefix'), msg.note)
+                    key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
                     r.set(key,val)          # send it as control value
                     r.publish(key,val)      # send it as trigger

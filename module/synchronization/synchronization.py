@@ -49,9 +49,6 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
@@ -59,10 +56,17 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
 serialport = None
 def initialize_serial():
     try:
-        serialport = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+        serialport = serial.Serial(patch.getstring('serial','device'), patch.getint('serial','baudrate'), timeout=3.0)
     except:
         print "Error: cannot connect to serial output"
         exit()
@@ -100,7 +104,7 @@ class MidiThread(threading.Thread):
             print msg
         while self.running:
             if not self.enabled:
-                time.sleep(config.getfloat('general', 'delay'))
+                time.sleep(patch.getfloat('general', 'delay'))
             else:
                 now = time.time()
                 delay = 60/self.rate      # the rate is in bpm
@@ -124,10 +128,10 @@ slip            = 0
 tick            = 0
 adjust_offset   = 0
 previous_offset = 0
-pulselength = config.getfloat('general','pulselength')
+pulselength = patch.getfloat('general','pulselength')
 
 # this is how it will appear in REDIS
-key = "%s.%s" % (config.get('output','prefix'), config.get('input','rate'))
+key = "%s.%s" % (patch.getstring('output','prefix'), patch.getstring('input','rate'))
 
 # these will only be started when needed
 init_midi   = False
@@ -145,9 +149,9 @@ try:
         # measure the time to correct for the slip
         now = time.time()
 
-        use_serial = EEGsynth.getint('general', 'serial', config, r, default=0)
-        use_midi   = EEGsynth.getint('general', 'midi', config, r, default=0)
-        use_redis  = EEGsynth.getint('general', 'redis', config, r, default=0)
+        use_serial = patch.getint('general', 'serial', default=0)
+        use_midi   = patch.getint('general', 'midi', default=0)
+        use_redis  = patch.getint('general', 'redis', default=0)
 
         if previous_use_serial is None:
             previous_use_serial = not(use_serial);
@@ -172,16 +176,16 @@ try:
             midisync.disable()
             previous_use_midi = False
 
-        rate = EEGsynth.getfloat('input', 'rate', config, r)
+        rate = patch.getfloat('input', 'rate')
         if rate is None:
-            time.sleep(config.getfloat('general', 'delay'))
+            time.sleep(patch.getfloat('general', 'delay'))
             continue
 
-        offset = EEGsynth.getfloat('input', 'offset', config, r, default=64)
+        offset = patch.getfloat('input', 'offset', default=64)
         # the offset value from 0-127 gets scaled to a value from -1 to +1 seconds
         offset = (offset-64)/(127/2)
 
-        multiplier = EEGsynth.getfloat('input', 'multiplier', config, r, default=1)
+        multiplier = patch.getfloat('input', 'multiplier', default=1)
         # the multiplier value from 0-127 gets scaled to a value from 1/4 to 16/4
         idx = find_nearest_idx(multiplier_mid, multiplier)
         multiplier = multiplier_val[idx]

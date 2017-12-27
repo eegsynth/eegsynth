@@ -50,17 +50,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
 
 # see https://en.wikipedia.org/wiki/Median_absolute_deviation
 def mad(arr, axis=None):
@@ -70,10 +72,10 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-prefix      = config.get('output','prefix')
-inputlist   = config.get('input','channels').split(",")
-stepsize    = config.getfloat('smoothing','stepsize')   # in seconds
-window      = config.getfloat('smoothing','window')     # in seconds
+prefix      = patch.getstring('output','prefix')
+inputlist   = patch.getstring('input','channels').split(",")
+stepsize    = patch.getfloat('smoothing','stepsize')   # in seconds
+window      = patch.getfloat('smoothing','window')     # in seconds
 numchannel  = len(inputlist)
 numhistory  = int(round(window/stepsize))
 

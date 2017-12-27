@@ -46,25 +46,51 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-pattern = EEGsynth.getint('input','pattern', config, r, default=0)
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
+# assume that the control values are between 0 and 1
+scale_pattern   = patch.getfloat('scale', 'pattern',   default=127) # MIDI values
+scale_transpose = patch.getfloat('scale', 'transpose', default=127) # MIDI values
+scale_rate      = patch.getfloat('scale', 'rate',      default=127) # beats per minute
+
+offset_pattern   = patch.getfloat('offset', 'pattern',   default=0)
+offset_transpose = patch.getfloat('offset', 'transpose', default=0)
+offset_rate      = patch.getfloat('offset', 'rate',      default=0)
+
+if debug>0:
+    print 'scale_pattern', scale_pattern
+    print 'scale_transpose', scale_transpose
+    print 'scale_rate', scale_rate
+    print 'offset_pattern', offset_pattern
+    print 'offset_transpose', offset_transpose
+    print 'offset_rate', offset_rate
+
+# the pattern should be an integer between 0 and 127
+pattern = patch.getfloat('control','pattern', default=0)
+pattern = EEGsynth.rescale(pattern, slope=scale_pattern, offset=offset_pattern)
+pattern = int(pattern)
 previous = pattern
 
 try:
-  sequence = config.get('sequence',"pattern{:d}".format(pattern))
+    sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
 except:
-  sequence = '0'
+    sequence = '0'
 
-print pattern, sequence
+if debug>0:
+    print 'pattern  =', pattern
+    print 'sequence =', sequence
 
 try:
     while True:
@@ -72,45 +98,52 @@ try:
         for note in sequence.split():
             note = int(note)
 
-            # this will return empty if not available
-            pattern = EEGsynth.getint('input','pattern', config, r, default=0)
+            # the pattern should be an integer between 0 and 127
+            pattern = patch.getfloat('control','pattern', default=0)
+            pattern = EEGsynth.rescale(pattern, slope=scale_pattern, offset=offset_pattern)
+            pattern = int(pattern)
 
             if pattern!=previous:
                 # get the corresponding sequence
-                pattern = EEGsynth.getint('input','pattern', config, r, default=0)
                 try:
-                  sequence = config.get('sequence',"pattern{:d}".format(pattern))
+                    sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
                 except:
-                  sequence = '0'
+                    sequence = '0'
+
                 # immediately start playing the new sequence
                 previous = pattern
                 print 'break'
                 break
 
-            # use a default rate of 90 bpm
-            rate = EEGsynth.getfloat('input','rate', config, r)
-            if rate is None:
-                rate = 90
-
             # use a default transposition of 48
-            transpose = EEGsynth.getint('input','transpose', config, r)
-            if transpose is None:
-                transpose = 48
+            transpose = patch.getfloat('control','transpose', default=48./127)
+            transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)
 
-            # assume that the rate value is between 0 and 127, map it exponentially from 20 to 2000
+            # use a default rate of 90 bpm
+            rate = patch.getfloat('control','rate', default=90./127)
+            rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+
+            # assume that the rate value is between 0 and 127, map it exponentially from 60 to 600
             # it should not get too low, otherwise the code with the sleep below becomes unresponsive
-            rate = 20*math.exp(rate*math.log(100)/127)
+            rate = 60. * math.exp(math.log(10) * rate/127)
 
             if debug>0:
-                print pattern, rate, transpose, note
+                print '-----------------------'
+                print 'pattern   =', pattern
+                print 'rate      =', rate
+                print 'transpose =', transpose
+                print 'note      =', note
 
-            key = "{}.note".format(config.get('output','prefix'))
+            key = "{}.note".format(patch.getstring('output','prefix'))
             val = note + transpose
+
+            if debug>0:
+                print 'sending', key, 'with value', val
 
             r.set(key,val)      # send it as control value: prefix.channel000.note=note
             r.publish(key,val)  # send it as trigger: prefix.channel000.note=note
 
-            time.sleep(60/rate)
+            time.sleep(60./rate)
 
 except KeyboardInterrupt:
     try:

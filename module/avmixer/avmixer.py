@@ -47,6 +47,20 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
 # the settings dialog distinguishes three colors for sliders/knobs, buttons and switches
 slider_name = ['mixer/mixer1_mode', 'mixer/mixer1_fader', 'mixer/mixer2_mode', 'mixer/mixer2_fader', 'mixer/fade_to_black', 'color_fx/saturation', 'color_fx/hue1', 'color_fx/black1', 'color_fx/hue2', 'color_fx/black2', 'transform_fx/tile_mode', 'transform_fx/rotate', 'transform_fx/zoom', 'transform_fx/move_x', 'transform_fx/move_y', 'transform_fx/center_x', 'transform_fx/center_y', 'transform_fx/skew_x', 'transform_fx/skew_y', 'freeframe_fx1/pad1_x', 'freeframe_fx1/pad1_y', 'freeframe_fx1/pad2_x', 'freeframe_fx1/pad2_y', 'freeframe_fx1/pad3_x', 'freeframe_fx1/pad4_y', 'freeframe_fx2/pad1_x', 'freeframe_fx2/pad1_y', 'freeframe_fx2/pad2_x', 'freeframe_fx2/pad2_y', 'freeframe_fx2/pad3_x', 'freeframe_fx2/pad4_y', 'channelA/playback_speed', 'channelA/scrub_timeline', 'channelB/playback_speed', 'channelB/scrub_timeline', 'channelC/playback_speed', 'channelC/scrub_timeline']
 slider_code = [31, 32, 33, 34, 35, 45, 0, 0, 0, 0, 0, 53, 54, 56, 55, 58, 57, 60, 59, 69, 68, 71, 70, 73, 72, 82, 81, 84, 83, 86, 85, 3, 10, 14, 20, 24, 30]
@@ -69,19 +83,7 @@ control_code = slider_code
 note_name = button_name + switch_name
 note_code = button_code + switch_code
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
-
-midichannel = config.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
+midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
 
@@ -118,7 +120,7 @@ for name, code in zip(note_name, note_code):
     split_name = name.split('/')
     if config.has_option(split_name[0], split_name[1]):
         # start the background thread that deals with this note
-        this = TriggerThread(config.get(split_name[0], split_name[1]), code)
+        this = TriggerThread(patch.getstring(split_name[0], split_name[1]), code)
         trigger.append(this)
         if debug>1:
             print name, 'OK'
@@ -137,12 +139,12 @@ for name in control_name:
 
 try:
     while True:
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
         for name, cmd in zip(control_name, control_code):
             split_name = name.split('/')
             # loop over the control values
-            val = EEGsynth.getint(split_name[0], split_name[1], config, r)
+            val = patch.getint(split_name[0], split_name[1])
             if val is None:
                 continue#  it should be skipped when not present in the ini or redis
             if val==previous_val[name]:

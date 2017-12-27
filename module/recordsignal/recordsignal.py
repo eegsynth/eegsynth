@@ -56,23 +56,26 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-# this is the timeout for the FieldTrip buffer
-timeout = config.getfloat('fieldtrip','timeout')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
+# this is the timeout for the FieldTrip buffer
+timeout = patch.getfloat('fieldtrip','timeout')
+
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
@@ -100,13 +103,13 @@ if debug>1:
 
 recording = False
 
-physical_min = config.getfloat('recording', 'physical_min')
-physical_max = config.getfloat('recording', 'physical_max')
+physical_min = patch.getfloat('recording', 'physical_min')
+physical_max = patch.getfloat('recording', 'physical_max')
 
 try:
-    fileformat = config.get('recording', 'format')
+    fileformat = patch.getstring('recording', 'format')
 except:
-    fname = config.get('recording', 'file')
+    fname = patch.getstring('recording', 'file')
     name, ext = os.path.splitext(fname)
     fileformat = ext[1:]
 
@@ -120,28 +123,28 @@ while True:
         recording = False
         continue
 
-    if recording and not EEGsynth.getint('recording', 'record', config, r):
+    if recording and not patch.getint('recording', 'record'):
         if debug>0:
             print "Recording disabled - closing", fname
         f.close()
         recording = False
         continue
 
-    if not recording and not EEGsynth.getint('recording', 'record', config, r):
+    if not recording and not patch.getint('recording', 'record'):
         if debug>0:
             print "Recording is not enabled"
         time.sleep(1)
 
-    if not recording and EEGsynth.getint('recording', 'record', config, r):
+    if not recording and patch.getint('recording', 'record'):
         recording = True
         # open a new file
-        fname = config.get('recording', 'file')
+        fname = patch.getstring('recording', 'file')
         name, ext = os.path.splitext(fname)
         if len(ext)==0:
             ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # the blocksize depends on the sampling rate, which may have changed
-        blocksize = int(config.getfloat('recording', 'blocksize')*hdr_input.fSample)
+        blocksize = int(patch.getfloat('recording', 'blocksize')*hdr_input.fSample)
         # write the header to file
         if debug>0:
             print "Opening", fname

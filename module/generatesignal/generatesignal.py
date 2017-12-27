@@ -47,9 +47,6 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
@@ -57,9 +54,16 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_output = FieldTrip.Client()
@@ -71,9 +75,9 @@ except:
     exit()
 
 datatype  = FieldTrip.DATATYPE_FLOAT32
-nchannels = config.getint('generate', 'nchannels')
-fsample   = config.getfloat('generate', 'fsample')
-blocksize = int(round(config.getfloat('generate', 'window') * fsample))
+nchannels = patch.getint('generate', 'nchannels')
+fsample   = patch.getfloat('generate', 'fsample')
+blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
 
 ft_output.putHeader(nchannels, fsample, datatype)
 
@@ -82,9 +86,9 @@ if debug > 1:
     print "fsample", fsample
     print "blocksize", blocksize
 
-scale_frequency   = config.getfloat('scale', 'frequency')
-scale_amplitude   = config.getfloat('scale', 'amplitude')
-scale_noise       = config.getfloat('scale', 'noise')
+scale_frequency   = patch.getfloat('scale', 'frequency')
+scale_amplitude   = patch.getfloat('scale', 'amplitude')
+scale_noise       = patch.getfloat('scale', 'noise')
 
 prev_frequency = -1
 prev_amplitude = -1
@@ -103,9 +107,9 @@ while True:
     if debug>1:
         print "Generating block", block, 'from', begsample, 'to', endsample
 
-    frequency = EEGsynth.getfloat('signal', 'frequency', config, r, default=10) * scale_frequency
-    amplitude = EEGsynth.getfloat('signal', 'amplitude', config, r, default=1)  * scale_amplitude
-    noise     = EEGsynth.getfloat('signal', 'noise', config, r, default=0.5)    * scale_noise
+    frequency = patch.getfloat('signal', 'frequency', default=10) * scale_frequency
+    amplitude = patch.getfloat('signal', 'amplitude', default=1)  * scale_amplitude
+    noise     = patch.getfloat('signal', 'noise', default=0.5)    * scale_noise
 
     if frequency != prev_frequency:
         print "frequency", frequency

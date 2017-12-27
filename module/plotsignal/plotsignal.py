@@ -55,8 +55,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
 # this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+debug = patch.getint('general','debug')
 
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
@@ -82,8 +93,8 @@ def butter_lowpass_filter(data, lowcut, fs, order=9):
     return y
 
 try:
-    ftc_host = config.get('fieldtrip','hostname')
-    ftc_port = config.getint('fieldtrip','port')
+    ftc_host = patch.getstring('fieldtrip','hostname')
+    ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_input = FieldTrip.Client()
@@ -103,32 +114,23 @@ while hdr_input is None:
 
 print "Data arrived"
 
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
-
-chanlist = config.get('arguments','channels').split(",")
+chanlist = patch.getstring('arguments','channels').split(",")
 chanarray = np.array(chanlist)
 for i in range(len(chanarray)):
     chanarray[i] = int(chanarray[i]) - 1 # since python using indexing from 0 instead of 1
 
 chan_nrs = len(chanlist)
 
-window     = config.getfloat('arguments','window')   # in seconds
+window     = patch.getfloat('arguments','window')   # in seconds
 window     = int(round(window*hdr_input.fSample))    # in samples
-clipsize   = config.getfloat('arguments','clipsize') # in seconds
+clipsize   = patch.getfloat('arguments','clipsize') # in seconds
 clipsize   = int(round(clipsize*hdr_input.fSample))  # in samples
-stepsize   = config.getfloat('arguments','stepsize') # in seconds
-lrate      = config.getfloat('arguments','learning_rate')
-scalered   = config.getfloat('scale','red')
-scaleblue  = config.getfloat('scale','blue')
-offsetred  = config.getfloat('offset','red')
-offsetblue = config.getfloat('offset','blue')
+stepsize   = patch.getfloat('arguments','stepsize') # in seconds
+lrate      = patch.getfloat('arguments','learning_rate')
+scalered   = patch.getfloat('scale','red')
+scaleblue  = patch.getfloat('scale','blue')
+offsetred  = patch.getfloat('offset','red')
+offsetblue = patch.getfloat('offset','blue')
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -207,7 +209,7 @@ def update():
         freqaxis = fftfreq(len(data), 1/hdr_input.fSample)
 
         # user-selected frequency band
-        arguments_freqrange = config.get('arguments', 'freqrange').split("-")
+        arguments_freqrange = patch.getstring('arguments', 'freqrange').split("-")
         arguments_freqrange = [float(s) for s in arguments_freqrange]
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
@@ -229,16 +231,16 @@ def update():
         freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
 
         # update plotted lines
-        redfreq = EEGsynth.getfloat('input', 'redfreq', config, r, default=10./arguments_freqrange[1])
+        redfreq = patch.getfloat('input', 'redfreq', default=10./arguments_freqrange[1])
         redfreq = EEGsynth.rescale(redfreq, slope=scalered, offset=offsetred) * arguments_freqrange[1]
 
-        redwidth = EEGsynth.getfloat('input', 'redwidth', config, r, default=1./arguments_freqrange[1])
+        redwidth = patch.getfloat('input', 'redwidth', default=1./arguments_freqrange[1])
         redwidth = EEGsynth.rescale(redwidth, slope=scalered, offset=offsetred) * arguments_freqrange[1]
 
-        bluefreq = EEGsynth.getfloat('input', 'bluefreq', config, r, default=20./arguments_freqrange[1])
+        bluefreq = patch.getfloat('input', 'bluefreq', default=20./arguments_freqrange[1])
         bluefreq = EEGsynth.rescale(bluefreq, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
 
-        bluewidth = EEGsynth.getfloat('input', 'bluewidth', config, r, default=4./arguments_freqrange[1])
+        bluewidth = patch.getfloat('input', 'bluewidth', default=4./arguments_freqrange[1])
         bluewidth = EEGsynth.rescale(bluewidth, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
 
         redleft[ichan].setData(x=[redfreq-redwidth,redfreq-redwidth],y=[specmin[ichan],specmax[ichan]])
@@ -246,13 +248,13 @@ def update():
         blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
         blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
 
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'redband', 'low')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'low')
    r.set(key, [redfreq-redwidth])
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'redband', 'high')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'high')
    r.set(key, [redfreq+redwidth])
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'blueband', 'low')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'low')
    r.set(key, [bluefreq-bluewidth])
-   key = "%s.%s.%s" % (config.get('output', 'prefix'), 'blueband', 'high')
+   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'high')
    r.set(key, [bluefreq+bluewidth])
 
 # Set timer for update

@@ -50,17 +50,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
 
 # get the input and output options
 input_name, input_variable = zip(*config.items('input'))
@@ -90,11 +92,11 @@ if debug>0:
 
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     actual_value = [];
     for name in input_name:
-        actual_value.append(EEGsynth.getfloat('input', name, config, r))
+        actual_value.append(patch.getfloat('input', name))
 
     for key,equation in zip(output_name, output_equation):
         for name,value in zip(input_name, actual_value):

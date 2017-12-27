@@ -46,21 +46,23 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
 try:
     s = OSC.OSCClient()
-    s.connect((config.get('osc','hostname'), config.getint('osc','port')))
+    s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
     if debug>0:
         print "Connected to OSC server"
 except:
@@ -82,21 +84,21 @@ for i in range(len(list_input)):
             list3.append(list_output[j][1])
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     for key1,key2,key3 in zip(list1,list2,list3):
 
-        val = EEGsynth.getfloat('input', key1, config, r, multiple=True )
+        val = patch.getfloat('input', key1, multiple=True )
         if any(item is None for item in val):
             # the control value is not present in redis, skip it
             continue
         else:
             val = [float(x) for x in val]
 
-        if EEGsynth.getint('compressor_expander', 'enable', config, r):
+        if patch.getint('compressor_expander', 'enable'):
             # the compressor applies to all channels and must exist as float or redis key
-            lo = EEGsynth.getfloat('compressor_expander', 'lo', config, r)
-            hi = EEGsynth.getfloat('compressor_expander', 'hi', config, r)
+            lo = patch.getfloat('compressor_expander', 'lo')
+            hi = patch.getfloat('compressor_expander', 'hi')
             if lo is None or hi is None:
                 if debug>1:
                     print "cannot apply compressor/expander"
@@ -105,9 +107,9 @@ while True:
                 val = EEGsynth.compress(val, lo, hi)
 
         # the scale option is channel specific
-        scale = EEGsynth.getfloat('scale', key1, config, r, default=1)
+        scale = patch.getfloat('scale', key1, default=1)
         # the offset option is channel specific
-        offset = EEGsynth.getfloat('offset', key1, config, r, default=0)
+        offset = patch.getfloat('offset', key1, default=0)
         # apply the scale and offset
         val = EEGsynth.rescale(val, slope=scale, offset=offset)
 

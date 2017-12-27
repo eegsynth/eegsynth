@@ -46,9 +46,6 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
@@ -56,12 +53,18 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-update = config.getfloat('generate', 'update') # in seconds
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
 
-scale_frequency   = config.getfloat('scale', 'frequency')
-scale_amplitude   = config.getfloat('scale', 'amplitude')
-scale_offset      = config.getfloat('scale', 'offset')
-scale_noise       = config.getfloat('scale', 'noise')
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
+update            = patch.getfloat('generate', 'update') # in seconds
+scale_frequency   = patch.getfloat('scale', 'frequency')
+scale_amplitude   = patch.getfloat('scale', 'amplitude')
+scale_offset      = patch.getfloat('scale', 'offset')
+scale_noise       = patch.getfloat('scale', 'noise')
 
 if debug > 1:
     print "update", update
@@ -79,10 +82,10 @@ while True:
     # measure the time that it takes
     start = time.time();
 
-    frequency = EEGsynth.getfloat('signal', 'frequency', config, r, default=1)  * scale_frequency
-    amplitude = EEGsynth.getfloat('signal', 'amplitude', config, r, default=1)  * scale_amplitude
-    offset    = EEGsynth.getfloat('signal', 'offset', config, r, default=0)     * scale_offset
-    noise     = EEGsynth.getfloat('signal', 'noise', config, r, default=0.5)    * scale_noise
+    frequency = patch.getfloat('signal', 'frequency', default=1)  * scale_frequency
+    amplitude = patch.getfloat('signal', 'amplitude', default=1)  * scale_amplitude
+    offset    = patch.getfloat('signal', 'offset', default=0)     * scale_offset
+    noise     = patch.getfloat('signal', 'noise', default=0.5)    * scale_noise
 
     if frequency != prev_frequency:
         print "frequency", frequency
@@ -100,19 +103,19 @@ while True:
     t = sample * update
     sample += 1
 
-    key = config.get('output', 'prefix') + '.sin'
+    key = patch.getstring('output', 'prefix') + '.sin'
     val = np.sin(2 * np.pi * frequency * t) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 
-    key = config.get('output', 'prefix') + '.square'
+    key = patch.getstring('output', 'prefix') + '.square'
     val = signal.square(2 * np.pi * frequency * t, 0.5) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 
-    key = config.get('output', 'prefix') + '.triangle'
+    key = patch.getstring('output', 'prefix') + '.triangle'
     val = signal.sawtooth(2 * np.pi * frequency * t, 0.5) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 
-    key = config.get('output', 'prefix') + '.sawtooth'
+    key = patch.getstring('output', 'prefix') + '.sawtooth'
     val = signal.sawtooth(2 * np.pi * frequency * t, 1) * amplitude + np.random.randn(1) * noise
     r.set(key, val[0])
 

@@ -52,17 +52,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general', 'debug')
-
 try:
-    r = redis.StrictRedis(host=config.get('redis',  'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general', 'debug')
 
 input_name, input_variable = zip(*config.items('input'))
 
@@ -74,9 +76,9 @@ for i in range(len(input_name)):
         curve_nrs += 1
 
 ylim_name, ylim_value = zip(*config.items('ylim'))
-delay = config.getfloat('general', 'delay')
-historysize = int(config.getfloat('general', 'window') / delay)
-secwindow = config.getfloat('general', 'window')
+delay = patch.getfloat('general', 'delay')
+historysize = int(patch.getfloat('general', 'window') / delay)
+secwindow = patch.getfloat('general', 'window')
 
 # initialize graphical window
 app = QtGui.QApplication([])
