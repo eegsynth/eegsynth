@@ -46,15 +46,19 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
-# this determines how much debugging information gets printed
-debug = config.getint('general', 'debug')
-
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general', 'debug')
 
 # this is only for debugging, and check which MIDI devices are accessible
 print('------ INPUT ------')
@@ -68,13 +72,16 @@ print('-------------------------')
 # on windows the input and output are different, on unix they are the same
 # use "input/output" when specified, or otherwise use "device" for both
 try:
-    mididevice_input = config.get('midi', 'input')
+    mididevice_input = patch.getstring('midi', 'input')
 except:
-    mididevice_input = config.get('midi', 'device') # fallback
+    mididevice_input = patch.getstring('midi', 'device') # fallback
 try:
-    mididevice_output = config.get('midi', 'output')
+    mididevice_output = patch.getstring('midi', 'output')
 except:
-    mididevice_output = config.get('midi', 'device') # fallback
+    mididevice_output = patch.getstring('midi', 'device') # fallback
+
+print mididevice_input
+print mididevice_output
 
 try:
     inputport = mido.open_input(mididevice_input)
@@ -94,7 +101,7 @@ except:
 
 try:
     # channel 1-16 in the ini file should be mapped to 0-15
-    midichannel = config.getint('midi', 'channel')-1
+    midichannel = patch.getint('midi', 'channel')-1
 except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
@@ -102,27 +109,27 @@ except:
 
 try:
     # momentary push button
-    push = [int(a) for a in config.get('button', 'push').split(",")]
+    push = [int(a) for a in patch.getstring('button', 'push').split(",")]
 except:
     push = []
 try:
     # on-off button
-    toggle1 = [int(a) for a in config.get('button', 'toggle1').split(",")]
+    toggle1 = [int(a) for a in patch.getstring('button', 'toggle1').split(",")]
 except:
     toggle1 = []
 try:
     # on1-on2-off button
-    toggle2 = [int(a) for a in config.get('button', 'toggle2').split(",")]
+    toggle2 = [int(a) for a in patch.getstring('button', 'toggle2').split(",")]
 except:
     toggle2 = []
 try:
     # on1-on2-on3-off button
-    toggle3 = [int(a) for a in config.get('button', 'toggle3').split(",")]
+    toggle3 = [int(a) for a in patch.getstring('button', 'toggle3').split(",")]
 except:
     toggle3 = []
 try:
     # on1-on2-on3-on4-off button
-    toggle4 = [int(a) for a in config.get('button', 'toggle4').split(",")]
+    toggle4 = [int(a) for a in patch.getstring('button', 'toggle4').split(",")]
 except:
     toggle4 = []
 
@@ -178,13 +185,13 @@ state4color  = {0:Off, 41:Red_Full, 43:Yellow_Full, 45:Green_Full, 47:Amber_Full
 state4value  = {0:0, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
 
 # it is preferred to use floating point control values between 0 and 1
-scalenote     = config.getfloat('scale', 'note')
-scalecontrol  = config.getfloat('scale', 'control')
-offsetnote    = config.getfloat('offset', 'note')
-offsetcontrol = config.getfloat('offset', 'control')
+scalenote     = patch.getfloat('scale', 'note')
+scalecontrol  = patch.getfloat('scale', 'control')
+offsetnote    = patch.getfloat('offset', 'note')
+offsetcontrol = patch.getfloat('offset', 'control')
 
 while True:
-    time.sleep(config.getfloat('general', 'delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     for msg in inputport.iter_pending():
         if midichannel is None:
@@ -199,7 +206,7 @@ while True:
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
-            key = "{}.control{:0>3d}".format(config.get('output', 'prefix'), msg.control)
+            key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scalecontrol, offset=offsetcontrol)
             r.set(key, val)
 
@@ -257,11 +264,11 @@ while True:
 
             if not val is None:
                 # prefix.noteXXX=value
-                key = "{}.note{:0>3d}".format(config.get('output', 'prefix'), msg.note)
+                key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
                 val = EEGsynth.rescale(val, slope=scalenote, offset=offsetnote)
                 r.set(key, val)          # send it as control value
                 r.publish(key, val)      # send it as trigger
                 # prefix.note=note
-                key = "{}.note".format(config.get('output', 'prefix'))
+                key = "{}.note".format(patch.getstring('output', 'prefix'))
                 r.set(key, msg.note)          # send it as control value
                 r.publish(key, msg.note)      # send it as trigger
