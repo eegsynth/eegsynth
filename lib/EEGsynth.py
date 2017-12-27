@@ -92,7 +92,7 @@ class midiwrapper():
 
 
 class patch():
-    ####################################################################
+    ######################################################################################
     # The formatting of the item in the ini file should be like this
     #   item=1            this returns 1
     #   item=key          get the value of the key from redis
@@ -103,6 +103,7 @@ class patch():
     #   item=key1,key2    get the value of key1 and key2 from redis
     #   item=key1,5       get the value of key1 from redis
     #   item=0,key2       get the value of key2 from redis
+    ######################################################################################
 
     def __init__(self, c, r):
         self.config = c
@@ -128,7 +129,10 @@ class patch():
                     except TypeError:
                         val[i] = default
         else:
-            val = [default]
+            if default != None:
+                val = [float(default)]
+            else:
+                val = [default]
 
         if multiple:
             # return it as list
@@ -159,7 +163,10 @@ class patch():
                     except TypeError:
                         val[i] = default
         else:
-            val = [default]
+            if default != None:
+                val = [int(default)]
+            else:
+                val = [default]
 
         if multiple:
             # return it as list
@@ -170,8 +177,8 @@ class patch():
 
     ####################################################################
     def getstring(self, section, item):
-
-        # get one items from the ini file, multiple items are not yet supported
+        # get one items from the ini file
+        # multiple items and default values are not yet supported
         val = self.config.get(section, item)
         return val
 
@@ -180,11 +187,11 @@ def rescale(xval, slope=None, offset=None):
     if hasattr(xval, "__iter__"):
         return [rescale(x, slope, offset) for x in xval]
     else:
-        if slope is None:
-            slope = 1
-        if offset is None:
-            offset = 0
-        return float(slope)*xval + float(offset)
+        if slope==None:
+            slope = 1.0
+        if offset==None:
+            offset = 0.0
+        return float(slope)*float(xval) + float(offset)
 
 ####################################################################
 def limit(xval, lo=0.0, hi=127.0):

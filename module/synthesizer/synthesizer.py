@@ -104,7 +104,7 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = self.r.pubsub()
         pubsub.subscribe('SYNTHESIZER_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(patch.getstring('synthesizer', 'adsr_gate'))
+        pubsub.subscribe(patch.getstring('control', 'adsr_gate'))
         while self.running:
            for item in pubsub.listen():
                if not self.running or not item['type'] == 'message':
@@ -140,11 +140,11 @@ class ControlThread(threading.Thread):
           ################################################################################
           # VCO
           ################################################################################
-          vco_pitch = patch.getfloat('synthesizer', 'vco_pitch', default=60)
-          vco_sin   = patch.getfloat('synthesizer', 'vco_sin', default=0.75)
-          vco_tri   = patch.getfloat('synthesizer', 'vco_tri', default=0.00)
-          vco_saw   = patch.getfloat('synthesizer', 'vco_saw', default=0.25)
-          vco_sqr   = patch.getfloat('synthesizer', 'vco_sqr', default=0.00)
+          vco_pitch = patch.getfloat('control', 'vco_pitch', default=60)
+          vco_sin   = patch.getfloat('control', 'vco_sin', default=0.75)
+          vco_tri   = patch.getfloat('control', 'vco_tri', default=0.00)
+          vco_saw   = patch.getfloat('control', 'vco_saw', default=0.25)
+          vco_sqr   = patch.getfloat('control', 'vco_sqr', default=0.00)
 
           vco_total = vco_sin + vco_tri + vco_saw + vco_sqr
           if vco_total>0:
@@ -157,16 +157,16 @@ class ControlThread(threading.Thread):
           ################################################################################
           # LFO
           ################################################################################
-          lfo_frequency = patch.getfloat('synthesizer', 'lfo_frequency', default=2)
-          lfo_depth     = patch.getfloat('synthesizer', 'lfo_depth', default=0.5)
+          lfo_frequency = patch.getfloat('control', 'lfo_frequency', default=2)
+          lfo_depth     = patch.getfloat('control', 'lfo_depth', default=0.5)
 
           ################################################################################
           # ADSR
           ################################################################################
-          adsr_attack   = patch.getfloat('synthesizer', 'adsr_attack', default=0.25)
-          adsr_decay    = patch.getfloat('synthesizer', 'adsr_decay', default=0.25)
-          adsr_sustain  = patch.getfloat('synthesizer', 'adsr_sustain', default=0.5)
-          adsr_release  = patch.getfloat('synthesizer', 'adsr_release', default=0.25)
+          adsr_attack   = patch.getfloat('control', 'adsr_attack', default=0.25)
+          adsr_decay    = patch.getfloat('control', 'adsr_decay', default=0.25)
+          adsr_sustain  = patch.getfloat('control', 'adsr_sustain', default=0.5)
+          adsr_release  = patch.getfloat('control', 'adsr_release', default=0.25)
 
           # convert from value between 0 and 1 into time in samples
           adsr_attack   *= float(BITRATE)
@@ -177,7 +177,7 @@ class ControlThread(threading.Thread):
           ################################################################################
           # VCA
           ################################################################################
-          vca_envelope = patch.getfloat('synthesizer', 'vca_envelope', default=0.5)
+          vca_envelope = patch.getfloat('control', 'vca_envelope', default=0.5)
 
           ################################################################################
           # store the control values in the local object
@@ -219,11 +219,13 @@ control.start()
 trigger = TriggerThread(r)
 trigger.start()
 
+block = 0
 offset = 0
+
 try:
   while True:
     ################################################################################
-    # generate the signal
+    # this is constantly generating the output signal
     ################################################################################
     BUFFER = ''
 
