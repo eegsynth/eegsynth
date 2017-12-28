@@ -91,9 +91,15 @@ while True:
         # the scale and offset options are channel specific
     	scale  = patch.getfloat('scale', chanstr, default=4095)
     	offset = patch.getfloat('offset', chanstr, default=0)
+
     	if debug>1:
     		print chanstr, chanval, scale, offset
+
+        # apply the scale and offset
     	chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+        # ensure that it is within limits
+        chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
+
         s.write('*c%dv%04d#' % (chanindx, chanval))
 
     for chanindx in range(1, 8):

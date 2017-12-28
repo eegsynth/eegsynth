@@ -167,12 +167,13 @@ try:
                     # apply the compressor/expander
                     chanval = EEGsynth.compress(chanval, lo, hi)
 
-            # the scale option is channel specific
-            scale = patch.getfloat('scale', chanstr, default=255)
-            # the offset option is channel specific
+            # the scale and offset options are channel specific
+            scale  = patch.getfloat('scale', chanstr, default=255)
             offset = patch.getfloat('offset', chanstr, default=0)
             # apply the scale and offset
             chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+            # ensure that it is within limits
+            chanval = EEGsynth.limit(chanval, lo=0, hi=255)
             chanval = int(chanval)
 
             if dmxdata[chanindx]!=chr(chanval):

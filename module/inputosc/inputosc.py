@@ -74,6 +74,10 @@ except:
 # this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
 button_list = patch.getstring('button', 'push').split(',')
 
+# the scale and offset are used to map OSC values to Redis values
+scale  = patch.getfloat('output', 'scale', default=1)
+offset = patch.getfloat('output', 'offset', default=0)
+
 # define a message-handler function for the server to call.
 def forward_handler(addr, tags, data, source):
     print "---"
@@ -100,14 +104,14 @@ def forward_handler(addr, tags, data, source):
 
     if tags=='f' or tags=='i':
         # it is a single value
-        val = data[0]
+        val = EEGsynth.rescale(data[0], slope=scale, offset=offset)
         r.set(key, val)             # send it as control value
         if addr in button_list:
             r.publish(key,val)      # send it as trigger
 
     else:
         # it is a list, send it as a list of control values
-        val = data
+        val = EEGsynth.rescale(data, slope=scale, offset=offset)
         r.set(key, val)
 
 s.noCallback_handler = forward_handler
