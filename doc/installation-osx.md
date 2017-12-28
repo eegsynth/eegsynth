@@ -1,8 +1,8 @@
-# Installation instructions for Mac OS-X
+# Installation instructions for Mac OS X
 
 ## Installation instructions for OS X
 
-On Mac OS-X there are multiple options for Python: you can either use the built-in version of python (which is /usr/bin/python) supplied by Apple, you can install Python (and most other dependencies) through the macports or homebrew package manager (see below), or you can use the Anaconda python distribution.
+On Mac OS X there are multiple options for Python: you can either use the built-in version of python (which is /usr/bin/python) supplied by Apple, you can install Python (and most other dependencies) through the macports or homebrew package manager (see below), or you can use the Anaconda python distribution.
 
 
 ### Package managers
