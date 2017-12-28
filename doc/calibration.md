@@ -12,3 +12,42 @@ Some of the control values are not bounded, e.g. when spectral power is computed
 * [quantizer](https://github.com/eegsynth/eegsynth/tree/master/module/quantizer)
 
 Related to this is that the [smoothing](https://github.com/eegsynth/eegsynth/tree/master/module/smoothing) module can be used to compute a smoothed version of specific control values.
+
+## Control voltage range for external devices
+
+### Endorphins Shuttle Control
+
+The EEGsynth uses the [Endorphins Shuttle Control](https://www.modulargrid.net/e/endorphin-es-shuttle-control) optimally with the +/-5V pitchweel setting, which is the maximum range supported by the Shuttle Control. For more info see [this](http://www.eegsynth.org/?p=480).
+
+Through the endorphins .ini the output control voltage can be restricted to 0-5V.
+
+Because of the many (16) output channels, it is handy to test with both the polar and non-polar outputs, the latter mainly for the LFO/PW/ECHO modules of the Erebus.
+
+### Erebus Dreadbox
+
+The Erebus Dreadbox analogue synthesizer has the following specific patching specifications according to the [manual](http://www.dreadbox-fx.com/wp-content/uploads/2016/04/erebus_manual_v2.pdf):
+
+```
+INPUT OSC pitch: +/- 12V, 1V/oct
+INPUT VCA: +/- 5V
+
+INPUT LFO(rate): 0-5V
+INPUT PW: 0-5V
+INPUT Echo: 0-5V, best at 0-2.5V
+
+OUTPUT OSC: 1V/oct, converted from MIDI if needed
+OUTPUT ADSR: 0-6.6V, depending on depth setting
+OUTPUT LFO: +/- 5V
+```
+
+### Arturio Microbrute
+
+The [Microbrute](https://www.arturia.com/products/hardware-synths/microbrute/overview) has the following specifications, according to a nice article [here](http://www.hars.de/2016/01/microbrute-eurorack.html):
+
+```
+INPUT/OUTPUT OSC pitch: 0-10V, 1V/oct
+OUTPUT LFO: +/- 5V
+OUTPUT ADSR: 0-4.5V
+```
+
+I found no further specifications on the other input patches, i.e. Sub/PWM etc., but given that they are well-controlled by its own LFO, I would think they work well for +/-5V as well.

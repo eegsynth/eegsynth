@@ -174,7 +174,7 @@ try:
     chanindx = []
     for item in channel_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
-        channame.append(item[0])                            # the channel name
+        channame.append(item[0])                           # the channel name
         chanindx.append(patch.getint('input', item[0])-1)  # the channel number
 
     window = round(patch.getfloat('processing','window') * hdr_input.fSample)

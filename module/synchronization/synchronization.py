@@ -130,7 +130,7 @@ adjust_offset   = 0
 previous_offset = 0
 pulselength = patch.getfloat('general','pulselength')
 
-# this is how it will appear in REDIS
+# this is how it will appear in Redis
 key = "%s.%s" % (patch.getstring('output','prefix'), patch.getstring('input','rate'))
 
 # these will only be started when needed

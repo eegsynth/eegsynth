@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Heartrate computes heart-rate based on beat-to-beat interval
+# Heartrate computes the heart rate based on the beat-to-beat interval
 #
 # Heartrate is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
@@ -94,8 +94,8 @@ if debug>1:
 
 
 filter_length = '3s'
-window  = round(patch.getfloat('processing','window') * hdr_input.fSample) # in samples
-channel = patch.getint('input','channel')-1                        # one-offset in the ini file, zero-offset in the code
+window  = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
+channel = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 key     = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
 
 begsample = -1

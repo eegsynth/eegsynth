@@ -100,6 +100,10 @@ except:
     # it will be determined on the basis of the first incoming message
     midichannel = None
 
+# the scale and offset are used to map MIDI values to Redis values
+scale  = patch.getfloat('output', 'scale', default=127)
+offset = patch.getfloat('output', 'offset', default=0)
+
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
@@ -175,6 +179,8 @@ try:
                     # prefix.noteXXX=velocity
                     key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
+                    # map the MIDI values to Redis values between 0 and 1
+                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
                     r.set(key,val)          # send it as control value
                     r.publish(key,val)      # send it as trigger
             elif hasattr(msg,'control'):

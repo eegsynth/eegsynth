@@ -57,7 +57,7 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
+# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
@@ -96,11 +96,13 @@ if debug>1:
 # get the processing arameters
 window = patch.getfloat('processing','window')*hdr_input.fSample
 
+channel_items = config.items('input')
+channel_name = []
 channel_indx = []
-channel_name = ['channelX', 'channelY', 'channelZ']
-for chan in channel_name:
+for item in channel_items:
     # channel numbers are one-offset in the ini file, zero-offset in the code
-    channel_indx.append(patch.getint('input',chan)-1)
+    channel_name.append(item[0])                           # the channel name
+    channel_indx.append(patch.getint('input', item[0])-1)  # the channel number
 
 begsample = -1
 endsample = -1
@@ -126,12 +128,7 @@ while True:
     # this is for debugging
     printval = []
 
-    for chanstr,chanindx in zip(channel_name, channel_indx):
-
-        # the scale option is channel specific
-        scale = patch.getfloat('scale', chanstr, default=1)
-        # the offset option is channel specific
-        offset = patch.getfloat('offset', chanstr, default=0)
+    for channame,chanindx in zip(channel_name, channel_indx):
 
         # compute the mean over the window
         val = np.mean(dat[:,chanindx])
@@ -139,13 +136,7 @@ while True:
         # this is for debugging
         printval.append(val)
 
-        # apply the scale and offset
-        val = EEGsynth.rescale(val, scale, offset)
-
-        # this is for debugging
-        printval.append(val)
-
-        r.set(patch.getstring('output', 'prefix') + '.' + chanstr, val)
+        r.set(patch.getstring('output', 'prefix') + '.' + channame, val)
 
     if debug>1:
         print printval

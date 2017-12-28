@@ -100,9 +100,8 @@ try:
                     # apply the compressor/expander
                     chanval = EEGsynth.compress(chanval, lo, hi)
 
-            # the scale option is channel specific
-            scale = patch.getfloat('scale', chanstr, default=1)
-            # the offset option is channel specific
+            # the scale and offset options are channel specific
+            scale  = patch.getfloat('scale', chanstr, default=255)
             offset = patch.getfloat('offset', chanstr, default=0)
             # apply the scale and offset
             chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)

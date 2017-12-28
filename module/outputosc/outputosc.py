@@ -74,7 +74,7 @@ list_input  = config.items('input')
 list_output = config.items('output')
 
 list1 = [] # the key name that matches in the input and output section of the *.ini file
-list2 = [] # the key name in REDIS
+list2 = [] # the key name in Redis
 list3 = [] # the key name in OSC
 for i in range(len(list_input)):
     for j in range(len(list_output)):
@@ -106,9 +106,8 @@ while True:
                 # apply the compressor/expander
                 val = EEGsynth.compress(val, lo, hi)
 
-        # the scale option is channel specific
-        scale = patch.getfloat('scale', key1, default=1)
-        # the offset option is channel specific
+        # the scale and offset options are channel specific
+        scale  = patch.getfloat('scale', key1, default=1)
         offset = patch.getfloat('offset', key1, default=0)
         # apply the scale and offset
         val = EEGsynth.rescale(val, slope=scale, offset=offset)
