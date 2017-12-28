@@ -1,18 +1,18 @@
 # The EEGsynth
 
 ## Table of contents
-* [Background](#Background)
-* [Introduction](#Introduction)
-  * [Modular design and patching](#Modular-design-and-patching)
-  * [Data acquisition and communication](#Data-acquisition-and-communication)
-  * [Controlling external software and hardware](#Controlling-external-software-and-hardware)
-  * [Manual control](#Manual-control)
-  * [Summary](#Summary)
-* [Module overview](Module-overview)
-* [Tutorials](#Tutorials)
-  * [Tutorial 1: Playback data, and display on monitor](#Tutorial-1--Playback-data--and–display-on-monitor)
-  * [Tutorial 2: using Redis for live interaction with modules](Tutorial-2--using-Redis-for-live-interaction-with-modules)
-  * [Tutorial 3: Real-time EEG recording with OpenBCI](Tutorial-3--Real-time-EEG-recording-with-OpenBCI)
+* [Background](#user-content-ackground)
+* [Introduction](#user-content-Introduction)
+  * [Modular design and patching](#user-content-Modular-design-and-patching)
+  * [Data acquisition and communication](#user-content-Data-acquisition-and-communication)
+  * [Controlling external software and hardware](#user-content-Controlling-external-software-and-hardware)
+  * [Manual control](#user-content-Manual-control)
+  * [Summary](#user-content-Summary)
+* [Module overview](#user-content-Module-overview)
+* [Tutorials](#user-content-Tutorials)
+  * [Tutorial 1: Playback data, and display on monitor](#user-content-Tutorial-1--Playback-data--and–display-on-monitor)
+  * [Tutorial 2: using Redis for live interaction with modules](#user-content-Tutorial-2--using-Redis-for-live-interaction-with-modules)
+  * [Tutorial 3: Real-time EEG recording with OpenBCI](#user-content-Tutorial-3--Real-time-EEG-recording-with-OpenBCI)
 
 # Background
 The EEGsynth is an open-source [Python](https://www.python.org/) codebase that provides a real-time interface between (open-hardware) devices for electrophysiological recordings (e.g. EEG, EMG and ECG) and analogue and digital devices (e.g. MIDI, games and analogue synthesizers). This allows one to use electrical brain/body activity to flexibly control devices in real-time, for what are called (re)active and passive brain-computer-interfaces (BCIs), biofeedback and neurofeedback. The EEGsynth does *not* allow diagnostics, and neither does it provide a GUI for offline analysis. Rather, the EEGsynth is intended as a collaborative interdisciplinary [open-source](https://opensource.com/open-source-way) and [open-hardware](https://opensource.com/resources/what-open-hardware) project that brings together programmers, musicians, artists, neuroscientists and developers for scientific and artistic exploration.
