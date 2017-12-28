@@ -106,9 +106,8 @@ while True:
                 # apply the compressor/expander
                 val = EEGsynth.compress(val, lo, hi)
 
-        # the scale option is channel specific
-        scale = patch.getfloat('scale', key1, default=1)
-        # the offset option is channel specific
+        # the scale and offset options are channel specific
+        scale  = patch.getfloat('scale', key1, default=1)
         offset = patch.getfloat('offset', key1, default=0)
         # apply the scale and offset
         val = EEGsynth.rescale(val, slope=scale, offset=offset)

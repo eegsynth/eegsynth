@@ -168,7 +168,7 @@ try:
                     chanval = EEGsynth.compress(chanval, lo, hi)
 
             # the scale option is channel specific
-            scale = patch.getfloat('scale', chanstr, default=1)
+            scale = patch.getfloat('scale', chanstr, default=255)
             # the offset option is channel specific
             offset = patch.getfloat('offset', chanstr, default=0)
             # apply the scale and offset

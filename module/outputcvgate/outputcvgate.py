@@ -88,11 +88,12 @@ while True:
                 # apply the compressor/expander
                 chanval = EEGsynth.compress(chanval, lo, hi)
 
-    	scale  = patch.getfloat('scale', chanstr)
-    	offset = patch.getfloat('offset', chanstr)
+        # the scale and offset options are channel specific
+    	scale  = patch.getfloat('scale', chanstr, default=4095)
+    	offset = patch.getfloat('offset', chanstr, default=0)
     	if debug>1:
     		print chanstr, chanval, scale, offset
-    	chanval = EEGsynth.rescale(chanval, scale, offset)
+    	chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
         s.write('*c%dv%04d#' % (chanindx, chanval))
 
     for chanindx in range(1, 8):
