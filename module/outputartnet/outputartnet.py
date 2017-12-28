@@ -105,6 +105,8 @@ try:
             offset = patch.getfloat('offset', chanstr, default=0)
             # apply the scale and offset
             chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+            # ensure that it is within limits
+            chanval = EEGsynth.limit(chanval, lo=0, hi=255)
             chanval = int(chanval)
 
             if dmxdata[chanindx-1]!=chanval:
