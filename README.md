@@ -10,14 +10,14 @@
   * [Summary](#Summary)
 * [Module overview](Module-overview)
 * [Tutorials](#Tutorials)
-  * [Tutorial 1: Playback data, and display on monitor](#Tutorial-1:-Playback-data,-and–display-on-monitor)
-  * [Tutorial 2: using Redis for live interaction with modules](Tutorial-2:-using-Redis-for-live-interaction-with-modules)
-  * [Tutorial 3: Real-time EEG recording with OpenBCI](Tutorial-3:-Real-time-EEG-recording-with-OpenBCI)
+  * [Tutorial 1: Playback data, and display on monitor](#Tutorial-1--Playback-data--and–display-on-monitor)
+  * [Tutorial 2: using Redis for live interaction with modules](Tutorial-2--using-Redis-for-live-interaction-with-modules)
+  * [Tutorial 3: Real-time EEG recording with OpenBCI](Tutorial-3--Real-time-EEG-recording-with-OpenBCI)
 
 # Background
 The EEGsynth is an open-source [Python](https://www.python.org/) codebase that provides a real-time interface between (open-hardware) devices for electrophysiological recordings (e.g. EEG, EMG and ECG) and analogue and digital devices (e.g. MIDI, games and analogue synthesizers). This allows one to use electrical brain/body activity to flexibly control devices in real-time, for what are called (re)active and passive brain-computer-interfaces (BCIs), biofeedback and neurofeedback. The EEGsynth does *not* allow diagnostics, and neither does it provide a GUI for offline analysis. Rather, the EEGsynth is intended as a collaborative interdisciplinary [open-source](https://opensource.com/open-source-way) and [open-hardware](https://opensource.com/resources/what-open-hardware) project that brings together programmers, musicians, artists, neuroscientists and developers for scientific and artistic exploration.
 
-* The EEGsynth is intended to be run from the command line, using [Python](https://www.python.org/) and [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell) scripts, and is not friendly for those not familiar with such an approach.
+* The EEGsynth is intended to be run from the command line, using [Python](https://www.python.org/) and [Bash](https://en.wikipedia.org/wiki/Bash_%28Unix_shell%29) scripts, and is not friendly for those not familiar with such an approach.
 * The codebase and technical documentation are maintained on our [GitHub repository](https://github.com/eegsynth/eegsynth). It is strongly advised to work within you own cloned repository and keep up to date with EEGsynth commits, as the EEGsynth is in constant development.
 * For installation please follow our installation instructions for [Linux](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-linux.md), [OSX](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-osx.md) and [Windows](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-windows.md). Please note that Windows and OSX are not actively supported. Linux is the main target, partly because we want the EEGsynth to be compatible with the Raspberry-Pi, partly because some Python libraries do not support Windows, and partly because we rely on command-line interface anyway.
 * Preliminary didactic material can be found on our [wiki page](https://braincontrolclub.miraheze.org/wiki/Main_Page) of the Brain Control Club, a student club at [Center for Research and Interdisciplinarity (CRI)](https://cri-paris.org/).
