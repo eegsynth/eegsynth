@@ -71,36 +71,30 @@ except:
 while True:
     time.sleep(patch.getfloat('general','delay'))
 
+    # loop over the control values
     for chanindx in range(1, 8):
         chanstr = "cv%d" % chanindx
+        # this returns None when the channel is not present
         chanval = patch.getfloat('input', chanstr)
-        if chanval is None:
-            continue
 
-        if patch.getint('compressor_expander', 'enable'):
-            # the compressor applies to all channels and must exist as float or redis key
-            lo = patch.getfloat('compressor_expander', 'lo')
-            hi = patch.getfloat('compressor_expander', 'hi')
-            if lo is None or hi is None:
-                if debug>1:
-                    print "cannot apply compressor/expander"
-            else:
-                # apply the compressor/expander
-                chanval = EEGsynth.compress(chanval, lo, hi)
+        if chanval==None:
+            # the value is not present in Redis, skip it
+            if debug>2:
+                print chanstr, 'not available'
+            continue
 
         # the scale and offset options are channel specific
     	scale  = patch.getfloat('scale', chanstr, default=4095)
     	offset = patch.getfloat('offset', chanstr, default=0)
-
-    	if debug>1:
-    		print chanstr, chanval, scale, offset
-
         # apply the scale and offset
     	chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
         # ensure that it is within limits
         chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
+        chanval = int(chanval)
 
         s.write('*c%dv%04d#' % (chanindx, chanval))
+        if debug>1:
+            print chanstr, '=', chanval
 
     for chanindx in range(1, 8):
         chanstr = "gate%d" % chanindx
@@ -110,6 +104,7 @@ while True:
 
         # the value for the gate should be 0 or 1
         chanval = int(chanval>0)
-        if debug>1:
-            print chanstr, chanval
+
         s.write('*g%dv%d#' % (chanindx, chanval))
+        if debug>1:
+            print chanstr, '=', chanval

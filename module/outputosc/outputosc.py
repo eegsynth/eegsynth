@@ -95,17 +95,6 @@ while True:
         else:
             val = [float(x) for x in val]
 
-        if patch.getint('compressor_expander', 'enable'):
-            # the compressor applies to all channels and must exist as float or redis key
-            lo = patch.getfloat('compressor_expander', 'lo')
-            hi = patch.getfloat('compressor_expander', 'hi')
-            if lo is None or hi is None:
-                if debug>1:
-                    print "cannot apply compressor/expander"
-            else:
-                # apply the compressor/expander
-                val = EEGsynth.compress(val, lo, hi)
-
         # the scale and offset options are channel specific
         scale  = patch.getfloat('scale', key1, default=1)
         offset = patch.getfloat('offset', key1, default=0)
