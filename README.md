@@ -35,8 +35,9 @@ What follows is a short introduction on the design and use of the EEGsynth. This
 
 The EEGsynth is a collection of separate modules, directly inspired by  [modular synthesizers](https://en.wikipedia.org/wiki/Modular_synthesizer) (see picture below). Similarly as in a modular synthesizers, simple software modules (python scripts) are connected, or “patched”, to create complex and flexible behavior. Each module runs in parallel, performing a particular function. For example, imagine module **A** is responsible for determining the heart-rate from ECG (voltages from the heart), while module **B** sends out a signal to a drummachine a every _n_ milliseconds. By patching **A&rightarrow;B**, the EEGsynth can be made to control a drum-machine at the speed of the heart rate.
 
-![Example of complex modular synthesizer patch](http://www.modcan.com/mainImages/bphoto/bigA.jpg  "Example of complex modular synthesizer patch")
-**Figure 1. ***Example of complex modular synthesizer patch*
+![Example of complex modular synthesizer patch](http://www.modcan.com/mainImages/bphoto/bigA.jpg "Example of complex modular synthesizer patch")
+
+**Figure 1. ** *Example of complex modular synthesizer patch*
 
 
 In the EEGsynth patching is implemented through the use of the open-source [Redis database](http://redis.io/) which stores [attribute-value pairs](https://en.wikipedia.org/wiki/Attribute%E2%80%93value_pair). Attribute-value pairs are nothing more than an attribute name with a value assigned to it, such as ('Name', 'John') or ('Height', 1.82). A module can put anything it wants into the database, such as ('Heartrate', 92). Another module can ask the database to return the value belonging to ('Heartrate'). This allows one to create complex, many-to-many patches. Interactions with Redis are specified separately for each module in their own* .ini* file (initialization file). The *.ini* file is a text file with human-understandable formatting (according to Python’s [ConfigParser class](https://docs.python.org/2/library/configparser.html)) where we define the attribute names that are used for input and output. For example, here we have [*spectral.ini*](https://github.com/eegsynth/eegsynth/modules/spectral/spectral.ini):
@@ -100,7 +101,9 @@ The purpose of the EEGsynth is to control exernal software and hardware with ele
 
 ## Manual control
 Although the purpose of the EEGsynth (and BCIs in general) is to control devices using biological signals, some manual interaction might be desired, e.g. to adjust the dynamics of the output or to select the frequency range of the brainsignal during the recording. However, as with analogue synthsizers, we like the tactile real-time aspect of knobs and buttons, but would like to avoid using a computer keyboard. We therefor mainly use MIDI controllers, such as the [LaunchControl XL](https://global.novationmusic.com/launch/launch-control-xl#) displayed below. Identical to all other modules, the launchcontrol *module* records the launchcontrol input from sliders, knobs, and buttons into the Redis database to be used by other modules.
+
 ![](https://d2xhy469pqj8rc.cloudfront.net/sites/default/files/styles/cta_scale_640/public/news_images/LCXL101_Thumb.jpg?itok=_gwQDWQi)
+
 **Figure 2.** *The Novation LaunchControl XL, often used in EEGsynth setups*
 
 ## Summary
@@ -108,7 +111,7 @@ To summarize, the EEGsynth is an open-source code-base that functions as an inte
 
 [![](http://i0.wp.com/www.ouunpo.com/eegsynth/wp-content/uploads/2016/08/EEGsynth_comm_overview-1024x576.jpg?resize=1024%2C576)](http://i1.wp.com/www.ouunpo.com/eegsynth/wp-content/uploads/2016/08/EEGsynth_comm_overview.jpg)
 
-**Figure 2.** *Visual depiction of communication between modules via either the FieldTrip buffer for raw data (yellow) or via the Redis database (blue) for output and input parameters.*
+**Figure 3.** *Visual depiction of communication between modules via either the FieldTrip buffer for raw data (yellow) or via the Redis database (blue) for output and input parameters.*
 
 # Module overview
 Detailed information about each module can be found in the README.md included in each module directory. Here follows a description of the current available modules.
