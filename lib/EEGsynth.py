@@ -245,3 +245,15 @@ def compress(xval, lo=63.5, hi=63.5, range=127.0):
           yval = range
 
         return yval
+
+####################################################################
+def normalizerange(xval, min, max):
+    min = float(min)
+    max = float(max)
+    return (float(xval)-min)/(max-min)
+
+####################################################################
+def normalizestandard(xval, avg, std):
+    avg = float(avg)
+    std = float(std)
+    return (float(xval)-avg)/std
