@@ -11,7 +11,7 @@
 * [Module overview](#user-content-module-overview)
 * [Tutorials](#user-content-tutorials)
   * [Tutorial 1: Playback data, and display on monitor](#user-content-tutorial-1--playback-data--and–display-on-monitor)
-  * [Tutorial 2: using Redis for live interaction with modules](#user-content-tutorial-2--using-redis-for-live-interaction-with-modules)
+  * [Tutorial 2: Using Redis for live interaction with modules](#user-content-tutorial-2--using-redis-for-live-interaction-with-modules)
   * [Tutorial 3: Real-time EEG recording with OpenBCI](#user-content-tutorial-3--real-time-eeg-recording-with-openbci)
 
 # Background
@@ -219,7 +219,7 @@ If you made it so far the buffer is working. However, we can now also read from 
 4.   Now start up the plotsignal module, using your own .ini file: _python plotsignal.py -i ../../inifiles/plotsignal.ini_
 5.   If you see your data scroll by, bravo!
 
-## Tutorial 2: using Redis for live interaction with modules
+## Tutorial 2: Using Redis for live interaction with modules
 
 Now we have set up a basic minimal pipe-line with data transfer, we can introduce communication between modules used the Redis database. Redis is the place where modules communicate via 'key-value' pairs. Read the [online documentation](http://www.ouunpo.com/eegsynth/?page_id=514) on the EEGsynth website for more background on the use of Redis. In this tutorial we will influence the behavior of the plotsignal output module, by changing parameters in Redis, while having the plotsignal module use these parameters as well as writing parameters back in Redis. It becomes important now to really understand the flow of information in the schema.
 
