@@ -1,11 +1,8 @@
 # Installation instructions for Mac OS X
 
-## Installation instructions for OS X
-
 On Mac OS X there are multiple options for Python: you can either use the built-in version of python (which is /usr/bin/python) supplied by Apple, you can install Python (and most other dependencies) through the macports or homebrew package manager (see below), or you can use the Anaconda python distribution.
 
-
-### Package managers
+## Package managers
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Package_manager): *A package manager or package management system is a collection of software tools that automates the process of installing, upgrading, configuring, and removing computer programs for a computer's operating system in a consistent manner.*
 
@@ -35,7 +32,7 @@ or
 brew install wget
 ```
 
-### Install MIDO for Python
+## Install MIDO for Python
 
 MIDO is a MIDI package that is based on portaudio.
 
@@ -44,7 +41,7 @@ brew install portmidi
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 ```
 
-### Redis
+## Redis
 
 Install the Redis server and command-line client with brew :
 ```
@@ -71,7 +68,7 @@ and then stop it later:
 launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
 ```
 
-### Install python modules
+## Install python modules
 
 For the Python dependencies (packages) we are using pip. To install pip, you should do
 
