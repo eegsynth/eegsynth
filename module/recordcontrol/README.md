@@ -1,10 +1,10 @@
 # Control Recording Module
 
-The purpose of this module is to record control values from REDIS to an EDF file.
+The purpose of this module is to record control values from Redis to an EDF file.
 
 ## Requirements
 
-REDIS should be running.
+Redis should be running.
 
 ## Software Requirements
 

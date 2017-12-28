@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-# Recordctrl records redis data to edf file
+# This module records Redis data to an EDF file
 #
-# Recordctrl is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
-#
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017 EEGsynth project, http://www.eegsynth.org
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
