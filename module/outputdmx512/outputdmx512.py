@@ -145,27 +145,14 @@ try:
 
         for chanindx in range(1, 512):
             chanstr = "channel%03d" % chanindx
-
-            try:
-                chanval = patch.getfloat('input', chanstr)
-            except:
-                # the channel is not configured in the ini file, skip it
-                continue
+            # this returns None when the channel is not present
+            chanval = patch.getfloat('input', chanstr)
 
             if chanval==None:
-                # the value is not present in redis, skip it
+                # the value is not present in Redis, skip it
+                if debug>2:
+                    print chanstr, 'not available'
                 continue
-
-            if patch.getint('compressor_expander', 'enable'):
-                # the compressor applies to all channels and must exist as float or redis key
-                lo = patch.getfloat('compressor_expander', 'lo')
-                hi = patch.getfloat('compressor_expander', 'hi')
-                if lo is None or hi is None:
-                    if debug>1:
-                        print "cannot apply compressor/expander"
-                else:
-                    # apply the compressor/expander
-                    chanval = EEGsynth.compress(chanval, lo, hi)
 
             # the scale and offset options are channel specific
             scale  = patch.getfloat('scale', chanstr, default=255)

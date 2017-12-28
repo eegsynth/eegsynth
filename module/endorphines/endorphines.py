@@ -128,29 +128,18 @@ try:
             # channels are one-offset in the ini file, zero-offset in the code
             name = 'channel{}'.format(channel+1)
             val = patch.getfloat('control', name)
+
             if val is None:
+                # the value is not present in Redis, skip it
                 if debug>2:
                     print name, 'not available'
                 continue
 
-            if patch.getint('compressor_expander', 'enable'):
-                # the compressor applies to all channels and must exist as float or redis key
-                lo = patch.getfloat('compressor_expander', 'lo')
-                hi = patch.getfloat('compressor_expander', 'hi')
-                if lo is None or hi is None:
-                    if debug>1:
-                        print "cannot apply compressor/expander"
-                else:
-                    # apply the compressor/expander
-                    val = EEGsynth.compress(val, lo, hi)
-
             # the scale and offset options are channel specific
             scale  = patch.getfloat('scale', name, default=1)
             offset = patch.getfloat('offset', name, default=0)
-
             # apply the scale and offset
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
-
             # ensure that it is within limits
             val = EEGsynth.limit(val, lo=-8192, hi=8191)
 
