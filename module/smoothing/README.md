@@ -1,6 +1,6 @@
 # Smoothing Module
 
-The purpose of this module is to compute a smoothed version of specific control values. The smoothed version os computed as the mean (median, standard deviation, etc) over a sliding window. The result of the smoothing is written back into the redis buffer.
+The purpose of this module is to compute a smoothed version of specific control values. The smoothed version is computed as the mean (median, standard deviation, etc) over a sliding window. The result of the smoothing is written back into the redis buffer.
 
 ## Requirements
 
