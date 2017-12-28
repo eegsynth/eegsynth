@@ -66,6 +66,10 @@ for port in mido.get_input_names():
   print(port)
 print('-------------------------')
 
+# the scale and offset are used to map MIDI values to Redis values
+scale  = patch.getfloat('output', 'scale', default=127)
+offset = patch.getfloat('output', 'offset', default=0)
+
 try:
     inputport  = mido.open_input(patch.getstring('midi', 'device'))
     if debug>0:
@@ -86,14 +90,18 @@ while True:
             # prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = msg.value
+            # map the MIDI values to Redis values between 0 and 1
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
             r.set(key, val)
 
         elif hasattr(msg, "note"):
             # prefix.noteXXX=value
             key = "{}.note{:0>3d}".format(patch.getstring('output','prefix'), msg.note)
-            r.set(key,msg.value)          # send it as control value
-            r.publish(key,msg.value)      # send it as trigger
+            val = msg.value
+            r.set(key,val)              # send it as control value
+            r.publish(key,val)          # send it as trigger
             # prefix.note=note
             key = "{}.note".format(patch.getstring('output','prefix'))
-            r.set(key,msg.note)          # send it as control value
-            r.publish(key,msg.note)      # send it as trigger
+            val = msg.note
+            r.set(key,val)              # send it as control value
+            r.publish(key,val)          # send it as trigger
