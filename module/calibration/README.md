@@ -1,10 +1,10 @@
-# Smoothing Module
+# Calibration Module
 
-The purpose of this module is to calibrate some of the control values. The calibrated results are written back to the redis buffer.
+The purpose of this module is to calibrate some of the control values. The calibrated results are written back to the Redis buffer.
 
 ## Requirements
 
-The REDIS buffer should be running.
+The Redis buffer should be running.
 
 ## Software Requirements
 

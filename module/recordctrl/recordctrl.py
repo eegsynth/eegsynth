@@ -90,7 +90,7 @@ while True:
         fname = patch.getstring('recording', 'file')
         name, ext = os.path.splitext(fname)
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
-        # get the details from REDIS
+        # get the details from Redis
         channels = sorted(r.keys('*'))
         channelz = sorted(r.keys('*'))
         nchans = len(channels)

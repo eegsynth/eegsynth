@@ -74,7 +74,7 @@ list_input  = config.items('input')
 list_output = config.items('output')
 
 list1 = [] # the key name that matches in the input and output section of the *.ini file
-list2 = [] # the key name in REDIS
+list2 = [] # the key name in Redis
 list3 = [] # the key name in OSC
 for i in range(len(list_input)):
     for j in range(len(list_output)):
