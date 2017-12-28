@@ -37,7 +37,7 @@ The EEGsynth is a collection of separate modules, directly inspired by  [modular
 
 ![Example of complex modular synthesizer patch](http://www.modcan.com/mainImages/bphoto/bigA.jpg "Example of complex modular synthesizer patch")
 
-**Figure 1. ** *Example of complex modular synthesizer patch*
+**Figure 1.** *Example of complex modular synthesizer patch*
 
 
 In the EEGsynth patching is implemented through the use of the open-source [Redis database](http://redis.io/) which stores [attribute-value pairs](https://en.wikipedia.org/wiki/Attribute%E2%80%93value_pair). Attribute-value pairs are nothing more than an attribute name with a value assigned to it, such as ('Name', 'John') or ('Height', 1.82). A module can put anything it wants into the database, such as ('Heartrate', 92). Another module can ask the database to return the value belonging to ('Heartrate'). This allows one to create complex, many-to-many patches. Interactions with Redis are specified separately for each module in their own* .ini* file (initialization file). The *.ini* file is a text file with human-understandable formatting (according to Python’s [ConfigParser class](https://docs.python.org/2/library/configparser.html)) where we define the attribute names that are used for input and output. For example, here we have [*spectral.ini*](https://github.com/eegsynth/eegsynth/modules/spectral/spectral.ini):
