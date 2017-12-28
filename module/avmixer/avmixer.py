@@ -56,7 +56,7 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
+# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
@@ -101,7 +101,7 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = r.pubsub()
         pubsub.subscribe('AVMIXER_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)    # this message contains the note
+        pubsub.subscribe(self.redischannel)  # this message contains the note
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
@@ -137,6 +137,9 @@ previous_val = {}
 for name in control_name:
     previous_val[name] = None
 
+scale  = patch.getfloat('general', 'scale', default=127)
+offset = patch.getfloat('general', 'offset', default=0)
+
 try:
     while True:
         time.sleep(patch.getfloat('general', 'delay'))
@@ -144,12 +147,14 @@ try:
         for name, cmd in zip(control_name, control_code):
             split_name = name.split('/')
             # loop over the control values
-            val = patch.getint(split_name[0], split_name[1])
+            val = patch.getfloat(split_name[0], split_name[1])
             if val is None:
                 continue#  it should be skipped when not present in the ini or redis
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
+            # convert the Redis value to MIDI levels
+            val = int(EEGsynth.rescale(val, slope=scale, offset=offset))
             msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
                 print cmd, val, name
