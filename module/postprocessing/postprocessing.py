@@ -41,7 +41,7 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
 # these function names can be used in the equation that gets parsed
-from EEGsynth import compress, limit, rescale
+from EEGsynth import compress, limit, rescale, normalizerange, normalizestandard
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
