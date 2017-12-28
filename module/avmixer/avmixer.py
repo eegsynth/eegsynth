@@ -87,6 +87,10 @@ midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
 
+# the scale and offset are used to map Redis values to MIDI values
+scale  = patch.getfloat('input', 'scale', default=127)
+offset = patch.getfloat('input', 'offset', default=0)
+
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
@@ -136,9 +140,6 @@ for thread in trigger:
 previous_val = {}
 for name in control_name:
     previous_val[name] = None
-
-scale  = patch.getfloat('general', 'scale', default=127)
-offset = patch.getfloat('general', 'offset', default=0)
 
 try:
     while True:
