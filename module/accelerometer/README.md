@@ -11,4 +11,3 @@ The REDIS buffer should be running.
 
 Python 2.x
 Redis
-MNE
