@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Generatesignal generates user-defined sinewaves in the FieldTrip buffer
+# Generatesignal creates user-defined signals and writes these to the FieldTrip buffer
 #
-# Generatesignal is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -26,6 +26,7 @@ import os
 import redis
 import sys
 import time
+from scipy import signal as sp
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -86,17 +87,32 @@ if debug > 1:
     print "fsample", fsample
     print "blocksize", blocksize
 
-scale_frequency   = patch.getfloat('scale', 'frequency')
-scale_amplitude   = patch.getfloat('scale', 'amplitude')
-scale_noise       = patch.getfloat('scale', 'noise')
+# the scale and offset are used to map Redis values to signal parameters
+scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
+scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
+scale_offset      = patch.getfloat('scale', 'offset', default=1)
+scale_noise       = patch.getfloat('scale', 'noise', default=1)
+scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
+offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
+offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
+offset_offset     = patch.getfloat('offset', 'offset', default=0)
+offset_noise      = patch.getfloat('offset', 'noise', default=0)
+offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
+shape             = patch.getstring('signal', 'shape') # sin, square, triangle or sawtooth
 
 prev_frequency = -1
 prev_amplitude = -1
+prev_offset    = -1
 prev_noise     = -1
+prev_dutycycle = -1
 
+block     = 0
 begsample = 0
 endsample = blocksize-1
-block = 0
+
+# the time axis per block remains the same, the phase linearly increases
+timevec  = np.arange(1, blocksize-1) / fsample
+phasevec = np.zeros(1)
 
 print "STARTING STREAM"
 while True:
@@ -107,22 +123,46 @@ while True:
     if debug>1:
         print "Generating block", block, 'from', begsample, 'to', endsample
 
-    frequency = patch.getfloat('signal', 'frequency', default=10) * scale_frequency
-    amplitude = patch.getfloat('signal', 'amplitude', default=1)  * scale_amplitude
-    noise     = patch.getfloat('signal', 'noise', default=0.5)    * scale_noise
+    frequency = patch.getfloat('signal', 'frequency', default=10)
+    amplitude = patch.getfloat('signal', 'amplitude', default=0.8)
+    offset    = patch.getfloat('signal', 'offset', default=0)           # the DC component of the output signal
+    noise     = patch.getfloat('signal', 'noise', default=0.1)
+    dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)      # for the square wave
+    # map the Redis values to signal parameters
+    frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
+    amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
+    offset    = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
+    noise     = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
+    dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
-    if frequency != prev_frequency:
-        print "frequency", frequency
+    if frequency!=prev_frequency or debug>2:
+        print "frequency =", frequency
         prev_frequency = frequency
-    if amplitude != prev_amplitude:
+    if amplitude!=prev_amplitude or debug>2:
         print "amplitude =", amplitude
         prev_amplitude = amplitude
-    if noise != prev_noise:
-        print "noise =", noise
+    if offset!=prev_offset or debug>2:
+        print "offset    =", offset
+        prev_offset = offset
+    if noise!=prev_noise or debug>2:
+        print "noise     =", noise
         prev_noise = noise
+    if dutycycle!=prev_dutycycle or debug>2:
+        print "dutycycle =", dutycycle
+        prev_dutycycle = dutycycle
+
+    # compute the phase of each sample in this block
+    phasevec = 2 * np.pi * frequency * timevec + phasevec[-1]
+    if shape=='sin':
+        signal = np.sin(phasevec) * amplitude + offset
+    elif shape=='square':
+        signal = sp.square(phasevec, dutycycle) * amplitude + offset
+    elif shape=='triangle':
+        signal = sp.sawtooth(phasevec, 0.5) * amplitude + offset
+    elif shape=='sawtooth':
+        signal = sp.sawtooth(phasevec, 1) * amplitude + offset
 
     dat_output = np.random.randn(blocksize, nchannels) * noise
-    signal = np.sin(2*np.pi*np.arange(begsample, endsample+1)*frequency/fsample) * amplitude
     for chan in range(nchannels):
         dat_output[:,chan] += signal
 
