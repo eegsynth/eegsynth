@@ -91,6 +91,8 @@ class TriggerThread(threading.Thread):
                     else:
                         pitch = int(0)
                     msg = mido.Message('pitchwheel', pitch=pitch, channel=self.midichannel)
+                    if debug>1:
+                        print msg
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -138,24 +140,28 @@ try:
             # the scale and offset options are channel specific
             scale  = patch.getfloat('scale', name, default=1)
             offset = patch.getfloat('offset', name, default=0)
-            # apply the scale and offset
+            # map the Redis values to MIDI pitch values
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
             # ensure that it is within limits
             val = EEGsynth.limit(val, lo=-8192, hi=8191)
+            val = int(val)
+
+            if val==previous_val[name]:
+                continue # it should be skipped when identical to the previous value
+            else:
+                previous_val[name] = val
 
             if debug>0:
                 print name, val
 
-            if val==previous_val[name]:
-                continue # it should be skipped when identical to the previous value
-            previous_val[name] = val
-
             # midi channels in the inifile are 1-16, in the code 0-15
             midichannel = channel
-            msg = mido.Message('pitchwheel', pitch=int(val), channel=midichannel)
+            msg = mido.Message('pitchwheel', pitch=val, channel=midichannel)
             if debug>1:
                 print msg
+            lock.acquire()
             outputport.send(msg)
+            lock.release()
 
 except KeyboardInterrupt:
     print 'Closing threads'

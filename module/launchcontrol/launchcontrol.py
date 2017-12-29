@@ -153,7 +153,7 @@ def ledcolor(note,color):
 
 # ensure that all buttons and published messages start in the Off state
 for note in note_list:
-     ledcolor(note, Off)
+    ledcolor(note, Off)
 
 # the button handling is implemented using an internal representation and state changes
 # whenever the actual button is pressed or released

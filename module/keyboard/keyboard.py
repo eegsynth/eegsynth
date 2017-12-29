@@ -129,6 +129,7 @@ class TriggerThread(threading.Thread):
                 if item['channel']==self.redischannel:
                     # map the Redis values to MIDI values
                     val = EEGsynth.rescale(item['data'], slope=input_scale, offset=input_offset)
+                    val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
                     if debug>1:
                         print item['channel'], '=', val
@@ -137,7 +138,6 @@ class TriggerThread(threading.Thread):
                     else:
                         msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
-                    print msg
                     outputport.send(msg)
                     lock.release()
 
