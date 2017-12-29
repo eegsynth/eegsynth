@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Generatecontrol creates user-defined signals and writes these to Redis
+#
 # This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
 # Copyright (C) 2017 EEGsynth project
@@ -65,10 +67,12 @@ scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
 scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
 scale_offset      = patch.getfloat('scale', 'offset', default=1)
 scale_noise       = patch.getfloat('scale', 'noise', default=1)
+scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
 offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
 offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
 offset_offset     = patch.getfloat('offset', 'offset', default=0)
 offset_noise      = patch.getfloat('offset', 'noise', default=0)
+offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
 stepsize          = patch.getfloat('generate', 'stepsize') # in seconds
 
 if debug > 1:
@@ -78,8 +82,10 @@ prev_frequency = -1
 prev_amplitude = -1
 prev_offset    = -1
 prev_noise     = -1
+prev_dutycycle = -1
 
 sample = 0
+phase = 0
 
 print "STARTING STREAM"
 while True:
@@ -87,15 +93,17 @@ while True:
     # measure the time that it takes
     start = time.time();
 
-    frequency = patch.getfloat('signal', 'frequency', default=1)
-    amplitude = patch.getfloat('signal', 'amplitude', default=1)
-    offset    = patch.getfloat('signal', 'offset', default=0)       # the DC component of the output
-    noise     = patch.getfloat('signal', 'noise', default=0.5)
+    frequency = patch.getfloat('signal', 'frequency', default=0.2)
+    amplitude = patch.getfloat('signal', 'amplitude', default=0.3)
+    offset    = patch.getfloat('signal', 'offset', default=0.5)      # the DC component of the output signal
+    noise     = patch.getfloat('signal', 'noise', default=0.1)
+    dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)   # for the square wave
     # map the Redis values to signal parameters
     frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
     amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
     offset    = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
     noise     = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
+    dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
     if frequency!=prev_frequency or debug>2:
         print "frequency =", frequency
@@ -109,24 +117,27 @@ while True:
     if noise!=prev_noise or debug>2:
         print "noise     =", noise
         prev_noise = noise
+    if dutycycle!=prev_dutycycle or debug>2:
+        print "dutycycle =", dutycycle
+        prev_dutycycle = dutycycle
 
-    t = sample * update
-    sample += 1
+    # compute the phase of this sample
+    phase = 2 * np.pi * frequency * stepsize + phase
 
     key = patch.getstring('output', 'prefix') + '.sin'
-    val = np.sin(2 * np.pi * frequency * t) * amplitude + offset + np.random.randn(1) * noise
+    val = np.sin(phase) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.square'
-    val = signal.square(2 * np.pi * frequency * t, 0.5) * amplitude + offset + np.random.randn(1) * noise
+    val = signal.square(phase, dutycycle) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.triangle'
-    val = signal.sawtooth(2 * np.pi * frequency * t, 0.5) * amplitude + offset + np.random.randn(1) * noise
+    val = signal.sawtooth(phase, 0.5) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.sawtooth'
-    val = signal.sawtooth(2 * np.pi * frequency * t, 1) * amplitude + offset + np.random.randn(1) * noise
+    val = signal.sawtooth(phase, 1) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     # this is a short-term approach, estimating the sleep for every block
@@ -138,5 +149,6 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
+    sample += 1
     if debug>0:
-        print "generated", sample, "samples in", (time.time()-start)*1000, "ms"
+        print "generated sample", sample, "in", (time.time()-start)*1000, "ms"
