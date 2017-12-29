@@ -56,7 +56,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
@@ -98,9 +97,12 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
+                    # map the Redis values to MIDI values
+                    val = EEGsynth.rescale(item['data'], slope=scale, offset=offset)
+                    val = int(val)
                     if debug>1:
-                        print item['channel'], "=", item['data']
-                    msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
+                        print item['channel'], "=", val
+                    msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -126,18 +128,25 @@ previous_val = {}
 for name in control_name:
     previous_val[name] = None
 
+# the scale and offset are used to map Redis values to MIDI values
+scale  = patch.getfloat('input', 'scale', default=127)
+offset = patch.getfloat('input', 'offset', default=0)
+
 try:
     while True:
         time.sleep(patch.getfloat('general', 'delay'))
 
         for name, cmd in zip(control_name, control_code):
             # loop over the control values
-            val = patch.getint('control', name)
+            val = patch.getfloat('control', name)
             if val==None:
                 continue # it should be skipped when not present
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
+            # map the Redis values to MIDI values
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val = int(val)
             msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
                 print cmd, val, name
