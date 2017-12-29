@@ -180,15 +180,15 @@ try:
                     # prefix.note=note
                     key = '{}.note'.format(patch.getstring('output','prefix'))
                     val = msg.note
-                    r.set(key,val)          # send it as control value
-                    r.publish(key,val)      # send it as trigger
+                    r.set(key, val)         # send it as control value
+                    r.publish(key, val)     # send it as trigger
                     # prefix.noteXXX=velocity
                     key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
                     # map the MIDI values to Redis values
                     val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                    r.set(key,val)          # send it as control value
-                    r.publish(key,val)      # send it as trigger
+                    r.set(key, val)         # send it as control value
+                    r.publish(key, val)     # send it as trigger
             elif hasattr(msg,'control'):
                 # ignore these
                 pass

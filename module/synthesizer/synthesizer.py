@@ -138,6 +138,12 @@ class ControlThread(threading.Thread):
     def run(self):
       while self.running:
           ################################################################################
+          # these are to map the Redis values to MIDI values
+          ################################################################################
+          scale_vco_pitch  = patch.getfloat('scale', 'vco_pitch')
+          offset_vco_pitch = patch.getfloat('offset', 'vco_pitch')
+          
+          ################################################################################
           # VCO
           ################################################################################
           vco_pitch = patch.getfloat('control', 'vco_pitch', default=60)
@@ -145,6 +151,9 @@ class ControlThread(threading.Thread):
           vco_tri   = patch.getfloat('control', 'vco_tri', default=0.00)
           vco_saw   = patch.getfloat('control', 'vco_saw', default=0.25)
           vco_sqr   = patch.getfloat('control', 'vco_sqr', default=0.00)
+
+          # map the Redis values to MIDI values
+          vco_pitch = EEGsynth.rescale(vco_pitch, scale_vco_pitch, offset_vco_pitch)
 
           vco_total = vco_sin + vco_tri + vco_saw + vco_sqr
           if vco_total>0:
