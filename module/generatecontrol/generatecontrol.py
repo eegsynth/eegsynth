@@ -60,11 +60,16 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-update            = patch.getfloat('generate', 'update') # in seconds
-scale_frequency   = patch.getfloat('scale', 'frequency')
-scale_amplitude   = patch.getfloat('scale', 'amplitude')
-scale_offset      = patch.getfloat('scale', 'offset')
-scale_noise       = patch.getfloat('scale', 'noise')
+# the scale and offset are used to map Redis values to signal parameters
+scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
+scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
+scale_offset      = patch.getfloat('scale', 'offset', default=1)
+scale_noise       = patch.getfloat('scale', 'noise', default=1)
+offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
+offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
+offset_offset     = patch.getfloat('offset', 'offset', default=0)
+offset_noise      = patch.getfloat('offset', 'noise', default=0)
+stepsize          = patch.getfloat('generate', 'stepsize') # in seconds
 
 if debug > 1:
     print "update", update
@@ -82,46 +87,51 @@ while True:
     # measure the time that it takes
     start = time.time();
 
-    frequency = patch.getfloat('signal', 'frequency', default=1)  * scale_frequency
-    amplitude = patch.getfloat('signal', 'amplitude', default=1)  * scale_amplitude
-    offset    = patch.getfloat('signal', 'offset', default=0)     * scale_offset
-    noise     = patch.getfloat('signal', 'noise', default=0.5)    * scale_noise
+    frequency = patch.getfloat('signal', 'frequency', default=1)
+    amplitude = patch.getfloat('signal', 'amplitude', default=1)
+    offset    = patch.getfloat('signal', 'offset', default=0)       # the DC component of the output
+    noise     = patch.getfloat('signal', 'noise', default=0.5)
+    # map the Redis values to signal parameters
+    frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
+    amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
+    offset    = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
+    noise     = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
 
-    if frequency != prev_frequency:
-        print "frequency", frequency
+    if frequency!=prev_frequency or debug>2:
+        print "frequency =", frequency
         prev_frequency = frequency
-    if amplitude != prev_amplitude:
+    if amplitude!=prev_amplitude or debug>2:
         print "amplitude =", amplitude
         prev_amplitude = amplitude
-    if offset != prev_offset:
-        print "offset =", offset
+    if offset!=prev_offset or debug>2:
+        print "offset    =", offset
         prev_offset = offset
-    if noise != prev_noise:
-        print "noise =", noise
+    if noise!=prev_noise or debug>2:
+        print "noise     =", noise
         prev_noise = noise
 
     t = sample * update
     sample += 1
 
     key = patch.getstring('output', 'prefix') + '.sin'
-    val = np.sin(2 * np.pi * frequency * t) * amplitude + np.random.randn(1) * noise
+    val = np.sin(2 * np.pi * frequency * t) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.square'
-    val = signal.square(2 * np.pi * frequency * t, 0.5) * amplitude + np.random.randn(1) * noise
+    val = signal.square(2 * np.pi * frequency * t, 0.5) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.triangle'
-    val = signal.sawtooth(2 * np.pi * frequency * t, 0.5) * amplitude + np.random.randn(1) * noise
+    val = signal.sawtooth(2 * np.pi * frequency * t, 0.5) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.sawtooth'
-    val = signal.sawtooth(2 * np.pi * frequency * t, 1) * amplitude + np.random.randn(1) * noise
+    val = signal.sawtooth(2 * np.pi * frequency * t, 1) * amplitude + offset + np.random.randn(1) * noise
     r.set(key, val[0])
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
-    desired = update
+    desired = stepsize
     elapsed = time.time()-start
     naptime = desired - elapsed
     if naptime>0:
