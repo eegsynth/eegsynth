@@ -100,9 +100,12 @@ except:
     # it will be determined on the basis of the first incoming message
     midichannel = None
 
-# the scale and offset are used to map MIDI values to Redis values
-scale  = patch.getfloat('output', 'scale', default=127)
-offset = patch.getfloat('output', 'offset', default=0)
+# the input scale and offset are used to map Redis values to MIDI values
+input_scale  = patch.getfloat('input', 'scale', default=127)
+input_offset = patch.getfloat('input', 'offset', default=0)
+# the output scale and offset are used to map MIDI values to Redis values
+output_scale  = patch.getfloat('output', 'scale', default=0.00787401574803149606)
+output_offset = patch.getfloat('output', 'offset', default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -124,12 +127,15 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
+                    # map the Redis values to MIDI values
+                    val = EEGsynth.rescale(item['data'], slope=input_scale, offset=input_offset)
+                    val = int(val)
                     if debug>1:
-                        print item['channel'], '=', item['data']
+                        print item['channel'], '=', val
                     if midichannel is None:
-                        msg = mido.Message('note_on', note=self.note, velocity=int(item['data']))
+                        msg = mido.Message('note_on', note=self.note, velocity=val)
                     else:
-                        msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
+                        msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
                     print msg
                     outputport.send(msg)
@@ -179,8 +185,8 @@ try:
                     # prefix.noteXXX=velocity
                     key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
-                    # map the MIDI values to Redis values between 0 and 1
-                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
+                    # map the MIDI values to Redis values
+                    val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                     r.set(key,val)          # send it as control value
                     r.publish(key,val)      # send it as trigger
             elif hasattr(msg,'control'):
