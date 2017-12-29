@@ -93,6 +93,7 @@ class TriggerThread(threading.Thread):
                 if item['channel']==self.redischannel:
                     # map the Redis values to MIDI values
                     val = EEGsynth.rescale(item['data'], slope=scale, offset=offset)
+                    val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
                     if debug>1:
                         print item['channel'], "=", val
@@ -140,6 +141,7 @@ try:
             previous_val[name] = val
             # map the Redis values to MIDI values
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val = EEGsynth.limit(val, 0, 127)
             val = int(val)
             msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:

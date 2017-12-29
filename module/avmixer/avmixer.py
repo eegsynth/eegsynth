@@ -88,8 +88,8 @@ outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
 
 # the scale and offset are used to map Redis values to MIDI values
-scale  = patch.getfloat('input', 'scale', default=127)
-offset = patch.getfloat('input', 'offset', default=0)
+input_scale  = patch.getfloat('input', 'scale', default=127)
+input_offset = patch.getfloat('input', 'offset', default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -111,9 +111,16 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
+                    # map the Redis values to MIDI values
+                    val = EEGsynth.rescale(item['data'], slope=input_scale, offset=input_offset)
+                    val = EEGsynth.limit(val, 0, 127)
+                    val = int(val)
                     if debug>1:
-                        print item['channel'], "=", item['data']
-                    msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
+                        print item['channel'], '=', val
+                    if midichannel is None:
+                        msg = mido.Message('note_on', note=self.note, velocity=val)
+                    else:
+                        msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -150,13 +157,18 @@ try:
             # loop over the control values
             val = patch.getfloat(split_name[0], split_name[1])
             if val is None:
-                continue#  it should be skipped when not present in the ini or redis
+                continue # it should be skipped when not present in the ini or redis
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
-            # convert the Redis value to MIDI levels
-            val = int(EEGsynth.rescale(val, slope=scale, offset=offset))
-            msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
+            # map the Redis values to MIDI values
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val = EEGsynth.limit(val, 0, 127)
+            val = int(val)
+            if midichannel is None:
+                msg = mido.Message('control_change', control=cmd, value=val)
+            else:
+                msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
                 print cmd, val, name
             lock.acquire()
