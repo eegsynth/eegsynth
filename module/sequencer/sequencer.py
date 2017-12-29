@@ -60,14 +60,17 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-# assume that the control values are between 0 and 1
-scale_pattern   = patch.getfloat('scale', 'pattern',   default=127) # MIDI values
-scale_transpose = patch.getfloat('scale', 'transpose', default=127) # MIDI values
-scale_rate      = patch.getfloat('scale', 'rate',      default=127) # beats per minute
-
+# these scale and offset parameters are used to map Redis values to internal values
+scale_pattern    = patch.getfloat('scale',  'pattern',   default=127) # internal MIDI values
+scale_transpose  = patch.getfloat('scale',  'transpose', default=127) # internal MIDI values
+scale_rate       = patch.getfloat('scale',  'rate',      default=127) # beats per minute
 offset_pattern   = patch.getfloat('offset', 'pattern',   default=0)
 offset_transpose = patch.getfloat('offset', 'transpose', default=0)
 offset_rate      = patch.getfloat('offset', 'rate',      default=0)
+
+# the output scale and offset are used to map the internal MIDI values to Redis values
+output_scale  = patch.getfloat('output', 'scale', default=0.00787401574803149606)
+output_offset = patch.getfloat('output', 'offset', default=0)
 
 if debug>0:
     print 'scale_pattern    =', scale_pattern
@@ -77,52 +80,54 @@ if debug>0:
     print 'offset_transpose =', offset_transpose
     print 'offset_rate      =', offset_rate
 
-# the pattern should be an integer between 0 and 127
-pattern = patch.getfloat('control','pattern', default=0)
-pattern = EEGsynth.rescale(pattern, slope=scale_pattern, offset=offset_pattern)
-pattern = int(pattern)
-previous = pattern
+previous_pattern   = -1
+previous_transpose = -1
+previous_rate      = -1
 
-try:
-    sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
-except:
-    sequence = '0'
-
-if debug>0:
-    print 'pattern  =', pattern
-    print 'sequence =', sequence
+# this is just to get started
+sequence = '0'
 
 try:
     while True:
 
         for note in sequence.split():
-            # the note should be an integer between 0 and 127
-            note = int(note)
+            # the note should be a value, not a string
+            note = float(note)
 
             # the pattern should be an integer between 0 and 127
             pattern = patch.getfloat('control','pattern', default=0)
             pattern = EEGsynth.rescale(pattern, slope=scale_pattern, offset=offset_pattern)
             pattern = int(pattern)
 
-            if pattern!=previous:
+            if pattern!=previous_pattern:
+                if debug>0:
+                    print 'pattern =', pattern
+                previous_pattern = pattern
                 # get the corresponding sequence
                 try:
                     sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
                 except:
                     sequence = '0'
-
                 # immediately start playing the new sequence
-                previous = pattern
-                print "switching to pattern", pattern
                 break
 
             # use a default transposition of 48
             transpose = patch.getfloat('control','transpose', default=48./127)
             transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)
 
+            if transpose!=previous_transpose:
+                if debug>0:
+                    print 'transpose =',  transpose
+                previous_transpose = transpose
+
             # use a default rate of 90 bpm
             rate = patch.getfloat('control','rate', default=90./127)
             rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+
+            if rate!=previous_rate:
+                if debug>0:
+                    print 'rate =',  rate
+                previous_rate = rate
 
             # assume that the rate value is between 0 and 127, map it exponentially from 60 to 600
             # it should not get too low, otherwise the code with the sleep below becomes unresponsive
@@ -138,11 +143,14 @@ try:
             key = "{}.note".format(patch.getstring('output','prefix'))
             val = note + transpose
 
-            if debug>0:
-                print 'sending', key, 'with value', val
+            # map the internally used values to Redis values
+            val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
 
-            r.set(key,val)      # send it as control value: prefix.channel000.note=note
-            r.publish(key,val)  # send it as trigger: prefix.channel000.note=note
+            if debug>0:
+                print key, '=', note, note + transpose, val
+
+            r.set(key, val)     # send it as control value
+            r.publish(key, val) # send it as trigger
 
             time.sleep(60./rate)
 
