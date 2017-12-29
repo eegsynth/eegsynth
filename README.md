@@ -158,8 +158,8 @@ Detailed information about each module can be found in the README.md included in
 
 ### External interfaces (consumer)
 
-* [LaunchControl](https://github.com/eegsynth/eegsynth/tree/master/module/launchcontrol) Records and send data to the Novation[ LaunchControl XL MIDI controller](https://global.novationmusic.com/launch/launch-control-xl)
-* [LaunchPad ](https://github.com/eegsynth/eegsynth/tree/master/module/launchpad)Record and send data to the Novation [Launchpad MIDI controller](https://global.novationmusic.com/launch/launchpad)
+* [LaunchControl](https://github.com/eegsynth/eegsynth/tree/master/module/launchcontrol) Records and send data to the Novation [LaunchControl](https://global.novationmusic.com/launch/launch-control) and [LaunchControl XL](https://global.novationmusic.com/launch/launch-control-xl) MIDI controllers
+* [LaunchPad ](https://github.com/eegsynth/eegsynth/tree/master/module/launchpad)Record and send data to the Novation [Launchpad](https://global.novationmusic.com/launch/launchpad) MIDI controller
 * [VolcaBass](https://github.com/eegsynth/eegsynth/tree/master/module/volcabass) Interface with the Korg [Volca Bass](http://www.korg.com/us/products/dj/volca_bass/) synthesizer
 * [VolcaBeats](https://github.com/eegsynth/eegsynth/tree/master/module/volcabeats) Interface with the Korg [Volca Beats](http://www.korg.com/us/products/dj/volca_beats/) synthesizer
 * [VolcaKeys](https://github.com/eegsynth/eegsynth/tree/master/module/volcakeys) Interface with the Korg [Volca Keys](http://www.korg.com/us/products/dj/volca_keys/) synthesizer
