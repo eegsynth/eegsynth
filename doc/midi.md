@@ -4,20 +4,18 @@ For the EEGsynth we are developing and testing with a variety of hardware, some 
 
 ## Hardware
 
-- Novation Launch Control XL
-- Korg Volca Beats
-- Korg Volca Bass
-- Korg Volca Keys
+- Novation Launch Control, Launch Control XL and Launchpad
+- Korg Volca Beats, Bass and Keys
 - Yamaha P-95 digital piano (keyboard)
 - Arturio Microbrute
-- Endorphin.es Shuttle Control
+- Endorphines Shuttle Control
 - USB-MIDI converter cable from Ebay
 
 ## Software and programming interfaces
 
 The MIDI interfaces may show up differently, depending on the computer to which you connect the MIDI device, and depending on the software used on that computer.
 
-The software interface to MIDI devices is often implemented over multiple layers. E.g. on OS X the EEGsynth Python modules connect with the hardware like this:
+The software interface to MIDI devices is often implemented over multiple layers. E.g. on OS X the EEGsynth modules connect with the hardware like this:
 
 eegsynth->python->mido->portmidi->coremidi->hardware
 
