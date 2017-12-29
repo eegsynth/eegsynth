@@ -4,7 +4,9 @@ A matrix mixer allows flexible reconfiguration of the patching while all modules
 
 ![matrix mixer](figures/erica_synths_matrix_mixer.jpg)
 
-The matrix mixer can be implemented using the combination of the launchpad and postprocessing modules. The corresponding postprocessing.ini would look like this
+The [MTX9](http://www.futuresoundsystems.co.uk/mtx9.html) from Future Sound Systems is another nice example, which even comes with a dry-wipe marker to write the labels on the module.
+
+In the EEGsynth the matrix mixer can be implemented using the combination of the launchpad and postprocessing modules. The corresponding postprocessing.ini would look like this
 
 ```
 [input]
