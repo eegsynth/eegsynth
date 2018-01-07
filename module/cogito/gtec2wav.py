@@ -22,7 +22,7 @@ import numpy as np
 import wave
 import struct
 
-filename = "RecordSession_2017.04.09_00.18.27.hdf5"
+filename = "RecordSession_YYY.MM.DD_HH.MM.SS.hdf5"
 
 profileMin=1.0
 profileMax=1.5
