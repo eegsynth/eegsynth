@@ -113,8 +113,8 @@ while True:
         meas_info['hour']           = recstart.hour
         meas_info['minute']         = recstart.minute
         meas_info['second']         = recstart.second
-        chan_info['physical_min']   = nchans * [-1024.] # FIXME
-        chan_info['physical_max']   = nchans * [ 1024.]
+        chan_info['physical_min']   = nchans * [patch.getfloat('recording', 'physical_min')]
+        chan_info['physical_max']   = nchans * [patch.getfloat('recording', 'physical_max')]
         chan_info['digital_min']    = nchans * [-32768]
         chan_info['digital_max']    = nchans * [ 32768]
         chan_info['ch_names']       = channelz
@@ -128,9 +128,12 @@ while True:
     if recording:
         D = []
         for chan in channels:
-            D.append([float(r.get(chan))])
-        if debug>1:
+            xval = EEGsynth.limit(r.get(chan), patch.getfloat('recording', 'physical_min'), patch.getfloat('recording', 'physical_max'))
+            D.append([xval])
+
+        if debug > 1:
             print "Writing", D
+
         f.writeBlock(D)
         time.sleep(adjust * delay)
 

@@ -197,11 +197,14 @@ def rescale(xval, slope=None, offset=None):
 ####################################################################
 def limit(xval, lo=0.0, hi=127.0):
     if hasattr(xval, "__iter__"):
-        return [clip(x, lo, hi) for x in xval]
+        return [limit(x, lo, hi) for x in xval]
     else:
-        if xval<lo:
+        xval = float(xval)
+        lo = float(lo)
+        hi = float(hi)
+        if xval < lo:
             return lo
-        elif xval>hi:
+        elif xval > hi:
             return hi
         else:
             return xval
@@ -209,7 +212,7 @@ def limit(xval, lo=0.0, hi=127.0):
 ####################################################################
 def compress(xval, lo=63.5, hi=63.5, range=127.0):
     if hasattr(xval, "__iter__"):
-        return [limiter(x, lo, hi, range) for x in xval]
+        return [compress(x, lo, hi, range) for x in xval]
     else:
         xval  = float(xval)
         lo    = float(lo)
