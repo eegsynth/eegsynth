@@ -77,6 +77,7 @@ stepsize    = patch.getfloat('smoothing', 'stepsize')   # in seconds
 window      = patch.getfloat('smoothing', 'window')     # in seconds
 numchannel  = len(inputlist)
 numhistory  = int(round(window/stepsize))
+freeze      = False
 
 # this will contain the full list of historic values
 history = np.empty((numchannel, numhistory))
@@ -88,53 +89,68 @@ historic = {}
 while True:
     # determine the start of the actual processing
     start = time.time()
+    print freeze
+    if not freeze and patch.getint('input', 'freeze'):
+        if debug > 0:
+            print "Freezing updating!"
+        freeze = True
+        continue
 
-    # shift data to next sample
-    history[:, :-1] = history[:, 1:]
+    if freeze and patch.getint('input', 'freeze'):
+        if debug > 0:
+            print "Not updating..."
+        time.sleep(1)
 
-    # update with current data
-    for channel in range(numchannel):
-        history[channel, numhistory-1] = r.get(inputlist[channel])
+    if not freeze and not patch.getint('input', 'freeze'):
+        if debug > 0:
+            print "Updating:"
 
-    # compute some statistics
-    historic['mean']    = np.nanmean(history, axis=1)
-    historic['std']     = np.nanstd(history, axis=1)
-    historic['min']     = np.nanmean(history, axis=1)
-    historic['max']     = np.nanmean(history, axis=1)
-    historic['range']   = historic['max'] - historic['min']
-    # use some robust estimators
-    historic['median']  = np.nanmedian(history, axis=1)
-    # see https://en.wikipedia.org/wiki/Median_absolute_deviation
-    historic['mad']     = mad(history, axis=1)
-    # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
-    historic['p03']     = np.percentile(history,  3, axis=1) # mean minus 2x standard deviation
-    historic['p16']     = np.percentile(history, 16, axis=1) # mean minus 1x standard deviation
-    historic['p84']     = np.percentile(history, 84, axis=1) # mean plus 1x standard deviation
-    historic['p97']     = np.percentile(history, 97, axis=1) # mean plus 2x standard deviation
-    # see https://en.wikipedia.org/wiki/Interquartile_range
-    historic['iqr']     = historic['p84'] - historic['p16']
+        # shift data to next sample
+        history[:, :-1] = history[:, 1:]
 
-    # Attenuated history over time, so to diminish max/min over time
-    # NOTE: There is probably a way to do this without a for-loop:
-    history_att = history
-    for channel in range(numchannel):
-        history_att[channel, :] = history_att[channel, :] - historic['mean'][channel]
-        history_att[channel, :] = history_att[channel, :] * np.linspace(0, 1, numhistory)
-        history_att[channel, :] = history_att[channel, :] + historic['mean'][channel]
-
-    historic['min_att'] = np.nanmean(history_att, axis=1)
-    historic['max_att'] = np.nanmean(history_att, axis=1)
-
-    for operation in historic.keys():
+        # update with current data
         for channel in range(numchannel):
-            key = inputlist[channel] + "." + operation
-            val = historic[operation][channel]
-            r.set(key, val)
-            if debug>1:
-                print key + ':' + str(val)
+            history[channel, numhistory-1] = r.get(inputlist[channel])
 
-    elapsed = time.time() - start
-    naptime = stepsize - elapsed
-    if naptime>0:
-        # this approximates the desired update speed
-        time.sleep(naptime)
+        # compute some statistics
+        historic['mean']    = np.nanmean(history, axis=1)
+        historic['std']     = np.nanstd(history, axis=1)
+        historic['min']     = np.nanmin(history, axis=1)
+        historic['max']     = np.nanmax(history, axis=1)
+        historic['range']   = historic['max'] - historic['min']
+        # use some robust estimators
+        historic['median']  = np.nanmedian(history, axis=1)
+        # see https://en.wikipedia.org/wiki/Median_absolute_deviation
+        historic['mad']     = mad(history, axis=1)
+        # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
+        historic['p03']     = np.percentile(history,  3, axis=1) # mean minus 2x standard deviation
+        historic['p16']     = np.percentile(history, 16, axis=1) # mean minus 1x standard deviation
+        historic['p84']     = np.percentile(history, 84, axis=1) # mean plus 1x standard deviation
+        historic['p97']     = np.percentile(history, 97, axis=1) # mean plus 2x standard deviation
+        # see https://en.wikipedia.org/wiki/Interquartile_range
+        historic['iqr']     = historic['p84'] - historic['p16']
+
+        # Attenuated history over time, so to diminish max/min over time
+        # NOTE: There is probably a way to do this without a for-loop:
+        history_att = history
+        for channel in range(numchannel):
+            history_att[channel, :] = history_att[channel, :] - historic['mean'][channel]
+            history_att[channel, :] = history_att[channel, :] * np.linspace(0, 1, numhistory)
+            history_att[channel, :] = history_att[channel, :] + historic['mean'][channel]
+
+        historic['min_att'] = np.nanmin(history_att, axis=1)
+        historic['max_att'] = np.nanmax(history_att, axis=1)
+
+        for operation in historic.keys():
+            for channel in range(numchannel):
+                key = inputlist[channel] + "." + operation
+                val = historic[operation][channel]
+                r.set(key, val)
+                if debug>1:
+                    print key + ':' + str(val)
+
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime>0:
+            # this approximates the desired update speed
+            time.sleep(naptime)
