@@ -111,16 +111,17 @@ output_offset = patch.getfloat('output', 'offset', default=0)
 lock = threading.Lock()
 
 class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, note):
+    def __init__(self, redischannel, note, redisvalue='velocity'):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
         self.note = note
+        self.redisvalue = redisvalue # the Redis value contains either pitch or velocity
         self.running = True
     def stop(self):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
-        pubsub.subscribe('KEYBOARD_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe('KEYBOARD_UNBLOCK')  # this message unblocks the Redis listen command
         pubsub.subscribe(self.redischannel)   # this message contains the note
         while self.running:
             for item in pubsub.listen():
@@ -128,15 +129,33 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     # map the Redis values to MIDI values
-                    val = EEGsynth.rescale(item['data'], slope=input_scale, offset=input_offset)
+                    val = item['data']
+                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
                     if debug>1:
                         print item['channel'], '=', val
+                    if self.redisvalue == 'pitch':
+                        # the Redis value contains the pitch, the velocity is variable
+                        try:
+                            pitch    = int(val)
+                            velocity = float(r.get(self.note))
+                            velocity = EEGsynth.rescale(velocity, slope=input_scale, offset=input_offset)
+                            velocity = EEGsynth.limit(velocity, 0, 127)
+                            velocity = int(velocity)
+                        except:
+                            # the Redis channel might be empty
+                            continue
+                    elif self.redisvalue == 'velocity':
+                        # the Redis value contains the velocity, the pitch is hard-coded
+                        pitch    = int(self.note)
+                        velocity = int(val)
+                    print "pitch =", pitch
+                    print "velocity =", velocity
                     if midichannel is None:
-                        msg = mido.Message('note_on', note=self.note, velocity=val)
+                        msg = mido.Message('note_on', note=pitch, velocity=velocity)
                     else:
-                        msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
+                        msg = mido.Message('note_on', note=pitch, velocity=velocity, channel=midichannel)
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -146,10 +165,17 @@ trigger = []
 for name, code in zip(note_name, note_code):
     if config.has_option('input', name):
         # start the background thread that deals with this note
-        this = TriggerThread(patch.getstring('input', name), code)
+        this = TriggerThread(patch.getstring('input', name), code, redisvalue='velocity')
         trigger.append(this)
         if debug>1:
             print name, 'OK'
+
+if config.has_option('input', 'pitch') and config.has_option('input', 'velocity'):
+    # start the background thread that deals with this note
+    this = TriggerThread(patch.getstring('input', 'pitch'), patch.getstring('input', 'velocity'), redisvalue='pitch')
+    trigger.append(this)
+    if debug>1:
+        print 'pitch and velocity OK'
 
 # start the thread for each of the notes
 for thread in trigger:
