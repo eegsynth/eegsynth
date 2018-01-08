@@ -87,12 +87,26 @@ previous_rate      = -1
 # this is just to get started
 sequence = '0'
 
+if sequence.find(","):
+    separator = ","
+else:
+    separator = " "
+
 try:
     while True:
 
-        for note in sequence.split():
-            # the note should be a value, not a string
-            note = float(note)
+        for note in sequence.split(separator):
+            # the note can be a value or a string pointing to a Redis channel
+            try:
+                note = float(note)
+            except:
+                # it seems to be a string pointing to a Redis channel
+                try:
+                    note = float(r.get(note))
+                except:
+                    # the Redis channel does not exist or is empty
+                    print "note", note, "is not available"
+                    note = 0
 
             # the pattern should be an integer between 0 and 127
             pattern = patch.getfloat('control','pattern', default=0)
