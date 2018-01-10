@@ -56,13 +56,13 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
+# del config
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
