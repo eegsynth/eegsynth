@@ -34,7 +34,7 @@ npm install
 node index.js
 ```
 
-Having started the web interface, you can connect on another computer, smart phone or tablet with the address http://<RASPBERRY_PI_ADDRESS>:3000.
+Having started the web interface, you can connect on another computer, smart phone or tablet with the address http://RASPBERRY_PI_ADDRESS:3000.
 
 To facilitate development of the web interface, it is useful to run it with [supervisor](https://github.com/petruisfan/node-supervisor), which will automatically restart if changes to the code are detected.
 

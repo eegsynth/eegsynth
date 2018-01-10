@@ -1,14 +1,34 @@
 #!/usr/bin/env python
 
-import math
-import pyaudio
+# Synthesizer acts as a basic synthesizer
+#
+# Synthesizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2017 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
-import redis
+import argparse
+import math
 import multiprocessing
+import os
+import pyaudio
+import redis
+import sys
 import threading
 import time
-import sys
-import os
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -16,18 +36,30 @@ else:
     basis = sys.argv[0]
 installed_folder = os.path.split(basis)[0]
 
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'synthesizer.ini'))
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'),port=config.getint('redis','port'),db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general', 'debug')
 
 def default(x, y):
     if x is None:
@@ -45,9 +77,9 @@ for i, dev in enumerate(devices):
     print "%d - %s" % (i, dev['name'])
 print('-------------------------')
 
-BLOCKSIZE = int(config.get('general','blocksize'))
+BLOCKSIZE = int(patch.getstring('general', 'blocksize'))
 CHANNELS  = 1
-BITRATE   = int(config.get('general','bitrate'))
+BITRATE   = int(patch.getstring('general', 'bitrate'))
 BITS      = p.get_format_from_width(1)
 
 lock = threading.Lock()
@@ -56,39 +88,37 @@ stream = p.open(format = BITS,
 		channels = CHANNELS,
 		rate = BITRATE,
 		output = True,
-		output_device_index = config.getint('pyaudio','output_device_index'))
+		output_device_index = patch.getint('pyaudio', 'output_device_index'))
 
 class TriggerThread(threading.Thread):
-    def __init__(self, r, config):
+    def __init__(self, r):
         threading.Thread.__init__(self)
         self.r = r
-        self.config = config
-        self.stopped = False
+        self.running = True
         lock.acquire()
         self.time = 0
         self.last = 0
         lock.release()
-    def stop_thread(self):
-        self.stopped = True
+    def stop(self):
+        self.running = False
     def run(self):
         pubsub = self.r.pubsub()
-        channel = self.config.get('input','adsr_gate')
-        pubsub.subscribe(channel)
-        for item in pubsub.listen():
-            if self.stopped:
-                break
-            else:
-                print item['channel'], "=", item['data']
-                lock.acquire()
-                self.last = self.time
-                lock.release()
+        pubsub.subscribe('SYNTHESIZER_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe(patch.getstring('control', 'adsr_gate'))
+        while self.running:
+           for item in pubsub.listen():
+               if not self.running or not item['type'] == 'message':
+                   break
+               print item['channel'], "=", item['data']
+               lock.acquire()
+               self.last = self.time
+               lock.release()
 
 class ControlThread(threading.Thread):
-    def __init__(self, r, config):
+    def __init__(self, r):
         threading.Thread.__init__(self)
         self.r = r
-        self.config = config
-        self.stopped = False
+        self.running = True
         lock.acquire()
         self.vco_pitch      = 0
         self.vco_sin        = 0
@@ -103,43 +133,27 @@ class ControlThread(threading.Thread):
         self.adsr_release   = 0
         self.vca_envelope   = 0
         lock.release()
-    def stop_thread(self):
-        self.stopped = True
+    def stop(self):
+        self.running = False
     def run(self):
-      while not self.stopped:
-
+      while self.running:
+          ################################################################################
+          # these are to map the Redis values to MIDI values
+          ################################################################################
+          scale_vco_pitch  = patch.getfloat('scale', 'vco_pitch')
+          offset_vco_pitch = patch.getfloat('offset', 'vco_pitch')
+          
           ################################################################################
           # VCO
           ################################################################################
-          vco_pitch = self.r.get(config.get('input','vco_pitch'))
-          if vco_pitch:
-              vco_pitch = float(vco_pitch)
-          else:
-              vco_pitch = self.config.getfloat('default','vco_pitch')
+          vco_pitch = patch.getfloat('control', 'vco_pitch', default=60)
+          vco_sin   = patch.getfloat('control', 'vco_sin', default=0.75)
+          vco_tri   = patch.getfloat('control', 'vco_tri', default=0.00)
+          vco_saw   = patch.getfloat('control', 'vco_saw', default=0.25)
+          vco_sqr   = patch.getfloat('control', 'vco_sqr', default=0.00)
 
-          vco_sin = self.r.get(self.config.get('input','vco_sin'))
-          if vco_sin:
-              vco_sin = float(vco_sin)
-          else:
-              vco_sin = self.config.getfloat('default','vco_sin')
-
-          vco_tri = self.r.get(self.config.get('input','vco_tri'))
-          if vco_tri:
-              vco_tri = float(vco_tri)
-          else:
-              vco_tri = self.config.getfloat('default','vco_tri')
-
-          vco_saw = self.r.get(self.config.get('input','vco_saw'))
-          if vco_saw:
-              vco_saw = float(vco_saw)
-          else:
-              vco_saw = self.config.getfloat('default','vco_saw')
-
-          vco_sqr = self.r.get(self.config.get('input','vco_sqr'))
-          if vco_sqr:
-              vco_sqr = float(vco_sqr)
-          else:
-            vco_sqr = self.config.getfloat('default','vco_sqr')
+          # map the Redis values to MIDI values
+          vco_pitch = EEGsynth.rescale(vco_pitch, scale_vco_pitch, offset_vco_pitch)
 
           vco_total = vco_sin + vco_tri + vco_saw + vco_sqr
           if vco_total>0:
@@ -152,65 +166,27 @@ class ControlThread(threading.Thread):
           ################################################################################
           # LFO
           ################################################################################
-          lfo_frequency = self.r.get(self.config.get('input','lfo_frequency'))
-          if lfo_frequency:
-              lfo_frequency = float(lfo_frequency)
-          else:
-              lfo_frequency = self.config.getfloat('default','lfo_frequency')
-          # assume that this value is between 0 and 127
-          lfo_frequency = lfo_frequency/3
-
-          lfo_depth = self.r.get(self.config.get('input','lfo_depth'))
-          if lfo_depth:
-              lfo_depth = float(lfo_depth)
-          else:
-              lfo_depth = self.config.getfloat('default','lfo_depth')
-          # assume that this value is between 0 and 127
-          lfo_depth = lfo_depth/127
+          lfo_frequency = patch.getfloat('control', 'lfo_frequency', default=2)
+          lfo_depth     = patch.getfloat('control', 'lfo_depth', default=0.5)
 
           ################################################################################
           # ADSR
           ################################################################################
-          adsr_attack = self.r.get(self.config.get('input','adsr_attack'))
-          if adsr_attack:
-              adsr_attack = float(adsr_attack)
-          else:
-              adsr_attack = self.config.getfloat('default','adsr_attack')
+          adsr_attack   = patch.getfloat('control', 'adsr_attack', default=0.25)
+          adsr_decay    = patch.getfloat('control', 'adsr_decay', default=0.25)
+          adsr_sustain  = patch.getfloat('control', 'adsr_sustain', default=0.5)
+          adsr_release  = patch.getfloat('control', 'adsr_release', default=0.25)
 
-          adsr_decay = self.r.get(self.config.get('input','adsr_decay'))
-          if adsr_decay:
-              adsr_decay = float(adsr_decay)
-          else:
-              adsr_decay = self.config.getfloat('default','adsr_decay')
-
-          adsr_sustain = self.r.get(self.config.get('input','adsr_sustain'))
-          if adsr_sustain:
-              adsr_sustain = float(adsr_sustain)
-          else:
-              adsr_sustain = self.config.getfloat('default','adsr_sustain')
-
-          adsr_release = self.r.get(self.config.get('input','adsr_release'))
-          if adsr_release:
-              adsr_release = float(adsr_release)
-          else:
-              adsr_release = self.config.getfloat('default','adsr_release')
-
-          # convert from value between 0 and 127 into time in samples
-          adsr_attack   *= float(BITRATE)/127
-          adsr_decay    *= float(BITRATE)/127
-          adsr_sustain  *= float(BITRATE)/127
-          adsr_release  *= float(BITRATE)/127
+          # convert from value between 0 and 1 into time in samples
+          adsr_attack   *= float(BITRATE)
+          adsr_decay    *= float(BITRATE)
+          adsr_sustain  *= float(BITRATE)
+          adsr_release  *= float(BITRATE)
 
           ################################################################################
           # VCA
           ################################################################################
-          vca_envelope = self.r.get(self.config.get('input','vca_envelope'))
-          if vca_envelope:
-              vca_envelope = float(vca_envelope)
-          else:
-              vca_envelope = self.config.getfloat('default','vca_envelope')
-          # assume that this value is between 0 and 127
-          vca_envelope = vca_envelope/127.0
+          vca_envelope = patch.getfloat('control', 'vca_envelope', default=0.5)
 
           ################################################################################
           # store the control values in the local object
@@ -229,20 +205,36 @@ class ControlThread(threading.Thread):
           self.adsr_release     = adsr_release
           self.vca_envelope     = vca_envelope
           lock.release()
+          if debug>2:
+              print '----------------------------------'
+              print 'vco_pitch      =', vco_pitch
+              print 'vco_sin        =', vco_sin
+              print 'vco_tri        =', vco_tri
+              print 'vco_saw        =', vco_saw
+              print 'vco_sqr        =', vco_sqr
+              print 'lfo_depth      =', lfo_depth
+              print 'lfo_frequency  =', lfo_frequency
+              print 'adsr_attack    =', adsr_attack
+              print 'adsr_decay     =', adsr_decay
+              print 'adsr_sustain   =', adsr_sustain
+              print 'adsr_release   =', adsr_release
+              print 'vca_envelope   =', vca_envelope
 
 # start the background thread that deals with control value changes
-control = ControlThread(r, config)
+control = ControlThread(r)
 control.start()
 
 # start the background thread that deals with triggers
-trigger = TriggerThread(r, config)
+trigger = TriggerThread(r)
 trigger.start()
 
+block = 0
 offset = 0
+
 try:
   while True:
     ################################################################################
-    # generate the signal
+    # this is constantly generating the output signal
     ################################################################################
     BUFFER = ''
 
@@ -309,10 +301,12 @@ try:
     offset = offset+BLOCKSIZE
 
 except KeyboardInterrupt:
-    trigger.stop_thread()
-    control.stop_thread()
-    trigger.join()
+    print "Closing threads"
+    control.stop()
     control.join()
+    trigger.stop()
+    r.publish('SYNTHESIZER_UNBLOCK', 1)
+    trigger.join()
     stream.stop_stream()
     stream.close()
     p.terminate()

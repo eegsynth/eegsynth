@@ -1,4 +1,4 @@
-# AVmixer module
+# AVmixer Module
 
 The purpose of this module is to provide an interface to the [AVmixer software](https://neuromixer.com/products/avmixer).
 
@@ -20,8 +20,6 @@ CoreMIDI or rtpMIDI support, in case you want to control the AVmixer software on
 
 ## Software Requirements
 
+Python 2.x
 portmidi
-Python
-Python mido package
-
-
+mido

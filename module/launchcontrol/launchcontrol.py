@@ -1,25 +1,50 @@
 #!/usr/bin/env python
 
-import mido
-import time
+# Launchcontrol interfaces with the Novation LaunchControl
+#
+# Launchcontrol is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2017 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import mido
+import os
 import redis
 import sys
-import os
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'launchcontrol.ini'))
+# eegsynth/lib contains shared modules
+sys.path.insert(0,os.path.join(installed_folder, '../../lib'))
+import EEGsynth
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -28,7 +53,14 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
-# this is only for debugging
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general', 'debug')
+
+# this is only for debugging, and check which MIDI devices are accessible
 print('------ INPUT ------')
 for port in mido.get_input_names():
   print(port)
@@ -37,17 +69,31 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
+# on windows the input and output are different, on unix they are the same
+# use "input/output" when specified, or otherwise use "device" for both
 try:
-    inputport  = mido.open_input(config.get('midi', 'device'))
-    if debug>0:
+    mididevice_input = patch.getstring('midi', 'input')
+except:
+    mididevice_input = patch.getstring('midi', 'device') # fallback
+try:
+    mididevice_output = patch.getstring('midi', 'output')
+except:
+    mididevice_output = patch.getstring('midi', 'device') # fallback
+
+print mididevice_input
+print mididevice_output
+
+try:
+    inputport = mido.open_input(mididevice_input)
+    if debug > 0:
         print "Connected to MIDI input"
 except:
     print "Error: cannot connect to MIDI input"
     exit()
 
 try:
-    outputport  = mido.open_output(config.get('midi', 'device'))
-    if debug>0:
+    outputport = mido.open_output(mididevice_output)
+    if debug > 0:
         print "Connected to MIDI output"
 except:
     print "Error: cannot connect to MIDI output"
@@ -55,19 +101,41 @@ except:
 
 try:
     # channel 1-16 in the ini file should be mapped to 0-15
-    midichannel = config.getint('midi', 'channel')-1
+    midichannel = patch.getint('midi', 'channel')-1
 except:
     # this happens if it is not specified in the ini file
-    # it will be determined on teh basis of the first incoming message
+    # it will be determined on the basis of the first incoming message
     midichannel = None
 
-push     = [int(a) for a in config.get('button', 'push').split(",")]
-toggle1  = [int(a) for a in config.get('button', 'toggle1').split(",")]
-toggle2  = [int(a) for a in config.get('button', 'toggle2').split(",")]
-toggle3  = [int(a) for a in config.get('button', 'toggle3').split(",")]
-toggle4  = [int(a) for a in config.get('button', 'toggle4').split(",")]
-note_list    = push+toggle1+toggle2+toggle3+toggle4 # concatenate all buttons
-status_list  = [0] * len(note_list)
+try:
+    # momentary push button
+    push = [int(a) for a in patch.getstring('button', 'push').split(",")]
+except:
+    push = []
+try:
+    # on-off button
+    toggle1 = [int(a) for a in patch.getstring('button', 'toggle1').split(",")]
+except:
+    toggle1 = []
+try:
+    # on1-on2-off button
+    toggle2 = [int(a) for a in patch.getstring('button', 'toggle2').split(",")]
+except:
+    toggle2 = []
+try:
+    # on1-on2-on3-off button
+    toggle3 = [int(a) for a in patch.getstring('button', 'toggle3').split(",")]
+except:
+    toggle3 = []
+try:
+    # on1-on2-on3-on4-off button
+    toggle4 = [int(a) for a in patch.getstring('button', 'toggle4').split(",")]
+except:
+    toggle4 = []
+
+# concatenate all buttons
+note_list = push+toggle1+toggle2+toggle3+toggle4
+status_list = [0] * len(note_list)
 
 # these are the MIDI values for the LED color
 Off         = 12
@@ -81,11 +149,11 @@ Green_Full  = 60
 
 def ledcolor(note,color):
     if not midichannel is None:
-	outputport.send(mido.Message('note_on', note=int(note), velocity=color, channel=midichannel))
+    	outputport.send(mido.Message('note_on', note=int(note), velocity=color, channel=midichannel))
 
 # ensure that all buttons and published messages start in the Off state
 for note in note_list:
-     ledcolor(note, Off)
+    ledcolor(note, Off)
 
 # the button handling is implemented using an internal representation and state changes
 # whenever the actual button is pressed or released
@@ -105,7 +173,7 @@ state1color  = {0:Off, 11:Red_Full}  # don't change color on 12,13
 state1value  = {0:0, 11:127}         # don't send message on 12,13
 
 state2change = {0:21, 21:22, 22:23, 23:24, 24:25, 25:0}
-state2color  = {0:Off, 21:Red_Full, 23:Yellow_Full}         # don't change color on 22,24,25
+state2color  = {0:Off, 21:Red_Full, 23:Yellow_Full}       # don't change color on 22,24,25
 state2value  = {0:0, 21:int(127*1/2), 23:int(127*2/2)}    # don't send message on 22,24,25
 
 state3change = {0:31, 31:32, 32:33, 33:34, 34:35, 35:36, 36:37, 37:0}
@@ -116,31 +184,46 @@ state4change = {0:41, 41:42, 42:43, 43:44, 44:45, 45:46, 46:47, 47:48, 48:49, 49
 state4color  = {0:Off, 41:Red_Full, 43:Yellow_Full, 45:Green_Full, 47:Amber_Full}
 state4value  = {0:0, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
 
+# it is preferred to use floating point control values between 0 and 1
+scalenote     = patch.getfloat('scale', 'note')
+scalecontrol  = patch.getfloat('scale', 'control')
+offsetnote    = patch.getfloat('offset', 'note')
+offsetcontrol = patch.getfloat('offset', 'control')
+
 while True:
-    time.sleep(config.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     for msg in inputport.iter_pending():
         if midichannel is None:
-            # specify the MIDI channel on the basis of the first incoming message
-            midichannel = msg.channel
+            try:
+                # specify the MIDI channel on the basis of the first incoming message
+                midichannel = int(msg.channel)
+            except:
+                pass
 
-        if debug>0:
+        if debug > 0 and msg.type != 'clock':
             print msg
 
         if hasattr(msg, "control"):
-            # prefix.control000=value
-            key = "{}.control{:0>3d}".format(config.get('output', 'prefix'), msg.control)
-            val = msg.value
+            # e.g. prefix.control000=value
+            key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
+            val = EEGsynth.rescale(msg.value, slope=scalecontrol, offset=offsetcontrol)
             r.set(key, val)
 
         elif hasattr(msg, "note"):
+            pass
             # the default is not to send a message
             val = None
             # use an local variable as abbreviation in the subsequent code
+            if msg.note not in note_list:
+                # this note/button was not specified in the ini file, add it
+                note_list = note_list+[msg.note]
+                status_list = status_list+[0]
+            # get the remembered status for this note/button
             status = status_list[note_list.index(msg.note)]
 
             # change to the next state
-            if   msg.note in toggle1:
+            if msg.note in toggle1:
                 status = state1change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
                 if status in state1color.keys():
@@ -176,15 +259,16 @@ while True:
                 if status in state0value.keys():
                     val = state0value[status]
 
-            if debug>1:
+            if debug > 1:
                 print status, val
 
             if not val is None:
                 # prefix.noteXXX=value
-                key = "{}.note{:0>3d}".format(config.get('output','prefix'), msg.note)
-                r.set(key,val)          # send it as control value
-                r.publish(key,val)      # send it as trigger
+                key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
+                val = EEGsynth.rescale(val, slope=scalenote, offset=offsetnote)
+                r.set(key, val)          # send it as control value
+                r.publish(key, val)      # send it as trigger
                 # prefix.note=note
-                key = "{}.note".format(config.get('output','prefix'))
-                r.set(key,msg.note)          # send it as control value
-                r.publish(key,msg.note)      # send it as trigger
+                key = "{}.note".format(patch.getstring('output', 'prefix'))
+                r.set(key, msg.note)          # send it as control value
+                r.publish(key, msg.note)      # send it as trigger

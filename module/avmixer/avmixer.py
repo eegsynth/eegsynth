@@ -1,12 +1,65 @@
 #!/usr/bin/env python
 
-import mido
+# AVmixer interfaces with the AVmixer application
+#
+# AVmixer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2017 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
+import mido
+import os
 import redis
+import sys
 import threading
 import time
-import sys
-import os
+
+if hasattr(sys, 'frozen'):
+    basis = sys.executable
+elif sys.argv[0]!='':
+    basis = sys.argv[0]
+else:
+    basis = './'
+installed_folder = os.path.split(basis)[0]
+
+# eegsynth/lib contains shared modules
+sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+import EEGsynth
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
+
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
+
+try:
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+# del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
 
 # the settings dialog distinguishes three colors for sliders/knobs, buttons and switches
 slider_name = ['mixer/mixer1_mode', 'mixer/mixer1_fader', 'mixer/mixer2_mode', 'mixer/mixer2_fader', 'mixer/fade_to_black', 'color_fx/saturation', 'color_fx/hue1', 'color_fx/black1', 'color_fx/hue2', 'color_fx/black2', 'transform_fx/tile_mode', 'transform_fx/rotate', 'transform_fx/zoom', 'transform_fx/move_x', 'transform_fx/move_y', 'transform_fx/center_x', 'transform_fx/center_y', 'transform_fx/skew_x', 'transform_fx/skew_y', 'freeframe_fx1/pad1_x', 'freeframe_fx1/pad1_y', 'freeframe_fx1/pad2_x', 'freeframe_fx1/pad2_y', 'freeframe_fx1/pad3_x', 'freeframe_fx1/pad4_y', 'freeframe_fx2/pad1_x', 'freeframe_fx2/pad1_y', 'freeframe_fx2/pad2_x', 'freeframe_fx2/pad2_y', 'freeframe_fx2/pad3_x', 'freeframe_fx2/pad4_y', 'channelA/playback_speed', 'channelA/scrub_timeline', 'channelB/playback_speed', 'channelB/scrub_timeline', 'channelC/playback_speed', 'channelC/scrub_timeline']
@@ -30,48 +83,13 @@ control_code = slider_code
 note_name = button_name + switch_name
 note_code = button_code + switch_code
 
-if hasattr(sys, 'frozen'):
-    basis = sys.executable
-elif sys.argv[0]!='':
-    basis = sys.argv[0]
-else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
+midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
+outputport = EEGsynth.midiwrapper(config)
+outputport.open_output()
 
-# eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
-import EEGsynth
-
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'avmixer.ini'))
-
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
-
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-    if debug>0:
-        print "Connected to redis server"
-except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
-
-# this is only for debugging
-print('------ OUTPUT ------')
-for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
-
-midichannel = config.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
-mididevice  = config.get('midi', 'device')
-try:
-    outputport  = mido.open_output(mididevice)
-    if debug>0:
-        print "Connected to MIDI output"
-except:
-    print "Error: cannot connect to MIDI output"
-    exit()
+# the scale and offset are used to map Redis values to MIDI values
+input_scale  = patch.getfloat('input', 'scale', default=127)
+input_offset = patch.getfloat('input', 'offset', default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -87,17 +105,25 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = r.pubsub()
         pubsub.subscribe('AVMIXER_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)    # this message contains the note
-        for item in pubsub.listen():
-            if not self.running:
-                break
-            if item['channel']==self.redischannel:
-                if debug>1:
-                    print item['channel'], "=", item['data']
-                msg = mido.Message('note_on', note=self.note, velocity=int(item['data']), channel=midichannel)
-                lock.acquire()
-                outputport.send(msg)
-                lock.release()
+        pubsub.subscribe(self.redischannel)  # this message contains the note
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel']==self.redischannel:
+                    # map the Redis values to MIDI values
+                    val = EEGsynth.rescale(item['data'], slope=input_scale, offset=input_offset)
+                    val = EEGsynth.limit(val, 0, 127)
+                    val = int(val)
+                    if debug>1:
+                        print item['channel'], '=', val
+                    if midichannel is None:
+                        msg = mido.Message('note_on', note=self.note, velocity=val)
+                    else:
+                        msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
+                    lock.acquire()
+                    outputport.send(msg)
+                    lock.release()
 
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
@@ -105,7 +131,7 @@ for name, code in zip(note_name, note_code):
     split_name = name.split('/')
     if config.has_option(split_name[0], split_name[1]):
         # start the background thread that deals with this note
-        this = TriggerThread(config.get(split_name[0], split_name[1]), code)
+        this = TriggerThread(patch.getstring(split_name[0], split_name[1]), code)
         trigger.append(this)
         if debug>1:
             print name, 'OK'
@@ -124,18 +150,25 @@ for name in control_name:
 
 try:
     while True:
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
         for name, cmd in zip(control_name, control_code):
             split_name = name.split('/')
             # loop over the control values
-            val = EEGsynth.getint(split_name[0], split_name[1], config, r)
+            val = patch.getfloat(split_name[0], split_name[1])
             if val is None:
-                continue#  it should be skipped when not present in the ini or redis
+                continue # it should be skipped when not present in the ini or redis
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
-            msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
+            # map the Redis values to MIDI values
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val = EEGsynth.limit(val, 0, 127)
+            val = int(val)
+            if midichannel is None:
+                msg = mido.Message('control_change', control=cmd, value=val)
+            else:
+                msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
                 print cmd, val, name
             lock.acquire()

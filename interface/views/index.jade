@@ -7,6 +7,12 @@ html(lang="en")
     include ../public/style.css
 
   body
+    hr
+    a(href="/") settings
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    a(href="/monitor") monitor
+    hr
+
     table
       tr
         td accelerometer
@@ -24,6 +30,36 @@ html(lang="en")
           a(href="accelerometer/edit") edit
 
       tr
+        td avmixer
+        td
+          a(href="avmixer/status") status
+        td
+          a(href="avmixer/start") start
+        td
+          a(href="avmixer/restart") restart
+        td
+          a(href="avmixer/stop") stop
+        td
+          a(href="avmixer/log") log
+        td
+          a(href="avmixer/edit") edit
+
+      tr
+        td brain
+        td
+          a(href="brain/status") status
+        td
+          a(href="brain/start") start
+        td
+          a(href="brain/restart") restart
+        td
+          a(href="brain/stop") stop
+        td
+          a(href="brain/log") log
+        td
+          a(href="brain/edit") edit
+
+      tr
         td buffer
         td
           a(href="buffer/status") status
@@ -37,6 +73,36 @@ html(lang="en")
           a(href="buffer/log") log
         td
           a(href="buffer/edit") edit
+
+      tr
+        td cogito
+        td
+          a(href="cogito/status") status
+        td
+          a(href="cogito/start") start
+        td
+          a(href="cogito/restart") restart
+        td
+          a(href="cogito/stop") stop
+        td
+          a(href="cogito/log") log
+        td
+          a(href="cogito/edit") edit
+
+      tr
+        td endorphines
+        td
+          a(href="endorphines/status") status
+        td
+          a(href="endorphines/start") start
+        td
+          a(href="endorphines/restart") restart
+        td
+          a(href="endorphines/stop") stop
+        td
+          a(href="endorphines/log") log
+        td
+          a(href="endorphines/edit") edit
 
       tr
         td eyeblink
@@ -69,6 +135,21 @@ html(lang="en")
           a(href="heartrate/edit") edit
 
       tr
+        td inputmidi
+        td
+          a(href="inputmidi/status") status
+        td
+          a(href="inputmidi/start") start
+        td
+          a(href="inputmidi/restart") restart
+        td
+          a(href="inputmidi/stop") stop
+        td
+          a(href="inputmidi/log") log
+        td
+          a(href="inputmidi/edit") edit
+
+      tr
         td inputosc
         td
           a(href="inputosc/status") status
@@ -82,6 +163,21 @@ html(lang="en")
           a(href="inputosc/log") log
         td
           a(href="inputosc/edit") edit
+
+      tr
+        td jaga2ft
+        td
+          a(href="jaga2ft/status") status
+        td
+          a(href="jaga2ft/start") start
+        td
+          a(href="jaga2ft/restart") restart
+        td
+          a(href="jaga2ft/stop") stop
+        td
+          a(href="jaga2ft/log") log
+        td
+          a(href="jaga2ft/edit") edit
 
       tr
         td keyboard
@@ -114,6 +210,21 @@ html(lang="en")
           a(href="launchcontrol/edit") edit
 
       tr
+        td launchpad
+        td
+          a(href="launchpad/status") status
+        td
+          a(href="launchpad/start") start
+        td
+          a(href="launchpad/restart") restart
+        td
+          a(href="launchpad/stop") stop
+        td
+          a(href="launchpad/log") log
+        td
+          a(href="launchpad/edit") edit
+
+      tr
         td muscle
         td
           a(href="muscle/status") status
@@ -144,6 +255,36 @@ html(lang="en")
           a(href="openbci2ft/edit") edit
 
       tr
+        td outputartnet
+        td
+          a(href="outputartnet/status") status
+        td
+          a(href="outputartnet/start") start
+        td
+          a(href="outputartnet/restart") restart
+        td
+          a(href="outputartnet/stop") stop
+        td
+          a(href="outputartnet/log") log
+        td
+          a(href="outputartnet/edit") edit
+
+      tr
+        td outputaudio
+        td
+          a(href="outputaudio/status") status
+        td
+          a(href="outputaudio/start") start
+        td
+          a(href="outputaudio/restart") restart
+        td
+          a(href="outputaudio/stop") stop
+        td
+          a(href="outputaudio/log") log
+        td
+          a(href="outputaudio/edit") edit
+
+      tr
         td outputcvgate
         td
           a(href="outputcvgate/status") status
@@ -157,6 +298,21 @@ html(lang="en")
           a(href="outputcvgate/log") log
         td
           a(href="outputcvgate/edit") edit
+
+      tr
+        td outputdmx512
+        td
+          a(href="outputdmx512/status") status
+        td
+          a(href="outputdmx512/start") start
+        td
+          a(href="outputdmx512/restart") restart
+        td
+          a(href="outputdmx512/stop") stop
+        td
+          a(href="outputdmx512/log") log
+        td
+          a(href="outputdmx512/edit") edit
 
       tr
         td outputosc
@@ -174,19 +330,109 @@ html(lang="en")
           a(href="outputosc/edit") edit
 
       tr
-        td pulsegenerator
+        td playback
         td
-          a(href="pulsegenerator/status") status
+          a(href="playback/status") status
         td
-          a(href="pulsegenerator/start") start
+          a(href="playback/start") start
         td
-          a(href="pulsegenerator/restart") restart
+          a(href="playback/restart") restart
         td
-          a(href="pulsegenerator/stop") stop
+          a(href="playback/stop") stop
         td
-          a(href="pulsegenerator/log") log
+          a(href="playback/log") log
         td
-          a(href="pulsegenerator/edit") edit
+          a(href="playback/edit") edit
+
+      tr
+        td playbackctrl
+        td
+          a(href="playbackctrl/status") status
+        td
+          a(href="playbackctrl/start") start
+        td
+          a(href="playbackctrl/restart") restart
+        td
+          a(href="playbackctrl/stop") stop
+        td
+          a(href="playbackctrl/log") log
+        td
+          a(href="playbackctrl/edit") edit
+
+      tr
+        td postprocessing
+        td
+          a(href="postprocessing/status") status
+        td
+          a(href="postprocessing/start") start
+        td
+          a(href="postprocessing/restart") restart
+        td
+          a(href="postprocessing/stop") stop
+        td
+          a(href="postprocessing/log") log
+        td
+          a(href="postprocessing/edit") edit
+
+      tr
+        td preprocessing
+        td
+          a(href="preprocessing/status") status
+        td
+          a(href="preprocessing/start") start
+        td
+          a(href="preprocessing/restart") restart
+        td
+          a(href="preprocessing/stop") stop
+        td
+          a(href="preprocessing/log") log
+        td
+          a(href="preprocessing/edit") edit
+
+      tr
+        td quantizer
+        td
+          a(href="quantizer/status") status
+        td
+          a(href="quantizer/start") start
+        td
+          a(href="quantizer/restart") restart
+        td
+          a(href="quantizer/stop") stop
+        td
+          a(href="quantizer/log") log
+        td
+          a(href="quantizer/edit") edit
+
+      tr
+        td record
+        td
+          a(href="record/status") status
+        td
+          a(href="record/start") start
+        td
+          a(href="record/restart") restart
+        td
+          a(href="record/stop") stop
+        td
+          a(href="record/log") log
+        td
+          a(href="record/edit") edit
+
+      tr
+        td recordctrl
+        td
+          a(href="recordctrl/status") status
+        td
+          a(href="recordctrl/start") start
+        td
+          a(href="recordctrl/restart") restart
+        td
+          a(href="recordctrl/stop") stop
+        td
+          a(href="recordctrl/log") log
+        td
+          a(href="recordctrl/edit") edit
 
       tr
         td redis
@@ -217,6 +463,21 @@ html(lang="en")
           a(href="sequencer/log") log
         td
           a(href="sequencer/edit") edit
+
+      tr
+        td synchronization
+        td
+          a(href="synchronization/status") status
+        td
+          a(href="synchronization/start") start
+        td
+          a(href="synchronization/restart") restart
+        td
+          a(href="synchronization/stop") stop
+        td
+          a(href="synchronization/log") log
+        td
+          a(href="synchronization/edit") edit
 
       tr
         td synthesizer

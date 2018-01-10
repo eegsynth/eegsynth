@@ -1,14 +1,34 @@
 #!/usr/bin/env python
 
+# Synchronizer synchronizes with MIDI
+#
+# Synchronizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2017 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import redis
+import argparse
 import mido
+import numpy as np
+import os
+import redis
 import serial
+import sys
 import threading
 import time
-import sys
-import os
-import numpy as np
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -22,11 +42,12 @@ installed_folder = os.path.split(basis)[0]
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, 'synchronization.ini'))
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
@@ -35,10 +56,17 @@ except redis.ConnectionError:
     print "Error: cannot connect to redis server"
     exit()
 
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
 serialport = None
 def initialize_serial():
     try:
-        serialport = serial.Serial(config.get('serial','device'), config.getint('serial','baudrate'), timeout=3.0)
+        serialport = serial.Serial(patch.getstring('serial','device'), patch.getint('serial','baudrate'), timeout=3.0)
     except:
         print "Error: cannot connect to serial output"
         exit()
@@ -46,26 +74,14 @@ def initialize_serial():
 
 midiport = None
 def initialize_midi():
-    # this is only for debugging
-    print('------ OUTPUT ------')
-    for port in mido.get_output_names():
-      print(port)
-    print('-------------------------')
-
-    mididevice  = config.get('midi', 'device')
-    try:
-        midiport  = mido.open_output(mididevice)
-        if debug>0:
-            print "Connected to MIDI output"
-    except:
-        print "Error: cannot connect to MIDI output"
-        exit()
+    midiport = EEGsynth.midiwrapper(config)
+    midiport.open_output()
     return midiport
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
-class TriggerThread(threading.Thread):
+class MidiThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
@@ -88,7 +104,7 @@ class TriggerThread(threading.Thread):
             print msg
         while self.running:
             if not self.enabled:
-                time.sleep(float(config.get('general', 'delay')))
+                time.sleep(patch.getfloat('general', 'delay'))
             else:
                 now = time.time()
                 delay = 60/self.rate      # the rate is in bpm
@@ -106,16 +122,16 @@ def find_nearest_idx(array,value):
     return idx
 
 multiplier_mid = [   10,    30,    50,   70,   90,   110,   130 ] # lookup table
-multiplier_val = [ 1./4,  1./3,  1./1,    1,    2,     3,     4 ] # actual value
+multiplier_val = [ 1./4,  1./3,  1./2,    1,    2,     3,     4 ] # actual value
 
 slip            = 0
 tick            = 0
 adjust_offset   = 0
 previous_offset = 0
-pulselength = config.getfloat('general','pulselength')
+pulselength = patch.getfloat('general','pulselength')
 
-# FIXME this is not consistent with other modules
-key = config.get('output','prefix')
+# this is how it will appear in Redis
+key = "%s.%s" % (patch.getstring('output','prefix'), patch.getstring('input','rate'))
 
 # these will only be started when needed
 init_midi   = False
@@ -126,16 +142,16 @@ previous_use_serial = None
 
 try:
     # start the thread that synchronizes over MIDI
-    midisync = TriggerThread()
+    midisync = MidiThread()
     midisync.start()
 
     while True:
         # measure the time to correct for the slip
         now = time.time()
 
-        use_serial = EEGsynth.getint('general', 'serial', config, r, default=0)
-        use_midi   = EEGsynth.getint('general', 'midi', config, r, default=0)
-        use_redis  = EEGsynth.getint('general', 'redis', config, r, default=0)
+        use_serial = patch.getint('general', 'serial', default=0)
+        use_midi   = patch.getint('general', 'midi', default=0)
+        use_redis  = patch.getint('general', 'redis', default=0)
 
         if previous_use_serial is None:
             previous_use_serial = not(use_serial);
@@ -160,18 +176,16 @@ try:
             midisync.disable()
             previous_use_midi = False
 
-        rate = EEGsynth.getfloat('input', 'rate', config, r)
+        rate = patch.getfloat('input', 'rate')
         if rate is None:
-            time.sleep(float(config.get('general', 'delay')))
+            time.sleep(patch.getfloat('general', 'delay'))
             continue
 
-        offset = EEGsynth.getfloat('input', 'offset', config, r)
+        offset = patch.getfloat('input', 'offset', default=64)
         # the offset value from 0-127 gets scaled to a value from -1 to +1 seconds
-        if offset is None:
-            offset = 0
         offset = (offset-64)/(127/2)
 
-        multiplier = EEGsynth.getfloat('input', 'multiplier', config, r)
+        multiplier = patch.getfloat('input', 'multiplier', default=1)
         # the multiplier value from 0-127 gets scaled to a value from 1/4 to 16/4
         idx = find_nearest_idx(multiplier_mid, multiplier)
         multiplier = multiplier_val[idx]
