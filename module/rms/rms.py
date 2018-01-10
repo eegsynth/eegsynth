@@ -52,7 +52,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -63,101 +63,29 @@ patch = EEGsynth.patch(config, r)
 # del config
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip','timeout')
+timeout = patch.getfloat('fieldtrip', 'timeout')
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
+    ftc_host = patch.getstring('fieldtrip', 'hostname')
+    ftc_port = patch.getint('fieldtrip', 'port')
+    if debug > 0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ftc = FieldTrip.Client()
     ftc.connect(ftc_host, ftc_port)
-    if debug>0:
+    if debug > 0:
         print "Connected to FieldTrip buffer"
 except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-class TriggerThread(threading.Thread):
-    def __init__(self, r, config):
-        threading.Thread.__init__(self)
-        self.r = r
-        self.config = config
-        self.running = True
-        lock.acquire()
-        self.update = False
-        self.minval = None
-        self.maxval = None
-        self.freeze = False
-        lock.release()
-    def stop(self):
-        self.running = False
-    def run(self):
-        pubsub = self.r.pubsub()
-        pubsub.subscribe(self.patch.getstring('gain_control','recalibrate'))
-        pubsub.subscribe(self.patch.getstring('gain_control','freeze'))
-        pubsub.subscribe(self.patch.getstring('gain_control','increase'))
-        pubsub.subscribe(self.patch.getstring('gain_control','decrease'))
-        pubsub.subscribe('MUSCLE_UNBLOCK')  # this message unblocks the redis listen command
-        while self.running:
-            for item in pubsub.listen():
-                if not self.running or not item['type'] == 'message':
-                    break
-                lock.acquire()
-                if item['channel']==self.patch.getstring('gain_control','recalibrate'):
-                    if not self.freeze:
-                        # this will cause the min/max values to be completely reset
-                        self.minval = None
-                        self.maxval = None
-                        if debug>0:
-                            print 'recalibrate', self.minval, self.maxval
-                    else:
-                        print 'not recalibrating, freeze is on'
-                elif item['channel']==self.patch.getstring('gain_control','freeze'):
-                    # freeze the automatic adjustment of the gain control
-                    # when frozen, the recalibrate should also not be done
-                    self.freeze = (int(item['data'])>0)
-                    if debug>1:
-                        if self.freeze:
-                            print 'freeze on'
-                        else:
-                            print 'freeze off'
-                elif item['channel']==self.patch.getstring('gain_control','increase'):
-                    # decreasing the min/max values will increase the gain
-                    if not self.minval is None:
-                        for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
-                            range = float(max-min)
-                            if range>0:
-                                self.minval[i] += range * self.patch.getfloat('gain_control','stepsize')
-                                self.maxval[i] -= range * self.patch.getfloat('gain_control','stepsize')
-                    if debug>0:
-                        print 'increase', self.minval, self.maxval
-                elif item['channel']==self.patch.getstring('gain_control','decrease'):
-                    # increasing the min/max values will decrease the gain
-                    if not self.minval is None:
-                        for i, (min, max) in enumerate(zip(self.minval, self.maxval)):
-                            range = float(max-min)
-                            if range>0:
-                                self.minval[i] -= range * self.patch.getfloat('gain_control','stepsize')
-                                self.maxval[i] += range * self.patch.getfloat('gain_control','stepsize')
-                    if debug>0:
-                        print 'decrease', self.minval, self.maxval
-                self.update = True
-                lock.release()
-
 try:
-    # start the background thread
-    lock = threading.Lock()
-    trigger = TriggerThread(r, config)
-    trigger.start()
-
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug>0:
+        if debug > 0:
             print "Waiting for data to arrive..."
         if (time.time()-start)>timeout:
             print "Error: timeout while waiting for data"
@@ -190,29 +118,14 @@ try:
     except:
         high_pass = None
 
-    minval = None
-    maxval = None
-    freeze = False
-
     begsample = -1
     endsample = -1
 
     while True:
         time.sleep(patch.getfloat('general','delay'))
 
-        lock.acquire()
-        if trigger.update:
-            minval = trigger.minval
-            maxval = trigger.maxval
-            freeze = trigger.freeze
-            trigger.update = False
-        else:
-            trigger.minval = minval
-            trigger.maxval = maxval
-        lock.release()
-
         hdr_input = ftc.getHeader()
-        if (hdr_input.nSamples-1)<endsample:
+        if (hdr_input.nSamples-1) < endsample:
             print "Error: buffer reset detected"
             raise SystemExit
         endsample = hdr_input.nSamples - 1
@@ -231,40 +144,20 @@ try:
         for i in range(0,len(chanindx)):
             rms.append(0)
 
-        for i,chanvec in enumerate(D.transpose()):
+        for i, chanvec in enumerate(D.transpose()):
             for chanval in chanvec:
                 rms[i] += chanval*chanval
             rms[i] = math.sqrt(rms[i])
 
-        if debug>1:
+        if debug > 1:
             print rms
 
-        if minval is None:
-            minval = rms
-        if maxval is None:
-            maxval = rms
-
-        if not freeze:
-            # update the min/max value for the automatic gain control
-            minval = [min(a,b) for (a,b) in zip(rms,minval)]
-            maxval = [max(a,b) for (a,b) in zip(rms,maxval)]
-
-        # apply the gain control
-        for i,val in enumerate(rms):
-            if maxval[i]==minval[i]:
-                rms[i] = 0
-            else:
-                rms[i] = (rms[i]-minval[i])/(maxval[i]-minval[i])
-
-        for name,val in zip(channame, rms):
+        for name, val in zip(channame, rms):
             # send it as control value: prefix.channelX=val
             key = "%s.%s" % (patch.getstring('output','prefix'), name)
             val = int(127*val)
-            r.set(key,val)
+            r.set(key, val)
 
 except (KeyboardInterrupt, SystemExit):
-    print "Closing threads"
-    trigger.stop()
-    r.publish('MUSCLE_UNBLOCK', 1)
-    trigger.join()
+    r.publish('RMS_UNBLOCK', 1)
     sys.exit()
