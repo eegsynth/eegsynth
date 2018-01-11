@@ -111,8 +111,12 @@ while True:
             idx = find_nearest_idx(input_value, val)
             for qname, qvalue in zip(output_name, output_value):
                 key = '{}.{}'.format(name, qname)
-                # look up the corresponding output value
-                val = qvalue[idx]
+                if idx<len(qvalue):
+                    # look up the corresponding output value
+                    val = qvalue[idx]
+                else:
+                    # take the last value from the output list
+                    val = qvalue[-1]
                 if debug>0:
                     print key, '=', val
                 # map the internally used values to Redis values

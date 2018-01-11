@@ -87,12 +87,28 @@ previous_rate      = -1
 # this is just to get started
 sequence = '0'
 
+
 try:
     while True:
 
-        for note in sequence.split():
-            # the note should be a value, not a string
-            note = float(note)
+        if sequence.find(",") > -1:
+            separator = ","
+        else:
+            separator = " "
+
+        for note in sequence.split(separator):
+            # the note can be a value or a string pointing to a Redis channel
+            try:
+                note = float(note)
+            except:
+                # it seems to be a string pointing to a Redis channel
+                try:
+                    note = float(r.get(note))
+                except:
+                    # the Redis channel does not exist or is empty
+                    if debug>1:
+                        print "note", note, "is not available"
+                    note = 0
 
             # the pattern should be an integer between 0 and 127
             pattern = patch.getfloat('control','pattern', default=0)
@@ -133,7 +149,7 @@ try:
             # it should not get too low, otherwise the code with the sleep below becomes unresponsive
             rate = 60. * math.exp(math.log(10) * rate/127)
 
-            if debug>1:
+            if debug>2:
                 print '-----------------------'
                 print 'pattern   =', pattern
                 print 'rate      =', rate
@@ -146,7 +162,7 @@ try:
             # map the internally used values to Redis values
             val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
 
-            if debug>0:
+            if debug>1:
                 print key, '=', note, note + transpose, val
 
             r.set(key, val)     # send it as control value
