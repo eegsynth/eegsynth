@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Keyboard outputs MIDI for the purpose of playing a MIDI keyboard
+# Keyboard module that receives MIDI events from a keyboard, and that sends MIDI events to the keyboard
 #
-# Keyboard is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This code is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -103,6 +103,7 @@ except:
 # the input scale and offset are used to map Redis values to MIDI values
 input_scale  = patch.getfloat('input', 'scale', default=127)
 input_offset = patch.getfloat('input', 'offset', default=0)
+
 # the output scale and offset are used to map MIDI values to Redis values
 output_scale  = patch.getfloat('output', 'scale', default=0.00787401574803149606)
 output_offset = patch.getfloat('output', 'offset', default=0)
@@ -110,72 +111,102 @@ output_offset = patch.getfloat('output', 'offset', default=0)
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
+# this is used to send direct and delayed messages
+def SendMessage(msg):
+    lock.acquire()
+    outputport.send(msg)
+    lock.release()
+
 class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, note, redisvalue='velocity'):
+    def __init__(self, onset, velocity, pitch, duration):
         threading.Thread.__init__(self)
-        self.redischannel = redischannel
-        self.note = note
-        self.redisvalue = redisvalue # the Redis value contains either pitch or velocity
-        self.running = True
+        self.onset_key    = onset    # we will subscribe to this key, the value may be used as velocity
+        self.velocity_key = velocity # optional, this is a value to get
+        self.pitch_key    = pitch    # optional, this is a value to get
+        self.duration_key = duration # optional, this is a value to get
+        self.running  = True
     def stop(self):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
         pubsub.subscribe('KEYBOARD_UNBLOCK')  # this message unblocks the Redis listen command
-        pubsub.subscribe(self.redischannel)   # this message contains the note
+        pubsub.subscribe(self.onset_key)      # this message triggers the note
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                if item['channel']==self.redischannel:
-                    # map the Redis values to MIDI values
+                if item['channel']==self.onset_key:
+                    # the trigger may contain a value that should be mapped to MIDI
                     val = item['data']
                     val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
+
+                    if velocity_key == None:
+                        # use the value of the onset trigger
+                        velocity = val
+                    elif type(velocity_key) == str:
+                        velocity = float(r.get(velocity_key))
+                        velocity = EEGsynth.rescale(velocity, slope=scale_velocity, offset=offset_velocity)
+                        velocity = EEGsynth.limit(velocity, 0, 127)
+                        velocity = int(velocity)
+                    else:
+                        velocity = velocity_key
+
+                    if type(pitch_key) == str:
+                        pitch = float(r.get(pitch_key))
+                        pitch = EEGsynth.rescale(pitch, slope=scale_pitch, offset=offset_pitch)
+                        pitch = EEGsynth.limit(pitch, 0, 127)
+                        pitch = int(pitch)
+                    else:
+                        pitch = pitch_key
+
+                    if type(duration_key) == str:
+                        duration = float(r.get(duration_key))
+                        duration = EEGsynth.rescale(pitch, slope=scale_duration, offset=offset_duration)
+                        duration = EEGsynth.limit(duration, 0, Inf)
+                    else:
+                        duration = duration_key
+
                     if debug>1:
-                        print item['channel'], '=', val
-                    if self.redisvalue == 'pitch':
-                        # the Redis value contains the pitch, the velocity is variable
-                        try:
-                            pitch    = int(val)
-                            velocity = float(r.get(self.note))
-                            velocity = EEGsynth.rescale(velocity, slope=input_scale, offset=input_offset)
-                            velocity = EEGsynth.limit(velocity, 0, 127)
-                            velocity = int(velocity)
-                        except:
-                            # the Redis channel might be empty
-                            continue
-                    elif self.redisvalue == 'velocity':
-                        # the Redis value contains the velocity, the pitch is hard-coded
-                        pitch    = int(self.note)
-                        velocity = int(val)
-                    print "pitch =", pitch
-                    print "velocity =", velocity
+                        print "value =", val, "velocity =", velocity, "pitch =", pitch, "duration =", duration
+
                     if midichannel is None:
                         msg = mido.Message('note_on', note=pitch, velocity=velocity)
                     else:
                         msg = mido.Message('note_on', note=pitch, velocity=velocity, channel=midichannel)
-                    lock.acquire()
-                    outputport.send(msg)
-                    lock.release()
+                    SendMessage(msg)
 
-# each of the notes that can be played is mapped onto a different trigger
+                    if duration != None:
+                        # schedule a MIDI message to be sent to switch the note off
+                        if midichannel is None:
+                            msg = mido.Message('note_on', note=pitch, velocity=0)
+                        else:
+                            msg = mido.Message('note_on', note=pitch, velocity=0, channel=midichannel)
+                        t = threading.Timer(duration, SendMessage, args=msg)
+
+# the keyboard notes can be linked to separate triggers, where the trigger value corresponds to the velocity
 trigger = []
 for name, code in zip(note_name, note_code):
     if config.has_option('input', name):
         # start the background thread that deals with this note
-        this = TriggerThread(patch.getstring('input', name), code, redisvalue='velocity')
-        trigger.append(this)
+        onset    = patch.getstring('input', name)
+        velocity = None  # use the value of the onset trigger
+        pitch    = code
+        duration = None
+        trigger.append(TriggerThread(onset, velocity, pitch, duration))
         if debug>1:
             print name, 'OK'
 
-if config.has_option('input', 'pitch') and config.has_option('input', 'velocity'):
-    # start the background thread that deals with this note
-    this = TriggerThread(patch.getstring('input', 'pitch'), patch.getstring('input', 'velocity'), redisvalue='pitch')
-    trigger.append(this)
+try:
+    # the keyboard notes can also be controlled using a single trigger
+    onset    = patch.getstring('input', 'onset')
+    velocity = patch.getstring('input', 'velocity')
+    pitch    = patch.getstring('input', 'pitch')
+    duration = patch.getstring('input', 'duration')
+    trigger.append(TriggerThread(onset, velocity, pitch, duration))
     if debug>1:
-        print 'pitch and velocity OK'
+        print 'onset, velocity, pitch and duration OK'
 
 # start the thread for each of the notes
 for thread in trigger:
