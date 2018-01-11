@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Launchpad interfaces with the Novation LaunchPad
+# This module interfaces with the Novation LaunchPad
 #
-# Launchpad is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This code is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -95,7 +95,7 @@ except:
     midichannel = None
 
 try:
-    # momentary push button
+    # push-release button
     push     = [int(a) for a in patch.getstring('button', 'push').split(",")]
 except:
     push     = []
@@ -119,8 +119,13 @@ try:
     toggle4  = [int(a) for a in patch.getstring('button', 'toggle4').split(",")]
 except:
     toggle4  = []
+try:
+    # slap button
+    slap = [int(a) for a in patch.getstring('button', 'slap').split(",")]
+except:
+    slap = []
 
-note_list    = push+toggle1+toggle2+toggle3+toggle4 # concatenate all buttons
+note_list    = push+toggle1+toggle2+toggle3+toggle4+slap # concatenate all buttons
 status_list  = [0] * len(note_list)
 
 # these are the MIDI values for the LED color
@@ -149,6 +154,7 @@ for note in note_list:
 # toggle2 button sequence P-R-P-R-P-R           results in state change 0-21-22-23-24-25-0
 # toggle3 button sequence P-R-P-R-P-R-P-R       results in state change 0-31-32-33-34-35-36-37-0
 # toggle4 button sequence P-R-P-R-P-R-P-R-P-R   results in state change 0-41-42-43-44-45-46-47-48-49-0
+# slap    button sequence P-R                   results in state change 0-51-0
 
 state0change = {0:1, 1:0}
 state0color  = {0:Off, 1:Red_Full}
@@ -170,9 +176,15 @@ state4change = {0:41, 41:42, 42:43, 43:44, 44:45, 45:46, 46:47, 47:48, 48:49, 49
 state4color  = {0:Off, 41:Red_Full, 43:Yellow_Full, 45:Green_Full, 47:Amber_Full}
 state4value  = {0:0, 41:int(127*1/4), 43:int(127*2/4), 45:int(127*3/4), 47:int(127*4/4)}
 
-# it is preferred to use floating point control values between 0 and 1
-scalenote     = patch.getfloat('scale', 'note')
-offsetnote    = patch.getfloat('offset', 'note')
+state5change = {0:1, 1:0}
+state5color  = {0:Off, 1:Amber_Full}
+state5value  = {0:None, 1:127}  # don't send message on button release
+
+# it is preferred to use floating point control values between 0 and 1 in Redis
+scale_note     = patch.getfloat('scale', 'note', default=0.00787401574803149606)
+scale_control  = patch.getfloat('scale', 'control', default=0.00787401574803149606)
+offset_note    = patch.getfloat('offset', 'note', default=0)
+offset_control = patch.getfloat('offset', 'control', default=0)
 
 while True:
     time.sleep(patch.getfloat('general','delay'))
@@ -189,20 +201,24 @@ while True:
             print msg
 
         if hasattr(msg, "control"):
-            # prefix.control000=value
+            # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
-            val = msg.value
+            val = EEGsynth.rescale(msg.value, slope=scale_control, offset=offset_control)
             r.set(key, val)
 
         elif hasattr(msg, "note"):
-            pass
             # the default is not to send a message
             val = None
             # use an local variable as abbreviation in the subsequent code
+            if msg.note not in note_list:
+                # this note/button was not specified in the ini file, add it
+                note_list = note_list+[msg.note]
+                status_list = status_list+[0]
+            # get the remembered status for this note/button
             status = status_list[note_list.index(msg.note)]
 
             # change to the next state
-            if   msg.note in toggle1:
+            if msg.note in toggle1:
                 status = state1change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
                 if status in state1color.keys():
@@ -230,6 +246,13 @@ while True:
                     ledcolor(msg.note, state4color[status])
                 if status in state4value.keys():
                     val = state4value[status]
+            elif msg.note in slap:
+                status = state5change[status]
+                status_list[note_list.index(msg.note)] = status # remember the state
+                if status in state5color.keys():
+                    ledcolor(msg.note, state5color[status])
+                if status in state5value.keys():
+                    val = state5value[status]
             else:
                 status = state0change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
@@ -238,16 +261,16 @@ while True:
                 if status in state0value.keys():
                     val = state0value[status]
 
-            if debug>1:
+            if debug > 1:
                 print status, val
 
             if not val is None:
+                val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
                 # prefix.noteXXX=value
-                key = "{}.note{:0>3d}".format(patch.getstring('output','prefix'), msg.note)
-                val = EEGsynth.rescale(val, slope=notescale, offset=noteoffset)
+                key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
                 r.set(key, val)          # send it as control value
                 r.publish(key, val)      # send it as trigger
                 # prefix.note=note
-                key = "{}.note".format(patch.getstring('output','prefix'))
+                key = "{}.note".format(patch.getstring('output', 'prefix'))
                 r.set(key, msg.note)          # send it as control value
                 r.publish(key, msg.note)      # send it as trigger
