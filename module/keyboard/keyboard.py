@@ -173,15 +173,16 @@ class TriggerThread(threading.Thread):
                     if type(self.duration) == str:
                         duration = float(r.get(self.duration))
                         duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
-                        duration = EEGsynth.limit(duration, 0, float('Inf'))
+                        duration = EEGsynth.limit(duration, 0.05, float('Inf')) # some minimal time is needed for the delay
                     else:
                         duration = self.duration
 
                     if debug>1:
-                        print self.onset, "onset =", val
-                        print self.velocity, "velocity =", velocity
-                        print self.pitch, "pitch =", pitch
-                        print self.duration, "duration =", duration
+                        print '----------------------------------------------'
+                        print "onset   ", self.onset,       "=", val
+                        print "velocity", self.velocity,    "=", velocity
+                        print "pitch   ", self.pitch,       "=", pitch
+                        print "duration", self.duration,    "=", duration
 
                     if midichannel is None:
                         msg = mido.Message('note_on', note=pitch, velocity=velocity)
@@ -190,7 +191,7 @@ class TriggerThread(threading.Thread):
                     SendMessage(msg)
 
                     if duration != None:
-                        # schedule a MIDI message to be sent to switch the note off
+                        # schedule a delayed MIDI message to be sent to switch the note off
                         if midichannel is None:
                             msg = mido.Message('note_on', note=pitch, velocity=0)
                         else:

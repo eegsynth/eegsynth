@@ -163,7 +163,7 @@ try:
             val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
 
             if debug>1:
-                print key, '=', note, note + transpose, val
+                print key, '=', val
 
             r.set(key, val)     # send it as control value
             r.publish(key, val) # send it as trigger
