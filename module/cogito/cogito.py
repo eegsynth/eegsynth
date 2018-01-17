@@ -152,6 +152,7 @@ sample_rate         = patch.getfloat('cogito', 'sample_rate')
 window              = patch.getfloat('cogito', 'window')
 f_min               = patch.getfloat('cogito', 'f_min')
 f_max               = patch.getfloat('cogito', 'f_max')
+f_offset            = patch.getfloat('cogito', 'f_offset')
 scaling             = patch.getfloat('cogito', 'scaling')
 polyorder           = patch.getint('cogito', 'polyorder',None)
 profileMin          = patch.getfloat('cogito', 'profileMin')
@@ -214,8 +215,8 @@ while True:
     # signal = np.sin(t*f/sample_rate)*256
     # signal = np.zeros([sample_rate, 1])
 
-    # This (300) should not be hard-coded but in ini with explanation
-    tmp = [np.zeros(300)]
+    # Add offset to avoid LP filter on sound card
+    tmp = [np.zeros(int(f_offset))]
 
     for ch in range(nInputs):
         chan_time = time.time()
