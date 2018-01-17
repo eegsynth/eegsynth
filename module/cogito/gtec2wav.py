@@ -15,7 +15,7 @@
 # ==============================================================================
 
 import h5py
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pandas as pd
 from scipy import signal
 import numpy as np
@@ -23,6 +23,7 @@ import wave
 import struct
 
 filename = "RecordSession_YYY.MM.DD_HH.MM.SS.hdf5"
+filename = "../../data/test.hdf5"
 
 profileMin=1.0
 profileMax=1.5

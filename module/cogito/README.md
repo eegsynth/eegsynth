@@ -11,3 +11,4 @@ More info: http://www.ouunpo.com/eegsynth/?p=751
 Python 2.7.x
 numpy
 pandas
+h5py
