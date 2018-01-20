@@ -2,7 +2,7 @@
 
 The goal of this module is to use a continuous control value from the REDIS buffer for synchronization. The time between pulses scales linearly with the control value magnitude.
 
-The output pulse can be written as a trigger to the REDIS buffer, can be written as a gate to the serial CV/Gate hardware, and can be used to synchronize MIDI using clock messages.
+The regular output is sent as event to the REDIS buffer, as trigger to the serial CV/Gate hardware and as clock message to MIDI.
 
 ## Requirements
 
