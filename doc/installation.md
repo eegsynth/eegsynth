@@ -34,12 +34,12 @@ To use the Launch Control XL connected directly (without powered USB hub) with t
 
 Start the EEGsynth modules: buffer, redis, and openbci2ft
 
-Add the FieldTrip python module to the PYTHONPATH, where $EEGSYNTHPATH is the eegsynth base folder.
+Add the FieldTrip Python module to the PYTHONPATH, where $EEGSYNTHPATH is the eegsynth base folder.
 ```
 export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/lib
 ```
 
-Then, in a python console:
+Then, in a Python console:
 ```
 import FieldTrip
 

@@ -21,12 +21,12 @@ eegsynth->python->mido->portmidi->coremidi->hardware
 
 ### RtMidi
 
-This is a programming library that is supported on Linux, OS X and Windows.
+This is a C++ programming library that is supported on Linux, OS X and Windows.
 See https://www.music.mcgill.ca/~gary/rtmidi/
 
 ### PortMidi
 
-This is a programming library that is supported on Linux, OS X and Windows.
+This is a C++ programming library that is supported on Linux, OS X and Windows.
 See http://portmedia.sourceforge.net/portmidi/
 
 ### Core MIDI
@@ -39,10 +39,15 @@ See https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/C
 This is a Python package that can use either the PortMidi interface or the RtMidi interface.
 See https://mido.readthedocs.org
 
-### Python/RtMidi
+### Python-RtMidi
 
-This is a Python package for the RtMidi interface.
+This is a Python package for RtMidi.
 See https://pypi.python.org/pypi/python-rtmidi
+
+### RtMidi-Python
+
+Another Python wrapper for RtMidi. For Linux, Mac OS X and Windows. This uses the same API as RtMidi, only reformatted to comply with PEP-8, and with small changes to make it a little more pythonic.
+See https://pypi.python.org/pypi/rtmidi-python
 
 ### MidiOSC
 
