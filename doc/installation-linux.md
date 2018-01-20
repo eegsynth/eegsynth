@@ -125,7 +125,7 @@ sudo apt-get install python-scipy
 
 ### Install audio
 
-This is only needed for the software synthesizer module, which runs fine on OS X but which still has issues on the Raspberry Pi.
+This is only needed for the software synthesizer module. Note that good quality and smooth audio output on the Raspberry Pi requires an external audio card.
 
 ```
 sudo apt-get install python-pyaudio
@@ -138,28 +138,4 @@ The following might actually not be needed.
 sudo apt-get install alsa-utils
 sudo apt-get install mpg321
 sudo apt-get install lame
-```
-
-### Fix audio problems on Raspberry Pi
-
-The following are some attempts to get the software synthesizer module working nicely with the audio interface of the Raspberry Pi.
-
-See https://dbader.org/blog/crackle-free-audio-on-the-raspberry-pi-with-mpd-and-pulseaudio
-
-```
-sudo apt-get install pulseaudio
-sudo apt-get install mpd
-sudo apt-get install mpc
-```
-
-This did not solve it, I uninstalled them again.
-
-```
-sudo apt-get install libasound2-dev
-sudo apt-get install python-dev
-wget https://pypi.python.org/packages/source/p/pyalsaaudio/pyalsaaudio-0.8.2.tar.gz
-tar xvzf pyalsaaudio-0.8.2.tar.gz
-cd pyalsaaudio-0.8.2
-python setup.py build
-sudo python setup.py install
 ```
