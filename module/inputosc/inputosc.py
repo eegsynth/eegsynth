@@ -74,30 +74,22 @@ except:
 # this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
 button_list = patch.getstring('button', 'push').split(',')
 
-# the scale and offset are used to map OSC values to Redis values
-scale  = patch.getfloat('output', 'scale', default=1)
-offset = patch.getfloat('output', 'offset', default=0)
-
 # define a message-handler function for the server to call.
 def forward_handler(addr, tags, data, source):
-    print "---"
-    print "source %s" % OSC.getUrlStr(source)
-    print "addr   %s" % addr
-    print "tags   %s" % tags
-    print "data   %s" % data
+    if debug>1:
+      print "---"
+      print "source %s" % OSC.getUrlStr(source)
+      print "addr   %s" % addr
+      print "tags   %s" % tags
+      print "data   %s" % data
 
+    if addr[0]!='/':
+      # ensure it starts with a slash
+      addr = '/' + addr
 
-    scale = patch.getfloat('processing', 'scale')
-    if scale is None:
-        scale = 1
-
-    offset = patch.getfloat('processing', 'offset')
-    if offset is None:
-        offset = 0
-
-    # apply the scale and offset
-    for i in range(len(data)):
-        data[i] = EEGsynth.rescale(data[i], scale, offset)
+    # the scale and offset are used to map OSC values to Redis values
+    scale  = patch.getfloat('output', 'scale', default=1)
+    offset = patch.getfloat('output', 'offset', default=0)
 
     # the results will be written to redis as "osc.1.faderA" etc.
     key = patch.getstring('output', 'prefix') + addr.replace('/', '.')
