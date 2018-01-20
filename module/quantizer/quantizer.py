@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Quantizer does chromatic quantification of redis values for musical interfaces
+# Quantizer does chromatic quantification of Redis values for musical interfaces
 #
 # Quantizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #

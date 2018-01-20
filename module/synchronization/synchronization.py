@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Synchronizer synchronizes with MIDI
+# Synchronizer sends a regular clock signal to MIDI, Serial and/or Redis
 #
 # Synchronizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2018 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
+import math
 import mido
 import numpy as np
 import os
@@ -58,7 +59,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
@@ -74,8 +74,12 @@ def initialize_serial():
 
 midiport = None
 def initialize_midi():
-    midiport = EEGsynth.midiwrapper(config)
-    midiport.open_output()
+    try:
+        midiport = EEGsynth.midiwrapper(config)
+        midiport.open_output()
+    except:
+        print "Error: cannot connect to MIDI output"
+        exit()
     return midiport
 
 # this is to prevent two messages from being sent at the same time
@@ -87,9 +91,14 @@ class MidiThread(threading.Thread):
         self.running = True
         self.enabled = False
         self.rate = 60
+        self.adjust = 0
     def setRate(self, rate):
         lock.acquire()
         self.rate = rate
+        lock.release()
+    def setAdjust(self, adjust):
+        lock.acquire()
+        self.adjust = adjust
         lock.release()
     def enable(self):
         self.enabled = True
@@ -98,8 +107,8 @@ class MidiThread(threading.Thread):
     def stop(self):
         self.running = False
     def run(self):
-        msg = mido.Message('clock')
         slip = 0
+        msg = mido.Message('clock')
         if debug>0:
             print msg
         while self.running:
@@ -107,6 +116,8 @@ class MidiThread(threading.Thread):
                 time.sleep(patch.getfloat('general', 'delay'))
             else:
                 now = time.time()
+                if debug>0:
+                    print 'midi tick'
                 delay = 60/self.rate      # the rate is in bpm
                 delay -= slip             # correct for the slip from the previous iteration
                 jiffy = delay/(24)
@@ -116,58 +127,127 @@ class MidiThread(threading.Thread):
                 # the time used in this loop will be slightly different than desired
                 slip = time.time() - now - delay
 
-def find_nearest_idx(array,value):
-    # find the index of the array element that is the nearest to the value
-    idx = (np.abs(np.asarray(array)-value)).argmin()
-    return idx
+class SerialThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.running = True
+        self.enabled = False
+        self.rate = 60
+        self.adjust = 0
+    def setRate(self, rate):
+        lock.acquire()
+        self.rate = rate
+        lock.release()
+    def setAdjust(self, adjust):
+        lock.acquire()
+        self.adjust = adjust
+        lock.release()
+    def enable(self):
+        self.enabled = True
+    def disable(self):
+        self.enabled = False
+    def stop(self):
+        self.running = False
+    def run(self):
+        while self.running:
+            if not self.enabled:
+                time.sleep(patch.getfloat('general', 'delay'))
+            else:
+                now = time.time()
+                if debug>0:
+                    print 'serial tick'
+                serialport.write('*g1v1#')      # enable the analog gate
+                time.sleep(pulselength)         # sleep for the duration of the pulse
+                serialport.write('*g1v0#')      # disable the analog gate
+                delay = 60/self.rate            # the rate is in bpm
+                elapsed = time.time() - now
+                time.sleep(delay - elapsed)
 
-multiplier_mid = [   10,    30,    50,   70,   90,   110,   130 ] # lookup table
-multiplier_val = [ 1./4,  1./3,  1./2,    1,    2,     3,     4 ] # actual value
-
-slip            = 0
-tick            = 0
-adjust_offset   = 0
-previous_offset = 0
-pulselength = patch.getfloat('general','pulselength')
-
-# this is how it will appear in Redis
-key = "%s.%s" % (patch.getstring('output','prefix'), patch.getstring('input','rate'))
+class RedisThread(threading.Thread):
+    def __init__(self, key):
+        threading.Thread.__init__(self)
+        self.running = True
+        self.enabled = False
+        self.rate = 60
+        self.adjust = 0
+        self.key = key
+        self.value = 1.0
+    def setRate(self, rate):
+        lock.acquire()
+        self.rate = rate
+        lock.release()
+    def setAdjust(self, adjust):
+        lock.acquire()
+        self.adjust = adjust
+        lock.release()
+    def enable(self):
+        self.enabled = True
+    def disable(self):
+        self.enabled = False
+    def stop(self):
+        self.running = False
+    def run(self):
+        while self.running:
+            if not self.enabled:
+                time.sleep(patch.getfloat('general', 'delay'))
+            else:
+                now = time.time()
+                if debug>0:
+                    print 'redis tick'
+                r.publish(self.key, self.value) # send it as trigger
+                delay = 60/self.rate            # the rate is in bpm
+                elapsed = time.time() - now
+                time.sleep(delay - elapsed)
 
 # these will only be started when needed
 init_midi   = False
 init_serial = False
 
-previous_use_midi = None
+previous_use_midi   = None
 previous_use_serial = None
+previous_use_redis  = None
+
+# this is for the analog trigger, expressed in seconds
+pulselength = patch.getfloat('general', 'pulselength')
+
+# start the threads for the synchronization
+midisync = MidiThread()
+midisync.start()
+serialsync = SerialThread()
+serialsync.start()
+redissync = RedisThread(patch.getstring('output', 'prefix'))
+redissync.start()
 
 try:
-    # start the thread that synchronizes over MIDI
-    midisync = MidiThread()
-    midisync.start()
-
     while True:
+        if debug>0:
+            print 'loop'
+
         # measure the time to correct for the slip
         now = time.time()
 
-        use_serial = patch.getint('general', 'serial', default=0)
         use_midi   = patch.getint('general', 'midi', default=0)
+        use_serial = patch.getint('general', 'serial', default=0)
         use_redis  = patch.getint('general', 'redis', default=0)
-
-        if previous_use_serial is None:
-            previous_use_serial = not(use_serial);
 
         if previous_use_midi is None:
             previous_use_midi = not(use_midi);
 
-        if use_serial and not init_serial:
-            # this might not be running at the start
-            serialport = initialize_serial()
-            init_serial = True
+        if previous_use_serial is None:
+            previous_use_serial = not(use_serial);
+
+        if previous_use_redis is None:
+            previous_use_redis = not(use_redis);
 
         if use_midi and not init_midi:
             # this might not be running at the start
             midiport = initialize_midi()
             init_midi = True
+
+        if use_serial and not init_serial:
+            # this might not be running at the start
+            serialport = initialize_serial()
+            init_serial = True
 
         if use_midi and not previous_use_midi:
             midisync.enable()
@@ -176,85 +256,75 @@ try:
             midisync.disable()
             previous_use_midi = False
 
-        rate = patch.getfloat('input', 'rate')
-        if rate is None:
-            time.sleep(patch.getfloat('general', 'delay'))
-            continue
+        if use_serial and not previous_use_serial:
+            serialsync.enable()
+            previous_use_serial = True
+        elif not use_serial and previous_use_serial:
+            serialsync.disable()
+            previous_use_serial = False
 
-        offset = patch.getfloat('input', 'offset', default=64)
-        # the offset value from 0-127 gets scaled to a value from -1 to +1 seconds
-        offset = (offset-64)/(127/2)
+        if use_redis and not previous_use_redis:
+            redissync.enable()
+            previous_use_redis = True
+        elif not use_redis and previous_use_redis:
+            redissync.disable()
+            previous_use_redis = False
 
-        multiplier = patch.getfloat('input', 'multiplier', default=1)
-        # the multiplier value from 0-127 gets scaled to a value from 1/4 to 16/4
-        idx = find_nearest_idx(multiplier_mid, multiplier)
-        multiplier = multiplier_val[idx]
+        rate = patch.getfloat('input', 'rate', default=60/127)
+        scale_rate = patch.getfloat('scale', 'rate', default=127)
+        offset_rate = patch.getfloat('offset', 'rate', default=0)
+        rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
 
-        # update the thread that synchronizes over MIDI
-        midisync.setRate(rate*multiplier)
+        adjust = patch.getfloat('input', 'adjust', default=0)
+        scale_adjust = patch.getfloat('scale', 'adjust', default=2)
+        offset_adjust = patch.getfloat('offset', 'adjust', default=-1)
+        adjust = EEGsynth.rescale(adjust, slope=scale_adjust, offset=offset_adjust)
 
-        try:
-       	    delay = 60/(rate*multiplier)
-        except:
-            delay = 1
-        delay = max(delay, pulselength) # cannot be shorter than the pulse length
+        # map the adjust value to zero when very small
+        if abs(adjust)<0.01:
+            adjust = 0;
 
-        adjust_offset  += offset - previous_offset  # correct for the user specified offset
-        previous_offset = offset
+        multiply = patch.getfloat('input', 'multiply', default=0.5)
+        scale_multiply = patch.getfloat('scale', 'multiply', default=4)
+        offset_multiply = patch.getfloat('offset', 'multiply', default=-2.015748031495)
+        multiply = EEGsynth.rescale(multiply, slope=scale_multiply, offset=offset_multiply)
+
+        # map the multiply value exponentially, i.e. -1 becomes 1/2, 0 becomes 1, 1 becomes 2
+        multiply = math.pow(2, multiply)
+        # it should be 1, 2, 3, 4 or 1/2, 1/3, 1/4, etc
+        if multiply>1:
+            multiply = round(multiply)
+        elif multiply<1:
+            multiply = 1.0/round(1.0/multiply);
 
         if debug>0:
-            print use_redis, use_midi, use_serial
+            print "use_midi    = ", use_midi
+            print "use_serial  = ", use_serial
+            print "use_redis   = ", use_redis
+            print "rate        = ", rate
+            print "adjust      = ", adjust
+            print "multiply    = ", multiply
 
-        if debug>0:
-            print rate, offset, multiplier, adjust_offset, slip
+        if rate>0 and multiply>0:
+            # update the synchronization threads
+            midisync.setRate(rate*multiply)
+            serialsync.setRate(rate*multiply)
+            redissync.setRate(rate*multiply)
+            midisync.setAdjust(adjust)
+            serialsync.setAdjust(adjust)
+            redissync.setAdjust(adjust)
 
-        if (adjust_offset-slip)<0:
-            if (delay-pulselength+adjust_offset-slip)<0:
-                if debug>0:
-                    print "skip"
-                # don't send a pulse and don't sleep at all
-                adjust_offset += (delay-pulselength)
-            else:
-                if debug>0:
-                    print "tick", tick
-                    tick+=1
-                if use_serial:
-                    serialport.write('*g1v1#')
-                if use_redis:
-                    r.publish(key,127)      # send it as trigger
-                # sleep for the duration of the pulse
-                time.sleep(pulselength)
-                if use_serial:
-                    serialport.write('*g1v0#')
-                if use_redis:
-                    r.publish(key,0)        # send it as trigger
-                # sleep a reduced amount
-                time.sleep(delay-pulselength+adjust_offset-slip)
-                adjust_offset = 0
-        else:
-            if debug>0:
-                print "tick", tick
-                tick+=1
-            if use_serial:
-                serialport.write('*g1v1#')
-            if use_redis:
-                r.publish(key,127)          # send it as trigger
-            # sleep for the duration of the pulse
-            time.sleep(pulselength)
-            if use_serial:
-                serialport.write('*g1v0#')
-            if use_redis:
-                r.publish(key,0)            # send it as trigger
-            # sleep an increased amount
-            time.sleep(delay-pulselength+adjust_offset-slip)
-            adjust_offset = 0
-
-        # the time used in this loop will be slightly different than desired
-        # this will be corrected in the next iteration
-        slip += time.time() - now - delay
+        elapsed = time.time() - now
+        naptime = patch.getfloat('general', 'delay') - elapsed
+        if naptime>0:
+            time.sleep(naptime)
 
 except KeyboardInterrupt:
     print "Closing threads"
     midisync.stop()
+    serialsync.stop()
+    redissync.stop()
     midisync.join()
+    serialsync.join()
+    redissync.join()
     sys.exit()
