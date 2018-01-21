@@ -55,3 +55,13 @@ The LaunchControl has two rows of 8 rotary dials each, one row with 8 buttons, a
 [ 9] [10] [11] [12] [25] [26] [27] [28]
 ```
 
+## Known issues
+
+If you get the error
+```
+AttributeError: 'module' object has no attribute 'API_UNSPECIFIED'
+```
+and you have installed both mido and midirt, then you should try
+```
+export MIDO_BACKEND=mido.backends.rtmidi_python
+```
