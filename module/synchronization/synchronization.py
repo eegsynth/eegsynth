@@ -66,7 +66,7 @@ debug = patch.getint('general','debug')
 # this can be used to selectively show parameters that have changed
 previous = {}
 def show_change(key, val):
-    if key in previous and previous[key]!=val:
+    if (key in previous and previous[key]!=val) or (key not in previous):
         print key, "=", val
     previous[key] = val
 
@@ -89,12 +89,12 @@ def initialize_midi():
         exit()
     return midiport
 
-# this is to prevent two messages from being sent at the same time
+# this is to prevent two threads accesing a variable at the same time
 lock = threading.Lock()
 
-event = []
+clock = []
 for iteration in range(24):
-    event.append(threading.Event())
+    clock.append(threading.Event())
 
 class ClockThread(threading.Thread):
     def __init__(self):
@@ -102,23 +102,22 @@ class ClockThread(threading.Thread):
         self.running = True
         self.rate = 60              # the rate is in bpm, i.e. quarternotes per minute
     def setRate(self, rate):
-        lock.acquire()
-        self.rate = rate
-        lock.release()
+        with lock:
+            self.rate = rate
     def stop(self):
         self.running = False
     def run(self):
         slip = 0
         while self.running:
             now    = time.time()
-            delay  = 60/self.rate     # the rate is in bpm
-            delay -= slip             # correct for the slip from the previous iteration
+            delay  = 60/self.rate   # the rate is in bpm
+            delay -= slip           # correct for the slip from the previous iteration
             jiffy = delay/(24)
             if debug>1:
-                print 'clock tick'
+                print 'clock step'
             for iteration in range(24):
-                event[iteration].set()
-                event[iteration].clear()
+                clock[iteration].set()
+                clock[iteration].clear()
                 if jiffy>0:
                     time.sleep(jiffy)
             # the actual time used in this loop will be slightly different than desired
@@ -142,9 +141,9 @@ class MidiThread(threading.Thread):
         while self.running:
             if self.enabled and midiport:
                 if debug>1:
-                    print 'midi tick'
-                for clock in event:
-                    clock.wait()
+                    print 'midi step'
+                for tick in clock:
+                    tick.wait()
                     midiport.send(msg)
 
 class SerialThread(threading.Thread):
@@ -172,11 +171,11 @@ class SerialThread(threading.Thread):
             if self.enabled and serialport:
                 if self.steps in [1, 2, 3, 4, 6, 8, 12, 24]:
                     with lock:
-                        tick = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24).astype(int).tolist()
+                        step = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24).astype(int).tolist()
                     if debug>1:
-                        print 'serial tick =', tick
-                    for clock in [event[i] for i in tick]:
-                        clock.wait()
+                        print 'serial step =', step
+                    for tick in [clock[i] for i in step]:
+                        tick.wait()
                         serialport.write('*g1v1#')      # enable the analog gate
                         if pulselength>0:
                             time.sleep(pulselength)
@@ -191,7 +190,7 @@ class RedisThread(threading.Thread):
         self.enabled  = False
         self.adjust   = 0
         self.steps    = 1
-        self.key      = patch.getstring('output', 'channel')
+        self.key      = "{}.note".format(patch.getstring('output','prefix'))
         self.value    = 1.0
     def setSteps(self, steps):
         with lock:
@@ -211,14 +210,26 @@ class RedisThread(threading.Thread):
             if self.enabled:
                 if self.steps in [1, 2, 3, 4, 6, 8, 12, 24]:
                     with lock:
-                        tick = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
+                        step = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
                     if debug>1:
-                        print 'redis tick =', tick
-                    for clock in [event[i] for i in tick]:
-                        clock.wait()
+                        print 'redis step =', step
+                    for tick in [clock[i] for i in step]:
+                        tick.wait()
                         r.publish(self.key, self.value) # send it as trigger
             else:
                 time.sleep(patch.getfloat('general', 'delay'))
+
+# create and start the thread that manages the clock
+clockthread = ClockThread()
+clockthread.start()
+
+# create and start the threads for the output
+midithread = MidiThread()
+midithread.start()
+serialthread = SerialThread()
+serialthread.start()
+redisthread = RedisThread()
+redisthread.start()
 
 # these will only be started when needed
 init_midi   = False
@@ -227,17 +238,6 @@ init_serial = False
 previous_use_midi   = None
 previous_use_serial = None
 previous_use_redis  = None
-
-# create and start the thread for the synchronization
-clocksync = ClockThread()
-clocksync.start()
-# create and start the threads for the output
-midisync = MidiThread()
-midisync.start()
-serialsync = SerialThread()
-serialsync.start()
-redissync = RedisThread()
-redissync.start()
 
 try:
     while True:
@@ -271,24 +271,24 @@ try:
             init_serial = True
 
         if use_midi and not previous_use_midi:
-            midisync.enable()
+            midithread.enable()
             previous_use_midi = True
         elif not use_midi and previous_use_midi:
-            midisync.disable()
+            midithread.disable()
             previous_use_midi = False
 
         if use_serial and not previous_use_serial:
-            serialsync.enable()
+            serialthread.enable()
             previous_use_serial = True
         elif not use_serial and previous_use_serial:
-            serialsync.disable()
+            serialthread.disable()
             previous_use_serial = False
 
         if use_redis and not previous_use_redis:
-            redissync.enable()
+            redisthread.enable()
             previous_use_redis = True
         elif not use_redis and previous_use_redis:
-            redissync.disable()
+            redisthread.disable()
             previous_use_redis = False
 
         rate = patch.getfloat('input', 'rate', default=60./127)
@@ -340,11 +340,11 @@ try:
 
         if rate>0 and multiply>0:
             # update the synchronization threads
-            clocksync.setRate(rate*multiply)
-            redissync.setAdjust(adjust)
-            redissync.setSteps(steps)
-            serialsync.setAdjust(adjust)
-            serialsync.setSteps(steps)
+            clockthread.setRate(rate*multiply)
+            redisthread.setAdjust(adjust)
+            redisthread.setSteps(steps)
+            serialthread.setAdjust(adjust)
+            serialthread.setSteps(steps)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
@@ -353,13 +353,13 @@ try:
 
 except KeyboardInterrupt:
     print "Closing threads"
-    midisync.stop()
-    midisync.join()
-    serialsync.stop()
-    serialsync.join()
-    redissync.stop()
-    redissync.join()
-    # the thread that synchronizes the clocks should be stopped as the last
-    clocksync.stop()
-    clocksync.join()
+    midithread.stop()
+    midithread.join()
+    serialthread.stop()
+    serialthread.join()
+    redisthread.stop()
+    redisthread.join()
+    # the thread that manages the clock should be stopped the last
+    clockthread.stop()
+    clockthread.join()
     sys.exit()
