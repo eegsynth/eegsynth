@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-# Plotsignal plots raw and spectral data from the buffer and allows
-# interactive selection of frequency bands for further processing
+# Plotsignal plots data from the FieldTrip buffer. Currently it also includes user-defined filtering
 #
 # Plotsignal is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
@@ -93,13 +92,13 @@ def butter_lowpass_filter(data, lowcut, fs, order=9):
     return y
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
+    ftc_host = patch.getstring('fieldtrip', 'hostname')
+    ftc_port = patch.getint('fieldtrip', 'port')
+    if debug > 0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_input = FieldTrip.Client()
     ft_input.connect(ftc_host, ftc_port)
-    if debug>0:
+    if debug > 0:
         print "Connected to input FieldTrip buffer"
 except:
     print "Error: cannot connect to input FieldTrip buffer"
@@ -107,111 +106,81 @@ except:
 
 hdr_input = None
 while hdr_input is None:
-    if debug>0:
+    if debug > 0:
         print "Waiting for data to arrive..."
         hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 print "Data arrived"
 
-chanlist = patch.getstring('arguments','channels').split(",")
+# read variables from ini/redis
+chanlist = patch.getstring('arguments', 'channels').split(",")
 chanarray = np.array(chanlist)
 for i in range(len(chanarray)):
-    chanarray[i] = int(chanarray[i]) - 1 # since python using indexing from 0 instead of 1
+    chanarray[i] = int(chanarray[i]) - 1                # since python using indexing from 0 instead of 1
 
-chan_nrs = len(chanlist)
-
-window     = patch.getfloat('arguments','window')   # in seconds
-window     = int(round(window*hdr_input.fSample))    # in samples
-clipsize   = patch.getfloat('arguments','clipsize') # in seconds
-clipsize   = int(round(clipsize*hdr_input.fSample))  # in samples
-stepsize   = patch.getfloat('arguments','stepsize') # in seconds
-lrate      = patch.getfloat('arguments','learning_rate')
-scalered   = patch.getfloat('scale','red')
-scaleblue  = patch.getfloat('scale','blue')
-offsetred  = patch.getfloat('offset','red')
-offsetblue = patch.getfloat('offset','blue')
+chan_nrs    = len(chanlist)
+window      = patch.getfloat('arguments', 'window')     # in seconds
+window      = int(round(window*hdr_input.fSample))      # in samples
+clipsize    = patch.getfloat('arguments', 'clipsize')   # in seconds
+clipsize    = int(round(clipsize*hdr_input.fSample))    # in samples
+stepsize    = patch.getfloat('arguments', 'stepsize')   # in seconds
+winx        = patch.getfloat('display', 'xpos')
+winy        = patch.getfloat('display', 'ypos')
+winwidth    = patch.getfloat('display', 'width')
+winheight   = patch.getfloat('display', 'height')
+lrate       = patch.getfloat('arguments', 'learning_rate')
 
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="EEGsynth")
-win.resize(1000,600)
 win.setWindowTitle('EEGsynth')
+win.setGeometry(winx, winy, winwidth, winheight)
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
 
 # Initialize variables
 timeplot  = []
-freqplot  = []
 curve     = []
-spect     = []
-redleft   = []
-redright  = []
-blueleft  = []
-blueright = []
-FFT       = []
-FFT_old   = []
-specmax   = []
-specmin   = []
 curvemax  = []
 
 # Create panels (timecourse and spectrum) for each channel
 for ichan in range(chan_nrs):
+
     channr = int(chanarray[ichan]) + 1
     timeplot.append(win.addPlot(title="%s%s" % ('Channel ', channr)))
     timeplot[ichan].setLabel('left', text='Amplitude')
     timeplot[ichan].setLabel('bottom', text='Time (s)')
     curve.append(timeplot[ichan].plot(pen='w'))
-    freqplot.append(win.addPlot(title="%s%s" % ('Spectrum channel ', channr)))
-    freqplot[ichan].setLabel('left', text = 'Power')
-    freqplot[ichan].setLabel('bottom', text = 'Frequency (Hz)')
-
-    spect.append(freqplot[ichan].plot(pen='w'))
-    redleft.append(freqplot[ichan].plot(pen='r'))
-    redright.append(freqplot[ichan].plot(pen='r'))
-    blueleft.append(freqplot[ichan].plot(pen='b'))
-    blueright.append(freqplot[ichan].plot(pen='b'))
     win.nextRow()
 
-    # initialize as lists
+    # initialize as list
     curvemax.append(0)
-    specmin.append(0)
-    specmax.append(0)
-    FFT.append(0)
-    FFT_old.append(0)
 
 def update():
-   global curvemax, specmax, specmin, FFT_old, redfreq, redwidth, bluefreq, bluewidth, counter
+   global curvemax, counter
 
    # get last data
    last_index = ft_input.getHeader().nSamples
    begsample = (last_index-window)
    endsample = (last_index-1)
-   data = ft_input.getData([begsample,endsample])
-   print "reading from sample %d to %d" % (begsample, endsample)
+   data = ft_input.getData([begsample, endsample])
+   if debug > 0:
+       print "reading from sample %d to %d" % (begsample, endsample)
 
    # demean data before filtering to reduce edge artefacts and center timecourse
    data = data - np.sum(data, axis=0)/float(len(data))
    data = detrend(data, axis=0)
-   data = butter_bandpass_filter(data.T, 5, 40, 250, 9).T[clipsize:-clipsize]
 
-   # spectral estimate looping over chan_nrs
-   taper = np.hanning(len(data))
+   # user-defined filtering
+   arguments_freqrange = patch.getstring('arguments', 'bandpass').split("-")
+   arguments_freqrange = [float(s) for s in arguments_freqrange]
+   data = butter_bandpass_filter(data.T, arguments_freqrange[0], arguments_freqrange[1], int(hdr_input.fSample), 9).T[clipsize:-clipsize]
 
    for ichan in range(chan_nrs):
 
         channr = int(chanarray[ichan])
-        FFT[ichan] = abs(fft(taper*data[:, int(chanarray[ichan])])) * lrate + FFT_old[ichan] * (1-lrate)
-        FFT_old[ichan] = FFT[ichan]
-
-        # freqency axis
-        freqaxis = fftfreq(len(data), 1/hdr_input.fSample)
-
-        # user-selected frequency band
-        arguments_freqrange = patch.getstring('arguments', 'freqrange').split("-")
-        arguments_freqrange = [float(s) for s in arguments_freqrange]
-        freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
         # time axis
         timeaxis = np.linspace(0,len(data)/hdr_input.fSample,len(data))
@@ -219,43 +188,9 @@ def update():
         # update timecourses
         curve[ichan].setData(timeaxis,data[:,channr])
 
-        # update spectrum
-        spect[ichan].setData(freqaxis[freqrange],FFT[ichan][freqrange])
-
         # adapt the vertical scale to the running mean of max
         curvemax[ichan] = float(curvemax[ichan])  * (1-lrate) + lrate * max(abs(data[:,ichan]))
-        specmax[ichan] = float(specmax[ichan]) * (1-lrate) + lrate * max(FFT[ichan][freqrange])
-        specmin[ichan] = float(specmin[ichan]) * (1-lrate) + lrate * min(FFT[ichan][freqrange])
-
         timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
-        freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
-
-        # update plotted lines
-        redfreq = patch.getfloat('input', 'redfreq', default=10./arguments_freqrange[1])
-        redfreq = EEGsynth.rescale(redfreq, slope=scalered, offset=offsetred) * arguments_freqrange[1]
-
-        redwidth = patch.getfloat('input', 'redwidth', default=1./arguments_freqrange[1])
-        redwidth = EEGsynth.rescale(redwidth, slope=scalered, offset=offsetred) * arguments_freqrange[1]
-
-        bluefreq = patch.getfloat('input', 'bluefreq', default=20./arguments_freqrange[1])
-        bluefreq = EEGsynth.rescale(bluefreq, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
-
-        bluewidth = patch.getfloat('input', 'bluewidth', default=4./arguments_freqrange[1])
-        bluewidth = EEGsynth.rescale(bluewidth, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
-
-        redleft[ichan].setData(x=[redfreq-redwidth,redfreq-redwidth],y=[specmin[ichan],specmax[ichan]])
-        redright[ichan].setData(x=[redfreq+redwidth,redfreq+redwidth],y=[specmin[ichan],specmax[ichan]])
-        blueleft[ichan].setData(x=[bluefreq-bluewidth,bluefreq-bluewidth],y=[specmin[ichan],specmax[ichan]])
-        blueright[ichan].setData(x=[bluefreq+bluewidth,bluefreq+bluewidth],y=[specmin[ichan],specmax[ichan]])
-
-   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'low')
-   r.set(key, [redfreq-redwidth])
-   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'high')
-   r.set(key, [redfreq+redwidth])
-   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'low')
-   r.set(key, [bluefreq-bluewidth])
-   key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'high')
-   r.set(key, [bluefreq+bluewidth])
 
 # Set timer for update
 timer = QtCore.QTimer()
