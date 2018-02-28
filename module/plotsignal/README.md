@@ -1,6 +1,6 @@
 # Signal Plotting Module
 
-The purpose of this module is to visualize the ExG signals in real time, together with their power spectra.
+The purpose of this module is to visualize the ExG signals in real time. Some basic filtering can also be applied for visualization purpose only.
 
 ## Software Requirements
 
