@@ -23,7 +23,7 @@
 from copy import copy
 from numpy.matlib import repmat
 from scipy.ndimage import convolve1d
-from scipy.signal import firwin
+from scipy.signal import firwin, decimate
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
 import numpy as np
@@ -114,6 +114,14 @@ window = int(round(window*hdr_input.fSample))
 
 ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
+
+# downsample init
+try:
+    downsample = patch.getfloat('processing', 'downsample')
+except:
+    downsample = None
+
+# smoothing init
 try:
     smoothing = patch.getfloat('processing', 'smoothing')
 except:
@@ -194,37 +202,49 @@ while True:
         print "------------------------------------------------------------"
         print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
 
+    # Downsampling
+    if not(downsample is None):
+        dat_output = decimate(dat_output, downsample, ftype='iir', axis=0, zero_phase=True)
+        window_new = int(window / downsample)
+        if debug>1:
+            print "downsampled ", window, "samples in", (time.time()-start)*1000, "ms"
+    else:
+        window_new = window
+
     # Smoothing
     if not(smoothing is None):
         for t in range(window):
             dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
             previous = copy(dat_output[t, :])
-    if debug>1:
-        print "smoothed    ", window, "samples in", (time.time()-start)*1000, "ms"
+        if debug>1:
+            print "smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # Online filtering
     if not(highpassfilter is None) or not(lowpassfilter is None):
         fil_state, dat_output = onlinefilter(fil_state, dat_output)
-    if debug>1:
-        print "filtered    ", window, "samples in", (time.time()-start)*1000, "ms"
+        if debug>1:
+            print "filtered    ", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # Rereferencing
     if reference == 'median':
         dat_output -= repmat(np.nanmedian(dat_output, axis=1),
                              dat_output.shape[1], 1).T
+        if debug>1:
+            print "rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms"
+
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1),
                              dat_output.shape[1], 1).T
-    if debug>1:
-        print "rereferenced", window, "samples in", (time.time()-start)*1000, "ms"
+        if debug>1:
+            print "rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
     if debug==1:
-        print "preprocessed", window, "samples in", (time.time()-start)*1000, "ms"
+        print "preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms"
     if debug>1:
-        print "wrote       ", window, "samples in", (time.time()-start)*1000, "ms"
+        print "wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # increment the counters for the next loop
     begsample += window
