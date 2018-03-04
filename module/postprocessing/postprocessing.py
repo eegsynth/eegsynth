@@ -107,7 +107,10 @@ while True:
                 equation = equation.replace(name, str(value))
         else:
             # this section should not run if there are undefined variables in an equation
-            val = eval(equation)
-            if debug>1:
-                print key, '=', equation, '=', val
-            r.set(key, val)             # send it as control value
+            try:
+                val = eval(equation)
+                if debug>1:
+                    print key, '=', equation, '=', val
+                r.set(key, val)             # send it as control value
+            except:
+                print 'Error in evaluation'
