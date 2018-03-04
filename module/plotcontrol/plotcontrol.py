@@ -76,15 +76,19 @@ for i in range(len(input_name)):
         curve_nrs += 1
 
 ylim_name, ylim_value = zip(*config.items('ylim'))
-delay = patch.getfloat('general', 'delay')
+delay       = patch.getfloat('general', 'delay')
 historysize = int(patch.getfloat('general', 'window') / delay)
-secwindow = patch.getfloat('general', 'window')
+secwindow   = patch.getfloat('general', 'window')
+winx        = patch.getfloat('display', 'xpos')
+winy        = patch.getfloat('display', 'ypos')
+winwidth    = patch.getfloat('display', 'width')
+winheight   = patch.getfloat('display', 'height')
 
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="EEGsynth")
-win.resize(1000, 600)
 win.setWindowTitle('EEGsynth')
+win.setGeometry(winx, winy, winwidth, winheight)
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
