@@ -31,7 +31,7 @@ import os
 import pyqtgraph as pg
 import sys
 import time
-from scipy.signal import butter, lfilter, detrend, iirnotch, filtfilt
+from scipy.signal import butter, lfilter, detrend, iirnotch, filtfilt, decimate
 from scipy.interpolate import interp1d
 from scipy.fftpack import fft, fftfreq
 
@@ -198,10 +198,6 @@ for ichan in range(numchannel):
     freqplot.append(win.addPlot(title="%s%s" % ('Spectrum channel ', channr)))
     freqplot[ichan].setLabel('left', text = 'Power')
     freqplot[ichan].setLabel('bottom', text = 'Frequency (Hz)')
-    freqplot[ichan].addItem(text_redleft)
-    freqplot[ichan].addItem(text_redright)
-    freqplot[ichan].addItem(text_blueleft)
-    freqplot[ichan].addItem(text_blueright)
 
     spect.append(freqplot[ichan].plot(pen='w'))
     redleft.append(freqplot[ichan].plot(pen='r'))
@@ -212,10 +208,6 @@ for ichan in range(numchannel):
     freqplot_hist.append(win.addPlot(title="%s%s%s%s%s" % ('Averaged spectrum channel ', channr, ' (', historysize, 's)')))
     freqplot_hist[ichan].setLabel('left', text = 'Power')
     freqplot_hist[ichan].setLabel('bottom', text = 'Frequency (Hz)')
-    freqplot_hist[ichan].addItem(text_redleft_hist)
-    freqplot_hist[ichan].addItem(text_redright_hist)
-    freqplot_hist[ichan].addItem(text_blueleft_hist)
-    freqplot_hist[ichan].addItem(text_blueright_hist)
 
     spect_hist.append(freqplot_hist[ichan].plot(pen='w'))
     redleft_hist.append(freqplot_hist[ichan].plot(pen='r'))
@@ -232,6 +224,16 @@ for ichan in range(numchannel):
     FFT.append(0)
     FFT_old.append(0)
     FFT_hist.append(0)
+
+# print frequency at lines
+freqplot[0].addItem(text_redleft)
+freqplot[0].addItem(text_redright)
+freqplot[0].addItem(text_blueleft)
+freqplot[0].addItem(text_blueright)
+freqplot_hist[0].addItem(text_redleft_hist)
+freqplot_hist[0].addItem(text_redright_hist)
+freqplot_hist[0].addItem(text_blueleft_hist)
+freqplot_hist[0].addItem(text_blueright_hist)
 
 def update():
    global specmax, specmin, specmax_hist, specmin_hist, FFT_old, FFT_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
@@ -262,11 +264,12 @@ def update():
         channr = int(chanarray[ichan])
 
         # current FFT with smoothing
-        FFT[ichan] = abs(fft(data[:, int(chanarray[ichan])])) * lrate + FFT_old[ichan] * (1-lrate)
+        FFT_temp = abs(fft(data[:, int(chanarray[ichan])]))
+        FFT[ichan] = FFT_temp * lrate + FFT_old[ichan] * (1-lrate)
         FFT_old[ichan] = FFT[ichan]
 
-        # update history with current data
-        history[ichan, :, numhistory-1] = abs(fft(data[:, int(chanarray[ichan])]))
+        # update history with current FFT
+        history[ichan, :, numhistory-1] = FFT_temp
         FFT_hist = np.nanmean(history, axis=2)
 
         # user-selected frequency band
@@ -306,33 +309,33 @@ def update():
         blueleft_hist[ichan].setData(x=[bluefreq-bluewidth, bluefreq-bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
         blueright_hist[ichan].setData(x=[bluefreq+bluewidth, bluefreq+bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
 
-        # update labels at plotted lines
-        text_redleft.setText('%0.1f' % (redfreq-redwidth))
-        text_redleft.setPos(redfreq-redwidth, specmax[ichan])
-        text_redright.setText('%0.1f' % (redfreq+redwidth))
-        text_redright.setPos(redfreq+redwidth, specmax[ichan])
-        text_blueleft.setText('%0.1f' % (bluefreq-bluewidth))
-        text_blueleft.setPos(bluefreq-bluewidth, specmax[ichan])
-        text_blueright.setText('%0.1f' % (bluefreq+bluewidth))
-        text_blueright.setPos(bluefreq+bluewidth, specmax[ichan])
+   # update labels at plotted lines
+   text_redleft.setText('%0.1f' % (redfreq-redwidth))
+   text_redleft.setPos(redfreq-redwidth, specmax[0])
+   text_redright.setText('%0.1f' % (redfreq+redwidth))
+   text_redright.setPos(redfreq+redwidth, specmax[0])
+   text_blueleft.setText('%0.1f' % (bluefreq-bluewidth))
+   text_blueleft.setPos(bluefreq-bluewidth, specmax[0])
+   text_blueright.setText('%0.1f' % (bluefreq+bluewidth))
+   text_blueright.setPos(bluefreq+bluewidth, specmax[0])
 
-        text_redleft_hist.setText('%0.1f' % (redfreq-redwidth))
-        text_redleft_hist.setPos(redfreq-redwidth, specmax_hist[ichan])
-        text_redright_hist.setText('%0.1f' % (redfreq+redwidth))
-        text_redright_hist.setPos(redfreq+redwidth, specmax_hist[ichan])
-        text_blueleft_hist.setText('%0.1f' % (bluefreq-bluewidth))
-        text_blueleft_hist.setPos(bluefreq-bluewidth, specmax_hist[ichan])
-        text_blueright_hist.setText('%0.1f' % (bluefreq+bluewidth))
-        text_blueright_hist.setPos(bluefreq+bluewidth, specmax_hist[ichan])
+   text_redleft_hist.setText('%0.1f' % (redfreq-redwidth))
+   text_redleft_hist.setPos(redfreq-redwidth, specmax_hist[0])
+   text_redright_hist.setText('%0.1f' % (redfreq+redwidth))
+   text_redright_hist.setPos(redfreq+redwidth, specmax_hist[0])
+   text_blueleft_hist.setText('%0.1f' % (bluefreq-bluewidth))
+   text_blueleft_hist.setPos(bluefreq-bluewidth, specmax_hist[0])
+   text_blueright_hist.setText('%0.1f' % (bluefreq+bluewidth))
+   text_blueright_hist.setPos(bluefreq+bluewidth, specmax_hist[0])
 
    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'low')
-   r.set(key, [redfreq-redwidth])
+   r.set(key, redfreq-redwidth)
    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'high')
-   r.set(key, [redfreq+redwidth])
+   r.set(key, redfreq+redwidth)
    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'low')
-   r.set(key, [bluefreq-bluewidth])
+   r.set(key, bluefreq-bluewidth)
    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'high')
-   r.set(key, [bluefreq+bluewidth])
+   r.set(key, bluefreq+bluewidth)
 
 # Set timer for update
 timer = QtCore.QTimer()
