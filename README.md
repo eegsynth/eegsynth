@@ -201,7 +201,7 @@ The EEGsynth uses the FieldTrip buffer to communicate data between modules. It i
 
 We will then write some prerecorded data into the buffer as if it was being recorded in real-time:
 
-1.   Download some example data in .edf format. For example, from our [data directory on Google Drive](https://drive.google.com/drive/folders/0B10S8PeNnxw1ZnZPbUh0RWk0cjA). Or use the data you recording in the [recording tutorial](https://braincontrolclub.miraheze.org/wiki/Recording_tutorial "Recording tutorial").
+1.   Download some example data in .edf format. For example, from our [data directory on Google Drive](https://drive.google.com/drive/folders/0B10S8PeNnxw1ZnZPbUh0RWk0cjA). Or use the data you recorded in the [recording tutorial](https://braincontrolclub.miraheze.org/wiki/Recording_tutorial "Recording tutorial").
 2.   Place the .edf file in a directory, e.g. in _/eegsynth/datafiles_
 3.   Navigate to the playback module directory _/eegsynth/module/playback_
 4.   Copy the _playback.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in _../../inifiles_ relative to the buffer module directory)
