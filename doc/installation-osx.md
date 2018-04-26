@@ -93,6 +93,7 @@ Subsequently you can install the Python modules
 ```
 sudo pip install redis
 sudo pip install mido
+sudo pip install python-rtmidi
 sudo pip install pyserial
 sudo pip install pyosc
 sudo pip install numpy
