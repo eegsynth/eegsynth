@@ -2,8 +2,7 @@
 
 MODULE=`basename $0 .sh`
 
-EEGSYNTH=../../
+EEGSYNTH=/Users/roboos/eegsynth
 INIDIR=`dirname $0`
 
 $EEGSYNTH/module/$MODULE/$MODULE.sh -i $INIDIR/$MODULE.ini
-
