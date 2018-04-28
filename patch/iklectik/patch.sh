@@ -5,6 +5,7 @@ PATCHDIR=`pwd`
 $PATCHDIR/terminal.scpt $PATCHDIR/redis.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/buffer.sh
 # $PATCHDIR/terminal.scpt $PATCHDIR/openbci2ft.sh
+$PATCHDIR/terminal.scpt $PATCHDIR/outputartnet.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/launchcontrol.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/spectral.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/postprocessing.sh
