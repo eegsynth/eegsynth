@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
-# Bash helper script to execute multiple instances of a program in parallel.
+# Bash script to execute multiple instances of a specific program in parallel.
 #
 # This script is inspired by http://stackoverflow.com/questions/356100/how-to-wait-in-bash-for-several-subprocesses-to-finish-and-return-exit-code-0
 # and by http://www.gnu.org/software/parallel/
 #
-# Killing the child processes can be difficult if you only have the PID of the parent parallel script. Please see 
+# Killing the child processes can be difficult if you only have the PID of the parent parallel script. Please see
 # http://stackoverflow.com/questions/392022/best-way-to-kill-all-child-processes/33556110#33556110
 
 OS=`uname -s`
 MACHINE=`uname -m`
- 
+
 COMMAND=$1
-ARGS=`echo $2 | tr ',' ' '` 
+ARGS=`echo $2 | tr ',' ' '`
 
 if [ -z "$COMMAND" ] ; then
 cat << EOF
@@ -26,7 +26,7 @@ This will start in parallel
   command arg3
 
 EOF
-exit 
+exit
 fi
 
 if [ -z "$ARGS" ] ; then
@@ -38,4 +38,3 @@ elif [ $OS = Darwin ] ; then
 echo $ARGS | xargs -IARG -n 1 -P 16 $COMMAND ARG
 fi
 fi
-

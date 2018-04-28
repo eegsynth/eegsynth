@@ -94,7 +94,7 @@ if debug>1:
     print hdr_input.labels
 
 # get the processing arameters
-window = patch.getfloat('processing','window')*hdr_input.fSample
+window = int(patch.getfloat('processing','window') * hdr_input.fSample) # expressed in samples
 
 channel_items = config.items('input')
 channel_name = []

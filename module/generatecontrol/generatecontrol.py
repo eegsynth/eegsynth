@@ -39,7 +39,6 @@ installed_folder = os.path.split(basis)[0]
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
-import FieldTrip
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
