@@ -183,6 +183,11 @@ class patch():
         # multiple items and default values are not yet supported
         return self.config.get(section, item)
 
+    ####################################################################
+    def hasitem(self, section, item):
+        # check whether an item is present in the ini file
+        return self.config.has_option(section, item)
+
 ####################################################################
 def rescale(xval, slope=None, offset=None):
     if hasattr(xval, "__iter__"):
