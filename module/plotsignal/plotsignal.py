@@ -78,19 +78,30 @@ def butter_bandpass(lowcut, highcut, fs, order=9):
     b, a = butter(order, [low, high], btype='band')
     return b, a
 
+def butter_lowpass(lowcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    b, a = butter(order, low, btype='lowpass')
+    return b, a
+
+def butter_highpass(highcut, fs, order=9):
+    nyq = 0.5 * fs
+    high = highcut / nyq
+    b, a = butter(order, high, btype='highpass')
+    return b, a
+
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=9):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = lfilter(b, a, data)
     return y
 
-def butter_lowpass(lowcut, fs, order=9):
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    b, a = butter(order, low, btype='low')
-    return b, a
-
 def butter_lowpass_filter(data, lowcut, fs, order=9):
     b, a = butter_lowpass(lowcut, fs, order=order)
+    y    = lfilter(b, a, data)
+    return y
+
+def butter_highpass_filter(data, highcut, fs, order=9):
+    b, a = butter_highpass(highcut, fs, order=order)
     y    = lfilter(b, a, data)
     return y
 
@@ -142,6 +153,18 @@ winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
 lrate       = patch.getfloat('arguments', 'learning_rate')
 
+# lowpass, highpass and bandpass are optional, but mutually exclusive
+filtorder=9
+if patch.hasitem('arguments', 'bandpass'):
+    freqrange = patch.getstring('arguments', 'bandpass').split("-")
+    freqrange = [float(s) for s in freqrange]
+elif patch.hasitem('arguments', 'lowpass'):
+    freqrange = patch.getfloat('arguments', 'lowpass')
+    freqrange = [np.nan, freqrange]
+elif patch.hasitem('arguments', 'highpass'):
+    freqrange = patch.getfloat('arguments', 'highpass')
+    freqrange = [freqrange, np.nan]
+
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="EEGsynth")
@@ -180,14 +203,16 @@ def update():
    if debug > 0:
        print "reading from sample %d to %d" % (begsample, endsample)
 
-   # demean data before filtering to reduce edge artefacts and center timecourse
-   data = data - np.sum(data, axis=0)/float(len(data))
+   # detrend data before filtering to reduce edge artefacts and center timecourse
    data = detrend(data, axis=0)
 
    # user-defined filtering
-   arguments_freqrange = patch.getstring('arguments', 'bandpass').split("-")
-   arguments_freqrange = [float(s) for s in arguments_freqrange]
-   data = butter_bandpass_filter(data.T, arguments_freqrange[0], arguments_freqrange[1], int(hdr_input.fSample), 9).T[clipsize:-clipsize]
+   if np.isnan(freqrange[0]):
+        data = butter_lowpass_filter(data.T, freqrange[1], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
+   elif np.isnan(freqrange[1]):
+        data = butter_highpass_filter(data.T, freqrange[0], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
+   else:
+        data = butter_bandpass_filter(data.T, freqrange[0], freqrange[1], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
 
    for ichan in range(chan_nrs):
 
