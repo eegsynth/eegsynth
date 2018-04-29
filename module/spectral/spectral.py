@@ -60,7 +60,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
@@ -81,115 +80,114 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
-try:
-    hdr_input = None
-    start = time.time()
-    while hdr_input is None:
-        if debug>0:
-            print "Waiting for data to arrive..."
-        if (time.time()-start)>timeout:
-            print "Error: timeout while waiting for data"
-            raise SystemExit
-        hdr_input = ftc.getHeader()
-        time.sleep(0.2)
+hdr_input = None
+start = time.time()
+while hdr_input is None:
+    if debug>0:
+        print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
+    hdr_input = ftc.getHeader()
+    time.sleep(0.2)
+
+if debug>1:
+    print hdr_input
+    print hdr_input.labels
+
+channel_items = config.items('input')
+channame = []
+chanindx = []
+for item in channel_items:
+    # channel numbers are one-offset in the ini file, zero-offset in the code
+    channame.append(item[0])
+    chanindx.append(patch.getint('input', item[0])-1)
+
+if debug>0:
+    print channame, chanindx
+
+window      = int(round(patch.getfloat('processing','window') * hdr_input.fSample))
+taper       = np.hanning(window)
+frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
+
+if debug>2:
+    print 'taper     = ', taper
+    print 'frequency = ', frequency
+
+begsample = -1
+endsample = -1
+
+while True:
+    time.sleep(patch.getfloat('general', 'delay'))
+
+    band_items = config.items('band')
+    bandname = []
+    bandlo   = []
+    bandhi   = []
+    for item in band_items:
+        # channel numbers are one-offset in the ini file, zero-offset in the code
+        lohi = patch.getfloat('band', item[0], multiple=True)
+        if debug>2:
+            print item[0], lohi
+        bandname.append(item[0])
+        bandlo.append(lohi[0])
+        bandhi.append(lohi[1])
+    if debug>0:
+        print bandname, bandlo, bandhi
+
+    hdr_input = ftc.getHeader()
+    if (hdr_input.nSamples-1)<endsample:
+        print "Error: buffer reset detected"
+        raise SystemExit
+    endsample = hdr_input.nSamples - 1
+    if endsample<window:
+        # not enough data, try again in the next iteration
+        continue
+
+    begsample = endsample-window+1
+    D = ftc.getData([begsample, endsample])
+
+    # FIXME it should be possible to do this differently
+    power = []
+    for chan in channame:
+        for band in bandname:
+            power.append(0)
+
+    D = D[:, chanindx]
+    M = D.mean(0)
+
+    # FIXME use detrend just like plotspectral
+    # FIXME multiply with taper in one go
+
+    # subtract the channel mean and apply the taper to each sample
+    for chan in range(D.shape[1]):
+        for sample in range(D.shape[0]):
+            D[sample, chan] -= M[chan]
+            D[sample, chan] *= taper[sample]
+
+    # compute the FFT over the sample direction
+    F = np.fft.rfft(D, axis=0)
+
+    i = 0
+    for chan in range(F.shape[1]):
+        for lo,hi in zip(bandlo,bandhi):
+            power[i] = 0
+            count = 0
+            for sample in range(len(frequency)):
+                if frequency[sample]>=lo and frequency[sample]<=hi:
+                    power[i] += abs(F[sample, chan]*F[sample, chan])
+                    count    += 1
+            if count>0:
+                power[i] /= count
+            i+=1
 
     if debug>1:
-        print hdr_input
-        print hdr_input.labels
+        print power
 
-    channel_items = config.items('input')
-    channame = []
-    chanindx = []
-    for item in channel_items:
-        # channel numbers are one-offset in the ini file, zero-offset in the code
-        channame.append(item[0])
-        chanindx.append(patch.getint('input', item[0])-1)
-
-    if debug>0:
-        print channame, chanindx
-
-    window      = int(round(patch.getfloat('processing','window') * hdr_input.fSample))
-    taper       = np.hanning(window)
-    frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
-
-    if debug>2:
-        print 'taper     = ', taper
-        print 'frequency = ', frequency
-
-    begsample = -1
-    endsample = -1
-
-    while True:
-        time.sleep(patch.getfloat('general', 'delay'))
-
-        band_items = config.items('band')
-        bandname = []
-        bandlo   = []
-        bandhi   = []
-        for item in band_items:
-            # channel numbers are one-offset in the ini file, zero-offset in the code
-            lohi = patch.getfloat('band', item[0], multiple=True)
-            if debug>2:
-                print item[0], lohi
-            # lohi = patch.getstring('band', item[0]).split("-")
-            bandname.append(item[0])
-            bandlo.append(lohi[0])
-            bandhi.append(lohi[1])
-        if debug>0:
-            print bandname, bandlo, bandhi
-
-        hdr_input = ftc.getHeader()
-        if (hdr_input.nSamples-1)<endsample:
-            print "Error: buffer reset detected"
-            raise SystemExit
-        endsample = hdr_input.nSamples - 1
-        if endsample<window:
-            continue
-
-        begsample = endsample-window+1
-        D = ftc.getData([begsample, endsample])
-
-        power = []
-        for chan in channame:
-            for band in bandname:
-                power.append(0)
-
-        D = D[:, chanindx]
-        M = D.mean(0)
-
-        # subtract the channel mean and apply the taper to each sample
-        for chan in range(D.shape[1]):
-            for sample in range(D.shape[0]):
-                D[sample, chan] -= M[chan]
-                D[sample, chan] *= taper[sample]
-
-        # compute the FFT over the sample direction
-        F = np.fft.rfft(D, axis=0)
-
-        i = 0
-        for chan in range(F.shape[1]):
-            for lo,hi in zip(bandlo,bandhi):
-                power[i] = 0
-                count = 0
-                for sample in range(len(frequency)):
-                    if frequency[sample]>=lo and frequency[sample]<=hi:
-                        power[i] += abs(F[sample, chan]*F[sample, chan])
-                        count    += 1
-                if count>0:
-                    power[i] /= count
-                i+=1
-
-        if debug>1:
-            print power
-
-        i = 0
-        for chan in channame:
-            for band in bandname:
-                # send the control value prefix.channel.band=value
-                key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), chan, band)
-                r.set(key, power[i])
-                i+=1
-
-except (KeyboardInterrupt, SystemExit):
-    r.publish('SPECTRAL_CLOSED', 1)
-    sys.exit()
+    i = 0
+    for chan in channame:
+        for band in bandname:
+            # send the control value prefix.channel.band=value
+            key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), chan, band)
+            r.set(key, power[i])
+            i+=1
