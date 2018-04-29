@@ -72,29 +72,6 @@ debug = patch.getint('general','debug')
 # this is the timeout for the FieldTrip buffer
 timeout = patch.getfloat('fieldtrip','timeout')
 
-def butter_bandpass(lowcut, highcut, fs, order=9):
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    high = highcut / nyq
-    b, a = butter(order, [low, high], btype='band')
-    return b, a
-
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=9):
-    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
-    y = lfilter(b, a, data)
-    return y
-
-def butter_lowpass(lowcut, fs, order=9):
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    b, a = butter(order, low, btype='low')
-    return b, a
-
-def butter_lowpass_filter(data, lowcut, fs, order=9):
-    b, a = butter_lowpass(lowcut, fs, order=order)
-    y    = lfilter(b, a, data)
-    return y
-
 def notch(f0, fs, Q=30):
     # Q = Quality factor
     w0 = f0 / (fs / 2)  # Normalized Frequency
@@ -130,11 +107,11 @@ while hdr_input is None:
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
+if debug>0:
+    print "Data arrived"
 if debug>1:
     print hdr_input
     print hdr_input.labels
-
-print "Data arrived"
 
 # read variables from ini/redis
 chanlist    = patch.getstring('arguments','channels').split(",")
@@ -181,23 +158,23 @@ text_blueright_hist = pg.TextItem(".", anchor=(0, -1), color='b')
 pg.setConfigOptions(antialias=True)
 
 # Initialize variables
-freqplot  = []
+freqplot_curr  = []
 freqplot_hist  = []
 spect     = []
 spect_hist = []
-redleft   = []
-redright  = []
-blueleft  = []
-blueright = []
+redleft_curr   = []
+redright_curr  = []
+blueleft_curr  = []
+blueright_curr = []
 redleft_hist   = []
 redright_hist  = []
 blueleft_hist  = []
 blueright_hist = []
-FFT       = []
-FFT_old   = []
+FFT_curr       = []
+FFT_prev   = []
 FFT_hist  = []
-specmax   = []
-specmin   = []
+specmax_curr   = []
+specmin_curr   = []
 specmax_hist   = []
 specmin_hist   = []
 
@@ -206,15 +183,15 @@ specmin_hist   = []
 for ichan in range(numchannel):
     channr = int(chanarray[ichan]) + 1
 
-    freqplot.append(win.addPlot(title="%s%s" % ('Spectrum channel ', channr)))
-    freqplot[ichan].setLabel('left', text = 'Power')
-    freqplot[ichan].setLabel('bottom', text = 'Frequency (Hz)')
+    freqplot_curr.append(win.addPlot(title="%s%s" % ('Spectrum channel ', channr)))
+    freqplot_curr[ichan].setLabel('left', text = 'Power')
+    freqplot_curr[ichan].setLabel('bottom', text = 'Frequency (Hz)')
 
-    spect.append(freqplot[ichan].plot(pen='w'))
-    redleft.append(freqplot[ichan].plot(pen='r'))
-    redright.append(freqplot[ichan].plot(pen='r'))
-    blueleft.append(freqplot[ichan].plot(pen='b'))
-    blueright.append(freqplot[ichan].plot(pen='b'))
+    spect.append(freqplot_curr[ichan].plot(pen='w'))
+    redleft_curr.append(freqplot_curr[ichan].plot(pen='r'))
+    redright_curr.append(freqplot_curr[ichan].plot(pen='r'))
+    blueleft_curr.append(freqplot_curr[ichan].plot(pen='b'))
+    blueright_curr.append(freqplot_curr[ichan].plot(pen='b'))
 
     freqplot_hist.append(win.addPlot(title="%s%s%s%s%s" % ('Averaged spectrum channel ', channr, ' (', historysize, 's)')))
     freqplot_hist[ichan].setLabel('left', text = 'Power')
@@ -228,26 +205,26 @@ for ichan in range(numchannel):
     win.nextRow()
 
     # initialize as lists
-    specmin.append(0)
-    specmax.append(0)
+    specmin_curr.append(0)
+    specmax_curr.append(0)
     specmin_hist.append(0)
     specmax_hist.append(0)
-    FFT.append(0)
-    FFT_old.append(0)
+    FFT_curr.append(0)
+    FFT_prev.append(0)
     FFT_hist.append(0)
 
 # print frequency at lines
-freqplot[0].addItem(text_redleft)
-freqplot[0].addItem(text_redright)
-freqplot[0].addItem(text_blueleft)
-freqplot[0].addItem(text_blueright)
+freqplot_curr[0].addItem(text_redleft)
+freqplot_curr[0].addItem(text_redright)
+freqplot_curr[0].addItem(text_blueleft)
+freqplot_curr[0].addItem(text_blueright)
 freqplot_hist[0].addItem(text_redleft_hist)
 freqplot_hist[0].addItem(text_redright_hist)
 freqplot_hist[0].addItem(text_blueleft_hist)
 freqplot_hist[0].addItem(text_blueright_hist)
 
 def update():
-   global specmax, specmin, specmax_hist, specmin_hist, FFT_old, FFT_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
+   global specmax_curr, specmin_curr, specmax_hist, specmin_hist, FFT_prev, FFT_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
 
    # get last data
    last_index = ft_input.getHeader().nSamples
@@ -257,7 +234,6 @@ def update():
    print "reading from sample %d to %d" % (begsample, endsample)
 
    # demean and detrend data before filtering to reduce edge artefacts and center timecourse
-   # data = data - np.sum(data, axis=0)/float(len(data))
    data = detrend(data, axis=0)
 
    # Notch filter - DOES NOT WORK
@@ -271,15 +247,14 @@ def update():
    history = np.roll(history, 1, axis=2)
 
    for ichan in range(numchannel):
-
         channr = int(chanarray[ichan])
 
-        # current FFT with smoothing
-        FFT_temp = abs(fft(data[:, int(chanarray[ichan])]))
-        FFT[ichan] = FFT_temp * lrate + FFT_old[ichan] * (1-lrate)
-        FFT_old[ichan] = FFT[ichan]
+        # estimate FFT at current moment, apply some temporal smoothing
+        FFT_temp = abs(fft(data[:, channr]))
+        FFT_curr[ichan] = FFT_temp * lrate + FFT_prev[ichan] * (1-lrate)
+        FFT_prev[ichan] = FFT_curr[ichan]
 
-        # update history with current FFT
+        # update FFT history with current estimate
         history[ichan, :, numhistory-1] = FFT_temp
         FFT_hist = np.nanmean(history, axis=2)
 
@@ -289,16 +264,16 @@ def update():
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
         # update panels
-        spect[ichan].setData(freqaxis[freqrange], FFT[ichan][freqrange])
+        spect_curr[ichan].setData(freqaxis[freqrange], FFT_curr[ichan][freqrange])
         spect_hist[ichan].setData(freqaxis[freqrange], FFT_hist[ichan][freqrange])
 
-        # adapt the vertical scale to the running mean of max
-        specmax[ichan]      = float(specmax[ichan])         * (1-lrate) + lrate * max(FFT[ichan][freqrange])
-        specmin[ichan]      = float(specmin[ichan])         * (1-lrate) + lrate * min(FFT[ichan][freqrange])
-        specmax_hist[ichan] = float(specmax_hist[ichan])    * (1-lrate) + lrate * max(FFT_hist[ichan][freqrange])
-        specmin_hist[ichan] = float(specmin_hist[ichan])    * (1-lrate) + lrate * min(FFT_hist[ichan][freqrange])
+        # adapt the vertical scale to the running mean of min/max
+        specmax_curr[ichan] = float(specmax_curr[ichan]) * (1-lrate) + lrate * max(FFT_curr[ichan][freqrange])
+        specmin_curr[ichan] = float(specmin_curr[ichan]) * (1-lrate) + lrate * min(FFT_curr[ichan][freqrange])
+        specmax_hist[ichan] = float(specmax_hist[ichan]) * (1-lrate) + lrate * max(FFT_hist[ichan][freqrange])
+        specmin_hist[ichan] = float(specmin_hist[ichan]) * (1-lrate) + lrate * min(FFT_hist[ichan][freqrange])
 
-        freqplot[ichan].setYRange(specmin[ichan], specmax[ichan])
+        freqplot_curr[ichan].setYRange(specmin_curr[ichan], specmax_curr[ichan])
         freqplot_hist[ichan].setYRange(specmin_hist[ichan], specmax_hist[ichan])
 
         # update plotted lines
@@ -311,10 +286,10 @@ def update():
         bluewidth   = patch.getfloat('input', 'bluewidth', default=4./arguments_freqrange[1])
         bluewidth   = EEGsynth.rescale(bluewidth, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
 
-        redleft[ichan].setData(x=[redfreq-redwidth, redfreq-redwidth], y=[specmin[ichan], specmax[ichan]])
-        redright[ichan].setData(x=[redfreq+redwidth, redfreq+redwidth], y=[specmin[ichan], specmax[ichan]])
-        blueleft[ichan].setData(x=[bluefreq-bluewidth, bluefreq-bluewidth], y=[specmin[ichan], specmax[ichan]])
-        blueright[ichan].setData(x=[bluefreq+bluewidth, bluefreq+bluewidth], y=[specmin[ichan], specmax[ichan]])
+        redleft_curr[ichan].setData(x=[redfreq-redwidth, redfreq-redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+        redright_curr[ichan].setData(x=[redfreq+redwidth, redfreq+redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+        blueleft_curr[ichan].setData(x=[bluefreq-bluewidth, bluefreq-bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+        blueright_curr[ichan].setData(x=[bluefreq+bluewidth, bluefreq+bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
         redleft_hist[ichan].setData(x=[redfreq-redwidth, redfreq-redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
         redright_hist[ichan].setData(x=[redfreq+redwidth, redfreq+redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
         blueleft_hist[ichan].setData(x=[bluefreq-bluewidth, bluefreq-bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
@@ -322,13 +297,13 @@ def update():
 
    # update labels at plotted lines
    text_redleft.setText('%0.1f' % (redfreq-redwidth))
-   text_redleft.setPos(redfreq-redwidth, specmax[0])
+   text_redleft.setPos(redfreq-redwidth, specmax_curr[0])
    text_redright.setText('%0.1f' % (redfreq+redwidth))
-   text_redright.setPos(redfreq+redwidth, specmax[0])
+   text_redright.setPos(redfreq+redwidth, specmax_curr[0])
    text_blueleft.setText('%0.1f' % (bluefreq-bluewidth))
-   text_blueleft.setPos(bluefreq-bluewidth, specmax[0])
+   text_blueleft.setPos(bluefreq-bluewidth, specmax_curr[0])
    text_blueright.setText('%0.1f' % (bluefreq+bluewidth))
-   text_blueright.setPos(bluefreq+bluewidth, specmax[0])
+   text_blueright.setPos(bluefreq+bluewidth, specmax_curr[0])
 
    text_redleft_hist.setText('%0.1f' % (redfreq-redwidth))
    text_redleft_hist.setPos(redfreq-redwidth, specmax_hist[0])
