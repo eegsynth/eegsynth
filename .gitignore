@@ -1,4 +1,5 @@
 # Misc files
+patches/test
 bin/buffer
 bin/openbci2ft
 bin/jaga2ft
