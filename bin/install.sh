@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# This script can be used to download the required binary dependencies.
+#
 
 DIR=`dirname "$0"`
 OS=`uname -s`

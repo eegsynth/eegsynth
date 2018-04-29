@@ -102,9 +102,11 @@ def forward_handler(addr, tags, data, source):
             r.publish(key,val)      # send it as trigger
 
     else:
-        # it is a list, send it as a list of control values
-        val = EEGsynth.rescale(data, slope=scale, offset=offset)
-        r.set(key, val)
+        for i in range(len(data)):
+            # it is a list, send it as multiple scalar control values
+            val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
+            # append the index to the key, this starts with 0
+            r.set(key + '.%i' % i, val)
 
 s.noCallback_handler = forward_handler
 s.addDefaultHandlers()

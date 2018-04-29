@@ -68,6 +68,9 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
+# this is the timeout for the FieldTrip buffer
+timeout = patch.getfloat('fieldtrip','timeout')
+
 def butter_bandpass(lowcut, highcut, fs, order=9):
     nyq = 0.5 * fs
     low = lowcut / nyq
@@ -105,11 +108,19 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
-    if debug > 0:
+    if debug>0:
         print "Waiting for data to arrive..."
-        hdr_input = ft_input.getHeader()
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
+    hdr_input = ft_input.getHeader()
     time.sleep(0.2)
+
+if debug>1:
+    print hdr_input
+    print hdr_input.labels
 
 print "Data arrived"
 
