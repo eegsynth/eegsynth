@@ -129,11 +129,11 @@ while hdr_input is None:
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
+if debug>0:
+    print "Data arrived"
 if debug>1:
     print hdr_input
     print hdr_input.labels
-
-print "Data arrived"
 
 # read variables from ini/redis
 chanlist = patch.getstring('arguments', 'channels').split(",")
@@ -181,8 +181,8 @@ curvemax  = []
 
 # Create panels (timecourse and spectrum) for each channel
 for ichan in range(chan_nrs):
-
     channr = int(chanarray[ichan]) + 1
+
     timeplot.append(win.addPlot(title="%s%s" % ('Channel ', channr)))
     timeplot[ichan].setLabel('left', text='Amplitude')
     timeplot[ichan].setLabel('bottom', text='Time (s)')
@@ -215,7 +215,6 @@ def update():
         data = butter_bandpass_filter(data.T, freqrange[0], freqrange[1], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
 
    for ichan in range(chan_nrs):
-
         channr = int(chanarray[ichan])
 
         # time axis

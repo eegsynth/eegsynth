@@ -88,6 +88,8 @@ while hdr_input is None:
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
+if debug>0:
+    print "Data arrived"
 if debug>1:
     print hdr_input
     print hdr_input.labels
