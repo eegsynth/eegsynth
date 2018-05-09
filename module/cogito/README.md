@@ -4,7 +4,7 @@ The purpose of this module is to convert an EEG buffer (channel x samples) into 
 
 The conversion follow the interstellar protocol developped for the Cogito project.
 
-More info: http://www.ouunpo.com/eegsynth/?p=751
+More info at http://www.eegsynth.org/?p=751
 
 ## Software Requirements
 
