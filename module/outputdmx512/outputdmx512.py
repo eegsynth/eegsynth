@@ -55,7 +55,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')

@@ -61,7 +61,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
@@ -125,6 +124,7 @@ for iplot in range(len(input_name)):
 def update():
 
    # shift data to next sample
+   # FIXME use np.roll instead of allocating new memory over and over again
    inputhistory[:, :-1] = inputhistory[:, 1:]
 
    # update with current data
@@ -134,9 +134,13 @@ def update():
        temp = input_variable[iplot].split(",")
 
        for ivar in range(len(temp)):
-            inputhistory[counter, historysize-1] = r.get(temp[ivar])
+            try:
+                inputhistory[counter, historysize-1] = r.get(temp[ivar])
+            except:
+                inputhistory[counter, historysize-1] = np.nan
 
             # time axis
+            # FIXME use np.roll instead of recreating it every time
             timeaxis = np.linspace(-secwindow, 0, historysize)
 
             # update timecourses

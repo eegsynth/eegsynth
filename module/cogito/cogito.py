@@ -58,7 +58,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
@@ -111,6 +110,8 @@ while hdr_input is None:
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
+if debug > 0:
+    print "Data arrived"
 if debug > 1:
     print hdr_input
     print hdr_input.labels

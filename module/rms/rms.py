@@ -60,7 +60,6 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-# del config
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
@@ -81,83 +80,80 @@ except:
     print "Error: cannot connect to FieldTrip buffer"
     exit()
 
+hdr_input = None
+start = time.time()
+while hdr_input is None:
+    if debug > 0:
+        print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
+    hdr_input = ftc.getHeader()
+    time.sleep(0.2)
+
+if debug>0:
+    print "Data arrived"
+if debug>1:
+    print hdr_input
+    print hdr_input.labels
+
+channel_items = config.items('input')
+channame = []
+chanindx = []
+for item in channel_items:
+    # channel numbers are one-offset in the ini file, zero-offset in the code
+    channame.append(item[0])                           # the channel name
+    chanindx.append(patch.getint('input', item[0])-1)  # the channel number
+
+window = round(patch.getfloat('processing','window') * hdr_input.fSample)
+order = patch.getint('processing', 'order')
+
 try:
-    hdr_input = None
-    start = time.time()
-    while hdr_input is None:
-        if debug > 0:
-            print "Waiting for data to arrive..."
-        if (time.time()-start)>timeout:
-            print "Error: timeout while waiting for data"
-            raise SystemExit
-        hdr_input = ftc.getHeader()
-        time.sleep(0.2)
+    low_pass = patch.getint('processing', 'low_pass')
+except:
+    low_pass = None
 
-    if debug>1:
-        print hdr_input
-        print hdr_input.labels
+try:
+    high_pass = patch.getint('processing', 'high_pass')
+except:
+    high_pass = None
 
-    channel_items = config.items('input')
-    channame = []
-    chanindx = []
-    for item in channel_items:
-        # channel numbers are one-offset in the ini file, zero-offset in the code
-        channame.append(item[0])                           # the channel name
-        chanindx.append(patch.getint('input', item[0])-1)  # the channel number
+begsample = -1
+endsample = -1
 
-    window = round(patch.getfloat('processing','window') * hdr_input.fSample)
-    order = patch.getint('processing', 'order')
+while True:
+    time.sleep(patch.getfloat('general','delay'))
 
-    try:
-        low_pass = patch.getint('processing', 'low_pass')
-    except:
-        low_pass = None
+    hdr_input = ftc.getHeader()
+    if (hdr_input.nSamples-1) < endsample:
+        print "Error: buffer reset detected"
+        raise SystemExit
+    endsample = hdr_input.nSamples - 1
+    if endsample<window:
+        continue
 
-    try:
-        high_pass = patch.getint('processing', 'high_pass')
-    except:
-        high_pass = None
+    begsample = endsample-window+1
+    D = ftc.getData([begsample, endsample])
 
-    begsample = -1
-    endsample = -1
+    D = D[:, chanindx]
 
-    while True:
-        time.sleep(patch.getfloat('general','delay'))
+    if low_pass or high_pass:
+        D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
 
-        hdr_input = ftc.getHeader()
-        if (hdr_input.nSamples-1) < endsample:
-            print "Error: buffer reset detected"
-            raise SystemExit
-        endsample = hdr_input.nSamples - 1
-        if endsample<window:
-            continue
+    rms = []
+    for i in range(0,len(chanindx)):
+        rms.append(0)
 
-        begsample = endsample-window+1
-        D = ftc.getData([begsample, endsample])
+    for i, chanvec in enumerate(D.transpose()):
+        for chanval in chanvec:
+            rms[i] += chanval*chanval
+        rms[i] = math.sqrt(rms[i])
 
-        D = D[:, chanindx]
+    if debug > 1:
+        print rms
 
-        if low_pass or high_pass:
-            D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
-
-        rms = []
-        for i in range(0,len(chanindx)):
-            rms.append(0)
-
-        for i, chanvec in enumerate(D.transpose()):
-            for chanval in chanvec:
-                rms[i] += chanval*chanval
-            rms[i] = math.sqrt(rms[i])
-
-        if debug > 1:
-            print rms
-
-        for name, val in zip(channame, rms):
-            # send it as control value: prefix.channelX=val
-            key = "%s.%s" % (patch.getstring('output','prefix'), name)
-            val = int(127*val)
-            r.set(key, val)
-
-except (KeyboardInterrupt, SystemExit):
-    r.publish('RMS_UNBLOCK', 1)
-    sys.exit()
+    for name, val in zip(channame, rms):
+        # send it as control value: prefix.channelX=val
+        key = "%s.%s" % (patch.getstring('output','prefix'), name)
+        val = int(127*val)
+        r.set(key, val)

@@ -111,7 +111,7 @@ begsample = 0
 endsample = blocksize-1
 
 # the time axis per block remains the same, the phase linearly increases
-timevec  = np.arange(1, blocksize-1) / fsample
+timevec  = np.arange(1, blocksize+1) / fsample
 phasevec = np.zeros(1)
 
 print "STARTING STREAM"
