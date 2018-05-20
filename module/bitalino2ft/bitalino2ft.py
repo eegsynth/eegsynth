@@ -78,15 +78,20 @@ except:
 
 device    = patch.getstring('bitalino', 'device')
 fsample   = patch.getfloat('bitalino', 'fsample', default=1000)
-blocksize = patch.getfloat('bitalino', 'blocksize', default=10)
-channels  = patch.getint('bitalino', 'channels', multiple=True) # [0, 1, 2, 3, 4, 5]
+blocksize = patch.getint('bitalino', 'blocksize', default=10)
+channels  = patch.getint('bitalino', 'channels', multiple=True) # these should be one-offset
 nchans    = len(channels)
 batterythreshold = patch.getint('bitalino', 'batterythreshold', default=30)
 
 if debug > 0:
     print "fsample", fsample
+    print "channels", channels
     print "nchans", nchans
     print "blocksize", blocksize
+
+# switch from one-offset to zero-offset
+for i in range(nchans):
+    channels[i]-=1;
 
 datatype  = FieldTrip.DATATYPE_FLOAT32
 ft_output.putHeader(nchans, float(fsample), datatype)
@@ -94,18 +99,25 @@ ft_output.putHeader(nchans, float(fsample), datatype)
 try:
     # Connect to BITalino
     device = BITalino(device)
-    # Set battery threshold
-    device.battery(batterythreshold)
-    # Read BITalino version
-    print(device.version())
-    # Start Acquisition
-    device.start(fsample, channels)
-    # Turn BITalino led on
-    digitalOutput = [1,1]
-    device.trigger(digitalOutput)
 except:
     print "Error: cannot connect to BITalino"
     exit()
+
+# Read BITalino version
+print(device.version())
+
+# Set battery threshold
+device.battery(batterythreshold)
+
+# Start Acquisition
+device.start(fsample, channels)
+
+# Turn BITalino led on
+digitalOutput = [1,1]
+device.trigger(digitalOutput)
+
+startfeedback = time.time();
+countfeedback = 0;
 
 print "STARTING STREAM"
 while True:
@@ -113,12 +125,22 @@ while True:
     # measure the time that it takes
     start = time.time();
 
+    # read the selected channels from the
     dat = device.read(blocksize)
+    # it starts with 5 extra channels, the first is the sample number (running from 0 to 15), the next 4 seem to be binary
+    dat = dat[:,5:]
     # write the data to the output buffer
     ft_output.putData(dat.astype(np.float32))
 
-    if debug>0:
+    countfeedback += blocksize
+
+    if debug>1:
         print "streamed", blocksize, "samples in", (time.time()-start)*1000, "ms"
+    elif debug>0 and countfeedback>=fsample:
+        # this gets printed approximately once per second
+        print "streamed", countfeedback, "samples in", (time.time()-startfeedback)*1000, "ms"
+        startfeedback = time.time();
+        countfeedback = 0
 
 # Stop acquisition
 device.stop()
