@@ -103,3 +103,12 @@ sudo pip install pyqtgraph
 sudo pip install scipy
 sudo pip install matplotlib
 ```
+
+The plotting modules rely on PyQt4, which is a pain to install. It seems that on my mac011 with /opt/anaconda2/bin/python the following got it to work
+```
+brew tap cartr/qt4
+brew tap-pin cartr/qt4
+brew install cartr/qt4
+brew install pyside
+brew install cartr/qt4/pyqt
+```
