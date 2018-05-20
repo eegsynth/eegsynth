@@ -164,6 +164,8 @@ elif patch.hasitem('arguments', 'lowpass'):
 elif patch.hasitem('arguments', 'highpass'):
     freqrange = patch.getfloat('arguments', 'highpass')
     freqrange = [freqrange, np.nan]
+else:
+    freqrange = [np.nan, np.nan]
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -190,29 +192,36 @@ for ichan in range(chan_nrs):
     win.nextRow()
 
     # initialize as list
-    curvemax.append(0)
+    curvemax.append(0.0)
 
 def update():
    global curvemax, counter
 
-   # get last data
+   # get the last available data
    last_index = ft_input.getHeader().nSamples
-   begsample = (last_index-window)
+   begsample = (last_index-window) # the clipsize will be removed from both sides after filtering
    endsample = (last_index-1)
-   data = ft_input.getData([begsample, endsample])
+
    if debug > 0:
        print "reading from sample %d to %d" % (begsample, endsample)
 
-   # detrend data before filtering to reduce edge artefacts and center timecourse
-   data = detrend(data, axis=0)
+   data = ft_input.getData([begsample, endsample])
 
-   # user-defined filtering
-   if np.isnan(freqrange[0]):
-        data = butter_lowpass_filter(data.T, freqrange[1], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
-   elif np.isnan(freqrange[1]):
-        data = butter_highpass_filter(data.T, freqrange[0], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
-   else:
-        data = butter_bandpass_filter(data.T, freqrange[0], freqrange[1], int(hdr_input.fSample), filtorder).T[clipsize:-clipsize]
+   # detrend data before filtering to reduce edge artefacts and to center timecourse
+   if patch.getint('arguments', 'detrend', default=1):
+        data = detrend(data, axis=0)
+
+   # apply the user-defined filtering
+   if not np.isnan(freqrange[0]) and not np.isnan(freqrange[1]):
+        data = butter_bandpass_filter(data.T, freqrange[0], freqrange[1], int(hdr_input.fSample), filtorder).T
+   elif not np.isnan(freqrange[1]):
+        data = butter_lowpass_filter(data.T, freqrange[1], int(hdr_input.fSample), filtorder).T
+   elif not np.isnan(freqrange[0]):
+        data = butter_highpass_filter(data.T, freqrange[0], int(hdr_input.fSample), filtorder).T
+
+   # remove the filter padding
+   if clipsize>0:
+        data = data[clipsize:-clipsize]
 
    for ichan in range(chan_nrs):
         channr = int(chanarray[ichan])
@@ -224,7 +233,7 @@ def update():
         curve[ichan].setData(timeaxis,data[:,channr])
 
         # adapt the vertical scale to the running mean of max
-        curvemax[ichan] = float(curvemax[ichan])  * (1-lrate) + lrate * max(abs(data[:,ichan]))
+        curvemax[ichan] = curvemax[ichan]  * (1-lrate) + lrate * max(abs(data[:,ichan]))
         timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
 
 # Set timer for update
