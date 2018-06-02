@@ -23,6 +23,8 @@ if [ -e "/usr/bin/redis-server" ]; then
 else
   # on maci64
   COMMAND=`which redis-server`
+  CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
+  echo $CONFIG
 fi
 
 while getopts "hvi:" option; do
@@ -51,4 +53,4 @@ if [ ${VERBOSE} == 1 ] ; then
   echo PORT=$PORT
 fi
 
-${COMMAND} --port ${PORT}
+${COMMAND} ${CONFIG} --port ${PORT}
