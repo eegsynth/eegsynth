@@ -161,7 +161,7 @@ class patch():
                     val[i] = int(item)
                 except ValueError:
                     try:
-                        val[i] = int(self.redis.get(item))
+                        val[i] = int(round(float(self.redis.get(item))))
                     except TypeError:
                         val[i] = default
         else:
