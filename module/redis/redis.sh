@@ -1,88 +1,56 @@
 #!/bin/bash
+#
+# This will start the REDIS server according to the settings
+# in the specified or the default inifile.
+#
+# Use as
+#   redis.sh [-i <inifile>] [-h] [-v]
 
-PATH=/sbin:/bin:/usr/bin
-
-ini_parser () {
-  INIFILE="$1"
-  SECTION="$2"
-  ITEM="$3"
-  cat "$INIFILE" | sed -n /^\[$SECTION\]/,/^\[.*\]/p | grep "^[[:space:]]*$ITEM[[:space:]]*=" | sed s/.*=[[:space:]]*//
-}
+# include library with helper functions
+. "$(dirname "$0")/../../lib/EEGsynth.sh"
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
+BINDIR=$DIR/../../bin
 
-# helper files are stored in the directory containing this script
-PIDFILE="$DIR"/"$NAME".pid
-LOGFILE="$DIR"/"$NAME".log
-INIFILE="$DIR"/"$NAME".ini
+# set the default
+INIFILE=${DIR}/${NAME}.ini
+VERBOSE=0
 
 if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
   COMMAND="/usr/bin/redis-server"
 else
-  # on maci64, with macports
-  COMMAND="/opt/local/bin/redis-server"
+  # on maci64
+  COMMAND=`which redis-server`
+  CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
+  echo $CONFIG
 fi
 
-# OPTIONS="--port `ini_parser "$INIFILE" redis port`"
+while getopts "hvi:" option; do
+  case "${option}" in
+    i)
+      INIFILE=${OPTARG}
+      ;;
+    v)
+      VERBOSE=1
+      ;;
+    h)
+      echo "Use as: $0 [-i <inifile>] [-h] [-v]"
+      ;;
+    \?)
+      echo "Invalid option: -${OPTARG}" >&2
+      ;;
+  esac
+done
 
-log_action_msg () {
-  echo $* 1>&1
-}
+# this parses the ini file and creates local variables
+shini_parse $INIFILE
+PORT=$ini_redis_port
 
-log_action_err () {
-  echo $* 1>&2
-}
+if [ ${VERBOSE} == 1 ] ; then
+  echo INIFILE=$INIFILE
+  echo PORT=$PORT
+fi
 
-check_running_process () {
-  if [ ! -f "$PIDFILE" ]; then
-    return 1
-  else
-    kill -0 `cat "$PIDFILE"` 2> /dev/null
-    return $?
-  fi
-}
-
-do_start () {
-  log_action_msg "Starting $NAME"
-  check_running_process && log_action_err "Error: $NAME is already started" && exit 1
-  # start the process in the background
-  date > "$LOGFILE"
-  # ( "$COMMAND" "$OPTIONS" > "$LOGFILE" ) &
-  ( "$COMMAND" > "$LOGFILE" ) &
-  echo $! > "$PIDFILE"
-}
-
-do_stop () {
-  log_action_msg "Stopping $NAME"
-  check_running_process || log_action_err "Error: $NAME is already stopped"
-  check_running_process || exit 1
-  kill -9 `cat "$PIDFILE"`
-  rm "$PIDFILE"
-}
-
-do_status () {
-  check_running_process && YESNO=" " || YESNO=" not "
-  log_action_msg "$NAME is${YESNO}running"
-}
-
-case "$1" in
-  start)
-        do_start
-        ;;
-  restart)
-        check_running_process && do_stop
-        do_start
-        ;;
-  stop)
-        do_stop
-        ;;
-  status)
-        do_status
-        ;;
-  *)
-        echo "Usage: $0 start|stop|restart|status" >&2
-        exit 3
-        ;;
-esac
+${COMMAND} ${CONFIG} --port ${PORT}

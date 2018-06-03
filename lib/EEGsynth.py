@@ -1,8 +1,15 @@
-import os
-import sys
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import mido
-import OSC          # see https://trac.v2.nl/wiki/pyOSC
+import os
+import sys
+
+try:
+    # see https://trac.v2.nl/wiki/pyOSC
+    # this one is a bit difficult to install on Raspbian
+    import OSC
+except:
+    # this means that midiosc is not supported as midi backend
+    print "Warning: pyOSC not found"
 
 ###################################################################################################
 class midiwrapper():
@@ -84,105 +91,133 @@ class midiwrapper():
             raise NameError('unsupported backend: ' + self.backend)
 
 
-####################################################################
-# The formatting of the item in the ini file should be like this
-#   item=1            this returns 1
-#   item=key          get the value of the key from redis
-# or if multiple is True
-#   item=1-20         this returns [1,20]
-#   item=1,2,3        this returns [1,2,3]
-#   item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
-#   item=key1,key2    get the value of key1 and key2 from redis
-#   item=key1,5       get the value of key1 from redis
-#   item=0,key2       get the value of key2 from redis
-def getfloat(section, item, config, redis, multiple=False, default=None):
+class patch():
+    """Class to provide a generalized interface for patching modules using
+    configuration files and Redis.
 
-    if config.has_option(section, item):
-        # get all items from the ini file, there might be one or multiple
-        items = config.get(section, item)
-        items = items.replace(' ', '')         # remove whitespace
-        if items[0]!='-':
-            items = items.replace('-', ',')    # replace minus separators by commas
-        items = items.split(',')               # split on the commas
-        val = [None]*len(items)
+    The formatting of the item in the ini file should be like this
+      item=1            this returns 1
+      item=key          get the value of the key from redis
+    or if multiple is True
+      item=1-20         this returns [1,20]
+      item=1,2,3        this returns [1,2,3]
+      item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
+      item=key1,key2    get the value of key1 and key2 from redis
+      item=key1,5       get the value of key1 from redis
+      item=0,key2       get the value of key2 from redis
+    """
 
-        for i,item in enumerate(items):
-            # replace the item with the actual value
-            try:
-                val[i] = float(item)
-            except ValueError:
+    def __init__(self, c, r):
+        self.config = c
+        self.redis  = r
+
+    def getfloat(self, section, item, multiple=False, default=None):
+        if  self.config.has_option(section, item):
+            # get all items from the ini file, there might be one or multiple
+            items = self.config.get(section, item)
+            items = items.replace(' ', '')         # remove whitespace
+            if items[0]!='-':
+                items = items.replace('-', ',')    # replace minus separators by commas
+            items = items.split(',')               # split on the commas
+            val = [None]*len(items)
+
+            for i,item in enumerate(items):
+                # replace the item with the actual value
                 try:
-                    val[i] = float(redis.get(item))
-                except TypeError:
-                    val[i] = default
-    else:
-        val = [default]
+                    val[i] = float(item)
+                except ValueError:
+                    try:
+                        val[i] = float(self.redis.get(item))
+                    except TypeError:
+                        val[i] = default
+        else:
+            if default != None:
+                val = [float(default)]
+            else:
+                val = [default]
 
-    if multiple:
-        # return it as list
-        return val
-    else:
-        # return a single value
-        return val[0]
+        if multiple:
+            # return it as list
+            return val
+        else:
+            # return a single value
+            return val[0]
 
-####################################################################
-def getint(section, item, config, redis, multiple=False, default=None):
+    ####################################################################
+    def getint(self, section, item, multiple=False, default=None):
 
-    if config.has_option(section, item):
-        # get all items from the ini file, there might be one or multiple
-        items = config.get(section, item)
-        items = items.replace(' ', '')         # remove whitespace
-        if items[0]!='-':
-            items = items.replace('-', ',')    # replace minus separators by commas
-        items = items.split(',')               # split on the commas
-        val = [None]*len(items)
+        if self.config.has_option(section, item):
+            # get all items from the ini file, there might be one or multiple
+            items = self.config.get(section, item)
+            items = items.replace(' ', '')         # remove whitespace
+            if items[0]!='-':
+                items = items.replace('-', ',')    # replace minus separators by commas
+            items = items.split(',')               # split on the commas
+            val = [None]*len(items)
 
-        for i,item in enumerate(items):
-            # replace the item with the actual value
-            try:
-                val[i] = int(item)
-            except ValueError:
+            for i,item in enumerate(items):
+                # replace the item with the actual value
                 try:
-                    val[i] = int(redis.get(item))
-                except TypeError:
-                    val[i] = default
-    else:
-        val = [default]
+                    val[i] = int(item)
+                except ValueError:
+                    try:
+                        val[i] = int(round(float(self.redis.get(item))))
+                    except TypeError:
+                        val[i] = default
+        else:
+            if default != None:
+                val = [int(default)]
+            else:
+                val = [default]
 
-    if multiple:
-        # return it as list
-        return val
-    else:
-        # return a single value
-        return val[0]
+        if multiple:
+            # return it as list
+            return val
+        else:
+            # return a single value
+            return val[0]
+
+    ####################################################################
+    def getstring(self, section, item, multiple=False):
+        # get one items from the ini file
+        # multiple items and default values are not yet supported
+        return self.config.get(section, item)
+
+    ####################################################################
+    def hasitem(self, section, item):
+        # check whether an item is present in the ini file
+        return self.config.has_option(section, item)
 
 ####################################################################
 def rescale(xval, slope=None, offset=None):
     if hasattr(xval, "__iter__"):
         return [rescale(x, slope, offset) for x in xval]
     else:
-        if slope is None:
-            slope = 1
-        if offset is None:
-            offset = 0
-        return float(slope)*xval + float(offset)
+        if slope==None:
+            slope = 1.0
+        if offset==None:
+            offset = 0.0
+        return float(slope)*float(xval) + float(offset)
 
 ####################################################################
 def limit(xval, lo=0.0, hi=127.0):
     if hasattr(xval, "__iter__"):
-        return [clip(x, lower, upper) for x in xval]
+        return [limit(x, lo, hi) for x in xval]
     else:
-        if xval<lower:
-            return lower
-        elif xval>upper:
-            return upper
+        xval = float(xval)
+        lo = float(lo)
+        hi = float(hi)
+        if xval < lo:
+            return lo
+        elif xval > hi:
+            return hi
         else:
             return xval
 
 ####################################################################
 def compress(xval, lo=63.5, hi=63.5, range=127.0):
     if hasattr(xval, "__iter__"):
-        return [limiter(x, lo, hi, range) for x in xval]
+        return [compress(x, lo, hi, range) for x in xval]
     else:
         xval  = float(xval)
         lo    = float(lo)
@@ -218,3 +253,15 @@ def compress(xval, lo=63.5, hi=63.5, range=127.0):
           yval = range
 
         return yval
+
+####################################################################
+def normalizerange(xval, min, max):
+    min = float(min)
+    max = float(max)
+    return (float(xval)-min)/(max-min)
+
+####################################################################
+def normalizestandard(xval, avg, std):
+    avg = float(avg)
+    std = float(std)
+    return (float(xval)-avg)/std

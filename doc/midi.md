@@ -4,31 +4,29 @@ For the EEGsynth we are developing and testing with a variety of hardware, some 
 
 ## Hardware
 
-- Novation Launch Control XL
-- Korg Volca Beats
-- Korg Volca Bass
-- Korg Volca Keys
+- Novation Launch Control, Launch Control XL and Launchpad
+- Korg Volca Beats, Bass and Keys
 - Yamaha P-95 digital piano (keyboard)
 - Arturio Microbrute
-- Endorphin.es Shuttle Control
+- Endorphines Shuttle Control
 - USB-MIDI converter cable from Ebay
 
 ## Software and programming interfaces
 
 The MIDI interfaces may show up differently, depending on the computer to which you connect the MIDI device, and depending on the software used on that computer.
 
-The software interface to MIDI devices is often implemented over multiple layers. E.g. on OS X the EEGsynth Python modules connect with the hardware like this:
+The software interface to MIDI devices is often implemented over multiple layers. E.g. on OS X the EEGsynth modules connect with the hardware like this:
 
 eegsynth->python->mido->portmidi->coremidi->hardware
 
 ### RtMidi
 
-This is a programming library that is supported on Linux, OS X and Windows.
+This is a C++ programming library that is supported on Linux, OS X and Windows.
 See https://www.music.mcgill.ca/~gary/rtmidi/
 
 ### PortMidi
 
-This is a programming library that is supported on Linux, OS X and Windows.
+This is a C++ programming library that is supported on Linux, OS X and Windows.
 See http://portmedia.sourceforge.net/portmidi/
 
 ### Core MIDI
@@ -41,10 +39,15 @@ See https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/C
 This is a Python package that can use either the PortMidi interface or the RtMidi interface.
 See https://mido.readthedocs.org
 
-### Python/RtMidi
+### Python-RtMidi
 
-This is a Python package for the RtMidi interface.
+This is a Python package for RtMidi.
 See https://pypi.python.org/pypi/python-rtmidi
+
+### RtMidi-Python
+
+Another Python wrapper for RtMidi. For Linux, Mac OS X and Windows. This uses the same API as RtMidi, only reformatted to comply with PEP-8, and with small changes to make it a little more pythonic.
+See https://pypi.python.org/pypi/rtmidi-python
 
 ### MidiOSC
 

@@ -1,11 +1,35 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
-import redis
+# Preprocessing performs basic signal processing to data in a FieldTrip buffer,
+# and puts this in a second FieldTrip buffer for further processing.
+#
+# Preprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+#
+# Copyright (C) 2017 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from copy import copy
+from numpy.matlib import repmat
+from scipy.ndimage import convolve1d
+from scipy.signal import firwin, decimate
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import argparse
 import numpy as np
+import os
+import sys
+import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -20,15 +44,33 @@ sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
 import EEGsynth
 import FieldTrip
 
-config = ConfigParser.ConfigParser()
-config.read(os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'))
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+args = parser.parse_args()
 
-# this determines how much debugging information gets printed
-debug = config.getint('general','debug')
+config = ConfigParser.ConfigParser()
+config.read(args.inifile)
 
 try:
-    ftc_host = config.get('input_fieldtrip','hostname')
-    ftc_port = config.getint('input_fieldtrip','port')
+    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    response = r.client_list()
+except redis.ConnectionError:
+    print "Error: cannot connect to redis server"
+    exit()
+
+# combine the patching from the configuration file and Redis
+patch = EEGsynth.patch(config, r)
+del config
+
+# this determines how much debugging information gets printed
+debug = patch.getint('general','debug')
+
+# this is the timeout for the FieldTrip buffer
+timeout = patch.getfloat('input_fieldtrip','timeout')
+
+try:
+    ftc_host = patch.getstring('input_fieldtrip','hostname')
+    ftc_port = patch.getint('input_fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_input = FieldTrip.Client()
@@ -40,8 +82,8 @@ except:
     exit()
 
 try:
-    ftc_host = config.get('output_fieldtrip','hostname')
-    ftc_port = config.getint('output_fieldtrip','port')
+    ftc_host = patch.getstring('output_fieldtrip','hostname')
+    ftc_port = patch.getint('output_fieldtrip','port')
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_output = FieldTrip.Client()
@@ -53,121 +95,159 @@ except:
     exit()
 
 hdr_input = None
+start = time.time()
 while hdr_input is None:
     if debug>0:
         print "Waiting for data to arrive..."
+    if (time.time()-start)>timeout:
+        print "Error: timeout while waiting for data"
+        raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
+if debug>0:
+    print "Data arrived"
 if debug>1:
     print hdr_input
     print hdr_input.labels
 
-# get the input and output options
-input_number, input_channel = map(list, zip(*config.items('input_channel')))
-output_number, output_channel = map(list, zip(*config.items('output_channel')))
-montage_number, montage_equation = map(list, zip(*config.items('montage')))
-# convert to integer and make the indices zero-offset
-input_number = [int(number)-1 for number in input_number]
-output_number = [int(number)-1 for number in output_number]
-montage_number = [int(number)-1 for number in montage_number]
-
-def sanitize(equation):
-    equation = equation.replace('(', '( ')
-    equation = equation.replace(')', ' )')
-    equation = equation.replace('+', ' + ')
-    equation = equation.replace('-', ' - ')
-    equation = equation.replace('*', ' * ')
-    equation = equation.replace('/', ' / ')
-    equation = equation.replace('  ', ' ')
-    return equation
-
-# make the equations robust against sub-string replacements
-montage_equation = [sanitize(equation) for equation in montage_equation]
-
-# ensure that all input channels have a label
-nInputs = hdr_input.nChannels
-if len(hdr_input.labels)==0:
-    for i in range(nInputs):
-        hdr_input.labels.append('{}'.format(i+1))
-# update the labels with the ones specified in the ini file
-for number,channel in zip(input_number, input_channel):
-    if number<nInputs:
-        hdr_input.labels[number] = channel
-# update the input channel specification
-input_number = range(nInputs)
-input_channel = hdr_input.labels
-
-# ensure that all output channels have a label
-nOutputs = max(output_number+montage_number)+1
-tmp = ['{}'.format(i+1) for i in range(nOutputs)]
-for number,channel in zip(output_number, output_channel):
-    tmp[number] = channel
-# update the output channel specification
-output_number = range(nOutputs)
-output_channel = tmp
-
-if debug>0:
-    print '===== input channels ====='
-    for number,channel in zip(input_number, input_channel):
-        print number, '=', channel
-    print '===== output channels ====='
-    for number,channel in zip(output_number, output_channel):
-        print number, '=', channel
-
-identity = np.identity(nInputs, dtype=np.float32)
-montage  = np.zeros((nInputs,nOutputs), dtype=np.float32)
-previous = np.zeros((1,nOutputs)) # for exponential smoothing
-
-# construct a weighting matrix to map input to output data
-# replace the channel names in the output equation with the corresponding column of the identity matrix
-for index,equation in zip(montage_number,montage_equation):
-    for number,channel in zip(input_number, input_channel):
-        equation = equation.replace(channel, 'identity[:,{}]'.format(number))
-    montage[:,index] = eval(equation)
-
-if debug>0:
-    print '======== montage ========='
-    for number,equation in zip(montage_number, montage_equation):
-        print number, '=', equation
-
-if debug>1:
-    print '======== montage ========='
-    print montage
-
-smoothing = config.getfloat('processing','smoothing')
-window = config.getfloat('processing','window')
+window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
-begsample = -1
-while begsample<0:
-    # wait until there is enough data
-    hdr_input = ft_input.getHeader()
-    # jump to the end of the stream
-    begsample = int(hdr_input.nSamples - window)
-    endsample = int(hdr_input.nSamples - 1)
+ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
-ft_output.putHeader(nOutputs, hdr_input.fSample, hdr_input.dataType, labels=output_channel)
 
+# downsample init
+try:
+    downsample = patch.getfloat('processing', 'downsample')
+except:
+    downsample = None
+
+# smoothing init
+try:
+    smoothing = patch.getfloat('processing', 'smoothing')
+except:
+    smoothing = None
+
+reference = patch.getstring('processing','reference')
+
+# Filtering init
+try:
+    lowpassfilter = patch.getfloat('processing', 'lowpassfilter')/hdr_input.fSample
+except:
+    lowpassfilter = None
+
+try:
+    highpassfilter = patch.getfloat('processing', 'highpassfilter')/hdr_input.fSample
+except:
+    highpassfilter = None
+
+try:
+    filterorder = patch.getint('processing', 'filterorder')
+except:
+    filterorder = None
+
+# Low pass
+if not(lowpassfilter is None) and (highpassfilter is None):
+    fir_poly = firwin(filterorder, cutoff = lowpassfilter, window = "hamming")
+# High pass
+if not(highpassfilter is None) and (lowpassfilter is None):
+    fir_poly = firwin(filterorder, cutoff = highpassfilter, window = "hanning", pass_zero=False)
+# Band pass
+if not(highpassfilter is None) and not(lowpassfilter is None):
+    fir_poly = firwin(filterorder, cutoff = [highpassfilter, lowpassfilter], window = 'blackmanharris', pass_zero = False)
+
+def onlinefilter(fil_state, in_data):
+    m = in_data.shape[0]
+    n = len(fir_poly)
+    fil_state = np.concatenate((fil_state, np.atleast_2d(in_data)), axis=0)
+    fil_data = convolve1d(fil_state, fir_poly)
+    return fil_state[-n:, :], fil_data[-m:, :]
+
+# initialize the state for the smoothing
+previous = np.zeros((1, hdr_input.nChannels))
+
+# initialize the state for the filtering
+if not(highpassfilter is None) or not(lowpassfilter is None):
+    fil_state = np.zeros((filterorder, hdr_input.nChannels))
+
+# jump to the end of the stream
+if hdr_input.nSamples-1<window:
+    begsample = 0
+    endsample = window-1
+else:
+    begsample = hdr_input.nSamples-window
+    endsample = hdr_input.nSamples-1
+
+print "STARTING PREPROCESSING STREAM"
 while True:
+    start = time.time()
 
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
-        time.sleep(config.getfloat('general', 'delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
+        if (hdr_input.nSamples-1)<(endsample-window):
+            print "Error: buffer reset detected"
+            raise SystemExit
+        if (time.time()-start)>timeout:
+            print "Error: timeout while waiting for data"
+            raise SystemExit
+
+    # determine the start of the actual processing
+    start = time.time()
+
+    dat_input  = ft_input.getData([begsample, endsample])
+    dat_output = dat_input.astype(np.float32)
 
     if debug>1:
-        print endsample
+        print "------------------------------------------------------------"
+        print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
 
-    dat_input = ft_input.getData([begsample, endsample])
-    dat_output = dat_input.dot(montage).astype(np.float32)
+    # Downsampling
+    if not(downsample is None):
+        dat_output = decimate(dat_output, downsample, ftype='iir', axis=0, zero_phase=True)
+        window_new = int(window / downsample)
+        if debug>1:
+            print "downsampled ", window, "samples in", (time.time()-start)*1000, "ms"
+    else:
+        window_new = window
 
-    for t in range(window):
-        dat_output[t,:] = smoothing * dat_output[t,:] + (1.-smoothing)*previous
-        previous = dat_output[t,:]
+    # Smoothing
+    if not(smoothing is None):
+        for t in range(window):
+            dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
+            previous = copy(dat_output[t, :])
+        if debug>1:
+            print "smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms"
+
+    # Online filtering
+    if not(highpassfilter is None) or not(lowpassfilter is None):
+        fil_state, dat_output = onlinefilter(fil_state, dat_output)
+        if debug>1:
+            print "filtered    ", window_new, "samples in", (time.time()-start)*1000, "ms"
+
+    # Rereferencing
+    if reference == 'median':
+        dat_output -= repmat(np.nanmedian(dat_output, axis=1),
+                             dat_output.shape[1], 1).T
+        if debug>1:
+            print "rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms"
+
+    elif reference == 'average':
+        dat_output -= repmat(np.nanmean(dat_output, axis=1),
+                             dat_output.shape[1], 1).T
+        if debug>1:
+            print "rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # write the data to the output buffer
-    ft_output.putData(dat_output)
+    ft_output.putData(dat_output.astype(np.float32))
+
+    if debug==1:
+        print "preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms"
+    if debug>1:
+        print "wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms"
+
     # increment the counters for the next loop
     begsample += window
     endsample += window

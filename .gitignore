@@ -1,11 +1,17 @@
 # Misc files
+patches/test
 bin/buffer
 bin/openbci2ft
+bin/jaga2ft
+bin/gtec2ft
+bin/ft2audio
 dump.rdb
 interface/node_modules
 *.pid
 *.log
 *.pyc
+*.edf
+.DS_Store
 
 # Backup files
 *.m~

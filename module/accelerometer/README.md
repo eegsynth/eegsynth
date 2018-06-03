@@ -1,5 +1,4 @@
-Accelerometer Module
-====================
+# Accelerometer Module
 
 The goal of this module is to read the OpenBCI accelerometer channels from the FieldTrip bufferwrite them as a continuous control value to the REDIS buffer.
 
@@ -11,4 +10,4 @@ The REDIS buffer should be running.
 ## Software Requirements
 
 Python 2.x
-Redis package for Python
+Redis
