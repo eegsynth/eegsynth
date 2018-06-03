@@ -157,9 +157,12 @@ class TriggerThread(threading.Thread):
 wiringpi.wiringPiSetup()
 
 # set up PWM for the control channels
+previous_val = {}
 for gpio, channel in config.items('control'):
-    wiringpi.softPwmCreate(pin[gpio], 0, 100)
     print "control", channel, gpio
+    wiringpi.softPwmCreate(pin[gpio], 0, 100)
+    # control values are only relevant when different from the previous value
+    previous_val[gpio] = None
 
 # create the threads that deal with the triggers
 trigger = []
@@ -176,10 +179,6 @@ for gpio, channel in config.items('trigger'):
 for thread in trigger:
     thread.start()
 
-# control values are only relevant when different from the previous value
-previous_val = {}
-for name in control_name:
-    previous_val[name] = None
 
 try:
     while True:
@@ -189,9 +188,9 @@ try:
             val = patch.getfloat('control', gpio)
             if val == None:
                 continue # it should be skipped when not present
-            if val == previous_val[name]:
+            if val == previous_val[gpio]:
                 continue # it should be skipped when identical to the previous value
-            previous_val[name] = val
+            previous_val[gpio] = val
             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
             val = EEGsynth.limit(val, 0, 100)
             val = int(val)
