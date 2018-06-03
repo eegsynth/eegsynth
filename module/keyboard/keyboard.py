@@ -114,7 +114,6 @@ offset_duration = patch.getfloat('offset', 'duration', default=0)
 output_scale  = patch.getfloat('output', 'scale', default=0.00787401574803149606)
 output_offset = patch.getfloat('output', 'offset', default=0)
 
-
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
