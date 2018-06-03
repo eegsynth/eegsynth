@@ -1,4 +1,4 @@
-# Keyboard Module
+# Output GPIO Module
 
 The purpose of this module is to transform control signals and published events
 from Redis to the GPIO pins of a Raspberry Pi.
@@ -34,10 +34,8 @@ odd pins of the header and the right side of the table to the even pins.
 |     |     |      0v |   39   |   40   | GPIO.29 | 29  | 21  |
 
 
-The MIDI commands received from the piano corresponding to keys that are pressed are translated into a single control value representing the pitch. The force with which the key is pressed is send as trigger for each of the keys. Both the control value and the trigger are send to the REDIS buffer. You can filter on key press and release events.
-
 # Requirements
 
 Redis should be running.
 
-This module should be started on a Raspberry Pi and [WiringPi](http://wiringpi.com/download-and-install/) should be installed.
+This module should be started on a Raspberry Pi on which [WiringPi](http://wiringpi.com/download-and-install/) should be installed.
