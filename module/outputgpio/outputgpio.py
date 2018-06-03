@@ -77,21 +77,39 @@ pin = {
    "gpio29": 29,
 }
 
-
 # this determines how much debugging information gets printed
-debug        = patch.getint('general','debug')
-delay        = patch.getfloat('general','delay')
-input_scale  = patch.getfloat('input', 'scale', default=100)
-input_offset = patch.getfloat('input', 'offset', default=0)
+debug           = patch.getint('general','debug')
+delay           = patch.getfloat('general','delay')
+input_scale     = patch.getfloat('input', 'scale', default=100)
+input_offset    = patch.getfloat('input', 'offset', default=0)
+duration_scale  = patch.getfloat('duration', 'scale', default=1)  # values between 0 and 1 are quite nice
+duration_offset = patch.getfloat('duration', 'offset', default=0)
 
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
 
+def SwitchOn(gpio):
+    lock.acquire()
+    val = 1
+    if debug>1:
+        print gpio, pin[gpio], val
+    wiringpi.digitalWrite(pin[gpio], val)
+    lock.release()
+
+def SwitchOff(gpio):
+    lock.acquire()
+    val = 0
+    if debug>1:
+        print gpio, pin[gpio], val
+    wiringpi.digitalWrite(pin[gpio], val)
+    lock.release()
+
 class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, gpio):
+    def __init__(self, redischannel, gpio, duration):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
         self.gpio = gpio
+        self.duration = duration
         self.running = True
     def stop(self):
         self.running = False
@@ -103,16 +121,25 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                print item
                 if item['channel']==self.redischannel:
-                    # the trigger value should also be saved
-                    val = item['data']
-                    val = int(EEGsynth.rescale(val, slope=input_scale, offset=input_offset))
-                    lock.acquire()
-                    wiringpi.digitalWrite(pin[self.gpio], val)
-                    lock.release()
-                    if debug>1:
-                      print self.gpio, pin[self.gpio], val
+                    if self.duration == None:
+                        # switch to the value specified in the event
+                        val = item['data']
+                        val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                        val = int(val)
+                        if debug>1:
+                            print self.gpio, pin[self.gpio], val
+                        lock.acquire()
+                        wiringpi.digitalWrite(pin[self.gpio], val)
+                        lock.release()
+                    else:
+                        # switch on and schedule a timer to switch off after the specified duration
+                        SwitchOn(self.gpio)
+                        duration = patch.getfloat('duration', self.gpio)
+                        duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+                        duration = EEGsynth.limit(duration, 0.05, float('Inf')) # some minimal time is needed for the delay
+                        t = threading.Timer(duration, SwitchOff, args=[self.gpio])
+                        t.start()
 
 # use the WiringPi numbering, see http://wiringpi.com/reference/setup/
 wiringpi.wiringPiSetup()
@@ -126,7 +153,11 @@ for gpio,channel in config.items('control'):
 trigger = []
 for gpio,channel in config.items('trigger'):
     wiringpi.pinMode(pin[gpio], 1)
-    trigger.append(TriggerThread(channel, gpio))
+    try:
+        duration = patch.getstring('duration', gpio)
+    except:
+        duration = None
+    trigger.append(TriggerThread(channel, gpio, duration))
     print "trigger", channel, gpio
 
 # start the thread for each of the triggers
