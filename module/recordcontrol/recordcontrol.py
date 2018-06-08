@@ -25,7 +25,7 @@ import os
 import redis
 import sys
 import time
-import time
+import wave
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -39,6 +39,11 @@ installed_folder = os.path.split(basis)[0]
 sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 import EDF
+
+MININT16 = -np.power(2, 15)
+MAXINT16 = np.power(2, 15) - 1
+MININT32 = -np.power(2, 31)
+MAXINT32 = np.power(2, 31) - 1
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
@@ -61,9 +66,18 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
+# this determines frequency at which the control values are sampled
+delay = patch.getfloat('general', 'delay')
+
+try:
+    fileformat = patch.getstring('recording', 'format')
+except:
+    fname = patch.getstring('recording', 'file')
+    name, ext = os.path.splitext(fname)
+    fileformat = ext[1:]
+
 filenumber = 0
 recording = False
-delay = patch.getfloat('general', 'delay')
 adjust = 1
 
 while True:
@@ -88,10 +102,17 @@ while True:
         fname = patch.getstring('recording', 'file')
         name, ext = os.path.splitext(fname)
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
+        # the blocksize is always 1
+        blocksize = 1
+        synchronize = int(patch.getfloat('recording', 'synchronize') / delay )
+        assert (synchronize % blocksize) == 0, "synchronize should be multiple of blocksize"
+
         # get the details from Redis
         channels = sorted(r.keys('*'))
         channelz = sorted(r.keys('*'))
         nchans = len(channels)
+        # this is to keep track of the number of samples written so far
+        sample = 0
 
         # search-and-replace to reduce the length of the channel labels
         for replace in config.items('replace'):
@@ -101,41 +122,77 @@ while True:
         for s, z in zip(channels, channelz):
             print "Writing control value", s, "as channel", z
 
-        # construct the header
-        meas_info = {}
-        chan_info = {}
-        meas_info['record_length'] = delay
-        meas_info['nchan'] = nchans
-        recstart = datetime.datetime.now()
-        meas_info['year'] = recstart.year
-        meas_info['month'] = recstart.month
-        meas_info['day'] = recstart.day
-        meas_info['hour'] = recstart.hour
-        meas_info['minute'] = recstart.minute
-        meas_info['second'] = recstart.second
-        chan_info['physical_min'] = nchans * [patch.getfloat('recording', 'physical_min')]
-        chan_info['physical_max'] = nchans * [patch.getfloat('recording', 'physical_max')]
-        chan_info['digital_min'] = nchans * [-32768]
-        chan_info['digital_max'] = nchans * [32768]
-        chan_info['ch_names'] = channelz
-        chan_info['n_samps'] = nchans * [1]
+        # these are required for mapping floating point values onto 16 bit integers
+        physical_min = patch.getfloat('recording', 'physical_min')
+        physical_max = patch.getfloat('recording', 'physical_max')
+
         # write the header to file
         if debug > 0:
             print "Opening", fname
-        f = EDF.EDFWriter(fname)
-        f.writeHeader((meas_info, chan_info))
+        if fileformat == 'edf':
+            # construct the header
+            meas_info = {}
+            chan_info = {}
+            meas_info['record_length'] = delay
+            meas_info['nchan'] = nchans
+            recstart = datetime.datetime.now()
+            meas_info['year'] = recstart.year
+            meas_info['month'] = recstart.month
+            meas_info['day'] = recstart.day
+            meas_info['hour'] = recstart.hour
+            meas_info['minute'] = recstart.minute
+            meas_info['second'] = recstart.second
+            chan_info['physical_min'] = nchans * [physical_min]
+            chan_info['physical_max'] = nchans * [physical_max]
+            chan_info['digital_min'] = nchans * [MININT16]
+            chan_info['digital_max'] = nchans * [MAXINT16]
+            chan_info['ch_names'] = channelz
+            chan_info['n_samps'] = nchans * [1]
+            f = EDF.EDFWriter(fname)
+            f.writeHeader((meas_info, chan_info))
+        elif fileformat == 'wav':
+            f = wave.open(fname, 'w')
+            f.setnchannels(nchans)
+            f.setnframes(0)
+            f.setsampwidth(4)  # 1, 2 or 4
+            f.setframerate(1. / delay)
+        else:
+            raise NotImplementedError('unsupported file format')
 
     if recording:
         D = []
         for chan in channels:
-            xval = EEGsynth.limit(r.get(chan), patch.getfloat('recording', 'physical_min'),
-                                  patch.getfloat('recording', 'physical_max'))
+            xval = r.get(chan)
+            try:
+                xval = float(xval)
+            except ValueError:
+                xval = 0.
+            xval = EEGsynth.limit(xval, physical_min, physical_max)
             D.append([xval])
+        sample += 1
+
+        if (sample % synchronize) == 0:
+            r.publish("recordcontrol.synchronize", sample)
 
         if debug > 1:
             print "Writing", D
+        elif debug > 0:
+            print "Writing sample", sample, "as", np.shape(D)
 
-        f.writeBlock(D)
+
+        if fileformat == 'edf':
+            f.writeBlock(D)
+        elif fileformat == 'wav':
+            D = np.asarray(D)
+            for x in D:
+                # scale the floating point values between -1 and 1
+                y = x / ((physical_max - physical_min) / 2. )
+                # scale the floating point values between MININT32 and MAXINT32
+                y = y * ((float(MAXINT32) - float(MININT32)) / 2.)
+                # convert them to packed binary data
+                z = "".join((wave.struct.pack('i', item) for item in y))
+                f.writeframes(z)
+
         time.sleep(adjust * delay)
 
         elapsed = time.time() - now
