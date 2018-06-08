@@ -62,7 +62,7 @@ debug        = patch.getint('general','debug')
 delay        = patch.getfloat('general','delay')
 input_scale  = patch.getfloat('input', 'scale', default=1)
 input_offset = patch.getfloat('input', 'offset', default=0)
-
+fileformat   = 'tsv'
 
 # this is to prevent two triggers from being saved at the same time
 lock = threading.Lock()
@@ -133,11 +133,14 @@ try:
             # open a new file
             fname = patch.getstring('recording', 'file')
             name, ext = os.path.splitext(fname)
+            if len(ext) == 0:
+                ext = '.' + fileformat
             fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
             if debug>0:
                 print "Recording enabled - opening", fname
             f = open(fname, 'w')
             f.write("event\tvalue\ttimestamp\n")
+            f.flush()
 
 
 except KeyboardInterrupt:
