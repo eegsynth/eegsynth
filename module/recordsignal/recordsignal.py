@@ -75,6 +75,13 @@ debug = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout')
 
 try:
+    fileformat = patch.getstring('recording', 'format')
+except:
+    fname = patch.getstring('recording', 'file')
+    name, ext = os.path.splitext(fname)
+    fileformat = ext[1:]
+
+try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
     ftc_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
@@ -105,16 +112,6 @@ if debug > 1:
     print hdr_input.labels
 
 recording = False
-
-physical_min = patch.getfloat('recording', 'physical_min')
-physical_max = patch.getfloat('recording', 'physical_max')
-
-try:
-    fileformat = patch.getstring('recording', 'format')
-except:
-    fname = patch.getstring('recording', 'file')
-    name, ext = os.path.splitext(fname)
-    fileformat = ext[1:]
 
 while True:
     hdr_input = ftc.getHeader()
@@ -148,6 +145,13 @@ while True:
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # the blocksize depends on the sampling rate, which may have changed
         blocksize = int(patch.getfloat('recording', 'blocksize') * hdr_input.fSample)
+        synchronize = int(patch.getfloat('recording', 'synchronize') * hdr_input.fSample)
+        assert (synchronize % blocksize) == 0, "synchronize should be multiple of blocksize"
+
+        # these are required for mapping floating point values onto 16 bit integers
+        physical_min = patch.getfloat('recording', 'physical_min')
+        physical_max = patch.getfloat('recording', 'physical_max')
+
         # write the header to file
         if debug > 0:
             print "Opening", fname
@@ -181,6 +185,7 @@ while True:
             f.setframerate(hdr_input.fSample)
         else:
             raise NotImplementedError('unsupported file format')
+
         # determine the starting point for recording
         if hdr_input.nSamples > blocksize:
             endsample = hdr_input.nSamples - 1
@@ -188,6 +193,8 @@ while True:
         else:
             endsample = blocksize - 1
             begsample = endsample - blocksize + 1
+        # remember the sample from the data stream at which the recording started
+        startsample = begsample
 
     if recording and hdr_input.nSamples < begsample - 1:
         if debug > 0:
@@ -197,12 +204,16 @@ while True:
         continue
 
     if recording and endsample > hdr_input.nSamples - 1:
+        # the data is not yet available
         if debug > 2:
             print "Waiting for data", endsample, hdr_input.nSamples
         time.sleep((endsample - hdr_input.nSamples) / hdr_input.fSample)
         continue
 
     if recording:
+        # the data is available, send a synchronization trigger prior to reading the data
+        if ((endsample - startsample + 1) % synchronize) == 0:
+            r.publish("recordsignal.synchronize", endsample - startsample + 1)
         D = ftc.getData([begsample, endsample])
         if debug > 0:
             print "Writing sample", begsample, "to", endsample, "as", np.shape(D)
