@@ -20,11 +20,11 @@ VERBOSE=0
 if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
   COMMAND="/usr/bin/redis-server"
+  CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
 else
   # on maci64
   COMMAND=`which redis-server`
   CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
-  echo $CONFIG
 fi
 
 while getopts "hvi:" option; do
@@ -53,4 +53,4 @@ if [ ${VERBOSE} == 1 ] ; then
   echo PORT=$PORT
 fi
 
-${COMMAND} ${CONFIG} --port ${PORT}
+${COMMAND} --port ${PORT}
