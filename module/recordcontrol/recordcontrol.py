@@ -101,6 +101,8 @@ while True:
         # open a new file
         fname = patch.getstring('recording', 'file')
         name, ext = os.path.splitext(fname)
+        if len(ext) == 0:
+            ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # the blocksize is always 1
         blocksize = 1
