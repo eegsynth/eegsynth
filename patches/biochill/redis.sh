@@ -17,4 +17,4 @@ else
 fi
 
 echo starting \"redis-server $CONFIG\"
-redis-server $CONFIG --loglevel verbose
+redis-server $CONFIG
