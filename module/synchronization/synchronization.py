@@ -100,7 +100,7 @@ class ClockThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
-        self.rate = 60              # the rate is in bpm, i.e. quarternotes per minute
+        self.rate = 60              # the rate is in bpm, i.e. quarter notes per minute
     def setRate(self, rate):
         with lock:
             self.rate = rate
@@ -177,8 +177,8 @@ class SerialThread(threading.Thread):
                     for tick in [clock[i] for i in step]:
                         tick.wait()
                         serialport.write('*g1v1#')      # enable the analog gate
-                        if pulselength>0:
-                            time.sleep(pulselength)
+                        if duration>0:
+                            time.sleep(duration)
                         serialport.write('*g1v0#')      # disable the analog gate
             else:
                 time.sleep(patch.getfloat('general', 'delay'))
@@ -310,10 +310,10 @@ try:
         elif multiply<1:
             multiply = 1.0/round(1.0/multiply);
 
-        # this is for the analog trigger, expressed in seconds
-        pulselength = patch.getfloat('general', 'pulselength')
-        # ensure the pulselength is within meaningful limits: lowest value is 5 ms, highest value depends on the rate
-        pulselength = EEGsynth.limit(pulselength, 0.005, 60./(2*24*rate*multiply))
+        # this is for the analog trigger on the CV/Gate, expressed in seconds
+        duration = patch.getfloat('general', 'duration')
+        # ensure the trigger duration is within meaningful limits: lowest value is 5 ms, highest value depends on the rate
+        duration = EEGsynth.limit(duration, 0.005, 60./(2*24*rate*multiply))
 
         steps = patch.getfloat('input', 'steps', default=1)
         scale_steps = patch.getfloat('scale', 'steps', default=1)
@@ -334,7 +334,7 @@ try:
             show_change("use_redis",     use_redis)
             show_change("rate",          rate)
             show_change("multiply",      multiply)
-            show_change("pulselength",   pulselength)
+            show_change("duration",      duration)
             show_change("steps",         steps)
             show_change("adjust",        adjust)
 
