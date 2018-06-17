@@ -91,24 +91,12 @@ duration_offset = patch.getfloat('duration', 'offset', default=0)
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
 
-
-def SwitchOn(gpio):
+def SetGPIO(gpio, val=1):
     lock.acquire()
-    val = 1
     if debug > 1:
         print gpio, pin[gpio], val
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
-
-
-def SwitchOff(gpio):
-    lock.acquire()
-    val = 0
-    if debug > 1:
-        print gpio, pin[gpio], val
-    wiringpi.digitalWrite(pin[gpio], val)
-    lock.release()
-
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, gpio, duration):
@@ -132,26 +120,19 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
-                    if self.duration == None:
-                        # switch to the value specified in the event
-                        val = item['data']
-                        val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
-                        val = int(val)
-                        if debug > 1:
-                            print self.gpio, pin[self.gpio], val
-                        lock.acquire()
-                        wiringpi.digitalWrite(pin[self.gpio], val)
-                        lock.release()
-                    else:
-                        # switch on and schedule a timer to switch off after the specified duration
-                        SwitchOn(self.gpio)
+                    # switch to the PWM value specified in the event
+                    val = item['data']
+                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                    val = int(val)
+                    SetGPIO(self.gpio, val)
+                    if self.duration != None:
+                        # schedule a timer to switch off after the specified duration
                         duration = patch.getfloat('duration', self.gpio)
                         duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
                         # some minimal time is needed for the delay
                         duration = EEGsynth.limit(duration, 0.05, float('Inf'))
-                        t = threading.Timer(duration, SwitchOff, args=[self.gpio])
+                        t = threading.Timer(duration, SetGPIO, args=[self.gpio, 0])
                         t.start()
-
 
 # use the WiringPi numbering, see http://wiringpi.com/reference/setup/
 wiringpi.wiringPiSetup()
