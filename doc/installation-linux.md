@@ -93,6 +93,14 @@ This is used for MIDI communication.
 sudo apt-get install libportmidi-dev
 ```
 
+### Install dependencies for rtmidi
+
+This is required for the python-rtmidi package further down
+```
+sudo apt-get install libasound2-dev
+sudo apt-get install libjack-dev
+```
+
 ### Install python modules
 
 For Python packages we are using pip as the package manager. To install pip, use the following
@@ -115,6 +123,7 @@ sudo pip install pyosc
 sudo pip install numpy
 sudo pip install nilearn
 sudo pip install sklearn
+sudo pip install bitalino
 ```
 
 Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.
