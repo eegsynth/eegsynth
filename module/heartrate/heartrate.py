@@ -26,6 +26,7 @@ import os
 import redis
 import sys
 import time
+import threading
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -94,12 +95,23 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
+# this is to prevent two threads accesing a variable at the same time
+lock = threading.Lock()
+
+def SetChannel(key, val):
+    if debug > 1:
+        print key, val
+    lock.acquire()
+    r.set(key, val)      # set it as control channel
+    lock.release()
+
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 window    = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
 threshold = patch.getfloat('processing', 'threshold')
 lrate     = patch.getfloat('processing', 'learning_rate')
 debounce  = patch.getfloat('processing', 'debounce', default=0.3)             # minimum time between beats (s)
-key       = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
+key_beat  = patch.getstring('output', 'heartbeat')
+key_rate  = patch.getstring('output', 'heartrate')
 
 curvemin  = np.nan;
 curvemean = np.nan;
@@ -173,8 +185,20 @@ while True:
         prev = last
 
         if debug>0:
-            print key, bpm
+            print key_rate, bpm
 
         if not np.isnan(bpm):
-            r.set(key, bpm)      # set it as control channel
-            r.publish(key, bpm)  # send it as trigger
+            r.publish(key_rate, bpm)  # send it as trigger
+            r.publish(key_beat, bpm)  # send it as trigger
+            SetChannel(key_rate, bpm) # set it as continuous control channel
+            SetChannel(key_beat, 1)   # set it as binary control channel
+
+            # schedule a timer to switch the binary control channel off
+            duration = patch.getfloat('general', 'duration', default=0.1)
+            duration_scale = patch.getfloat('scale', 'duration', default=1)
+            duration_offset = patch.getfloat('offset', 'duration', default=0)
+            duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+            # some minimal time is needed for the delay
+            duration = EEGsynth.limit(duration, 0.05, float('Inf'))
+            t = threading.Timer(duration, SetChannel, args=[key_beat, 0])
+            t.start()
