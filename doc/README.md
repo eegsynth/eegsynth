@@ -10,3 +10,4 @@ Specific EEGsynth documentation is provided under the following sections.
   * [compress](compress.md)
   * [midi](midi.md)
   * [midiosc](midiosc.md)
+  * [recording](recording.md)
