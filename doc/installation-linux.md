@@ -33,10 +33,6 @@ For installing Python packages there are  [easy_install](https://setuptools.read
 
 In the subsequent Linux installation instructions we assume apt-get and pip as the primary package managers.
 
-### Install the web interface
-
-EEGsynth includes a web interface that allows you to start and stop modules and to edit the patch configuration. The installation of this is detailed in the [README](../interface/README.md) document for the interface.
-
 ### Install redis
 
 This is used for inter-process communication between modules.
@@ -132,6 +128,14 @@ Due to the large number of non-Python dependencies, installing the scipy package
 sudo apt-get install python-scipy
 ```
 
+### Install graphics 
+
+The plotsignal and plotcontrol modules are using pyqtgraph, which uses Qt4. This can be installed with
+
+```
+sudo apt-get install python-pyqtgraph
+```
+
 ### Install audio
 
 This is only needed for the software synthesizer module. Note that good quality and smooth audio output on the Raspberry Pi requires an external audio card.
@@ -148,3 +152,4 @@ sudo apt-get install alsa-utils
 sudo apt-get install mpg321
 sudo apt-get install lame
 ```
+
