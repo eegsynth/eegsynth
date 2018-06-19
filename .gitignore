@@ -12,6 +12,7 @@ interface/node_modules
 *.log
 *.pyc
 *.edf
+*.tsv
 .DS_Store
 
 # Backup files
