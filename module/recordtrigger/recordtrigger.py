@@ -64,6 +64,11 @@ input_scale  = patch.getfloat('input', 'scale', default=1)
 input_offset = patch.getfloat('input', 'offset', default=0)
 fileformat   = 'tsv'
 
+# start with a temporary file which is immediately closed
+f            = tempfile.TemporaryFile().close()
+recording    = False
+filenumber   = 0
+
 # this is to prevent two triggers from being saved at the same time
 lock = threading.Lock()
 
@@ -106,11 +111,6 @@ for item in config.items('trigger'):
 # start the thread for each of the triggers
 for thread in trigger:
     thread.start()
-
-# start with a temporary file which is immediately closed
-f            = tempfile.TemporaryFile().close()
-recording    = False
-filenumber   = 0
 
 try:
     while True:
