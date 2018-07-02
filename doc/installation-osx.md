@@ -23,13 +23,13 @@ sudo port selfupdate
 To make sure you have wget, you should do
 
 ```
-sudo port install wget
+brew install wget
 ```
 
 or
 
 ```
-brew install wget
+sudo port install wget
 ```
 
 ## Install MIDO for Python
@@ -70,7 +70,15 @@ launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
 
 ## Install python modules
 
-For the Python dependencies (packages) we are using pip. To install pip, you should do
+For the Python dependencies (packages) we are using pip. If you have installed brew, you will probably have pip already. You can check like this
+
+```
+which pip
+```
+
+If it returns /usr/local/bin/pip, it is the version of pip (and python) that comes with brew.
+
+To install pip using macports, you should do
 
 ```
 sudo port install py27-pip
@@ -78,37 +86,42 @@ sudo port select --set pip pip27
 sudo port select --set python python27
 ```
 
-The graphical user interfaces of plotsignal and plotcontrol are generated using Qt4. This requires the bindings between Python and Qt to be installed with
-
-```
-sudo port install py27-pyside
-```
+If you are using brew, all software (including Python) is installed using your own permissions. When using macports, it is installed as root user and you will have to add sudo prior to the subsequent commands.
 
 To make sure the Python package manager is up to date, you should do
+```
+pip install --upgrade pip
+```
+
+or when using macports
 ```
 sudo pip install --upgrade pip
 ```
 
+
 Subsequently you can install the Python modules
 ```
-sudo pip install redis
-sudo pip install mido
-sudo pip install python-rtmidi
-sudo pip install pyserial
-sudo pip install pyosc
-sudo pip install numpy
-sudo pip install nilearn
-sudo pip install sklearn
-sudo pip install pyqtgraph
-sudo pip install scipy
-sudo pip install matplotlib
+pip install redis
+pip install mido
+pip install python-rtmidi
+pip install pyserial
+pip install pyosc
+pip install numpy
+pip install nilearn
+pip install sklearn
+pip install pyqtgraph
+pip install scipy
+pip install matplotlib
 ```
 
-The plotting modules rely on PyQt4, which is a pain to install. It seems that on my mac011 with /opt/anaconda2/bin/python the following got it to work
+The graphical user interfaces of plotsignal and plotcontrol are generated using Qt4. This requires the bindings between Python and Qt to be installed using brew as follows
 ```
 brew tap cartr/qt4
 brew tap-pin cartr/qt4
-brew install cartr/qt4
-brew install pyside
 brew install cartr/qt4/pyqt
+```
+
+or using macports as follows
+```
+sudo port install py27-pyside
 ```
