@@ -1,4 +1,4 @@
-This is the patch used for the performance at Iklectik.
+This is the patch used for the Hemispherics performance at Iklectik.
 See this [link](http://www.eegsynth.org/?p=1432) for details.
 
 We recorded EEG from two subjects. One of the EEGsynth patches was running on a
