@@ -31,6 +31,7 @@ import os
 import pyqtgraph as pg
 import sys
 import time
+import signal
 from scipy.signal import butter, lfilter, detrend, filtfilt, decimate
 from scipy.interpolate import interp1d
 from scipy.fftpack import fft, fftfreq
@@ -322,6 +323,13 @@ def update():
    r.set(key, bluefreq-bluewidth)
    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'high')
    r.set(key, bluefreq+bluewidth)
+
+
+# keyboard interrupt handling
+def sigint_handler(*args):
+    QtGui.QApplication.quit()
+
+signal.signal(signal.SIGINT, sigint_handler)
 
 # Set timer for update
 timer = QtCore.QTimer()
