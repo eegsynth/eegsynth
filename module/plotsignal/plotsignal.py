@@ -233,7 +233,7 @@ def update():
         curve[ichan].setData(timeaxis,data[:,channr])
 
         # adapt the vertical scale to the running mean of max
-        curvemax[ichan] = curvemax[ichan]  * (1-lrate) + lrate * max(abs(data[:,ichan]))
+        curvemax[ichan] = curvemax[ichan]  * (1-lrate) + lrate * max(abs(data[:,channr]))
         timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
 
 # Set timer for update
