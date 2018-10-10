@@ -30,6 +30,7 @@ import os
 import pyqtgraph as pg
 import sys
 import time
+import signal
 from scipy.signal import butter, lfilter, detrend
 from scipy.interpolate import interp1d
 from scipy.fftpack import fft, fftfreq
@@ -169,6 +170,7 @@ else:
 
 # initialize graphical window
 app = QtGui.QApplication([])
+
 win = pg.GraphicsWindow(title="EEGsynth")
 win.setWindowTitle('EEGsynth')
 win.setGeometry(winx, winy, winwidth, winheight)
@@ -236,11 +238,18 @@ def update():
         curvemax[ichan] = curvemax[ichan]  * (1-lrate) + lrate * max(abs(data[:,channr]))
         timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
 
+# keyboard interrupt handling
+def sigint_handler(*args):
+    QtGui.QApplication.quit()
+
+signal.signal(signal.SIGINT, sigint_handler)
+
 # Set timer for update
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
 timer.setInterval(10)                   # timeout in milliseconds
 timer.start(int(round(stepsize*1000)))  # in milliseconds
+
 
 # Wait until there is enough data
 begsample = -1

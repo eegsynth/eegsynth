@@ -29,6 +29,7 @@ import numpy as np
 import os
 import pyqtgraph as pg
 import sys
+import signal
 import math
 import time
 
@@ -146,6 +147,13 @@ def update():
             # update timecourses
             inputcurve[counter].setData(timeaxis, inputhistory[counter, :])
             counter += 1
+
+
+# keyboard interrupt handling
+def sigint_handler(*args):
+    QtGui.QApplication.quit()
+
+signal.signal(signal.SIGINT, sigint_handler)
 
 # Set timer for update
 timer = QtCore.QTimer()
