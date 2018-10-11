@@ -194,7 +194,7 @@ The EEGsynth uses the FieldTrip buffer to communicate data between modules. It i
 
 1.   Navigate to the buffer module directory _/eegsynth/module/buffer_
 2.   Copy the _buffer.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in _../../inifiles_ relative to the buffer module directory)
-3.   Start up the buffer module, using your own ini file: _./buffer.sh -i ../../inifiles/launchcontrol.ini_. Note here that the buffer module is one of the few modules that are an executable written in C, run from a bash script rather than Python. However, it does function exactly the same concerning the user-specific ini files.
+3.   Start up the buffer module, using your own ini file: _./buffer.sh -i ../../inifiles/buffer.ini_. Note here that the buffer module is one of the few modules that are an executable written in C, run from a bash script rather than Python. However, it does function exactly the same concerning the user-specific ini files.
 4.   If the buffer module is running correctly, it does not print any feedback in the terminal. So no news is good news!
 
 ### Writing pre-recorded data from HDD to the buffer
