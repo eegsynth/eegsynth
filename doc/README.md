@@ -10,6 +10,7 @@ Documentation is provided under the following sections.
 * [Tutorial 1: Playback data, and display on monitor](tutorial1.md)
 * [Tutorial 2: Using Redis for live interaction with modules](tutorial2.md)
 * [Tutorial 3: Real-time EEG recording with OpenBCI](tutorial3.md)
+* [Overview of modules](module-overview.md)
 
 ## Advanced
 * [Understand scaling and calibration of control signals](calibration.md)
