@@ -26,7 +26,7 @@ We will then write some prerecorded data into the buffer as if it was being reco
 5.   Edit your _playbacksignal.ini_ to direct the playback module to the right edf data file, e.g. under _[playback]_ edit: _file = ../../datafiles/testBipolar20170827-0.edf_
 6.   Edit the two _playbacksignal.ini_ options for playback and rewind so that it will play back automatically (and not rewind): _play=1_ and _rewind=0_
 7.   Make note that you can comment out (hide from the module) lines of text by adding a semicolon (;) at the beginning of the line
-8.   Now start up the playback module, using your own .ini file: _python playback.py -i ../../inifiles/playback.ini_
+8.   Now start up the playback module, using your own .ini file: _python playbacksignal.py -i ../../inifiles/playbacksignal.ini_
 9.   If all is well, the module will print out the samples that it is 'playing back'. This is that data that is successively entered into the buffer as if was just recorded
 
 # Plotting streaming data in the buffer
