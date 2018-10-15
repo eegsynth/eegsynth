@@ -21,10 +21,10 @@ We will then write some prerecorded data into the buffer as if it was being reco
 
 1.   Download some example data in .edf format. For example, from our [data directory on Google Drive](https://drive.google.com/drive/folders/0B10S8PeNnxw1ZnZPbUh0RWk0cjA). Or use the data you recorded in the [recording tutorial](https://braincontrolclub.miraheze.org/wiki/Recording_tutorial "Recording tutorial").
 2.   Place the .edf file in a directory, e.g. in _/eegsynth/datafiles_
-3.   Navigate to the playback module directory _/eegsynth/module/playback_
-4.   Copy the _playback.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in _../../inifiles_ relative to the buffer module directory)
-5.   Edit your _playback.ini_ to direct the playback module to the right edf data file, e.g. under _[playback]_ edit: _file = ../../datafiles/testBipolar20170827-0.edf_
-6.   Edit the two _playback.ini_ options for playback and rewind so that it will play back automatically (and not rewind): _play=1_ and _rewind=0_
+3.   Navigate to the playback module directory _/eegsynth/module/playbacksignal_
+4.   Copy the _playbacksignal.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in _../../inifiles_ relative to the buffer module directory)
+5.   Edit your _playbacksignal.ini_ to direct the playback module to the right edf data file, e.g. under _[playback]_ edit: _file = ../../datafiles/testBipolar20170827-0.edf_
+6.   Edit the two _playbacksignal.ini_ options for playback and rewind so that it will play back automatically (and not rewind): _play=1_ and _rewind=0_
 7.   Make note that you can comment out (hide from the module) lines of text by adding a semicolon (;) at the beginning of the line
 8.   Now start up the playback module, using your own .ini file: _python playback.py -i ../../inifiles/playback.ini_
 9.   If all is well, the module will print out the samples that it is 'playing back'. This is that data that is successively entered into the buffer as if was just recorded
