@@ -1,6 +1,6 @@
 # Contributing to EEGsynth development
 
-There are many performances that can be built using the EEGsynth, not only interfacing EEG to an analog control voltage, but also interfacing other systems used in performances using e.g. MIDI, OSC, DMX, Artnet. That being said, there are also things that the EEGsynth cannot do, or is not so good at.
+There are many performances that can be built using the EEGsynth, not only interfacing EEG to an analog control voltage, but also interfacing other systems used in performances using e.g. MIDI, OSC, DMX, Artnet. That being said, there are also things that the EEGsynth cannot do, or is not so good at. Bellow follows a wish-list for which we hope that others can contribute.
 
 ## Precise timing of light effects
 
