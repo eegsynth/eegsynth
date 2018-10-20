@@ -5,6 +5,7 @@ Documentation is provided under the following sections.
 ## Essential
 * [Installation](installation.md)
 * [Introduction](introduction.md)
+* [Contribute](contribute.md)
 
 ## Getting started
 * [Tutorial 1: Playback data, and display on monitor](tutorial1.md)
