@@ -9,25 +9,29 @@ import socket
 import struct
 import numpy
 
-VERSION     = 1
-PUT_HDR     = 0x101
-PUT_DAT     = 0x102
-PUT_EVT     = 0x103
-PUT_OK      = 0x104
-PUT_ERR     = 0x105
-GET_HDR     = 0x201
-GET_DAT     = 0x202
-GET_EVT     = 0x203
-GET_OK      = 0x204
-GET_ERR     = 0x205
-FLUSH_HDR   = 0x301
-FLUSH_DAT   = 0x302
-FLUSH_EVT   = 0x303
-FLUSH_OK    = 0x304
-FLUSH_ERR   = 0x305
-WAIT_DAT    = 0x402
-WAIT_OK     = 0x404
-WAIT_ERR    = 0x405
+VERSION = 1
+
+PUT_HDR            = 0x0101
+PUT_DAT            = 0x0102
+PUT_EVT            = 0x0103
+PUT_OK             = 0x0104
+PUT_ERR            = 0x0105
+GET_HDR            = 0x0201
+GET_DAT            = 0x0202
+GET_EVT            = 0x0203
+GET_OK             = 0x0204
+GET_ERR            = 0x0205
+FLUSH_HDR          = 0x0301
+FLUSH_DAT          = 0x0302
+FLUSH_EVT          = 0x0303
+FLUSH_OK           = 0x0304
+FLUSH_ERR          = 0x0305
+WAIT_DAT           = 0x0402
+WAIT_OK            = 0x0404
+WAIT_ERR           = 0x0405
+PUT_HDR_NORESPONSE = 0x0501
+PUT_DAT_NORESPONSE = 0x0502
+PUT_EVT_NORESPONSE = 0x0503
 
 DATATYPE_CHAR       = 0
 DATATYPE_UINT8      = 1
@@ -311,7 +315,7 @@ class Client:
                 (chunk_type, chunk_len) = struct.unpack(
                     'II', payload[offset:offset + 8])
                 offset += 8
-                if offset + chunk_len < bufsize:
+                if offset + chunk_len > bufsize:
                     break
                 H.chunks[chunk_type] = payload[offset:offset + chunk_len]
                 offset += chunk_len
