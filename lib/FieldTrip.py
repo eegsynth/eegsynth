@@ -498,7 +498,7 @@ class Client:
 
         dataBufSize = len(dataBuf)
 
-        if reponse:
+        if response:
             command = PUT_DAT
         else:
             command = PUT_DAT_NORESPONSE
