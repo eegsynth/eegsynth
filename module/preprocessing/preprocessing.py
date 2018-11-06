@@ -25,6 +25,7 @@ from numpy.matlib import repmat
 from scipy.ndimage import convolve1d
 from scipy.signal import firwin, decimate
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import redis
 import argparse
 import numpy as np
 import os
