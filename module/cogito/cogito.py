@@ -168,7 +168,7 @@ ft_output.putHeader(nOutputs, sample_rate, hdr_input.dataType, labels=output_cha
 
 # Reading EEG layout
 layout = pd.read_csv("gtec_layout.csv", index_col=0)
-definition = 10
+definition = 9
 val = layout.loc[:, ['x', 'y', 'z']].values
 val = (val - val.min())/(val.max()-val.min())*definition
 positions = np.round(val).astype(int)
@@ -211,7 +211,7 @@ while True:
     # signal = np.sin(t*f/sample_rate)*256
     # signal = np.zeros([sample_rate, 1])
 
-    tmp = [np.zeros(300)]
+    tmp = [np.zeros(440)]
 
     for ch in range(nInputs):
         original = copy(dat_input[:, ch])
@@ -230,9 +230,9 @@ while True:
 
         # Positions
         mask = np.zeros(30)
-        mask[(positions[ch][0]-1):positions[ch][0]] = scaling/250
-        mask[(10+positions[ch][1]-1):(10+positions[ch][1])] = scaling/250
-        mask[(20+positions[ch][2]-1):(20+positions[ch][2])] = scaling/250
+        mask[int(positions[ch][0])] = scaling/250.
+        mask[10+int(positions[ch][1])] = scaling/250.
+        mask[20+int(positions[ch][2])] = scaling/250.
         channel.append(mask)
 
         # Sum of all the parts
