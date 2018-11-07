@@ -44,10 +44,10 @@ import EEGsynth
 import FieldTrip
 import EDF
 
-MININT16 = -np.power(2, 15)
-MAXINT16 = np.power(2, 15) - 1
-MININT32 = -np.power(2, 31)
-MAXINT32 = np.power(2, 31) - 1
+MININT16 = -0xffff/2 - 1 
+MAXINT16 =  0xffff/2 - 1 
+MININT32 = -0xffffffff/2 - 1 
+MAXINT32 =  0xffffffff/2 - 1 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
