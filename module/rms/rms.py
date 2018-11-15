@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Rms calculates the root-mean-square of a signal
+# This module calculates a sliding-window RMS value of a signal
 #
-# Rms is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Postprocessing performs basic algorithms on redis data
+# Historycontrol performs basic algorithms on control channels from Redis
 #
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

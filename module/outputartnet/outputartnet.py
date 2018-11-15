@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Outputartnet sends redis data according to the artnet protocol
+# Outputartnet sends Redis data according to the artnet protocol
 #
-# Outputartnet is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

@@ -2,6 +2,8 @@
 
 # This module writes Rediscontrol values and triggers to the Raspberry Pi GPIO header
 #
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+#
 # Copyright (C) 2018, Robert Oostenveld for the EEGsynth project, http://www.eegsynth.org
 #
 # This program is free software: you can redistribute it and/or modify

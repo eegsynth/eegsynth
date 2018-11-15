@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Bitalino2ft reads data from a bitalino device and writes that data to a FieldTrip buffer
+# Audio2ft reads data from an audio device and writes it to a FieldTrip buffer
 #
-# This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2018 EEGsynth project
 #
@@ -26,8 +26,7 @@ import os
 import redis
 import sys
 import time
-from scipy import signal as sp
-from bitalino import BITalino
+import pyaudio
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -76,45 +75,41 @@ except:
     print "Error: cannot connect to output FieldTrip buffer"
     exit()
 
-device    = patch.getstring('bitalino', 'device')
-fsample   = patch.getfloat('bitalino', 'fsample', default=1000)
-blocksize = patch.getint('bitalino', 'blocksize', default=10)
-channels  = patch.getint('bitalino', 'channels', multiple=True) # these should be one-offset
-nchans    = len(channels)
-batterythreshold = patch.getint('bitalino', 'batterythreshold', default=30)
+device    = patch.getint('audio', 'device')
+fsample   = patch.getint('audio', 'fsample', default=44100)
+blocksize = patch.getint('audio', 'blocksize', default=1024)
+nchans    = patch.getint('audio', 'nchans', default=2)
 
 if debug > 0:
     print "fsample", fsample
-    print "channels", channels
     print "nchans", nchans
     print "blocksize", blocksize
 
-# switch from one-offset to zero-offset
-for i in range(nchans):
-    channels[i]-=1;
+p = pyaudio.PyAudio()
 
-datatype  = FieldTrip.DATATYPE_FLOAT32
-ft_output.putHeader(nchans, float(fsample), datatype)
+print '------------------------------------------------------------------'
+info = p.get_host_api_info_by_index(0)
+print info
+print '------------------------------------------------------------------'
+for i in range (info.get('deviceCount')):
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
+                print "Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxOutputChannels')>0:
+                print "Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+print '------------------------------------------------------------------'
+devinfo = p.get_device_info_by_index(device)
+print "Selected device is", devinfo['name']
+print devinfo
+print '------------------------------------------------------------------'
 
-try:
-    # Connect to BITalino
-    device = BITalino(device)
-except:
-    print "Error: cannot connect to BITalino"
-    exit()
+stream = p.open(format=pyaudio.paInt16,
+                channels=nchans,
+                rate=fsample,
+                input=True,
+                input_device_index=device,
+                frames_per_buffer=blocksize)
 
-# Read BITalino version
-print(device.version())
-
-# Set battery threshold
-device.battery(batterythreshold)
-
-# Start Acquisition
-device.start(fsample, channels)
-
-# Turn BITalino led on
-digitalOutput = [1,1]
-device.trigger(digitalOutput)
+ft_output.putHeader(nchans, float(fsample), FieldTrip.DATATYPE_INT16)
 
 startfeedback = time.time()
 countfeedback = 0
@@ -125,12 +120,12 @@ while True:
     # measure the time that it takes
     start = time.time();
 
-    # read the selected channels from the bitalino
-    dat = device.read(blocksize)
-    # it starts with 5 extra channels, the first is the sample number (running from 0 to 15), the next 4 seem to be binary
-    dat = dat[:,5:]
-    # write the data to the output buffer
-    ft_output.putData(dat.astype(np.float32))
+    # read a block of data from the audio device
+    data = stream.read(blocksize)
+
+    # convert raw buffer to numpy array and write to output buffer
+    data = np.reshape(np.frombuffer(data, dtype=np.int16), (blocksize, nchans))
+    ft_output.putData(data)
 
     countfeedback += blocksize
 
@@ -142,8 +137,6 @@ while True:
         startfeedback = time.time();
         countfeedback = 0
 
-# Stop acquisition
-device.stop()
-
-# Close connection
-device.close()
+stream.stop_stream()
+stream.close()
+p.terminate()
