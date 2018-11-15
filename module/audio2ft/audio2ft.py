@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
 import numpy as np
 import os
@@ -30,26 +30,27 @@ import pyaudio
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 import FieldTrip
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
+                                                            os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -60,28 +61,28 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
+    ftc_host = patch.getstring('fieldtrip', 'hostname')
+    ftc_port = patch.getint('fieldtrip', 'port')
+    if debug > 0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
     ft_output = FieldTrip.Client()
     ft_output.connect(ftc_host, ftc_port)
-    if debug>0:
+    if debug > 0:
         print "Connected to output FieldTrip buffer"
 except:
     print "Error: cannot connect to output FieldTrip buffer"
     exit()
 
-device    = patch.getint('audio', 'device')
-fsample   = patch.getint('audio', 'fsample', default=44100)
-blocksize = patch.getint('audio', 'blocksize', default=1024)
-nchans    = patch.getint('audio', 'nchans', default=2)
+device      = patch.getint('audio', 'device')
+rate        = patch.getint('audio', 'rate', default=44100)
+blocksize   = patch.getint('audio', 'blocksize', default=1024)
+nchans      = patch.getint('audio', 'nchans', default=2)
 
 if debug > 0:
-    print "fsample", fsample
+    print "rate", rate
     print "nchans", nchans
     print "blocksize", blocksize
 
@@ -91,11 +92,11 @@ print '------------------------------------------------------------------'
 info = p.get_host_api_info_by_index(0)
 print info
 print '------------------------------------------------------------------'
-for i in range (info.get('deviceCount')):
-        if p.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
-                print "Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
-        if p.get_device_info_by_host_api_device_index(0,i).get('maxOutputChannels')>0:
-                print "Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+for i in range(info.get('deviceCount')):
+    if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
+        print "Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name')
+    if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
+        print "Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name')
 print '------------------------------------------------------------------'
 devinfo = p.get_device_info_by_index(device)
 print "Selected device is", devinfo['name']
@@ -104,12 +105,12 @@ print '------------------------------------------------------------------'
 
 stream = p.open(format=pyaudio.paInt16,
                 channels=nchans,
-                rate=fsample,
+                rate=rate,
                 input=True,
                 input_device_index=device,
                 frames_per_buffer=blocksize)
 
-ft_output.putHeader(nchans, float(fsample), FieldTrip.DATATYPE_INT16)
+ft_output.putHeader(nchans, float(rate), FieldTrip.DATATYPE_INT16)
 
 startfeedback = time.time()
 countfeedback = 0
@@ -118,7 +119,7 @@ print "STARTING STREAM"
 while True:
 
     # measure the time that it takes
-    start = time.time();
+    start = time.time()
 
     # read a block of data from the audio device
     data = stream.read(blocksize)
@@ -129,12 +130,12 @@ while True:
 
     countfeedback += blocksize
 
-    if debug>1:
-        print "streamed", blocksize, "samples in", (time.time()-start)*1000, "ms"
-    elif debug>0 and countfeedback>=fsample:
+    if debug > 1:
+        print "streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms"
+    elif debug > 0 and countfeedback >= rate:
         # this gets printed approximately once per second
-        print "streamed", countfeedback, "samples in", (time.time()-startfeedback)*1000, "ms"
-        startfeedback = time.time();
+        print "streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms"
+        startfeedback = time.time()
         countfeedback = 0
 
 stream.stop_stream()

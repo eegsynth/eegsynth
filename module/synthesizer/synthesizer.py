@@ -69,26 +69,34 @@ def default(x, y):
 
 p = pyaudio.PyAudio()
 
-devices = []
-for i in range(p.get_device_count()):
-    devices.append(p.get_device_info_by_index(i))
-print('-------------------------')
-for i, dev in enumerate(devices):
-    print "%d - %s" % (i, dev['name'])
-print('-------------------------')
+device    = patch.getint('audio', 'device')
+rate      = patch.getint('audio', 'rate')
+blocksize = patch.getint('audio', 'blocksize')
+nchans    = 1
+format    = p.get_format_from_width(2)  # the desired sample width in bytes (1, 2, 3, or 4)
 
-BLOCKSIZE = int(patch.getstring('general', 'blocksize'))
-CHANNELS  = 1
-BITRATE   = int(patch.getstring('general', 'bitrate'))
-BITS      = p.get_format_from_width(1)
+print '------------------------------------------------------------------'
+info = p.get_host_api_info_by_index(0)
+print info
+print '------------------------------------------------------------------'
+for i in range (info.get('deviceCount')):
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
+                print "Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxOutputChannels')>0:
+                print "Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+print '------------------------------------------------------------------'
+devinfo = p.get_device_info_by_index(device)
+print "Selected device is", devinfo['name']
+print devinfo
+print '------------------------------------------------------------------'
+
+stream = p.open(format = format,
+		channels = nchans,
+		rate = rate,
+		output = True,
+		output_device_index = device)
 
 lock = threading.Lock()
-
-stream = p.open(format = BITS,
-		channels = CHANNELS,
-		rate = BITRATE,
-		output = True,
-		output_device_index = patch.getint('pyaudio', 'output_device_index'))
 
 class TriggerThread(threading.Thread):
     def __init__(self, r):
@@ -178,10 +186,10 @@ class ControlThread(threading.Thread):
           adsr_release  = patch.getfloat('control', 'adsr_release', default=0.25)
 
           # convert from value between 0 and 1 into time in samples
-          adsr_attack   *= float(BITRATE)
-          adsr_decay    *= float(BITRATE)
-          adsr_sustain  *= float(BITRATE)
-          adsr_release  *= float(BITRATE)
+          adsr_attack   *= float(rate)
+          adsr_decay    *= float(rate)
+          adsr_sustain  *= float(rate)
+          adsr_release  *= float(rate)
 
           ################################################################################
           # VCA
@@ -238,7 +246,7 @@ try:
     ################################################################################
     BUFFER = ''
 
-    for t in xrange(offset,offset+BLOCKSIZE):
+    for t in xrange(offset,offset+blocksize):
         # update the time for the trigger detection
 
         lock.acquire()
@@ -263,8 +271,8 @@ try:
             # note 60 on the keyboard is the C4, which is 261.63 Hz
             # note 72 on the keyboard is the C5, which is 523.25 Hz
             FREQUENCY = math.pow(2, (vco_pitch/12-4))*261.63
-            PERIOD = int(BITRATE/FREQUENCY)
-            wave_sin = vco_sin * (math.sin(math.pi*FREQUENCY*t/BITRATE)+1)/2
+            PERIOD = int(rate/FREQUENCY)
+            wave_sin = vco_sin * (math.sin(math.pi*FREQUENCY*t/rate)+1)/2
             wave_tri = vco_tri * float(abs(t % PERIOD - PERIOD/2))/PERIOD*2
             wave_saw = vco_saw * float(t % PERIOD)/PERIOD
             wave_sqr = vco_sqr * float((t % PERIOD) > PERIOD/2)
@@ -273,7 +281,7 @@ try:
             waveform = 0
 
         # compose and apply the LFO
-        lfo_envelope = (math.sin(math.pi*lfo_frequency*t/BITRATE)+1)/2
+        lfo_envelope = (math.sin(math.pi*lfo_frequency*t/rate)+1)/2
         lfo_envelope = lfo_depth + (1-lfo_depth)*lfo_envelope
         waveform = lfo_envelope * waveform
 
@@ -298,7 +306,7 @@ try:
 
     # write the buffer content to the audio device
     stream.write(BUFFER)
-    offset = offset+BLOCKSIZE
+    offset = offset+blocksize
 
 except KeyboardInterrupt:
     print "Closing threads"
