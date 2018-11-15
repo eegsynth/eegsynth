@@ -2,7 +2,7 @@
 
 # Accelerometer records accelerometer data from OpenBCI board into FieldTrip buffer
 #
-# Accelerometer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

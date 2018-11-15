@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-# This code is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This module maps a single control signal onto multiple bilinear mixed signals
+#
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2018 EEGsynth project
 #

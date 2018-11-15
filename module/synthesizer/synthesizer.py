@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Synthesizer acts as a basic synthesizer
+# Synthesizer acts as a very basic software audio synthesizer
 #
-# Synthesizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -142,7 +142,7 @@ class ControlThread(threading.Thread):
           ################################################################################
           scale_vco_pitch  = patch.getfloat('scale', 'vco_pitch')
           offset_vco_pitch = patch.getfloat('offset', 'vco_pitch')
-          
+
           ################################################################################
           # VCO
           ################################################################################

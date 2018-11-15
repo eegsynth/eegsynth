@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Record records data from a FieldTrip buffer to file
+# This module records data from a FieldTrip buffer to an EDF or WAV file
 #
-# Record is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

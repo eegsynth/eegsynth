@@ -2,7 +2,7 @@
 
 # Audio2ft reads data from an audio device and writes it to a FieldTrip buffer
 #
-# This module is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2018 EEGsynth project
 #

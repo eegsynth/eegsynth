@@ -2,6 +2,8 @@
 
 # This module plays back data from an EDF file to Redis
 #
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+#
 # Copyright (C) 2017 EEGsynth project, http://www.eegsynth.org
 #
 # This program is free software: you can redistribute it and/or modify

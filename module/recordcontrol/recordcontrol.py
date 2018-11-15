@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-# This module records Redis data to an EDF file
+# This module records Redis data to an EDF or WAV file
+#
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project, http://www.eegsynth.org
 #

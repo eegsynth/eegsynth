@@ -3,7 +3,7 @@
 # Preprocessing performs basic signal processing to data in a FieldTrip buffer,
 # and puts this in a second FieldTrip buffer for further processing.
 #
-# Preprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

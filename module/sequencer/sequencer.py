@@ -2,7 +2,7 @@
 
 # Sequencer acts as a basic timer and sequencer
 #
-# Sequencer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017-2018 EEGsynth project
 #
