@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Audio2ft reads data from an audio device and writes that data to a FieldTrip buffer
+# Audio2ft reads data from an audio device and writes it to a FieldTrip buffer
 #
 # This module is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -75,7 +75,7 @@ except:
     print "Error: cannot connect to output FieldTrip buffer"
     exit()
 
-device    = patch.getstring('audio', 'device')
+device    = patch.getint('audio', 'device')
 fsample   = patch.getint('audio', 'fsample', default=44100)
 blocksize = patch.getint('audio', 'blocksize', default=1024)
 nchans    = patch.getint('audio', 'nchans', default=2)
@@ -86,18 +86,27 @@ if debug > 0:
     print "blocksize", blocksize
 
 p = pyaudio.PyAudio()
-print p.get_default_host_api_info()
 
-for i in range(p.get_host_api_count()):
-    try:
-        print p.get_host_api_info_by_index(i)
-    except:
-        pass
+print '------------------------------------------------------------------'
+info = p.get_host_api_info_by_index(0)
+print info
+print '------------------------------------------------------------------'
+for i in range (info.get('deviceCount')):
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
+                print "Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxOutputChannels')>0:
+                print "Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0,i).get('name')
+print '------------------------------------------------------------------'
+devinfo = p.get_device_info_by_index(device)
+print "Selected device is", devinfo['name']
+print devinfo
+print '------------------------------------------------------------------'
 
 stream = p.open(format=pyaudio.paInt16,
                 channels=nchans,
                 rate=fsample,
                 input=True,
+                input_device_index=device,
                 frames_per_buffer=blocksize)
 
 ft_output.putHeader(nchans, float(fsample), FieldTrip.DATATYPE_INT16)
@@ -113,9 +122,9 @@ while True:
 
     # read a block of data from the audio device
     data = stream.read(blocksize)
-    # convert raw buffer to numpy array
+
+    # convert raw buffer to numpy array and write to output buffer
     data = np.reshape(np.frombuffer(data, dtype=np.int16), (blocksize, nchans))
-    # write the data to the output buffer
     ft_output.putData(data)
 
     countfeedback += blocksize
