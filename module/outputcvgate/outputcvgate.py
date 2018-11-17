@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Outputcvgate outputs redis data to our custom CVgate output device
+# Outputcvgate outputs Redis data to our custom CV/Gate output device
 #
-# Outputcvgate is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

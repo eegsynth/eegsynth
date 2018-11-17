@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Inputmidi records midi data into Redis
+# Inputmidi records MIDI data to Redis
 #
-# Inputmidi is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

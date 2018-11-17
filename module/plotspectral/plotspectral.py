@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# Plotfreq plots spectral data from the buffer and allows
-# interactive selection of frequency bands for further processing
+# Plotfreq plots spectral data from the buffer and allows interactive selection
+# of frequency bands for further processing
 #
-# Plotfreq is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

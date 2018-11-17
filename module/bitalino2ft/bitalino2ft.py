@@ -116,8 +116,8 @@ device.start(fsample, channels)
 digitalOutput = [1,1]
 device.trigger(digitalOutput)
 
-startfeedback = time.time();
-countfeedback = 0;
+startfeedback = time.time()
+countfeedback = 0
 
 print "STARTING STREAM"
 while True:
@@ -125,7 +125,7 @@ while True:
     # measure the time that it takes
     start = time.time();
 
-    # read the selected channels from the
+    # read the selected channels from the bitalino
     dat = device.read(blocksize)
     # it starts with 5 extra channels, the first is the sample number (running from 0 to 15), the next 4 seem to be binary
     dat = dat[:,5:]

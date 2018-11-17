@@ -3,7 +3,7 @@
 # Preprocessing performs basic signal processing to data in a FieldTrip buffer,
 # and puts this in a second FieldTrip buffer for further processing.
 #
-# Preprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -25,6 +25,7 @@ from numpy.matlib import repmat
 from scipy.ndimage import convolve1d
 from scipy.signal import firwin, decimate
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import redis
 import argparse
 import numpy as np
 import os
