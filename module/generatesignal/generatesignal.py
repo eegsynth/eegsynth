@@ -117,6 +117,28 @@ phasevec = np.zeros(1)
 print "STARTING STREAM"
 while True:
 
+    if patch.getint('signal', 'rewind', default=0):
+        if debug>0:
+            print "Rewind pressed, jumping back to start of signal"
+        # the sample number and phase should be 0 upon the start of the signal
+        sample = 0
+        phase = 0
+
+    if not patch.getint('signal', 'play', default=1):
+        if debug>0:
+            print "Stopped"
+        time.sleep(0.1);
+        # the sample number and phase should be 0 upon the start of the signal
+        sample = 0
+        phase = 0
+        continue
+
+    if patch.getint('signal', 'pause', default=0):
+        if debug>0:
+            print "Paused"
+        time.sleep(0.1);
+        continue
+
     # measure the time that it takes
     start = time.time();
 

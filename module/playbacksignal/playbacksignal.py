@@ -178,17 +178,21 @@ while True:
         begsample = 0
         endsample = blocksize-1
         block     = 0
-        continue
 
-    if patch.getint('playback', 'rewind'):
+    if patch.getint('playback', 'rewind', default=0):
         if debug>0:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
         endsample = blocksize-1
         block     = 0
+
+    if not patch.getint('playback', 'play', default=1):
+        if debug>0:
+            print "Stopped"
+        time.sleep(0.1);
         continue
 
-    if not patch.getint('playback', 'play'):
+    if patch.getint('playback', 'pause', default=0):
         if debug>0:
             print "Paused"
         time.sleep(0.1);
