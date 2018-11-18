@@ -12,10 +12,18 @@ AVmixer can also be controlled using the TouchOSC app, which sends OSC messages 
 
 You can control the AVmixer software both (and simultaneously) from this EEGsynth module and from the TouchOSC interface.
 
+## MIDI presets
+
+The previous version of AVmixer came with a preset that was suited for the TouchOSC app. The latest version (2.7.1) does not come with any presets. Editing the settings can be done in the MIDI settings" graphical user interface or in the file
+
+    /Applications/AVmixer Lite 2.71.app/Contents/Resources/midiconfig_pro.json
+
 ## Requirements
 
 AVmixer (pro or lite) software from https://neuromixer.com.
-MIDI configuration according to "preset 3", i.e. the one that also works with the TouchOSC app.
+
+The MIDI configuration/preset should be properly configured.
+
 CoreMIDI or rtpMIDI support, in case you want to control the AVmixer software on computer A while the EEGsynth module is running on computer B.
 
 ## Software Requirements
