@@ -117,20 +117,11 @@ window = int(round(window*hdr_input.fSample))
 
 ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
 
-
-# downsample init
-try:
-    downsample = patch.getfloat('processing', 'downsample')
-except:
-    downsample = None
-
-# smoothing init
-try:
-    smoothing = patch.getfloat('processing', 'smoothing')
-except:
-    smoothing = None
-
-reference = patch.getstring('processing','reference')
+# Processing init
+downsample  = patch.getfloat('processing', 'downsample', None)
+smoothing   = patch.getfloat('processing', 'smoothing', None)
+reference   = patch.getstring('processing','reference', None)
+filterorder = patch.getint('processing', 'filterorder', None)
 
 # Filtering init
 try:
@@ -143,27 +134,26 @@ try:
 except:
     highpassfilter = None
 
-try:
-    filterorder = patch.getint('processing', 'filterorder')
-except:
-    filterorder = None
-
 # Low pass
 if not(lowpassfilter is None) and (highpassfilter is None):
     fir_poly = firwin(filterorder, cutoff = lowpassfilter, window = "hamming")
+
 # High pass
 if not(highpassfilter is None) and (lowpassfilter is None):
     fir_poly = firwin(filterorder, cutoff = highpassfilter, window = "hanning", pass_zero=False)
+
 # Band pass
 if not(highpassfilter is None) and not(lowpassfilter is None):
     fir_poly = firwin(filterorder, cutoff = [highpassfilter, lowpassfilter], window = 'blackmanharris', pass_zero = False)
 
-def onlinefilter(fil_state, in_data):
+
+def online_filter(fil_state, in_data):
     m = in_data.shape[0]
     n = len(fir_poly)
     fil_state = np.concatenate((fil_state, np.atleast_2d(in_data)), axis=0)
     fil_data = convolve1d(fil_state, fir_poly)
     return fil_state[-n:, :], fil_data[-m:, :]
+
 
 # initialize the state for the smoothing
 previous = np.zeros((1, hdr_input.nChannels))
@@ -205,6 +195,12 @@ while True:
         print "------------------------------------------------------------"
         print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
 
+    # Online filtering
+    if not(highpassfilter is None) or not(lowpassfilter is None):
+        fil_state, dat_output = online_filter(fil_state, dat_output)
+        if debug>1:
+            print "filtered    ", window_new, "samples in", (time.time()-start)*1000, "ms"
+
     # Downsampling
     if not(downsample is None):
         dat_output = decimate(dat_output, downsample, ftype='iir', axis=0, zero_phase=True)
@@ -222,22 +218,14 @@ while True:
         if debug>1:
             print "smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms"
 
-    # Online filtering
-    if not(highpassfilter is None) or not(lowpassfilter is None):
-        fil_state, dat_output = onlinefilter(fil_state, dat_output)
-        if debug>1:
-            print "filtered    ", window_new, "samples in", (time.time()-start)*1000, "ms"
-
-    # Rereferencing
+    # Re-referencing
     if reference == 'median':
-        dat_output -= repmat(np.nanmedian(dat_output, axis=1),
-                             dat_output.shape[1], 1).T
+        dat_output -= repmat(np.nanmedian(dat_output, axis=1), dat_output.shape[1], 1).T
         if debug>1:
             print "rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     elif reference == 'average':
-        dat_output -= repmat(np.nanmean(dat_output, axis=1),
-                             dat_output.shape[1], 1).T
+        dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
         if debug>1:
             print "rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms"
 
