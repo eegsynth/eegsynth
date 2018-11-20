@@ -93,12 +93,14 @@ duration_offset = patch.getfloat('duration', 'offset', default=0)
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
 
+
 def SetGPIO(gpio, val=1):
     lock.acquire()
     if debug > 1:
         print gpio, pin[gpio], val
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
+
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, gpio, duration):
@@ -128,13 +130,14 @@ class TriggerThread(threading.Thread):
                     val = int(val)
                     SetGPIO(self.gpio, val)
                     if self.duration != None:
-                        # schedule a timer to switch off after the specified duration
+                        # schedule a timer to switch it off after the specified duration
                         duration = patch.getfloat('duration', self.gpio)
                         duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
                         # some minimal time is needed for the delay
                         duration = EEGsynth.limit(duration, 0.05, float('Inf'))
                         t = threading.Timer(duration, SetGPIO, args=[self.gpio, 0])
                         t.start()
+
 
 # use the WiringPi numbering, see http://wiringpi.com/reference/setup/
 wiringpi.wiringPiSetup()
@@ -170,9 +173,9 @@ try:
         for gpio, channel in config.items('control'):
             val = patch.getfloat('control', gpio)
             if val == None:
-                continue # it should be skipped when not present
+                continue  # it should be skipped when not present
             if val == previous_val[gpio]:
-                continue # it should be skipped when identical to the previous value
+                continue  # it should be skipped when identical to the previous value
             previous_val[gpio] = val
             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
             val = EEGsynth.limit(val, 0, 100)
