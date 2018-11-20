@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This module writes Rediscontrol values and triggers to the Raspberry Pi GPIO header
+# This module writes Redis control values and triggers to the Raspberry Pi GPIO header.
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #

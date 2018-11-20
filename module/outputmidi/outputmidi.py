@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# AVmixer interfaces with the AVmixer application
+# This module writes Redis control values and events to MIDI.
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
