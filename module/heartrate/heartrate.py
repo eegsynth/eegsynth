@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Heartrate computes the heart rate based on the beat-to-beat interval
+# Heartrate detects beats and returns the heart rate based on the beat-to-beat interval
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -144,9 +144,10 @@ while True:
         curvemean = np.mean(dat)
         curvemax  = np.max(dat)
     else:
-        curvemin  = curvemin  * (1-lrate) + lrate * np.min(dat)
-        curvemean = curvemean * (1-lrate) + lrate * np.mean(dat)
-        curvemax  = curvemax  * (1-lrate) + lrate * np.max(dat)
+        # the learning rate determines how fast the threshold auto-scales (0=never, 1=immediate)
+        curvemin  = (1 - lrate) * curvemin  + lrate * np.min(dat)
+        curvemean = (1 - lrate) * curvemean + lrate * np.mean(dat)
+        curvemax  = (1 - lrate) * curvemax  + lrate * np.max(dat)
 
     # both are defined as positive
     negrange = curvemean-curvemin
