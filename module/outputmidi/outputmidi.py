@@ -60,9 +60,6 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-# the settings dialog distinguishes between sliders/knobs and buttons/switches
-# the list of MIDI commands is the only aspect that is specific to the AVmixer interface
-
 control_name = []
 control_code = []
 for code in range(1,128):
@@ -102,7 +99,7 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
-        pubsub.subscribe('AVMIXER_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe('OUTPUTMIDI_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)  # this message contains the note
         while self.running:
             for item in pubsub.listen():
@@ -175,7 +172,7 @@ except KeyboardInterrupt:
     print "Closing threads"
     for thread in trigger:
         thread.stop()
-    r.publish('AVMIXER_UNBLOCK', 1)
+    r.publish('OUTPUTMIDI_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()
