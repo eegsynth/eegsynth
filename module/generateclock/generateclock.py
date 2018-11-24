@@ -77,12 +77,25 @@ def initialize_midi():
         exit()
     return midiport
 
+def find_nearest_value(list, value):
+    # find the value in the list that is the nearest to the desired value
+    return min(list, key=lambda x:abs(x-value))
+
 # this is to prevent two threads accesing a variable at the same time
 lock = threading.Lock()
 
+def SetTrigger(key, value):
+    lock.acquire()
+    r.publish(key, value) # send it as trigger
+    if debug>2:
+        print key, '=', value
+    lock.release()
+
+# this is to synchronize the clocks
 clock = []
-for iteration in range(24):
+for i in range(0, 24):
     clock.append(threading.Event())
+
 
 class ClockThread(threading.Thread):
     def __init__(self):
@@ -90,19 +103,20 @@ class ClockThread(threading.Thread):
         self.running = True
         self.rate = 60              # the rate is in bpm, i.e. quarter notes per minute
     def setRate(self, rate):
-        with lock:
-            self.rate = rate
+        if rate != self.rate:
+            with lock:
+                self.rate = rate
     def stop(self):
         self.running = False
     def run(self):
         slip = 0
         while self.running:
-            now    = time.time()
+            if debug>1:
+                print 'clock start'
+            start  = time.time()
             delay  = 60/self.rate   # the rate is in bpm
             delay -= slip           # correct for the slip from the previous iteration
-            jiffy = delay/(24)
-            if debug>1:
-                print 'clock step'
+            jiffy  = delay/24
             for tick in range(24):
                 clock[tick].set()
                 clock[tick].clear()
@@ -110,17 +124,16 @@ class ClockThread(threading.Thread):
                     time.sleep(jiffy)
             # the actual time used in this loop will be slightly different than desired
             # this will be corrected on the next iteration
-            slip = time.time() - now - delay
+            slip = time.time() - start - delay
+
 
 class MidiThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
         self.enabled = False
-    def enable(self):
-        self.enabled = True
-    def disable(self):
-        self.enabled = False
+    def setEnabled(self, enabled):
+        self.enabled = enabled
     def stop(self):
         self.enabled = False
         self.running = False
@@ -129,61 +142,66 @@ class MidiThread(threading.Thread):
         while self.running:
             if self.enabled and midiport:
                 if debug>1:
-                    print 'midi step'
+                    print 'midi start'
                 for tick in clock:
                     tick.wait()
                     midiport.send(msg)
+            else:
+                time.sleep(patch.getfloat('general', 'delay'))
+
 
 class RedisThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running  = True
         self.enabled  = False
-        self.adjust   = 0
-        self.steps    = 1
+        self.steps    = 1   # this determines on which of the MIDI clock ticks the Redis message is sent
+        self.adjust   = 0   # this determines by how many MIDI clock ticks the Redis message is shifted
+        self.select   = [0] # this is the list of indices for the MIDI clock ticks
         self.key      = "{}.note".format(patch.getstring('output','prefix'))
-        self.value    = 1.0
     def setSteps(self, steps):
-        with lock:
-            self.steps = steps
+        if steps != self.steps:
+            with lock:
+                self.steps = steps
+                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
+                print "select =", self.select
     def setAdjust(self, adjust):
-        with lock:
-            self.adjust = adjust
-    def enable(self):
-        self.enabled = True
-    def disable(self):
-        self.enabled = False
+        if adjust != self.adjust:
+            with lock:
+                self.adjust = adjust
+                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
+                print "select =", self.select
+    def setEnabled(self, enabled):
+        self.enabled = enabled
     def stop(self):
         self.enabled = False
         self.running = False
     def run(self):
         while self.running:
             if self.enabled:
-                # the variable "steps" determines on which of MIDI clock ticks the Redis message is sent
-                # the variable "adjust" determines by how many MIDI clock ticks the Redis message is shifted
-                if self.steps in [1, 2, 3, 4, 6, 8, 12, 24]:
-                    with lock:
-                        step = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
-                    if debug>1:
-                        print 'redis step =', step
-                    for tick in [clock[i] for i in step]:
-                        tick.wait()
-                        r.publish(self.key, self.value) # send it as trigger
+                if debug>1:
+                    print 'redis start'
+                for tick in [clock[indx] for indx in self.select]:
+                    tick.wait()
+                    SetTrigger(self.key, 1.) # send it as trigger
             else:
                 time.sleep(patch.getfloat('general', 'delay'))
+
 
 # create and start the thread that manages the clock
 clockthread = ClockThread()
 clockthread.start()
 
-# create and start the threads for the output
+# create and start the thread for the MIDI output
 midithread = MidiThread()
 midithread.start()
+
+# create and start the thread for the Redis output
 redisthread = RedisThread()
 redisthread.start()
 
-# these will only be started when needed
-init_midi   = False
+# the MIDI interface will only be started when needed
+init_midi = False
 
 previous_use_midi   = None
 previous_use_redis  = None
@@ -193,7 +211,7 @@ try:
         # measure the time to correct for the slip
         now = time.time()
 
-        if debug>0:
+        if debug>3:
             print 'loop'
 
         use_midi   = patch.getint('general', 'midi', default=0)
@@ -211,26 +229,24 @@ try:
             init_midi = True
 
         if use_midi and not previous_use_midi:
-            midithread.enable()
+            midithread.setEnabled(True)
             previous_use_midi = True
         elif not use_midi and previous_use_midi:
-            midithread.disable()
+            midithread.setEnabled(False)
             previous_use_midi = False
 
         if use_redis and not previous_use_redis:
-            redisthread.enable()
+            redisthread.setEnabled(True)
             previous_use_redis = True
         elif not use_redis and previous_use_redis:
-            redisthread.disable()
+            redisthread.setEnabled(False)
             previous_use_redis = False
 
         scale_rate  = patch.getfloat('scale', 'rate', default=127)
         offset_rate = patch.getfloat('offset', 'rate', default=0)
         rate        = patch.getfloat('input', 'rate', default=60./127)
         rate        = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-
-        # ensure that the rate is within meaningful limits
-        rate = EEGsynth.limit(rate, 40., 240.)
+        rate        = EEGsynth.limit(rate, 40., 240.)
 
         scale_multiply  = patch.getfloat('scale', 'multiply', default=4)
         offset_multiply = patch.getfloat('offset', 'multiply', default=-2.015748031495)
@@ -249,7 +265,7 @@ try:
         offset_steps = patch.getfloat('offset', 'steps', default=0)
         steps        = patch.getfloat('input', 'steps', default=1)
         steps        = EEGsynth.rescale(steps, slope=scale_steps, offset=offset_steps)
-        steps        = int(steps)
+        steps        = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], steps)
 
         scale_adjust  = patch.getfloat('scale', 'adjust', default=1)
         offset_adjust = patch.getfloat('offset', 'adjust', default=0)
@@ -266,16 +282,15 @@ try:
             show_change("steps",         steps)
             show_change("adjust",        adjust)
 
-        if rate>0 and multiply>0:
-            # update the synchronization threads
-            clockthread.setRate(rate * multiply)
-            redisthread.setSteps(steps)
-            redisthread.setAdjust(adjust)
+        # update the clock and redis
+        clockthread.setRate(rate * multiply)
+        redisthread.setSteps(steps)
+        redisthread.setAdjust(adjust)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime>0:
-            if debug>2:
+            if debug>3:
                 print "naptime =", naptime
             time.sleep(naptime)
 
