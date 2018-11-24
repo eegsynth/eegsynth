@@ -111,25 +111,41 @@ class patch():
         self.config = c
         self.redis  = r
 
+
     def getfloat(self, section, item, multiple=False, default=None):
         if  self.config.has_option(section, item):
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
-            items = items.replace(' ', '')         # remove whitespace
-            if items[0]!='-':
-                items = items.replace('-', ',')    # replace minus separators by commas
-            items = items.split(',')               # split on the commas
-            val = [None]*len(items)
+
+            if items.find(",") > -1:
+                separator = ","
+            elif items.find("-") > -1:
+                separator = "-"
+            elif items.find("\t") > -1:
+                separator = "\t"
+            else:
+                separator = " "
+
+            items = squeeze(' ', items)        # remove excess whitespace
+            items = squeeze(separator, items)  # remove double separators
+            items = items.split(separator)     # split on the separator
+
+            # set the default
+            if default != None:
+                val = [float(default)] * len(items)
+            else:
+                val = [default] * len(items)
 
             for i,item in enumerate(items):
-                # replace the item with the actual value
                 try:
+                    # if it resembles a value, use that
                     val[i] = float(item)
                 except ValueError:
+                    # if it is a string, get the value from Redis
                     try:
                         val[i] = float(self.redis.get(item))
                     except TypeError:
-                        val[i] = default
+                        pass
         else:
             if default != None:
                 val = [float(default)]
@@ -145,25 +161,39 @@ class patch():
 
     ####################################################################
     def getint(self, section, item, multiple=False, default=None):
-
         if self.config.has_option(section, item):
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
-            items = items.replace(' ', '')         # remove whitespace
-            if items[0]!='-':
-                items = items.replace('-', ',')    # replace minus separators by commas
-            items = items.split(',')               # split on the commas
-            val = [None]*len(items)
+
+            if items.find(",") > -1:
+                separator = ","
+            elif items.find("-") > -1:
+                separator = "-"
+            elif items.find("\t") > -1:
+                separator = "\t"
+            else:
+                separator = " "
+
+            items = squeeze(' ', items)        # remove excess whitespace
+            items = squeeze(separator, items)  # remove double separators
+            items = items.split(separator)     # split on the separator
+
+            # set the default
+            if default != None:
+                val = [int(default)] * len(items)
+            else:
+                val = [default] * len(items)
 
             for i,item in enumerate(items):
-                # replace the item with the actual value
                 try:
+                    # if it resembles a value, use that
                     val[i] = int(item)
                 except ValueError:
+                    # if it is a string, get the value from Redis
                     try:
                         val[i] = int(round(float(self.redis.get(item))))
                     except TypeError:
-                        val[i] = default
+                        pass
         else:
             if default != None:
                 val = [int(default)]
@@ -179,29 +209,34 @@ class patch():
 
     ####################################################################
     def getstring(self, section, item, multiple=False):
-        # get one or multiple items from the ini file
-
         # get all items from the ini file, there might be one or multiple
         items = self.config.get(section, item)
-        if multiple:
-            items = items.replace(' ', '')         # remove whitespace
-            if items[0]!='-':
-                items = items.replace('-', ',')    # replace minus separators by commas
-            items = items.split(',')               # split on the commas
-        else:
-            items = [items]
 
         if multiple:
+            if items.find(",") > -1:
+                separator = ","
+            elif items.find("-") > -1:
+                separator = "-"
+            elif items.find("\t") > -1:
+                separator = "\t"
+            else:
+                separator = " "
+
+            items = squeeze(separator, items)  # remove double separators
+            items = items.split(separator)     # split on the separator
+
             # return it as list
             return items
+
         else:
             # return a single value
-            return items[0]
+            return items
 
     ####################################################################
     def hasitem(self, section, item):
         # check whether an item is present in the ini file
         return self.config.has_option(section, item)
+
 
 ####################################################################
 def rescale(xval, slope=None, offset=None):
@@ -280,3 +315,9 @@ def normalizestandard(xval, avg, std):
     avg = float(avg)
     std = float(std)
     return (float(xval)-avg)/std
+
+####################################################################
+def squeeze(char, string):
+    while char*2 in string:
+        string = string.replace(char*2, char)
+    return string
