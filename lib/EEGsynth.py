@@ -179,9 +179,24 @@ class patch():
 
     ####################################################################
     def getstring(self, section, item, multiple=False):
-        # get one items from the ini file
-        # multiple items and default values are not yet supported
-        return self.config.get(section, item)
+        # get one or multiple items from the ini file
+
+        # get all items from the ini file, there might be one or multiple
+        items = self.config.get(section, item)
+        if multiple:
+            items = items.replace(' ', '')         # remove whitespace
+            if items[0]!='-':
+                items = items.replace('-', ',')    # replace minus separators by commas
+            items = items.split(',')               # split on the commas
+        else:
+            items = [items]
+
+        if multiple:
+            # return it as list
+            return items
+        else:
+            # return a single value
+            return items[0]
 
     ####################################################################
     def hasitem(self, section, item):

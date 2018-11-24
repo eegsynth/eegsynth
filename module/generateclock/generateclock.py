@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# Synchronizer sends a regular clock trigger to MIDI, Serial and/or Redis
-#
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017-2018 EEGsynth project
@@ -26,7 +24,6 @@ import mido
 import numpy as np
 import os
 import redis
-import serial
 import sys
 import threading
 import time
@@ -69,15 +66,6 @@ def show_change(key, val):
     if (key in previous and previous[key]!=val) or (key not in previous):
         print key, "=", val
     previous[key] = val
-
-serialport = None
-def initialize_serial():
-    try:
-        serialport = serial.Serial(patch.getstring('serial','device'), patch.getint('serial','baudrate'), timeout=3.0)
-    except:
-        print "Error: cannot connect to serial output"
-        exit()
-    return serialport
 
 midiport = None
 def initialize_midi():
@@ -146,43 +134,6 @@ class MidiThread(threading.Thread):
                     tick.wait()
                     midiport.send(msg)
 
-class SerialThread(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.running  = True
-        self.enabled  = False
-        self.adjust   = 0
-        self.steps    = 1
-    def setSteps(self, steps):
-        with lock:
-            self.steps = steps
-    def setAdjust(self, adjust):
-        with lock:
-            self.adjust = adjust
-    def enable(self):
-        self.enabled = True
-    def disable(self):
-        self.enabled = False
-    def stop(self):
-        self.enabled = False
-        self.running = False
-    def run(self):
-        while self.running:
-            if self.enabled and serialport:
-                if self.steps in [1, 2, 3, 4, 6, 8, 12, 24]:
-                    with lock:
-                        step = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24).astype(int).tolist()
-                    if debug>1:
-                        print 'serial step =', step
-                    for tick in [clock[i] for i in step]:
-                        tick.wait()
-                        serialport.write('*g1v1#')      # enable the analog gate
-                        if duration>0:
-                            time.sleep(duration)
-                        serialport.write('*g1v0#')      # disable the analog gate
-            else:
-                time.sleep(patch.getfloat('general', 'delay'))
-
 class RedisThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -226,14 +177,11 @@ clockthread.start()
 # create and start the threads for the output
 midithread = MidiThread()
 midithread.start()
-serialthread = SerialThread()
-serialthread.start()
 redisthread = RedisThread()
 redisthread.start()
 
 # these will only be started when needed
 init_midi   = False
-init_serial = False
 
 previous_use_midi   = None
 previous_use_serial = None
@@ -248,14 +196,10 @@ try:
             print 'loop'
 
         use_midi   = patch.getint('general', 'midi', default=0)
-        use_serial = patch.getint('general', 'serial', default=0)
         use_redis  = patch.getint('general', 'redis', default=0)
 
         if previous_use_midi is None:
             previous_use_midi = not(use_midi);
-
-        if previous_use_serial is None:
-            previous_use_serial = not(use_serial);
 
         if previous_use_redis is None:
             previous_use_redis = not(use_redis);
@@ -265,24 +209,12 @@ try:
             midiport = initialize_midi()
             init_midi = True
 
-        if use_serial and not init_serial:
-            # this might not be running at the start
-            serialport = initialize_serial()
-            init_serial = True
-
         if use_midi and not previous_use_midi:
             midithread.enable()
             previous_use_midi = True
         elif not use_midi and previous_use_midi:
             midithread.disable()
             previous_use_midi = False
-
-        if use_serial and not previous_use_serial:
-            serialthread.enable()
-            previous_use_serial = True
-        elif not use_serial and previous_use_serial:
-            serialthread.disable()
-            previous_use_serial = False
 
         if use_redis and not previous_use_redis:
             redisthread.enable()
@@ -330,7 +262,6 @@ try:
         if debug>0:
             # show the parameters whose value has changed
             show_change("use_midi",      use_midi)
-            show_change("use_serial",    use_serial)
             show_change("use_redis",     use_redis)
             show_change("rate",          rate)
             show_change("multiply",      multiply)
@@ -343,8 +274,6 @@ try:
             clockthread.setRate(rate*multiply)
             redisthread.setAdjust(adjust)
             redisthread.setSteps(steps)
-            serialthread.setAdjust(adjust)
-            serialthread.setSteps(steps)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
@@ -355,8 +284,6 @@ except KeyboardInterrupt:
     print "Closing threads"
     midithread.stop()
     midithread.join()
-    serialthread.stop()
-    serialthread.join()
     redisthread.stop()
     redisthread.join()
     # the thread that manages the clock should be stopped the last

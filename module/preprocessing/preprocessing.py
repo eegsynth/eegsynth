@@ -115,7 +115,7 @@ if debug>1:
 window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
-ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
+ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
 
 # Processing init
 downsample  = patch.getfloat('processing', 'downsample', None)
