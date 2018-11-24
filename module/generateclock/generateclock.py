@@ -103,9 +103,9 @@ class ClockThread(threading.Thread):
             jiffy = delay/(24)
             if debug>1:
                 print 'clock step'
-            for iteration in range(24):
-                clock[iteration].set()
-                clock[iteration].clear()
+            for tick in range(24):
+                clock[tick].set()
+                clock[tick].clear()
                 if jiffy>0:
                     time.sleep(jiffy)
             # the actual time used in this loop will be slightly different than desired
@@ -159,6 +159,8 @@ class RedisThread(threading.Thread):
     def run(self):
         while self.running:
             if self.enabled:
+                # the variable "steps" determines on which of MIDI clock ticks the Redis message is sent
+                # the variable "adjust" determines by how many MIDI clock ticks the Redis message is shifted
                 if self.steps in [1, 2, 3, 4, 6, 8, 12, 24]:
                     with lock:
                         step = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
@@ -184,7 +186,6 @@ redisthread.start()
 init_midi   = False
 
 previous_use_midi   = None
-previous_use_serial = None
 previous_use_redis  = None
 
 try:
@@ -223,17 +224,19 @@ try:
             redisthread.disable()
             previous_use_redis = False
 
-        rate = patch.getfloat('input', 'rate', default=60./127)
-        scale_rate = patch.getfloat('scale', 'rate', default=127)
+        scale_rate  = patch.getfloat('scale', 'rate', default=127)
         offset_rate = patch.getfloat('offset', 'rate', default=0)
-        rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+        rate        = patch.getfloat('input', 'rate', default=60./127)
+        rate        = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+
         # ensure that the rate is within meaningful limits
         rate = EEGsynth.limit(rate, 40., 240.)
 
-        multiply = patch.getfloat('input', 'multiply', default=0.5)
-        scale_multiply = patch.getfloat('scale', 'multiply', default=4)
+        scale_multiply  = patch.getfloat('scale', 'multiply', default=4)
         offset_multiply = patch.getfloat('offset', 'multiply', default=-2.015748031495)
-        multiply = EEGsynth.rescale(multiply, slope=scale_multiply, offset=offset_multiply)
+        multiply        = patch.getfloat('input', 'multiply', default=0.5)
+        multiply        = EEGsynth.rescale(multiply, slope=scale_multiply, offset=offset_multiply)
+
         # map the multiply value exponentially, i.e. -1 becomes 1/2, 0 becomes 1, 1 becomes 2
         multiply = math.pow(2, multiply)
         # it should be 1, 2, 3, 4 or 1/2, 1/3, 1/4, etc
@@ -242,22 +245,17 @@ try:
         elif multiply<1:
             multiply = 1.0/round(1.0/multiply);
 
-        # this is for the analog trigger on the CV/Gate, expressed in seconds
-        duration = patch.getfloat('general', 'duration')
-        # ensure the trigger duration is within meaningful limits: lowest value is 5 ms, highest value depends on the rate
-        duration = EEGsynth.limit(duration, 0.005, 60./(2*24*rate*multiply))
-
-        steps = patch.getfloat('input', 'steps', default=1)
-        scale_steps = patch.getfloat('scale', 'steps', default=1)
+        scale_steps  = patch.getfloat('scale', 'steps', default=1)
         offset_steps = patch.getfloat('offset', 'steps', default=0)
-        steps = EEGsynth.rescale(steps, slope=scale_steps, offset=offset_steps)
-        steps = int(steps)
+        steps        = patch.getfloat('input', 'steps', default=1)
+        steps        = EEGsynth.rescale(steps, slope=scale_steps, offset=offset_steps)
+        steps        = int(steps)
 
-        adjust = patch.getfloat('input', 'adjust', default=0)
-        scale_adjust = patch.getfloat('scale', 'adjust', default=1)
+        scale_adjust  = patch.getfloat('scale', 'adjust', default=1)
         offset_adjust = patch.getfloat('offset', 'adjust', default=0)
-        adjust = EEGsynth.rescale(adjust, slope=scale_adjust, offset=offset_adjust)
-        adjust = int(adjust)
+        adjust        = patch.getfloat('input', 'adjust', default=0)
+        adjust        = EEGsynth.rescale(adjust, slope=scale_adjust, offset=offset_adjust)
+        adjust        = int(adjust)
 
         if debug>0:
             # show the parameters whose value has changed
@@ -265,19 +263,20 @@ try:
             show_change("use_redis",     use_redis)
             show_change("rate",          rate)
             show_change("multiply",      multiply)
-            show_change("duration",      duration)
             show_change("steps",         steps)
             show_change("adjust",        adjust)
 
         if rate>0 and multiply>0:
             # update the synchronization threads
-            clockthread.setRate(rate*multiply)
-            redisthread.setAdjust(adjust)
+            clockthread.setRate(rate * multiply)
             redisthread.setSteps(steps)
+            redisthread.setAdjust(adjust)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime>0:
+            if debug>2:
+                print "naptime =", naptime
             time.sleep(naptime)
 
 except KeyboardInterrupt:
