@@ -62,7 +62,14 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+debug       = patch.getint('general', 'debug')
+delay       = patch.getfloat('general', 'delay')            # in seconds
+window      = patch.getfloat('general', 'window')           # in seconds
+value       = patch.getint('general', 'value', default=0)   # boolean
+winx        = patch.getfloat('display', 'xpos')
+winy        = patch.getfloat('display', 'ypos')
+winwidth    = patch.getfloat('display', 'width')
+winheight   = patch.getfloat('display', 'height')
 
 # Initialize variables
 data = {}
@@ -114,12 +121,6 @@ for i in range(1, 17):
 for thread in gate:
     thread.start()
 
-delay       = patch.getfloat('general', 'delay')    # in seconds
-window      = patch.getfloat('general', 'window')   # in seconds
-winx        = patch.getfloat('display', 'xpos')
-winy        = patch.getfloat('display', 'ypos')
-winwidth    = patch.getfloat('display', 'width')
-winheight   = patch.getfloat('display', 'height')
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -153,16 +154,19 @@ def update():
             scatter.addPoints([{'pos': (x, y)}])
             plot.addItem(scatter)
 
-            if abs(v-round(v))<0.001:
-                # print it as integer value
-                s = '%d' % v
-            else:
-                # print it as floating point value
-                s = '%2.1f' % v
+            if value:
+                # show the numeric value next to the trigger
 
-            text = pg.TextItem(s, anchor=(0,0))
-            text.setPos(x, y)
-            plot.addItem(text)
+                if abs(v-round(v))<0.001:
+                    # print it as integer value
+                    s = '%d' % v
+                else:
+                    # print it as floating point value
+                    s = '%2.1f' % v
+
+                text = pg.TextItem(s, anchor=(0,0))
+                text.setPos(x, y)
+                plot.addItem(text)
 
 # keyboard interrupt handling
 def sigint_handler(*args):
