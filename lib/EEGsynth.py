@@ -117,18 +117,22 @@ class patch():
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
-            if items.find(",") > -1:
-                separator = ","
-            elif items.find("-") > -1:
-                separator = "-"
-            elif items.find("\t") > -1:
-                separator = "\t"
+            # convert the items to a list
+            if multiple:
+                if items.find(",") > -1:
+                    separator = ","
+                elif items.find("-") > -1:
+                    separator = "-"
+                elif items.find("\t") > -1:
+                    separator = "\t"
+                else:
+                    separator = " "
+                items = squeeze(' ', items)        # remove excess whitespace
+                items = squeeze(separator, items)  # remove double separators
+                items = items.split(separator)     # split on the separator
             else:
-                separator = " "
-
-            items = squeeze(' ', items)        # remove excess whitespace
-            items = squeeze(separator, items)  # remove double separators
-            items = items.split(separator)     # split on the separator
+                # make a list with a single item
+                items = [items]
 
             # set the default
             if default != None:
@@ -165,18 +169,22 @@ class patch():
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
-            if items.find(",") > -1:
-                separator = ","
-            elif items.find("-") > -1:
-                separator = "-"
-            elif items.find("\t") > -1:
-                separator = "\t"
+            # convert the items to a list
+            if multiple:
+                if items.find(",") > -1:
+                    separator = ","
+                elif items.find("-") > -1:
+                    separator = "-"
+                elif items.find("\t") > -1:
+                    separator = "\t"
+                else:
+                    separator = " "
+                items = squeeze(' ', items)        # remove excess whitespace
+                items = squeeze(separator, items)  # remove double separators
+                items = items.split(separator)     # split on the separator
             else:
-                separator = " "
-
-            items = squeeze(' ', items)        # remove excess whitespace
-            items = squeeze(separator, items)  # remove double separators
-            items = items.split(separator)     # split on the separator
+                # make a list with a single item
+                items = [items]
 
             # set the default
             if default != None:
