@@ -98,11 +98,11 @@ if debug>1:
 # this is to prevent two threads accesing a variable at the same time
 lock = threading.Lock()
 
-def SetChannel(key, val):
+def SetChannel(key, value):
     if debug > 1:
-        print key, val
+        print key, '=', value
     lock.acquire()
-    r.set(key, val)      # set it as control channel
+    r.set(key, value) # set it as control channel
     lock.release()
 
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
