@@ -225,5 +225,6 @@ except KeyboardInterrupt:
         pass
     print "Closing threads"
     sequencethread.stop()
+    r.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()
     sys.exit()
