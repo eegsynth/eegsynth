@@ -111,6 +111,7 @@ class patch():
         self.config = c
         self.redis  = r
 
+
     def getfloat(self, section, item, multiple=False, default=None):
         if  self.config.has_option(section, item):
             # get all items from the ini file, there might be one or multiple
@@ -120,12 +121,14 @@ class patch():
                 separator = ","
             elif items.find("-") > -1:
                 separator = "-"
+            elif items.find("\t") > -1:
+                separator = "\t"
             else:
                 separator = " "
 
-            # split on the separator
-            items = items.replace(separator + separator, separator)  # remove double separators
-            items = items.split(separator)                           # split on the separator
+            items = squeeze(' ', items)        # remove excess whitespace
+            items = squeeze(separator, items)  # remove double separators
+            items = items.split(separator)     # split on the separator
 
             # set the default
             if default != None:
@@ -166,12 +169,14 @@ class patch():
                 separator = ","
             elif items.find("-") > -1:
                 separator = "-"
+            elif items.find("\t") > -1:
+                separator = "\t"
             else:
                 separator = " "
 
-            # split on the separator
-            items = items.replace(separator + separator, separator)  # remove double separators
-            items = items.split(separator)                           # split on the separator
+            items = squeeze(' ', items)        # remove excess whitespace
+            items = squeeze(separator, items)  # remove double separators
+            items = items.split(separator)     # split on the separator
 
             # set the default
             if default != None:
@@ -212,12 +217,13 @@ class patch():
                 separator = ","
             elif items.find("-") > -1:
                 separator = "-"
+            elif items.find("\t") > -1:
+                separator = "\t"
             else:
                 separator = " "
 
-            # split on the separator
-            items = items.replace(separator + separator, separator)  # remove double separators
-            items = items.split(separator)                           # split on the separator
+            items = squeeze(separator, items)  # remove double separators
+            items = items.split(separator)     # split on the separator
 
             # return it as list
             return items
@@ -230,6 +236,7 @@ class patch():
     def hasitem(self, section, item):
         # check whether an item is present in the ini file
         return self.config.has_option(section, item)
+
 
 ####################################################################
 def rescale(xval, slope=None, offset=None):
@@ -308,3 +315,9 @@ def normalizestandard(xval, avg, std):
     avg = float(avg)
     std = float(std)
     return (float(xval)-avg)/std
+
+####################################################################
+def squeeze(char, string):
+    while char*2 in string:
+        string = string.replace(char*2, char)
+    return string
