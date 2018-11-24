@@ -91,7 +91,7 @@ class TriggerThread(threading.Thread):
         global count
         global interval
         # this message unblocks the Redis listen command
-        pubsub.subscribe('CLOCKDIVIDER_UNBLOCK')
+        pubsub.subscribe('CLOCKMULTIPLIER_UNBLOCK')
         # this message triggers the event
         pubsub.subscribe(self.redischannel)
         while self.running:
@@ -154,7 +154,7 @@ except KeyboardInterrupt:
     print "Closing threads"
     for thread in trigger:
         thread.stop()
-    r.publish('CLOCKDIVIDER_UNBLOCK', 1)
+    r.publish('CLOCKMULTIPLIER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()
