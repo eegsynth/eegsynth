@@ -98,12 +98,22 @@ if debug>1:
 # this is to prevent two threads accesing a variable at the same time
 lock = threading.Lock()
 
+
 def SetChannel(key, value):
     if debug > 1:
         print key, '=', value
     lock.acquire()
     r.set(key, value) # set it as control channel
     lock.release()
+
+
+def SetTrigger(key, value):
+    if debug > 1:
+        print key, '=', value
+    lock.acquire()
+    r.publish(key, value) # send it as trigger
+    lock.release()
+
 
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 window    = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
@@ -150,8 +160,8 @@ while True:
         curvemax  = (1 - lrate) * curvemax  + lrate * np.max(dat)
 
     # both are defined as positive
-    negrange = curvemean-curvemin
-    posrange = curvemax-curvemean
+    negrange = curvemean - curvemin
+    posrange = curvemax - curvemean
 
     if negrange>posrange:
         thresh = (curvemean - dat) > threshold * negrange
@@ -159,7 +169,7 @@ while True:
         thresh = (dat - curvemean) > threshold * posrange
 
     if not np.isnan(prev):
-        prevsample = int(round(prev*hdr_input.fSample)) - begsample
+        prevsample = int(round(prev * hdr_input.fSample)) - begsample
         if prevsample>0 and prevsample<len(thresh):
             thresh[0:prevsample] = False
 
@@ -185,21 +195,18 @@ while True:
         bpm  = 60./(last-prev)
         prev = last
 
-        if debug>0:
-            print key_rate, bpm
-
         if not np.isnan(bpm):
-            r.publish(key_rate, bpm)  # send it as trigger
-            r.publish(key_beat, bpm)  # send it as trigger
-            SetChannel(key_rate, bpm) # set it as continuous control channel
-            SetChannel(key_beat, 1)   # set it as binary control channel
+            SetTrigger(key_rate, bpm)  # send it as trigger
+            SetTrigger(key_beat, bpm)  # send it as trigger
+            SetChannel(key_rate, bpm)  # set it as continuous control channel
+            SetChannel(key_beat, 1.)   # set it as continuous control channel with value 1
 
             # schedule a timer to switch the binary control channel off
-            duration = patch.getfloat('general', 'duration', default=0.1)
-            duration_scale = patch.getfloat('scale', 'duration', default=1)
+            duration        = patch.getfloat('general', 'duration', default=0.1)
+            duration_scale  = patch.getfloat('scale', 'duration', default=1)
             duration_offset = patch.getfloat('offset', 'duration', default=0)
-            duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
-            # some minimal time is needed for the delay
-            duration = EEGsynth.limit(duration, 0.05, float('Inf'))
-            t = threading.Timer(duration, SetChannel, args=[key_beat, 0])
-            t.start()
+            duration        = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+            if duration>0:
+                # set it as continuous control channel with value 0
+                t = threading.Timer(duration, SetChannel, args=[key_beat, 0.])
+                t.start()
