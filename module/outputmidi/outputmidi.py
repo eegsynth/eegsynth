@@ -72,12 +72,6 @@ for code in range(1,128):
     note_name.append("midi%03d" % code)
     note_code.append(code)
 
-if True:
-    for name, code in zip(control_name, control_code):
-        print "control", name, code
-    for name, code in zip(note_name, note_code):
-        print "note", name, code
-
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
