@@ -142,12 +142,10 @@ if debug > 1:
     print hdr_input.labels
 
 # read variables from ini/redis
-chanlist = patch.getstring('arguments', 'channels').split(",")
-chanarray = np.array(chanlist)
-for i in range(len(chanarray)):
-    chanarray[i] = int(chanarray[i]) - 1                # since python using indexing from 0 instead of 1
+chanarray = patch.getint('arguments', 'channels', multiple=True)
+chanarray = [chan - 1 for chan in chanarray] # since python using indexing from 0 instead of 1
 
-chan_nrs    = len(chanlist)
+chan_nrs    = len(chanarray)
 window      = patch.getfloat('arguments', 'window')        # in seconds
 window      = int(round(window * hdr_input.fSample))       # in samples
 clipsize    = patch.getfloat('arguments', 'clipsize')      # in seconds
@@ -162,8 +160,7 @@ lrate       = patch.getfloat('arguments', 'learning_rate')
 # lowpass, highpass and bandpass are optional, but mutually exclusive
 filtorder = 9
 if patch.hasitem('arguments', 'bandpass'):
-    freqrange = patch.getstring('arguments', 'bandpass').split("-")
-    freqrange = [float(s) for s in freqrange]
+    freqrange = patch.getfloat('arguments', 'bandpass', multiple=True)
 elif patch.hasitem('arguments', 'lowpass'):
     freqrange = patch.getfloat('arguments', 'lowpass')
     freqrange = [np.nan, freqrange]

@@ -116,24 +116,22 @@ if debug > 1:
     print hdr_input.labels
 
 # read variables from ini/redis
-chanlist = patch.getstring('arguments', 'channels').split(",")
-chanarray = np.array(chanlist)
-for i in range(len(chanarray)):
-    chanarray[i] = int(chanarray[i]) - 1  # since python using indexing from 0 instead of 1
+chanarray = patch.getint('arguments', 'channels', multiple=True)
+chanarray = [chan - 1 for chan in chanarray] # since python starts counting at 0
 
-numchannel  = len(chanlist)
+numchannel  = len(chanarray)
 window      = patch.getfloat('arguments', 'window')         # in seconds
 window      = int(round(window * hdr_input.fSample))        # in samples
 stepsize    = patch.getfloat('arguments', 'stepsize')       # in seconds
 historysize = patch.getfloat('arguments', 'historysize')    # in seconds
 numhistory  = int(historysize / stepsize)                   # number of observation in history
-freqaxis    = fftfreq(window, 1 / hdr_input.fSample)
+freqaxis    = fftfreq(window, 1. / hdr_input.fSample)
 history     = np.empty((numchannel, freqaxis.shape[0], numhistory)) * np.nan
 lrate       = patch.getfloat('arguments', 'learning_rate')
-scalered    = patch.getfloat('scale', 'red')
-scaleblue   = patch.getfloat('scale', 'blue')
-offsetred   = patch.getfloat('offset', 'red')
-offsetblue  = patch.getfloat('offset', 'blue')
+scale_red   = patch.getfloat('scale', 'red')
+scale_blue  = patch.getfloat('scale', 'blue')
+offset_red  = patch.getfloat('offset', 'red')
+offset_blue = patch.getfloat('offset', 'blue')
 winx        = patch.getfloat('display', 'xpos')
 winy        = patch.getfloat('display', 'ypos')
 winwidth    = patch.getfloat('display', 'width')
@@ -171,9 +169,9 @@ redleft_hist    = []
 redright_hist   = []
 blueleft_hist   = []
 blueright_hist  = []
-FFT_curr        = []
-FFT_prev        = []
-FFT_hist        = []
+fft_curr        = []
+fft_prev        = []
+fft_hist        = []
 specmax_curr    = []
 specmin_curr    = []
 specmax_hist    = []
@@ -209,9 +207,9 @@ for ichan in range(numchannel):
     specmax_curr.append(0)
     specmin_hist.append(0)
     specmax_hist.append(0)
-    FFT_curr.append(0)
-    FFT_prev.append(0)
-    FFT_hist.append(0)
+    fft_curr.append(0)
+    fft_prev.append(0)
+    fft_hist.append(0)
 
 # print frequency at lines
 freqplot_curr[0].addItem(text_redleft)
@@ -225,7 +223,7 @@ freqplot_hist[0].addItem(text_blueright_hist)
 
 
 def update():
-    global specmax_curr, specmin_curr, specmax_hist, specmin_hist, FFT_prev, FFT_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
+    global specmax_curr, specmin_curr, specmax_hist, specmin_hist, fft_prev, fft_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
 
     # get last data
     last_index = ft_input.getHeader().nSamples
@@ -251,41 +249,40 @@ def update():
         channr = int(chanarray[ichan])
 
         # estimate FFT at current moment, apply some temporal smoothing
-        FFT_temp = abs(fft(data[:, channr]))
-        FFT_curr[ichan] = FFT_temp * lrate + FFT_prev[ichan] * (1 - lrate)
-        FFT_prev[ichan] = FFT_curr[ichan]
+        fft_temp = abs(fft(data[:, channr]))
+        fft_curr[ichan] = fft_temp * lrate + fft_prev[ichan] * (1 - lrate)
+        fft_prev[ichan] = fft_curr[ichan]
 
         # update FFT history with current estimate
-        history[ichan, :, numhistory - 1] = FFT_temp
-        FFT_hist = np.nanmean(history, axis=2)
+        history[ichan, :, numhistory - 1] = fft_temp
+        fft_hist = np.nanmean(history, axis=2)
 
         # user-selected frequency band
-        arguments_freqrange = patch.getstring('arguments', 'freqrange').split("-")
-        arguments_freqrange = [float(s) for s in arguments_freqrange]
+        arguments_freqrange = patch.getfloat('arguments', 'freqrange', multiple=True)
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
         # update panels
-        spect_curr[ichan].setData(freqaxis[freqrange], FFT_curr[ichan][freqrange])
-        spect_hist[ichan].setData(freqaxis[freqrange], FFT_hist[ichan][freqrange])
+        spect_curr[ichan].setData(freqaxis[freqrange], fft_curr[ichan][freqrange])
+        spect_hist[ichan].setData(freqaxis[freqrange], fft_hist[ichan][freqrange])
 
         # adapt the vertical scale to the running mean of min/max
-        specmax_curr[ichan] = float(specmax_curr[ichan]) * (1 - lrate) + lrate * max(FFT_curr[ichan][freqrange])
-        specmin_curr[ichan] = float(specmin_curr[ichan]) * (1 - lrate) + lrate * min(FFT_curr[ichan][freqrange])
-        specmax_hist[ichan] = float(specmax_hist[ichan]) * (1 - lrate) + lrate * max(FFT_hist[ichan][freqrange])
-        specmin_hist[ichan] = float(specmin_hist[ichan]) * (1 - lrate) + lrate * min(FFT_hist[ichan][freqrange])
+        specmax_curr[ichan] = float(specmax_curr[ichan]) * (1 - lrate) + lrate * max(fft_curr[ichan][freqrange])
+        specmin_curr[ichan] = float(specmin_curr[ichan]) * (1 - lrate) + lrate * min(fft_curr[ichan][freqrange])
+        specmax_hist[ichan] = float(specmax_hist[ichan]) * (1 - lrate) + lrate * max(fft_hist[ichan][freqrange])
+        specmin_hist[ichan] = float(specmin_hist[ichan]) * (1 - lrate) + lrate * min(fft_hist[ichan][freqrange])
 
         freqplot_curr[ichan].setYRange(specmin_curr[ichan], specmax_curr[ichan])
         freqplot_hist[ichan].setYRange(specmin_hist[ichan], specmax_hist[ichan])
 
         # update plotted lines
         redfreq   = patch.getfloat('input', 'redfreq', default=10. / arguments_freqrange[1])
-        redfreq   = EEGsynth.rescale(redfreq, slope=scalered, offset=offsetred) * arguments_freqrange[1]
+        redfreq   = EEGsynth.rescale(redfreq, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
         redwidth  = patch.getfloat('input', 'redwidth', default=1. / arguments_freqrange[1])
-        redwidth  = EEGsynth.rescale(redwidth, slope=scalered, offset=offsetred) * arguments_freqrange[1]
+        redwidth  = EEGsynth.rescale(redwidth, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
         bluefreq  = patch.getfloat('input', 'bluefreq', default=20. / arguments_freqrange[1])
-        bluefreq  = EEGsynth.rescale(bluefreq, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
+        bluefreq  = EEGsynth.rescale(bluefreq, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
         bluewidth = patch.getfloat('input', 'bluewidth', default=4. / arguments_freqrange[1])
-        bluewidth = EEGsynth.rescale(bluewidth, slope=scaleblue, offset=offsetblue) * arguments_freqrange[1]
+        bluewidth = EEGsynth.rescale(bluewidth, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
 
         redleft_curr[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
         redright_curr[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])

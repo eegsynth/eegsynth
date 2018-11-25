@@ -113,12 +113,15 @@ class patch():
 
 
     def getfloat(self, section, item, multiple=False, default=None):
-        if  self.config.has_option(section, item):
+        if self.config.has_option(section, item):
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
-            # convert the items to a list
-            if multiple:
+            if items == '':
+                # construct an empty list
+                items = []
+            elif multiple:
+                # convert the items to a list
                 if items.find(",") > -1:
                     separator = ","
                 elif items.find("-") > -1:
@@ -151,10 +154,15 @@ class patch():
                     except TypeError:
                         pass
         else:
-            if default != None:
-                val = [float(default)]
-            else:
-                val = [default]
+            # the configuration file does not contain the item
+            if multiple == True and default == None:
+                return []
+            elif multiple == True and default != None:
+                return [float(x) for x in default]
+            elif multiple == False and default == None:
+                return None
+            elif multiple == False and default != None:
+                return float(default)
 
         if multiple:
             # return it as list
@@ -163,14 +171,20 @@ class patch():
             # return a single value
             return val[0]
 
+
     ####################################################################
     def getint(self, section, item, multiple=False, default=None):
+        assert multiple == False or default == None, "default value is not supported for multiple items"
+
         if self.config.has_option(section, item):
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
-            # convert the items to a list
-            if multiple:
+            if items == '':
+                # construct an empty list
+                items = []
+            elif multiple:
+                # convert the items to a list
                 if items.find(",") > -1:
                     separator = ","
                 elif items.find("-") > -1:
@@ -203,10 +217,15 @@ class patch():
                     except TypeError:
                         pass
         else:
-            if default != None:
-                val = [int(default)]
-            else:
-                val = [default]
+            # the configuration file does not contain the item
+            if multiple == True and default == None:
+                return  []
+            elif multiple == True and default != None:
+                return [float(x) for x in default]
+            elif multiple == False and default == None:
+                return None
+            elif multiple == False and default != None:
+                return float(default)
 
         if multiple:
             # return it as list
@@ -221,6 +240,7 @@ class patch():
         items = self.config.get(section, item)
 
         if multiple:
+            # convert the items to a list
             if items.find(",") > -1:
                 separator = ","
             elif items.find("-") > -1:
