@@ -72,16 +72,15 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-inputlist   = patch.getstring('input', 'channels').split(",")
-stepsize    = patch.getfloat('smoothing', 'stepsize')   # in seconds
-window      = patch.getfloat('smoothing', 'window')     # in seconds
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+stepsize    = patch.getfloat('smoothing', 'stepsize')               # in seconds
+window      = patch.getfloat('smoothing', 'window')                 # in seconds
+freeze      = patch.getint('input', 'freeze', default=0)
 numchannel  = len(inputlist)
 numhistory  = int(round(window/stepsize))
-freeze      = False
 
 # this will contain the full list of historic values
-history = np.empty((numchannel, numhistory))
-history[:] = np.NAN
+history = np.empty((numchannel, numhistory)) * np.NAN
 
 # this will contain the statistics of the historic values
 historic = {}
@@ -89,22 +88,28 @@ historic = {}
 while True:
     # determine the start of the actual processing
     start = time.time()
-    print freeze
-    if not freeze and patch.getint('input', 'freeze'):
-        if debug > 0:
-            print "Freezing updating!"
-        freeze = True
-        continue
 
-    if freeze and patch.getint('input', 'freeze'):
+    # update the freeze status
+    prev_freeze = freeze
+    freeze = patch.getint('input', 'freeze', default=0)
+
+    if freeze and prev_freeze:
         if debug > 0:
-            print "Not updating..."
+            print "Not updating"
+    elif freeze and not prev_freeze:
+        if debug > 0:
+            print "Freezing updating"
+    elif not freeze and not prev_freeze:
+        if debug > 0:
+            print "Updating"
+    elif not freeze and prev_freeze:
+        if debug > 0:
+            print "Updating"
+
+    if freeze:
         time.sleep(1)
 
-    if not freeze and not patch.getint('input', 'freeze'):
-        if debug > 0:
-            print "Updating:"
-
+    else:
         # shift data to next sample
         history[:, :-1] = history[:, 1:]
 

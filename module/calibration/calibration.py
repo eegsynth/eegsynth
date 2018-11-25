@@ -64,14 +64,13 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-prefix      = patch.getstring('output','prefix')
-inputlist   = patch.getstring('input','channels').split(",")
-stepsize    = patch.getfloat('calibration','stepsize')   # in seconds
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+stepsize    = patch.getfloat('calibration', 'stepsize')                 # in seconds
+prefix      = patch.getstring('output', 'prefix')
 numchannel  = len(inputlist)
 
 # this will contain the initial and calibrated values
-value = np.empty((numchannel))
-value[:] = np.NAN
+value = np.empty((numchannel)) * np.NAN
 
 while True:
     # determine the start of the actual processing

@@ -42,8 +42,7 @@ sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
-                                                            os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
@@ -73,7 +72,7 @@ except:
     exit()
 
 # this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
-button_list = patch.getstring('button', 'push').split(',')
+button_list = patch.getstring('button', 'push', multiple=True)
 
 # the scale and offset are used to map OSC values to Redis values
 scale = patch.getfloat('output', 'scale', default=1)
@@ -85,9 +84,8 @@ prefix = patch.getstring('output', 'prefix')
 # the scale, offset and prefix are updated every N seconds
 update = patch.getfloat('general', 'update', default=1)
 
-# define a message-handler function for the server to call.
 
-
+# define a message-handler function that the server will call upon incoming messages
 def forward_handler(addr, tags, data, source):
     global prefix
     global scake
