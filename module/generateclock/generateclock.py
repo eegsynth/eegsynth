@@ -84,13 +84,6 @@ def find_nearest_value(list, value):
 # this is to prevent two threads accesing a variable at the same time
 lock = threading.Lock()
 
-def SetTrigger(key, value):
-    lock.acquire()
-    r.publish(key, value) # send it as trigger
-    if debug>2:
-        print key, '=', value
-    lock.release()
-
 # this is to synchronize the clocks
 clock = []
 for i in range(0, 24):
@@ -183,7 +176,7 @@ class RedisThread(threading.Thread):
                     print 'redis start'
                 for tick in [clock[indx] for indx in self.select]:
                     tick.wait()
-                    SetTrigger(self.key, 1.) # send it as trigger
+                    patch.setvalue(self.key, 1.)
             else:
                 time.sleep(patch.getfloat('general', 'delay'))
 

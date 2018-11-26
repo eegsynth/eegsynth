@@ -148,19 +148,19 @@ while True:
 
     key = patch.getstring('output', 'prefix') + '.sin'
     val = np.sin(phase) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.square'
     val = signal.square(phase, dutycycle) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.triangle'
     val = signal.sawtooth(phase, 0.5) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.sawtooth'
     val = signal.sawtooth(phase, 1) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl

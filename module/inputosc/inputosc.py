@@ -102,21 +102,19 @@ def forward_handler(addr, tags, data, source):
         # ensure it starts with a slash
         addr = '/' + addr
 
-    key = prefix + addr.replace('/', '.')
-
     if tags == 'f' or tags == 'i':
-            # it is a single value
+        # it is a single value
+        key = prefix + addr.replace('/', '.')
         val = EEGsynth.rescale(data[0], slope=scale, offset=offset)
-        r.set(key, val)             # send it as control value
-        if addr in button_list:
-            r.publish(key, val)      # send it as trigger
+        EEGsynth.setvalue(key, val)
 
     else:
         for i in range(len(data)):
             # it is a list, send it as multiple scalar control values
-            val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
             # append the index to the key, this starts with 0
-            r.set(key + '.%i' % i, val)
+            key = prefix + addr.replace('/', '.') + '.%i' % i
+            val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
+            EEGsynth.setvalue(key, val)
 
 
 s.noCallback_handler = forward_handler

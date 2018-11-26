@@ -176,13 +176,12 @@ while True:
         sample += 1
 
         if (sample % synchronize) == 0:
-            r.publish("recordcontrol.synchronize", sample)
+            patch.setvalue("recordcontrol.synchronize", sample)
 
         if debug > 1:
             print "Writing", D
         elif debug > 0:
             print "Writing sample", sample, "as", np.shape(D)
-
 
         if fileformat == 'edf':
             f.writeBlock(D)

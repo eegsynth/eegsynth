@@ -61,9 +61,6 @@ debug = patch.getint('general', 'debug')
 # keep track of the number of received triggers
 count = 0
 
-# this is to prevent two triggers from being activated at the same time
-lock = threading.Lock()
-
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, rate):
         threading.Thread.__init__(self)
@@ -91,12 +88,8 @@ class TriggerThread(threading.Thread):
                     count += 1          # this is for the total count
                     self.count += 1     # this is for local use
                     if (self.count % self.rate) == 0:
-                        value = item['data']
-                        lock.acquire()
-                        r.publish(self.key, value) # send it as trigger
-                        if debug>1:
-                            print self.key, '=', value
-                        lock.release()
+                        val = item['data']
+                        patch.setvalue(self.key, val)
 
 channel = patch.getstring('clock', 'channel', multiple=True)
 divider = patch.getint('clock', 'rate',  multiple=True)
@@ -106,7 +99,6 @@ for chan in channel:
     for div in divider:
         trigger.append(TriggerThread(chan, div))
         print "d%d.%s" % (div, chan)
-
 
 # start the thread for each of the triggers
 for thread in trigger:

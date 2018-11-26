@@ -108,7 +108,9 @@ for item in channel_items:
 if debug>0:
     print channame, chanindx
 
-window      = int(round(patch.getfloat('processing','window') * hdr_input.fSample))
+prefix      = patch.getstring('output', 'prefix')
+window      = patch.getfloat('processing','window')  # in seconds
+window      = int(round(window * hdr_input.fSample)) # in samples
 taper       = np.hanning(window)
 frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 
@@ -189,7 +191,6 @@ while True:
     i = 0
     for chan in channame:
         for band in bandname:
-            # send the control value prefix.channel.band=value
-            key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), chan, band)
-            r.set(key, power[i])
+            key = "%s.%s.%s" % (prefix, chan, band)
+            patch.setvalue(key, power[i])
             i+=1

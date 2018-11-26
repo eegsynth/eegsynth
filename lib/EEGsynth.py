@@ -2,6 +2,7 @@ import ConfigParser # this is version 2.x specific, on version 3.x it is called 
 import mido
 import os
 import sys
+import threading
 
 try:
     # see https://trac.v2.nl/wiki/pyOSC
@@ -91,6 +92,7 @@ class midiwrapper():
             raise NameError('unsupported backend: ' + self.backend)
 
 
+###################################################################################################
 class patch():
     """Class to provide a generalized interface for patching modules using
     configuration files and Redis.
@@ -111,7 +113,7 @@ class patch():
         self.config = c
         self.redis  = r
 
-
+    ####################################################################
     def getfloat(self, section, item, multiple=False, default=None):
         if self.config.has_option(section, item):
             # get all items from the ini file, there might be one or multiple
@@ -264,6 +266,16 @@ class patch():
     def hasitem(self, section, item):
         # check whether an item is present in the ini file
         return self.config.has_option(section, item)
+
+    ####################################################################
+    def setvalue(self, item, val, debug=0, duration=0):
+        self.redis.set(item, val)      # set it as control channel
+        self.redis.publish(item, val)  # send it as trigger
+        if debug:
+            print item, '=', val
+        if duration > 0:
+            # switch off after a certain amount of time
+            threading.Timer(duration, EEGynth.setstate, args=[item, 0.]).start()
 
 
 ####################################################################

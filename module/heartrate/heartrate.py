@@ -95,26 +95,6 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-# this is to prevent two threads accesing a variable at the same time
-lock = threading.Lock()
-
-
-def SetChannel(key, value):
-    if debug > 1:
-        print key, '=', value
-    lock.acquire()
-    r.set(key, value) # set it as control channel
-    lock.release()
-
-
-def SetTrigger(key, value):
-    if debug > 1:
-        print key, '=', value
-    lock.acquire()
-    r.publish(key, value) # send it as trigger
-    lock.release()
-
-
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 window    = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
 threshold = patch.getfloat('processing', 'threshold')
@@ -196,17 +176,11 @@ while True:
         prev = last
 
         if not np.isnan(bpm):
-            SetTrigger(key_rate, bpm)  # send it as trigger
-            SetTrigger(key_beat, bpm)  # send it as trigger
-            SetChannel(key_rate, bpm)  # set it as continuous control channel
-            SetChannel(key_beat, 1.)   # set it as continuous control channel with value 1
-
-            # schedule a timer to switch the binary control channel off
+            # this is to schedule a timer that switches the gate off
             duration        = patch.getfloat('general', 'duration', default=0.1)
             duration_scale  = patch.getfloat('scale', 'duration', default=1)
             duration_offset = patch.getfloat('offset', 'duration', default=0)
             duration        = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
-            if duration>0:
-                # set it as continuous control channel with value 0
-                t = threading.Timer(duration, SetChannel, args=[key_beat, 0.])
-                t.start()
+
+            patch.setvalue(key_rate, bpm, debug=debug)
+            patch.setvalue(key_beat, bpm, debug=debug, duration=duration)

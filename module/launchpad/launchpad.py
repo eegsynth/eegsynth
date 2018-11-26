@@ -93,6 +93,7 @@ except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
     midichannel = None
+print "midichannel = ", midichannel
 
 push     = patch.getint('button', 'push',    multiple=True)    # push-release button
 toggle1  = patch.getint('button', 'toggle1', multiple=True)    # on-off button
@@ -173,14 +174,14 @@ while True:
             except:
                 pass
 
-        if debug>0 and msg.type!='clock':
+        if debug>1 and msg.type!='clock':
             print msg
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scale_control, offset=offset_control)
-            r.set(key, val)
+            patch.setvalue(key, val, debug=debug)
 
         elif hasattr(msg, "note"):
             # the default is not to send a message
@@ -241,12 +242,11 @@ while True:
                 print status, val
 
             if not val is None:
-                val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
-                r.set(key, val)          # send it as control value
-                r.publish(key, val)      # send it as trigger
+                val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
+                patch.setvalue(key, val, debug=debug)
                 # prefix.note=note
                 key = "{}.note".format(patch.getstring('output', 'prefix'))
-                r.set(key, msg.note)          # send it as control value
-                r.publish(key, msg.note)      # send it as trigger
+                val = msg.note
+                patch.setvalue(key, val, debug=debug)

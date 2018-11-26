@@ -150,7 +150,7 @@ while True:
             for channel in range(numchannel):
                 key = inputlist[channel] + "." + operation
                 val = historic[operation][channel]
-                r.set(key, val)
+                patch.setvalue(key, val)
                 if debug>1:
                     print key + ':' + str(val)
 

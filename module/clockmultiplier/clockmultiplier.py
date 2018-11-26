@@ -61,15 +61,6 @@ debug = patch.getint('general', 'debug')
 # for keeping track of the number of received triggers
 count = 0
 
-# this is to prevent two triggers from being activated at the same time
-lock = threading.Lock()
-
-def SetTrigger(key, value):
-    lock.acquire()
-    r.publish(key, value) # send it as trigger
-    if debug>2:
-        print key, '=', value
-    lock.release()
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, rate, lrate):
@@ -87,9 +78,9 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = r.pubsub()
         global count
         global interval
+        pubsub = r.pubsub()
         # this message unblocks the Redis listen command
         pubsub.subscribe('CLOCKMULTIPLIER_UNBLOCK')
         # this message triggers the event
@@ -121,12 +112,14 @@ class TriggerThread(threading.Thread):
                         self.interval = (1 - self.lrate) * self.interval + self.lrate * (now - self.previous)
                         self.previous = now
 
-                    value = item['data']
-                    SetTrigger(self.key, value) # send the first one immediately
+                    val = item['data']
+                    # send the first one immediately
+                    patch.setvalue(self.key, val)
+
                     for number in range(1, self.rate):
                         # schedule the subsequent ones after some time
-                        duration = number * (self.interval / self.rate)
-                        t = threading.Timer(duration, SetTrigger, args=[self.key, value])
+                        delay = number * (self.interval / self.rate)
+                        t = threading.Timer(delay, patch.setvalue, args=[self.key, val])
                         t.start()
                         self.timer.append(t)
 

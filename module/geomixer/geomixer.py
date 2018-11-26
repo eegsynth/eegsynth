@@ -167,7 +167,7 @@ while True:
                 channel_val[next] = 1. - clip01(input)
 
     for key, val in zip(channel_name, channel_val):
-        r.set(key, val)
+        patch.setvalue(key, val)
 
     if debug > 0:
         # print them all on a single line, this is Python 2 specific

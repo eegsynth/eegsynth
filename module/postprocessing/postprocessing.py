@@ -110,6 +110,6 @@ while True:
                 val = eval(equation)
                 if debug>1:
                     print key, '=', equation, '=', val
-                r.set(key, val)             # send it as control value
+                patch.setvalue(key, val)
             except:
                 print 'Error in evaluation'
