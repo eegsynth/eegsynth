@@ -13,6 +13,79 @@ except:
     print "Warning: pyOSC not found"
 
 ###################################################################################################
+class waitfor(threading.Thread):
+    """Class for patching triggers, it subscribes to a Redis channel, waits until it receives
+    a message and executes a callback function.
+
+    Use as
+      thread = EEGsynth.waitfor(patch, channel, callback, options, lock=None)
+      thread.start()
+      # do something else
+      thread.stop()
+      thread.join()
+
+    It provides the general methods
+       thread.start()
+       thread.stop()
+       thread.join()
+    and the following methods to interact with the options
+       thread.set(key, val)
+       thread.get(key)
+
+    The callback function receives the channel name, value and options and should return
+    the possibly updated options.
+    """
+
+    def __init__(self, patch, channels, callback, options, lock=None):
+        threading.Thread.__init__(self)
+        self.redis = patch.redis
+        if isinstance(object, (list,)):
+            self.channels = channels
+        else:
+            self.channels = [channels]
+        self.callback = callback
+        self.options = options
+        self.running = True
+        self.lock = lock
+
+    def stop(self):
+        self.running = False
+        self.redis.publish('UNBLOCK', 1)
+
+    def set(self, option, value):
+        if self.lock == None:
+            self.options[option] = value
+        else:
+            with self.lock:
+                self.options[option] = value
+
+    def get(self, option):
+        if self.lock == None:
+            return self.options[option]
+        else:
+            with self.lock:
+                return self.options[option]
+
+    def run(self):
+        pubsub = self.redis.pubsub()
+        for channel in self.channels:
+            pubsub.subscribe(channel)
+        pubsub.subscribe('UNBLOCK')
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel'] in self.channels:
+                    # only execute the callback for messages that are interesting, not to UNBLOCK
+                    key = item['channel']
+                    val = item['data']
+                    if self.lock == None:
+                        self.options = self.callback(key, val, self.options)
+                    else:
+                        with self.lock:
+                            self.options = self.callback(key, val, self.options)
+
+###################################################################################################
 class midiwrapper():
     """Class to provide a generalized interface to MIDI interfaces on the local computer
     or to MIDI interfaces that are accessed on another computer over the network

@@ -58,64 +58,54 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
-# keep track of the total number of received triggers
-count = 0
-
-class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, rate):
-        threading.Thread.__init__(self)
-        self.redischannel = redischannel
-        self.rate = rate
-        self.key = "d%d.%s" % (rate, redischannel)
-        self.count = 0
-        self.running = True
-
-    def stop(self):
-        self.running = False
-
-    def run(self):
-        pubsub = r.pubsub()
-        global count
-        # this message unblocks the Redis listen command
-        pubsub.subscribe('CLOCKDIVIDER_UNBLOCK')
-        # this message triggers the event
-        pubsub.subscribe(self.redischannel)
-        while self.running:
-            for item in pubsub.listen():
-                if not self.running or not item['type'] == 'message':
-                    break
-                if item['channel'] == self.redischannel:
-                    count += 1          # this is for the total count
-                    self.count += 1     # this is for local use
-                    if (self.count % self.rate) == 0:
-                        val = item['data']
-                        patch.setvalue(self.key, val)
-
 channels = patch.getstring('clock', 'channel', multiple=True)
 rates = patch.getint('clock', 'rate',  multiple=True)
 
+# prevent concurrency issues between threads
+lock = threading.Lock()
+
+# define a callback function
+def callback(key, val, options):
+    if (options['count'] % options['rate']) == 0:
+        # the output key is not the same as the input key
+        key = 'd%d.%s' % (options['rate'], options['channel'])
+        patch = options['patch']
+        # output a trigger on every N-th incoming trigger
+        patch.setvalue(key, val, options['debug'])
+    options['count'] += 1
+    return options
+
 # construct a thread for each of the triggers
-trigger = []
+dividers = []
 for channel in channels:
     for rate in rates:
-        trigger.append(TriggerThread(channel, rate))
-        print "d%d.%s" % (rate, channel)
+        # the options dictionary contains all details that are required for the callback
+        options             = {};
+        options['channel']  = channel
+        options['rate']     = rate
+        options['patch']    = patch
+        options['debug']    = debug>1
+        options['count']    = 0
+        dividers.append(EEGsynth.waitfor(patch, channel, callback, options, lock=lock))
 
-# start the thread for each of the triggers
-for thread in trigger:
-    thread.start()
+# start the thread for each of the dividers
+for divider in dividers:
+    divider.start()
+    print divider.get('channel'), divider.get('rate')
 
 try:
     while True:
         time.sleep(1)
         if debug > 0:
+            count = 0
+            for divider in dividers:
+                count += divider.get('count')
             print "count =", count / len(rates)
 
 except KeyboardInterrupt:
+    # stop the thread for each of the dividers
     print "Closing threads"
-    for thread in trigger:
-        thread.stop()
-    r.publish('CLOCKDIVIDER_UNBLOCK', 1)
-    for thread in trigger:
-        thread.join()
+    for divider in dividers:
+        divider.stop()
+        divider.join()
     sys.exit()
