@@ -65,21 +65,6 @@ debug = patch.getint('general', 'debug')
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
-def SetChannel(key, value):
-    if debug > 2:
-        print key, '=', value
-    lock.acquire()
-    r.set(key, value) # set it as control channel
-    lock.release()
-
-def SetTrigger(key, value):
-    if debug > 2:
-        print key, '=', value
-    lock.acquire()
-    r.publish(key, value) # send it as trigger
-    lock.release()
-
-
 # this can be used to selectively show parameters that have changed
 previous = {}
 def show_change(key, val):
@@ -125,25 +110,21 @@ class SequenceThread(threading.Thread):
                 if item['channel'] == self.redischannel:
                     if len(self.sequence) > 0:
                         val = self.sequence[self.step % len(self.sequence)]
-                        # the sequence can consist of values or of Redis channels
+                        # the sequence can consist of a list of values or a list of Redis channels
                         try:
                             val = float(val)
                         except:
                             val = r.get(val)
                         val = val + self.transpose
-                        self.step = (self.step + 1) % len(self.sequence)
-                        if debug>0:
-                            print "step", self.step, self.key, val
-                        SetChannel(self.key, val)  # set it as control value
-                        SetTrigger(self.key, val)  # send it as trigger
+                        patch.setvalue(self.key, val, debug=debug)
                         if val>=1.:
                             # send it as sequencer.noteXXX with value 1.0
                             key = '%s%03d' % (self.key, val)
-                            SetTrigger(key, 1.)
-                            if self.duration>0:
-                                # after some duration send it as sequencer.noteXXX with value 0.0
-                                threading.Timer(self.duration, SetTrigger, args=[key, 0.]).start()
-
+                            val = 1.
+                            patch.setvalue(key, val, debug=debug, duration=self.duration)
+                        self.step = (self.step + 1) % len(self.sequence)
+                        if debug>0:
+                            print "step", self.step, self.key, val
 
 # these scale and offset parameters are used to map between Redis and internal values
 scale_select     = patch.getfloat('scale', 'select',     default=127.)
@@ -219,8 +200,7 @@ try:
 except KeyboardInterrupt:
     try:
         print "Disabling last note"
-        r.set(key, 0)
-        r.publish(key, 0)
+        patch.setvalue(key, 0.)
     except:
         pass
     print "Closing threads"

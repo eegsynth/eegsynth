@@ -130,14 +130,13 @@ while True:
     printval = []
 
     for channame,chanindx in zip(channel_name, channel_indx):
-
         # compute the mean over the window
+        key = patch.getstring('output', 'prefix') + '.' + channame
         val = np.mean(dat[:,chanindx])
+        patch.setvalue(key, val)
 
         # this is for debugging
         printval.append(val)
-
-        r.set(patch.getstring('output', 'prefix') + '.' + channame, val)
 
     if debug>1:
         print printval

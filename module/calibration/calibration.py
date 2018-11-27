@@ -112,7 +112,7 @@ while True:
         for channel in range(numchannel):
             key = prefix +  "." + chanstr
             val = value[chanindx]
-            r.set(key, val)
+            patch.setvalue(key, val)
 
     elapsed = time.time()-start
     naptime = stepsize - elapsed

@@ -136,6 +136,7 @@ winx        = patch.getfloat('display', 'xpos')
 winy        = patch.getfloat('display', 'ypos')
 winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
+prefix      = patch.getstring('output', 'prefix')
 
 # initialize graphical window
 app = QtGui.QApplication([])
@@ -312,14 +313,14 @@ def update():
     text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
     text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
 
-    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'low')
-    r.set(key, redfreq - redwidth)
-    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'redband', 'high')
-    r.set(key, redfreq + redwidth)
-    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'low')
-    r.set(key, bluefreq - bluewidth)
-    key = "%s.%s.%s" % (patch.getstring('output', 'prefix'), 'blueband', 'high')
-    r.set(key, bluefreq + bluewidth)
+    key = "%s.%s.%s" % (prefix, 'redband', 'low')
+    patch.setvalue(key, redfreq - redwidth)
+    key = "%s.%s.%s" % (prefix, 'redband', 'high')
+    patch.setvalue(key, redfreq + redwidth)
+    key = "%s.%s.%s" % (prefix, 'blueband', 'low')
+    patch.setvalue(key, bluefreq - bluewidth)
+    key = "%s.%s.%s" % (prefix, 'blueband', 'high')
+    patch.setvalue(key, bluefreq + bluewidth)
 
 
 # keyboard interrupt handling

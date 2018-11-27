@@ -141,4 +141,4 @@ while True:
     for name, val in zip(channame, rms):
         # send it as control value: prefix.channelX=val
         key = "%s.%s" % (prefix, name)
-        r.set(key, val)
+        patch.setvalue(key, val)

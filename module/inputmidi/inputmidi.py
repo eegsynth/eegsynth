@@ -83,7 +83,7 @@ while True:
 
     for msg in inputport.iter_pending():
 
-        if debug>0:
+        if debug>1:
             print msg
 
         if hasattr(msg, "control"):
@@ -92,16 +92,13 @@ while True:
             val = msg.value
             # map the MIDI values to Redis values between 0 and 1
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
-            r.set(key, val)
+            patch.setvalue(key, val, debug=debug)
 
         elif hasattr(msg, "note"):
             # prefix.noteXXX=value
             key = "{}.note{:0>3d}".format(patch.getstring('output','prefix'), msg.note)
-            val = msg.value
-            r.set(key,val)              # send it as control value
-            r.publish(key,val)          # send it as trigger
-            # prefix.note=note
+            val = msg.velocity
+            patch.setvalue(key, val, debug=debug)
             key = "{}.note".format(patch.getstring('output','prefix'))
             val = msg.note
-            r.set(key,val)              # send it as control value
-            r.publish(key,val)          # send it as trigger
+            patch.setvalue(key, val, debug=debug)
