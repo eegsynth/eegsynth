@@ -62,7 +62,12 @@ sample_rate = patch.getfloat('sonification', 'sample_rate')
 f_offset    = patch.getfloat('sonification', 'f_offset')
 f_order     = patch.getint('sonification', 'f_order', default=15)
 window      = patch.getfloat('sonification', 'window')
-scaling     = patch.getfloat('sonification', 'scaling')
+sideband    = patch.getstring('sonification', 'sideband')
+
+# these are for multiplying/attenuating the output signal
+scaling = patch.getfloat('sonification', 'scaling')
+scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
+offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
 try:
     ftc_host = patch.getstring('input_fieldtrip', 'hostname')
@@ -134,7 +139,12 @@ b = [None] * hdr_input.nChannels
 a = [None] * hdr_input.nChannels
 zi = [None] * hdr_input.nChannels
 for i in range(0, hdr_input.nChannels):
-    b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, None, (i + 1) * f_offset, f_order, dat_output)
+    if sideband == None:
+        b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, None, None, f_order, dat_output)
+    elif sideband == 'lsb':
+        b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, None, (i + 1) * f_offset, f_order, dat_output)
+    elif sideband == 'usb':
+        b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, (i + 1) * f_offset, None, f_order, dat_output)
 
 print "STARTING STREAM"
 
@@ -161,6 +171,7 @@ while True:
     tim_output = np.linspace(tim_input[0], tim_input[-1], nOutput)
     dat_output = np.zeros(nOutput)
 
+
     for i in range(0, hdr_input.nChannels):
         # interpolate each channel onto the output sampling rate
         vec_output = np.interp(tim_output, tim_input, dat_input[:, i])
@@ -170,7 +181,11 @@ while True:
         vec_output, zi[i] = EEGsynth.online_filter(b[i], a[i], vec_output, zi=zi[i])
         # add it to the output
         dat_output += vec_output
-    dat_output *= (scaling/hdr_input.nChannels)
+
+    # multiply the data with the scaling factor and divide by the number of channels
+    scaling = patch.getfloat('signal', 'scaling', default=1)
+    scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
+    dat_output *= scaling/hdr_input.nChannels
 
 #    dat_output = np.random.randn(dat_output.shape[0])
 #    dat_output += np.cos(tim_output * ((i + 1) * f_offset - 50) * 2 * np.pi)
