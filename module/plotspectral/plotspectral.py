@@ -231,13 +231,12 @@ def update():
     begsample  = (last_index - window)
     endsample  = (last_index - 1)
     data = ft_input.getData([begsample, endsample])
-    print "reading from sample %d to %d" % (begsample, endsample)
+
+    if debug>0:
+        print "reading from sample %d to %d" % (begsample, endsample)
 
     # demean and detrend data before filtering to reduce edge artefacts and center timecourse
     data = detrend(data, axis=0)
-
-    # Notch filter - DOES NOT WORK
-    # data = notch_filter(data, 10, hdr_input.fSample, 30)
 
     # taper data
     taper = np.hanning(len(data))
