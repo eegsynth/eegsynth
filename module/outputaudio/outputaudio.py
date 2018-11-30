@@ -95,10 +95,15 @@ if debug > 1:
     print hdr_input.labels
 
 device = patch.getint('audio', 'device')
-nchans = patch.getint('audio', 'nchans', default=1)
-window = patch.getfloat('fieldtrip', 'window', default=1)
-window = int(window * hdr_input.fSample)  # in samples
-rate   = int(hdr_input.fSample)           # for the audio output
+window = patch.getfloat('audio', 'window', default=1)   # in seconds
+window = int(window * hdr_input.fSample)                # in samples
+nchans = hdr_input.nChannels                            # for the input and output
+rate   = int(hdr_input.fSample)                         # for the input and output
+
+# these are for multiplying/attenuating the signal
+scaling = patch.getfloat('audio', 'scaling')
+scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
+offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
 if nchans > hdr_input.nChannels:
     print "Error: not enough channels available for output"
@@ -145,15 +150,19 @@ prevoutput = time.time()
 def callback(in_data, frame_count, time_info, status):
     global stack, window, firstsample, stretch, inputrate, outputrate, outputblock, prevoutput
 
+    now = time.time()
+    duration = now - prevoutput
+    prevoutput = now
     if outputblock > 5:
-        now = time.time()
-        duration = now - prevoutput
-        prevoutput = now
-        outputrate = (1 - lrate) * outputrate + lrate * (frame_count / duration)
+        old = outputrate
+        new = frame_count / duration
+        if old/new > 0.1 or old/new < 10:
+            inputrate = (1 - lrate) * old + lrate * new
 
     # estimate the required stretch between input and output rate
-    # do not change too quickly
-    stretch = (1 - lrate) * stretch + lrate * (inputrate / outputrate)
+    old = stretch
+    new = inputrate / outputrate
+    stretch = (1 - lrate) * old + lrate * new
 
     # linearly interpolate the selection of samples, i.e. stretch or compress the time axis when needed
     begsample = firstsample
@@ -230,17 +239,25 @@ try:
 
         dat = ft_input.getData([begsample, endsample])
 
+        # multiply the data with the scaling factor
+        scaling = patch.getfloat('audio', 'scaling', default=1)
+        scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
+        dat = dat*scaling
+
         with lock:
             stack.append(dat)
 
+        now = time.time()
+        duration = now - previnput
+        previnput = now
         if inputblock > 3:
-            now = time.time()
-            duration = now - previnput
-            previnput = now
-            inputrate = (1 - lrate) * inputrate + lrate * (window / duration)
+            old = inputrate
+            new = window / duration
+            if old/new > 0.1 or old/new < 10:
+                inputrate = (1 - lrate) * old + lrate * new
 
         if debug > 0:
-            print "read samples", begsample, "to", endsample
+            print "read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration
 
         if len(stack) > 2:
             # there is enough data to start the output stream
