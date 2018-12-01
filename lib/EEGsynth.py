@@ -3,6 +3,8 @@ import mido
 import os
 import sys
 import threading
+import numpy as np
+from scipy.signal import firwin, decimate, lfilter, lfiltic
 
 try:
     # see https://trac.v2.nl/wiki/pyOSC
@@ -361,3 +363,56 @@ def squeeze(char, string):
     while char*2 in string:
         string = string.replace(char*2, char)
     return string
+
+####################################################################
+def initialize_online_filter(fsample, highpass, lowpass, order, dat, axis=-1):
+    # boxcar, triang, blackman, hamming, hann, bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann
+    filtwin = 'nuttall'
+    nyquist = fsample / 2.
+
+    if highpass != None:
+        highpass = highpass/nyquist
+        if highpass < 0.01:
+            highpass = None
+        elif highpass > 0.99:
+            highpass = None
+
+    if lowpass != None:
+        lowpass = lowpass/nyquist
+        if lowpass < 0.01:
+            lowpass = None
+        elif lowpass > 0.99:
+            lowpass = None
+
+    if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
+        print 'using NULL filter', [highpass, lowpass]
+        b = np.zeros(window)
+        a = np.ones(1)
+    elif not(lowpass is None) and (highpass is None):
+        print 'using lowpass filter', [highpass, lowpass]
+        b = firwin(order, cutoff = lowpass, window = filtwin, pass_zero = True)
+        a = np.ones(1)
+    elif not(highpass is None) and (lowpass is None):
+        print 'using highpass filter', [highpass, lowpass]
+        b = firwin(order, cutoff = highpass, window = filtwin, pass_zero = False)
+        a = np.ones(1)
+    elif not(highpass is None) and not(lowpass is None):
+        print 'using bandpass filter', [highpass, lowpass]
+        b = firwin(order, cutoff = [highpass, lowpass], window = filtwin, pass_zero = False)
+        a = np.ones(1)
+    else:
+        # no filtering
+        print 'using IDENTITY filter', [highpass, lowpass]
+        b = np.ones(1)
+        a = np.ones(1)
+
+    # initialize the state for the filtering based on the previous data
+    f = lambda x: lfiltic(b, a, x, x)
+    zi = np.apply_along_axis(f, axis, dat)
+
+    return b, a, zi
+
+####################################################################
+def online_filter(b, a, x, axis=-1, zi=[]):
+    y, zo = lfilter(b, a, x, axis=axis, zi=zi)
+    return y, zo

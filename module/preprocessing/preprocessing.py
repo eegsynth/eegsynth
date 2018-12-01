@@ -149,60 +149,6 @@ if downsample == None:
 else:
     ft_output.putHeader(hdr_input.nChannels, round(hdr_input.fSample/downsample), FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
 
-
-def initialize_online_filter(fsample, highpass, lowpass, order, dat, axis=-1):
-    # boxcar, triang, blackman, hamming, hann, bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann
-    filtwin = 'bartlett'
-    nyquist = fsample / 2.
-
-    if highpass != None:
-        highpass = highpass/nyquist
-        if highpass < 0.01:
-            highpass = None
-        elif highpass > 0.99:
-            highpass = None
-
-    if lowpass != None:
-        lowpass = lowpass/nyquist
-        if lowpass < 0.01:
-            lowpass = None
-        elif lowpass > 0.99:
-            lowpass = None
-
-    if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
-        print 'using NULL filter', [highpass, lowpass]
-        b = np.zeros(window)
-        a = np.ones(1)
-    elif not(lowpass is None) and (highpass is None):
-        print 'using lowpass filter', [highpass, lowpass]
-        b = firwin(order, cutoff = lowpass, window = filtwin, pass_zero = True)
-        a = np.ones(1)
-    elif not(highpass is None) and (lowpass is None):
-        print 'using highpass filter', [highpass, lowpass]
-        b = firwin(order, cutoff = highpass, window = filtwin, pass_zero = False)
-        a = np.ones(1)
-    elif not(highpass is None) and not(lowpass is None):
-        print 'using bandpass filter', [highpass, lowpass]
-        b = firwin(order, cutoff = [highpass, lowpass], window = filtwin, pass_zero = False)
-        a = np.ones(1)
-    else:
-        # no filtering
-        print 'using IDENTITY filter', [highpass, lowpass]
-        b = np.ones(1)
-        a = np.ones(1)
-
-    # initialize the state for the filtering based on the previous data
-    f = lambda x: lfiltic(b, a, x, x)
-    zi = np.apply_along_axis(f, axis, dat)
-
-    return b, a, zi
-
-
-def online_filter(b, a, x, axis=-1, zi=[]):
-    y, zo = lfilter(b, a, x, axis=axis, zi=zi)
-    return y, zo
-
-
 # initialize the state for the smoothing
 previous = np.zeros((1, hdr_input.nChannels))
 
@@ -252,11 +198,11 @@ while True:
     change = show_change('lowpassfilter',   lowpassfilter)  or change
     if change:
         # update the filter parameters
-        b, a, zi = initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
+        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
 
     if not(highpassfilter is None) or not(lowpassfilter is None):
         # apply the filter to the data
-        dat_output, zi = online_filter(b, a, dat_output, axis=0, zi=zi)
+        dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
         if debug>1:
             print "filtered    ", window, "samples in", (time.time()-start)*1000, "ms"
 
