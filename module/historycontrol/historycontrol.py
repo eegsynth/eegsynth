@@ -89,7 +89,7 @@ while True:
 
     # update the enable status
     prev_enable = enable
-    enable = patch.getint('input', 'enable', default=1)
+    enable = patch.getint('history', 'enable', default=1)
 
     if enable and prev_enable:
         if debug > 0:
