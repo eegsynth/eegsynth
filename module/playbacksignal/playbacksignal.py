@@ -114,6 +114,7 @@ if fileformat=='edf':
     # read all the data from the file
     A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
     for chanindx in range(H.nChannels):
+        print "reading channel", chanindx
         A[:,chanindx] = f.readSignal(chanindx)
     f.close()
 
@@ -201,7 +202,7 @@ while True:
     # measure the time that it takes
     start = time.time()
 
-    if debug>1:
+    if debug>0:
         print "Playing block", block, 'from', begsample, 'to', endsample
 
     # copy the selected samples from the in-memory data
