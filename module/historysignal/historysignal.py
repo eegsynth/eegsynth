@@ -104,7 +104,7 @@ numchannel  = len(inputlist)
 # jump to the end of the stream
 if hdr_input.nSamples-1<stepsize:
     begsample = 0
-    endsample = nInput-1
+    endsample = stepsize-1
 else:
     begsample = hdr_input.nSamples-stepsize
     endsample = hdr_input.nSamples-1
@@ -137,6 +137,10 @@ while True:
     elif enable and not prev_enable:
         if debug > 0:
             print "Enabling the updating"
+            # jump to the end of the stream
+            hdr_input = ft_input.getHeader()
+            begsample = hdr_input.nSamples-stepsize
+            endsample = hdr_input.nSamples-1
     elif not enable and not prev_enable:
         if debug > 0:
             print "Not updating"
