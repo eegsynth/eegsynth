@@ -102,8 +102,19 @@ rate   = int(hdr_input.fSample)                         # for the input and outp
 
 # these are for multiplying/attenuating the signal
 scaling = patch.getfloat('audio', 'scaling')
+scaling_method = patch.getstring('audio', 'scaling_method')
 scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
 offset_scaling = patch.getfloat('offset', 'scaling', default=0)
+
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key in show_change.previous and show_change.previous[key]!=val) or (key not in show_change.previous):
+        print key, "=", val
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
 
 if nchans > hdr_input.nChannels:
     print "Error: not enough channels available for output"
@@ -205,6 +216,7 @@ stream = p.open(format=pyaudio.paFloat32,
                 channels=nchans,
                 rate=rate,
                 output=True,
+                output_device_index=device,
                 stream_callback=callback)
 
 # it should not start playing immediately
@@ -242,7 +254,11 @@ try:
         # multiply the data with the scaling factor
         scaling = patch.getfloat('audio', 'scaling', default=1)
         scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
-        dat = dat*scaling
+        show_change("scaling", scaling)
+        if scaling_method == 'multiply':
+            dat = dat * scaling
+        elif scaling_method == 'divide':
+            dat = dat / scaling
 
         with lock:
             stack.append(dat)
