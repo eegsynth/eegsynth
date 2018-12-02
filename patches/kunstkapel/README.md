@@ -5,11 +5,10 @@ This directory contains the patches for the performance at the Kunstkapel on 1 D
 The patch consists of the following modules
 - redis
 - buffer (3x, for raw EEEG, preprocessed EEG and for audio)
-- gtec2ft (running on windows computer)
+- gtec2ft (running on the windows laptop)
 - launchcontrol
 - preprocessing
-- cogito or sonification module
+- cogito
+- historysignal
 - outputaudio
-- recordsignal (2x, once for EEG and once for audio)
-- plotsignal
-- plotspectral
+- plotsignal and plotspectral (running on another macbook)
