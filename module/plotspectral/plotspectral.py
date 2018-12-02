@@ -138,6 +138,10 @@ winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
 prefix      = patch.getstring('output', 'prefix')
 
+# ideally it should be possible to change these on the fly
+showred     = patch.getint('input', 'showred', default=1)
+showblue    = patch.getint('input', 'showblue', default=1)
+
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="EEGsynth plotspectral")
@@ -145,14 +149,14 @@ win.setWindowTitle('EEGsynth plotspectral')
 win.setGeometry(winx, winy, winwidth, winheight)
 
 # initialize graphical elements
-text_redleft        = pg.TextItem(".", anchor=( 1,  0), color='r')
-text_redright       = pg.TextItem(".", anchor=( 0,  0), color='r')
-text_blueleft       = pg.TextItem(".", anchor=( 1, -1), color='b')
-text_blueright      = pg.TextItem(".", anchor=( 0, -1), color='b')
-text_redleft_hist   = pg.TextItem(".", anchor=( 1,  0), color='r')
-text_redright_hist  = pg.TextItem(".", anchor=( 0,  0), color='r')
-text_blueleft_hist  = pg.TextItem(".", anchor=( 1, -1), color='b')
-text_blueright_hist = pg.TextItem(".", anchor=( 0, -1), color='b')
+text_redleft        = pg.TextItem("", anchor=( 1,  0), color='r')
+text_redright       = pg.TextItem("", anchor=( 0,  0), color='r')
+text_blueleft       = pg.TextItem("", anchor=( 1, -1), color='b')
+text_blueright      = pg.TextItem("", anchor=( 0, -1), color='b')
+text_redleft_hist   = pg.TextItem("", anchor=( 1,  0), color='r')
+text_redright_hist  = pg.TextItem("", anchor=( 0,  0), color='r')
+text_blueleft_hist  = pg.TextItem("", anchor=( 1, -1), color='b')
+text_blueright_hist = pg.TextItem("", anchor=( 0, -1), color='b')
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
@@ -271,6 +275,8 @@ def update():
         specmax_hist[ichan] = float(specmax_hist[ichan]) * (1 - lrate) + lrate * max(fft_hist[ichan][freqrange])
         specmin_hist[ichan] = float(specmin_hist[ichan]) * (1 - lrate) + lrate * min(fft_hist[ichan][freqrange])
 
+        freqplot_curr[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
+        freqplot_hist[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_curr[ichan].setYRange(specmin_curr[ichan], specmax_curr[ichan])
         freqplot_hist[ichan].setYRange(specmin_hist[ichan], specmax_hist[ichan])
 
@@ -284,33 +290,53 @@ def update():
         bluewidth = patch.getfloat('input', 'bluewidth', default=4. / arguments_freqrange[1])
         bluewidth = EEGsynth.rescale(bluewidth, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
 
-        redleft_curr[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
-        redright_curr[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
-        blueleft_curr[ichan].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
-        blueright_curr[ichan].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
-        redleft_hist[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
-        redright_hist[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
-        blueleft_hist[ichan].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
-        blueright_hist[ichan].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
+        if showred:
+            redleft_curr[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+            redright_curr[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+        if showblue:
+            blueleft_curr[ichan].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+            blueright_curr[ichan].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+        if showred:
+            redleft_hist[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
+            redright_hist[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
+        if showblue:
+            blueleft_hist[ichan].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
+            blueright_hist[ichan].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
 
     # update labels at plotted lines
-    text_redleft.setText('%0.1f' % (redfreq - redwidth))
-    text_redleft.setPos(redfreq - redwidth, specmax_curr[0])
-    text_redright.setText('%0.1f' % (redfreq + redwidth))
-    text_redright.setPos(redfreq + redwidth, specmax_curr[0])
-    text_blueleft.setText('%0.1f' % (bluefreq - bluewidth))
-    text_blueleft.setPos(bluefreq - bluewidth, specmax_curr[0])
-    text_blueright.setText('%0.1f' % (bluefreq + bluewidth))
-    text_blueright.setPos(bluefreq + bluewidth, specmax_curr[0])
+    if showred:
+        text_redleft.setText('%0.1f' % (redfreq - redwidth))
+        text_redleft.setPos(redfreq - redwidth, specmax_curr[0])
+        text_redright.setText('%0.1f' % (redfreq + redwidth))
+        text_redright.setPos(redfreq + redwidth, specmax_curr[0])
+    else:
+        text_redleft.setText("")
+        text_redright.setText("")
+    if showblue:
+        text_blueleft.setText('%0.1f' % (bluefreq - bluewidth))
+        text_blueleft.setPos(bluefreq - bluewidth, specmax_curr[0])
+        text_blueright.setText('%0.1f' % (bluefreq + bluewidth))
+        text_blueright.setPos(bluefreq + bluewidth, specmax_curr[0])
+    else:
+        text_blueleft.setText("")
+        text_blueright.setText("")
 
-    text_redleft_hist.setText('%0.1f' % (redfreq - redwidth))
-    text_redleft_hist.setPos(redfreq - redwidth, specmax_hist[0])
-    text_redright_hist.setText('%0.1f' % (redfreq + redwidth))
-    text_redright_hist.setPos(redfreq + redwidth, specmax_hist[0])
-    text_blueleft_hist.setText('%0.1f' % (bluefreq - bluewidth))
-    text_blueleft_hist.setPos(bluefreq - bluewidth, specmax_hist[0])
-    text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
-    text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
+    if showred:
+        text_redleft_hist.setText('%0.1f' % (redfreq - redwidth))
+        text_redleft_hist.setPos(redfreq - redwidth, specmax_hist[0])
+        text_redright_hist.setText('%0.1f' % (redfreq + redwidth))
+        text_redright_hist.setPos(redfreq + redwidth, specmax_hist[0])
+    else:
+        text_redleft_hist.setText("")
+        text_redright_hist.setText("")
+    if showblue:
+        text_blueleft_hist.setText('%0.1f' % (bluefreq - bluewidth))
+        text_blueleft_hist.setPos(bluefreq - bluewidth, specmax_hist[0])
+        text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
+        text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
+    else:
+        text_blueleft_hist.setText("")
+        text_blueright_hist.setText("")
 
     key = "%s.%s.%s" % (prefix, 'redband', 'low')
     patch.setvalue(key, redfreq - redwidth)
