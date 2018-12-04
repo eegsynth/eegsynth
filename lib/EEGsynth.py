@@ -4,7 +4,7 @@ import os
 import sys
 import threading
 import numpy as np
-from scipy.signal import firwin, decimate, lfilter, lfiltic
+from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic
 
 try:
     # see https://trac.v2.nl/wiki/pyOSC
@@ -117,14 +117,11 @@ class patch():
 
     ####################################################################
     def getfloat(self, section, item, multiple=False, default=None):
-        if self.config.has_option(section, item):
+        if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
-            if items == '':
-                # construct an empty list
-                items = []
-            elif multiple:
+            if multiple:
                 # convert the items to a list
                 if items.find(",") > -1:
                     separator = ","
@@ -147,6 +144,7 @@ class patch():
             else:
                 val = [default] * len(items)
 
+            # convert the strings into floating point values
             for i,item in enumerate(items):
                 try:
                     # if it resembles a value, use that
@@ -178,16 +176,11 @@ class patch():
 
     ####################################################################
     def getint(self, section, item, multiple=False, default=None):
-        assert multiple == False or default == None, "default value is not supported for multiple items"
-
-        if self.config.has_option(section, item):
+        if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
-            if items == '':
-                # construct an empty list
-                items = []
-            elif multiple:
+            if multiple:
                 # convert the items to a list
                 if items.find(",") > -1:
                     separator = ","
@@ -210,6 +203,7 @@ class patch():
             else:
                 val = [default] * len(items)
 
+            # convert the strings into integer values
             for i,item in enumerate(items):
                 try:
                     # if it resembles a value, use that
@@ -223,13 +217,13 @@ class patch():
         else:
             # the configuration file does not contain the item
             if multiple == True and default == None:
-                return  []
+                return []
             elif multiple == True and default != None:
-                return [float(x) for x in default]
+                return [int(x) for x in default]
             elif multiple == False and default == None:
                 return None
             elif multiple == False and default != None:
-                return float(default)
+                return int(default)
 
         if multiple:
             # return it as list
@@ -365,10 +359,12 @@ def squeeze(char, string):
     return string
 
 ####################################################################
-def initialize_online_filter(fsample, highpass, lowpass, order, dat, axis=-1):
+def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
     # boxcar, triang, blackman, hamming, hann, bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann
     filtwin = 'nuttall'
     nyquist = fsample / 2.
+    ndim = len(x.shape)
+    axis = axis % ndim
 
     if highpass != None:
         highpass = highpass/nyquist
@@ -385,6 +381,7 @@ def initialize_online_filter(fsample, highpass, lowpass, order, dat, axis=-1):
             lowpass = None
 
     if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
+        # totally blocking all signal
         print 'using NULL filter', [highpass, lowpass]
         b = np.zeros(window)
         a = np.ones(1)
@@ -401,14 +398,17 @@ def initialize_online_filter(fsample, highpass, lowpass, order, dat, axis=-1):
         b = firwin(order, cutoff = [highpass, lowpass], window = filtwin, pass_zero = False)
         a = np.ones(1)
     else:
-        # no filtering
+        # no filtering at all
         print 'using IDENTITY filter', [highpass, lowpass]
         b = np.ones(1)
         a = np.ones(1)
 
     # initialize the state for the filtering based on the previous data
-    f = lambda x: lfiltic(b, a, x, x)
-    zi = np.apply_along_axis(f, axis, dat)
+    if ndim == 1:
+        zi = zi = lfiltic(b, a, x, x)
+    elif ndim == 2:
+        f = lambda x : lfiltic(b, a, x, x)
+        zi = np.apply_along_axis(f, axis, x)
 
     return b, a, zi
 
