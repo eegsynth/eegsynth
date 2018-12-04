@@ -9,5 +9,5 @@ MODULE=`basename $0 .sh`
 EEGSYNTH=$HOME/eegsynth
 INIDIR=`dirname $0`
 
-cd $INIDIR
+#cd $INIDIR
 $EEGSYNTH/module/$MODULE/$MODULE.py -i $INIDIR/$MODULE.ini
