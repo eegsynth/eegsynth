@@ -59,10 +59,13 @@ patch = EEGsynth.patch(config, r)
 debug       = patch.getint('general', 'debug')                 # this determines how much debugging information gets printed
 timeout     = patch.getfloat('input_fieldtrip', 'timeout')     # this is the timeout for the FieldTrip buffer
 sample_rate = patch.getfloat('sonification', 'sample_rate')
+f_shift     = patch.getstring('sonification', 'f_shift')
 f_offset    = patch.getfloat('sonification', 'f_offset')
 f_order     = patch.getint('sonification', 'f_order', default=15)
 window      = patch.getfloat('sonification', 'window')
 sideband    = patch.getstring('sonification', 'sideband')
+left        = patch.getint('sonification', 'left', multiple=True)
+right       = patch.getint('sonification', 'right', multiple=True)
 
 # these are for multiplying/attenuating the output signal
 scaling        = patch.getfloat('sonification', 'scaling')
@@ -115,7 +118,12 @@ if debug > 1:
     print "input nchan", hdr_input.nChannels
 
 # set up the output data stream
-ft_output.putHeader(1, sample_rate, FieldTrip.DATATYPE_FLOAT32, ['audio'])
+if len(right)>0:
+    # left and right, i.e. stereo
+    ft_output.putHeader(2, sample_rate, FieldTrip.DATATYPE_FLOAT32, ['left', 'right'])
+else:
+    # only left, i.e. mono
+    ft_output.putHeader(1, sample_rate, FieldTrip.DATATYPE_FLOAT32, ['mono'])
 hdr_output = ft_output.getHeader()
 
 if debug > 1:
@@ -134,18 +142,59 @@ else:
     begsample = hdr_input.nSamples-nInput
     endsample = hdr_input.nSamples-1
 
+# this is for a single channel
 dat_output = np.zeros(nOutput)
 
-b = [None] * hdr_input.nChannels
-a = [None] * hdr_input.nChannels
-zi = [None] * hdr_input.nChannels
-for i in range(0, hdr_input.nChannels):
-    if sideband == 'lsb':
-        b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, None, (i + 1) * f_offset, f_order, dat_output)
-    elif sideband == 'usb':
-        b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, (i + 1) * f_offset, None, f_order, dat_output)
+left_f = [None] * len(left)
+left_b = [None] * len(left)
+left_a = [None] * len(left)
+left_zi = [None] * len(left)
+
+right_f = [None] * len(right)
+right_b = [None] * len(right)
+right_a = [None] * len(right)
+right_zi = [None] * len(right)
+
+for i in range(0,len(left)):
+    if f_shift == 'linear':
+        left_f[i] = f_offset * (i + 1)
     else:
-        b[i], a[i], zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, None, None, f_order, dat_output)
+        left_f[i] = f_offset * 2**i
+
+    if sideband == 'usb':
+        highpass = left_f[i]
+        lowpass = None
+    elif sideband == 'lsb':
+        highpass = None
+        lowpass = left_f[i]
+    else:
+        highpass = None
+        lowpass = None
+    left_b[i], left_a[i], left_zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, highpass, lowpass, f_order, dat_output)
+
+for i in range(0,len(right)):
+    if f_shift == 'linear':
+        right_f[i] = f_offset * (i + 1)
+    else:
+        right_f[i] = f_offset * 2**i
+
+    if sideband == 'usb':
+        highpass = right_f[i]
+        lowpass = None
+    elif sideband == 'lsb':
+        highpass = None
+        lowpass = right_f[i]
+    else:
+        highpass = None
+        lowpass = None
+    right_b[i], right_a[i], right_zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, highpass, lowpass, f_order, dat_output)
+
+
+if debug>0:
+    print "left audio channels", left
+    print "left audio frequencies", left_f
+    print "right audio channels", right
+    print "right audio frequencies", right_f
 
 print "STARTING STREAM"
 
@@ -163,54 +212,62 @@ while True:
             print "Error: timeout while waiting for data"
             raise SystemExit
 
-    # get the input data, sample vector and time vector
+    # get the input data
     dat_input = ft_input.getData([begsample, endsample])
-    smp_input = np.arange(begsample, endsample+1)
-    tim_input = smp_input / hdr_input.fSample
+    dat_output = np.zeros((nOutput,hdr_output.nChannels))
 
-    # construct a time vector corresponding to the output samples
-    tim_output = np.linspace(tim_input[0], tim_input[-1], nOutput)
-    dat_output = np.zeros(nOutput)
+    # construct a time vector for input and output
+    begtime = float(begsample  ) / hdr_input.fSample
+    endtime = float(endsample+1) / hdr_input.fSample
+    tim_input = np.linspace(begtime, endtime, nInput, endpoint=False)
+    tim_output = np.linspace(begtime, endtime, nOutput, endpoint=False)
 
-    for i in range(0, hdr_input.nChannels):
+    for chan, i in zip(left, range(len(left))):
         # interpolate each channel onto the output sampling rate
-        vec_output = np.interp(tim_output, tim_input, dat_input[:, i])
+        vec_output = np.interp(tim_output, tim_input, dat_input[:, chan-1])
         # multiply with the modulating signal
-        vec_output *= np.cos(tim_output * (i+1) * f_offset * 2 * np.pi)
+        vec_output *= np.cos(tim_output * left_f[i] * 2 * np.pi)
         # apply the filter to remove one sideband
-        vec_output, zi[i] = EEGsynth.online_filter(b[i], a[i], vec_output, zi=zi[i])
+        vec_output, left_zi[i] = EEGsynth.online_filter(left_b[i], left_a[i], vec_output, zi=left_zi[i])
         # add it to the output
-        dat_output += vec_output
+        dat_output[:,0] += vec_output
+
+    for chan, i in zip(right, range(len(right))):
+        # interpolate each channel onto the output sampling rate
+        vec_output = np.interp(tim_output, tim_input, dat_input[:, chan-1])
+        # multiply with the modulating signal
+        vec_output *= np.cos(tim_output * right_f[i] * 2 * np.pi)
+        # apply the filter to remove one sideband
+        vec_output, right_zi[i] = EEGsynth.online_filter(right_b[i], right_a[i], vec_output, zi=right_zi[i])
+        # add it to the output
+        dat_output[:,1] += vec_output
+
     # normalize for the number of channels
     dat_output /= hdr_input.nChannels
 
     scaling = patch.getfloat('signal', 'scaling', default=1)
-    scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
+    scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset =offset_scaling)
     if scaling_method == 'multiply':
         dat_output *= scaling
     elif scaling_method == 'divide':
         dat_output /= scaling
 
-#    dat_output = np.random.randn(dat_output.shape[0])
-#    dat_output += np.cos(tim_output * ((i + 1) * f_offset - 50) * 2 * np.pi)
-#    dat_output += np.cos(tim_output * ((i + 1) * f_offset + 50) * 2 * np.pi)
-
     # write the data to the output buffer
-    ft_output.putData(dat_output.astype(np.float32).reshape(nOutput, 1))
+    ft_output.putData(dat_output.astype(np.float32))
 
-    # compute the desired number of output samples
+    # compute the duration and desired number of output samples
     duration = time.time() - start
     desired = duration * sample_rate
 
+    # update the number of output samples for the next iteration
+    #    if nOutput > desired:
+    #        nOutput /= 1.002
+    #    elif nOutput < desired:
+    #        nOutput *= 1.002
+    #    nOutput = int(round(nOutput))
+
     if debug>0:
         print "wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms"
-
-    # update the number of output samples for the next iteration
-    if nOutput > desired:
-        nOutput /= 1.002
-    elif nOutput < desired:
-        nOutput *= 1.002
-    nOutput = int(round(nOutput))
 
     # shift to the next block of data
     begsample += nInput
