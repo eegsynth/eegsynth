@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-# Postprocessing performs basic algorithms on redis data
-#
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -72,16 +70,15 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-inputlist   = patch.getstring('input', 'channels').split(",")
-stepsize    = patch.getfloat('smoothing', 'stepsize')   # in seconds
-window      = patch.getfloat('smoothing', 'window')     # in seconds
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+enable      = patch.getint('history', 'enable', default=1)
+stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
+window      = patch.getfloat('history', 'window')                   # in seconds
 numchannel  = len(inputlist)
 numhistory  = int(round(window/stepsize))
-freeze      = False
 
 # this will contain the full list of historic values
-history = np.empty((numchannel, numhistory))
-history[:] = np.NAN
+history = np.empty((numchannel, numhistory)) * np.NAN
 
 # this will contain the statistics of the historic values
 historic = {}
@@ -89,22 +86,28 @@ historic = {}
 while True:
     # determine the start of the actual processing
     start = time.time()
-    print freeze
-    if not freeze and patch.getint('input', 'freeze'):
-        if debug > 0:
-            print "Freezing updating!"
-        freeze = True
-        continue
 
-    if freeze and patch.getint('input', 'freeze'):
-        if debug > 0:
-            print "Not updating..."
-        time.sleep(1)
+    # update the enable status
+    prev_enable = enable
+    enable = patch.getint('history', 'enable', default=1)
 
-    if not freeze and not patch.getint('input', 'freeze'):
+    if enable and prev_enable:
         if debug > 0:
-            print "Updating:"
+            print "Updating"
+    elif enable and not prev_enable:
+        if debug > 0:
+            print "Enabling the updating"
+    elif not enable and not prev_enable:
+        if debug > 0:
+            print "Not updating"
+    elif not enable and prev_enable:
+        if debug > 0:
+            print "Disabling the updating"
 
+    if not enable:
+        time.sleep(0.1)
+
+    else:
         # shift data to next sample
         history[:, :-1] = history[:, 1:]
 
@@ -145,7 +148,7 @@ while True:
             for channel in range(numchannel):
                 key = inputlist[channel] + "." + operation
                 val = historic[operation][channel]
-                r.set(key, val)
+                patch.setvalue(key, val)
                 if debug>1:
                     print key + ':' + str(val)
 

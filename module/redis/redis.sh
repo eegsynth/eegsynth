@@ -14,8 +14,7 @@ NAME=`basename "$0" .sh`
 BINDIR=$DIR/../../bin
 
 # set the default
-INIFILE=${DIR}/${NAME}.ini
-VERBOSE=0
+VERBOSE=notice
 
 if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
@@ -27,16 +26,16 @@ else
   CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
 fi
 
-while getopts "hvi:" option; do
+while getopts "hvd" option; do
   case "${option}" in
-    i)
-      INIFILE=${OPTARG}
+    d)
+      VERBOSE=debug
       ;;
     v)
-      VERBOSE=1
+      VERBOSE=verbose
       ;;
     h)
-      echo "Use as: $0 [-i <inifile>] [-h] [-v]"
+      echo "Use as: $0 [-h] [-v]"
       ;;
     \?)
       echo "Invalid option: -${OPTARG}" >&2
@@ -44,13 +43,13 @@ while getopts "hvi:" option; do
   esac
 done
 
-# this parses the ini file and creates local variables
-shini_parse $INIFILE
-PORT=$ini_redis_port
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
 
-if [ ${VERBOSE} == 1 ] ; then
-  echo INIFILE=$INIFILE
-  echo PORT=$PORT
-fi
+echo COMMAND=$COMMAND
+echo CONFIG=$CONFIG
+echo VERBOSE=$VERBOSE
 
-${COMMAND} --port ${PORT}
+${COMMAND} ${CONFIG} --loglevel $VERBOSE --protected-mode no

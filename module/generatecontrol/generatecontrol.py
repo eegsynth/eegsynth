@@ -2,7 +2,7 @@
 
 # Generatecontrol creates user-defined signals and writes these to Redis
 #
-# This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -83,11 +83,34 @@ prev_offset    = -1
 prev_noise     = -1
 prev_dutycycle = -1
 
+# the sample number and phase should be 0 upon the start of the signal
 sample = 0
 phase = 0
 
 print "STARTING STREAM"
 while True:
+
+    if patch.getint('signal', 'rewind', default=0):
+        if debug>0:
+            print "Rewind pressed, jumping back to start of signal"
+        # the sample number and phase should be 0 upon the start of the signal
+        sample = 0
+        phase = 0
+
+    if not patch.getint('signal', 'play', default=1):
+        if debug>0:
+            print "Stopped"
+        time.sleep(0.1);
+        # the sample number and phase should be 0 upon the start of the signal
+        sample = 0
+        phase = 0
+        continue
+
+    if patch.getint('signal', 'pause', default=0):
+        if debug>0:
+            print "Paused"
+        time.sleep(0.1);
+        continue
 
     # measure the time that it takes
     start = time.time();
@@ -121,23 +144,23 @@ while True:
         prev_dutycycle = dutycycle
 
     # compute the phase of this sample
-    phase = 2 * np.pi * frequency * stepsize + phase
+    phase = phase + 2 * np.pi * frequency * stepsize
 
     key = patch.getstring('output', 'prefix') + '.sin'
     val = np.sin(phase) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.square'
     val = signal.square(phase, dutycycle) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.triangle'
     val = signal.sawtooth(phase, 0.5) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     key = patch.getstring('output', 'prefix') + '.sawtooth'
     val = signal.sawtooth(phase, 1) * amplitude + offset + np.random.randn(1) * noise
-    r.set(key, val[0])
+    patch.setvalue(key, val[0])
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl

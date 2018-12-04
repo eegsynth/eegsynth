@@ -2,7 +2,7 @@
 
 # Quantizer does chromatic quantification of Redis values for musical interfaces
 #
-# Quantizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -95,6 +95,7 @@ while True:
 
     if debug>0:
         print '----------------------------------------'
+
     for channel, name in zip(input_channel, input_name):
         val = patch.getfloat('input', channel)
         if val is None:
@@ -120,4 +121,4 @@ while True:
                     print key, '=', val
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                r.set(key, val)             # send it as control value
+                patch.setvalue(key, val)

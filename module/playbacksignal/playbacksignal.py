@@ -2,7 +2,7 @@
 
 # Playback plays back raw data from file to the FieldTrip buffer
 #
-# Playback is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -114,6 +114,7 @@ if fileformat=='edf':
     # read all the data from the file
     A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
     for chanindx in range(H.nChannels):
+        print "reading channel", chanindx
         A[:,chanindx] = f.readSignal(chanindx)
     f.close()
 
@@ -178,17 +179,21 @@ while True:
         begsample = 0
         endsample = blocksize-1
         block     = 0
-        continue
 
-    if patch.getint('playback', 'rewind'):
+    if patch.getint('playback', 'rewind', default=0):
         if debug>0:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
         endsample = blocksize-1
         block     = 0
+
+    if not patch.getint('playback', 'play', default=1):
+        if debug>0:
+            print "Stopped"
+        time.sleep(0.1);
         continue
 
-    if not patch.getint('playback', 'play'):
+    if patch.getint('playback', 'pause', default=0):
         if debug>0:
             print "Paused"
         time.sleep(0.1);
@@ -197,7 +202,7 @@ while True:
     # measure the time that it takes
     start = time.time()
 
-    if debug>1:
+    if debug>0:
         print "Playing block", block, 'from', begsample, 'to', endsample
 
     # copy the selected samples from the in-memory data

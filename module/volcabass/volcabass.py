@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Volcabass outputs redis data via MIDI to the Korg Volca Bass synthesizer
+# Volcabass outputs Redis data via MIDI to the Korg Volca Bass synthesizer
 #
-# Volcabass is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Postprocessing performs basic algorithms on redis data
+# Postprocessing performs basic algorithms on Redis data
 #
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -110,6 +110,6 @@ while True:
                 val = eval(equation)
                 if debug>1:
                     print key, '=', equation, '=', val
-                r.set(key, val)             # send it as control value
+                patch.setvalue(key, val)
             except:
                 print 'Error in evaluation'

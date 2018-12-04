@@ -2,7 +2,7 @@
 
 # Postprocessing performs basic algorithms on redis data
 #
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -64,14 +64,13 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-prefix      = patch.getstring('output','prefix')
-inputlist   = patch.getstring('input','channels').split(",")
-stepsize    = patch.getfloat('calibration','stepsize')   # in seconds
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+stepsize    = patch.getfloat('calibration', 'stepsize')                 # in seconds
+prefix      = patch.getstring('output', 'prefix')
 numchannel  = len(inputlist)
 
 # this will contain the initial and calibrated values
-value = np.empty((numchannel))
-value[:] = np.NAN
+value = np.empty((numchannel)) * np.NAN
 
 while True:
     # determine the start of the actual processing
@@ -113,7 +112,7 @@ while True:
         for channel in range(numchannel):
             key = prefix +  "." + chanstr
             val = value[chanindx]
-            r.set(key, val)
+            patch.setvalue(key, val)
 
     elapsed = time.time()-start
     naptime = stepsize - elapsed

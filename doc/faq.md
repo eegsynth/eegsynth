@@ -1,5 +1,17 @@
 # Frequently Asked Questions
 
+## Communication with the buffer on localhost is slow on Linux
+
+When you try to transmit a lot of samples on the localhost "loopback" device on Linux, you may notice that the performance is worse than transmitting them over the network. This is due to the protocol used, which involves a request/response pair. When sending data, the request (PUT_DAT) is large and the response (PUT_OK) is small. When receiving data, the request (GET_DAT) is small and the response (GET_OK) is large. Linux will automatically queue the small messages and pack them together in a single network package to reduce overhead. The (maximum) size of a network package is the [MTU](https://en.wikipedia.org/wiki/Maximum_transmission_unit).
+
+The default MTU size for the loopback interface on Linux has been increased over time, i.e. compared to Linux releases from 10 years ago. For Debian Jessie and Stretch the default MTU for the loopback device is 65536. The consequence of this large MTU size is that transfer of the small messages between buffer client and server is delayed, limiting the performance.
+
+You can change the MTU size with
+
+    sudo ifconfig lo mtu 1500
+
+The value of 1500 bytes is default on the other (networked) interfaces, and happens to be the upper limit for network routers that do not support [jumbo frames](https://en.wikipedia.org/wiki/Jumbo_frame). It is a value that works well for local data transfer, allowing for a smooth transfer of approximately 1.000.000 samples per second, corresponding to for example 1 channel at 1MHz, 20 channels at 48KHz (audio) or 1000 channels at 1KHz.
+
 ## I receive a "Bad file descriptor" error
 
 If openbci2ft gives this error trying to access /dev/ttyUSB0, it
