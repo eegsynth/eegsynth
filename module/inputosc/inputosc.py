@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# InputOSC records OSC data into Redis
+# InputOSC records OSC data to Redis
 #
-# InputOSC is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -42,8 +42,7 @@ sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
-                                                            os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
@@ -73,7 +72,7 @@ except:
     exit()
 
 # this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
-button_list = patch.getstring('button', 'push').split(',')
+button_list = patch.getstring('button', 'push', multiple=True)
 
 # the scale and offset are used to map OSC values to Redis values
 scale = patch.getfloat('output', 'scale', default=1)
@@ -85,9 +84,8 @@ prefix = patch.getstring('output', 'prefix')
 # the scale, offset and prefix are updated every N seconds
 update = patch.getfloat('general', 'update', default=1)
 
-# define a message-handler function for the server to call.
 
-
+# define a message-handler function that the server will call upon incoming messages
 def forward_handler(addr, tags, data, source):
     global prefix
     global scake
@@ -104,21 +102,19 @@ def forward_handler(addr, tags, data, source):
         # ensure it starts with a slash
         addr = '/' + addr
 
-    key = prefix + addr.replace('/', '.')
-
     if tags == 'f' or tags == 'i':
-            # it is a single value
+        # it is a single value
+        key = prefix + addr.replace('/', '.')
         val = EEGsynth.rescale(data[0], slope=scale, offset=offset)
-        r.set(key, val)             # send it as control value
-        if addr in button_list:
-            r.publish(key, val)      # send it as trigger
+        EEGsynth.setvalue(key, val)
 
     else:
         for i in range(len(data)):
             # it is a list, send it as multiple scalar control values
-            val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
             # append the index to the key, this starts with 0
-            r.set(key + '.%i' % i, val)
+            key = prefix + addr.replace('/', '.') + '.%i' % i
+            val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
+            EEGsynth.setvalue(key, val)
 
 
 s.noCallback_handler = forward_handler

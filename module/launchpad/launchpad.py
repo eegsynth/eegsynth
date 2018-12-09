@@ -2,7 +2,7 @@
 
 # This module interfaces with the Novation LaunchPad
 #
-# This code is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -93,39 +93,16 @@ except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
     midichannel = None
+print "midichannel = ", midichannel
 
-try:
-    # push-release button
-    push     = [int(a) for a in patch.getstring('button', 'push').split(",")]
-except:
-    push     = []
-try:
-    # on-off button
-    toggle1  = [int(a) for a in patch.getstring('button', 'toggle1').split(",")]
-except:
-    toggle1  = []
-try:
-    # on1-on2-off button
-    toggle2  = [int(a) for a in patch.getstring('button', 'toggle2').split(",")]
-except:
-    toggle2  = []
-try:
-    # on1-on2-on3-off button
-    toggle3  = [int(a) for a in patch.getstring('button', 'toggle3').split(",")]
-except:
-    toggle3  = []
-try:
-    # on1-on2-on3-on4-off button
-    toggle4  = [int(a) for a in patch.getstring('button', 'toggle4').split(",")]
-except:
-    toggle4  = []
-try:
-    # slap button
-    slap = [int(a) for a in patch.getstring('button', 'slap').split(",")]
-except:
-    slap = []
+push     = patch.getint('button', 'push',    multiple=True)    # push-release button
+toggle1  = patch.getint('button', 'toggle1', multiple=True)    # on-off button
+toggle2  = patch.getint('button', 'toggle2', multiple=True)    # on1-on2-off button
+toggle3  = patch.getint('button', 'toggle3', multiple=True)    # on1-on2-on3-off button
+toggle4  = patch.getint('button', 'toggle4', multiple=True)    # on1-on2-on3-on4-off button
+slap     = patch.getint('button', 'slap',    multiple=True)    # slap button
 
-note_list    = push+toggle1+toggle2+toggle3+toggle4+slap # concatenate all buttons
+note_list    = push + toggle1 + toggle2 + toggle3 + toggle4 + slap # concatenate all buttons
 status_list  = [0] * len(note_list)
 
 # these are the MIDI values for the LED color
@@ -197,14 +174,14 @@ while True:
             except:
                 pass
 
-        if debug>0 and msg.type!='clock':
+        if debug>1 and msg.type!='clock':
             print msg
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scale_control, offset=offset_control)
-            r.set(key, val)
+            patch.setvalue(key, val, debug=debug)
 
         elif hasattr(msg, "note"):
             # the default is not to send a message
@@ -265,12 +242,11 @@ while True:
                 print status, val
 
             if not val is None:
-                val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
-                r.set(key, val)          # send it as control value
-                r.publish(key, val)      # send it as trigger
+                val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
+                patch.setvalue(key, val, debug=debug)
                 # prefix.note=note
                 key = "{}.note".format(patch.getstring('output', 'prefix'))
-                r.set(key, msg.note)          # send it as control value
-                r.publish(key, msg.note)      # send it as trigger
+                val = msg.note
+                patch.setvalue(key, val, debug=debug)

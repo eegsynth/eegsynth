@@ -17,9 +17,9 @@ Documentation is provided under the following sections.
 * [Understand scaling and calibration of control signals](calibration.md)
 * [Recording and Playback](recording.md)
 
-## Further reading 
+## Further reading
 * [Frequently Asked Questions](faq.md)
 * [Matrixmixer](matrixmixer.md)
 * [MIDI](midi.md)
 * [MIDI-OSC](midiosc.md)
-  
+* [AVmixer](avmixer.md)

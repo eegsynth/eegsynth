@@ -2,7 +2,7 @@
 
 # Accelerometer records accelerometer data from OpenBCI board into FieldTrip buffer
 #
-# Accelerometer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -130,14 +130,13 @@ while True:
     printval = []
 
     for channame,chanindx in zip(channel_name, channel_indx):
-
         # compute the mean over the window
+        key = patch.getstring('output', 'prefix') + '.' + channame
         val = np.mean(dat[:,chanindx])
+        patch.setvalue(key, val)
 
         # this is for debugging
         printval.append(val)
-
-        r.set(patch.getstring('output', 'prefix') + '.' + channame, val)
 
     if debug>1:
         print printval

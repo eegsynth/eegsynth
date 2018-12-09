@@ -2,7 +2,7 @@
 
 # OutputOSC sends redis data according to OSC protocol
 #
-# OutputOSC is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Rms calculates the root-mean-square of a signal
+# This module calculates a sliding-window RMS value of a signal
 #
-# Rms is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from nilearn import signal
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import argparse
 import math
 import multiprocessing
@@ -33,14 +33,14 @@ import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 import FieldTrip
 
@@ -52,7 +52,7 @@ config = ConfigParser.ConfigParser()
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print "Error: cannot connect to redis server"
@@ -85,15 +85,15 @@ start = time.time()
 while hdr_input is None:
     if debug > 0:
         print "Waiting for data to arrive..."
-    if (time.time()-start)>timeout:
+    if (time.time() - start) > timeout:
         print "Error: timeout while waiting for data"
         raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
-if debug>0:
+if debug > 0:
     print "Data arrived"
-if debug>1:
+if debug > 1:
     print hdr_input
     print hdr_input.labels
 
@@ -103,57 +103,42 @@ chanindx = []
 for item in channel_items:
     # channel numbers are one-offset in the ini file, zero-offset in the code
     channame.append(item[0])                           # the channel name
-    chanindx.append(patch.getint('input', item[0])-1)  # the channel number
+    chanindx.append(patch.getint('input', item[0]) - 1)  # the channel number
 
-window = round(patch.getfloat('processing','window') * hdr_input.fSample)
-order = patch.getint('processing', 'order')
-
-try:
-    low_pass = patch.getint('processing', 'low_pass')
-except:
-    low_pass = None
-
-try:
-    high_pass = patch.getint('processing', 'high_pass')
-except:
-    high_pass = None
+prefix = patch.getstring('output', 'prefix')
+window = patch.getfloat('processing', 'window')     # in seconds
+window = round(window * hdr_input.fSample)          # in samples
 
 begsample = -1
 endsample = -1
 
 while True:
-    time.sleep(patch.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     hdr_input = ftc.getHeader()
-    if (hdr_input.nSamples-1) < endsample:
+    if (hdr_input.nSamples - 1) < endsample:
         print "Error: buffer reset detected"
         raise SystemExit
+
     endsample = hdr_input.nSamples - 1
-    if endsample<window:
+    if endsample < window:
         continue
 
-    begsample = endsample-window+1
-    D = ftc.getData([begsample, endsample])
+    begsample = endsample - window + 1
 
+    D = ftc.getData([begsample, endsample])
     D = D[:, chanindx]
 
-    if low_pass or high_pass:
-        D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
-
-    rms = []
-    for i in range(0,len(chanindx)):
-        rms.append(0)
-
+    rms = [0.] * len(chanindx)
     for i, chanvec in enumerate(D.transpose()):
         for chanval in chanvec:
-            rms[i] += chanval*chanval
-        rms[i] = math.sqrt(rms[i])
+            rms[i] += chanval * chanval
+        rms[i] = math.sqrt(rms[i] / len(chanvec))
 
-    if debug > 1:
-        print rms
+    if debug > 0:
+        print "rms =", rms
 
     for name, val in zip(channame, rms):
         # send it as control value: prefix.channelX=val
-        key = "%s.%s" % (patch.getstring('output','prefix'), name)
-        val = int(127*val)
-        r.set(key, val)
+        key = "%s.%s" % (prefix, name)
+        patch.setvalue(key, val)

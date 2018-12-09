@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Heartrate computes the heart rate based on the beat-to-beat interval
+# Heartrate detects beats and returns the heart rate based on the beat-to-beat interval
 #
-# Heartrate is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017-2018 EEGsynth project
 #
@@ -95,16 +95,6 @@ if debug>1:
     print hdr_input
     print hdr_input.labels
 
-# this is to prevent two threads accesing a variable at the same time
-lock = threading.Lock()
-
-def SetChannel(key, val):
-    if debug > 1:
-        print key, val
-    lock.acquire()
-    r.set(key, val)      # set it as control channel
-    lock.release()
-
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 window    = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
 threshold = patch.getfloat('processing', 'threshold')
@@ -144,13 +134,14 @@ while True:
         curvemean = np.mean(dat)
         curvemax  = np.max(dat)
     else:
-        curvemin  = curvemin  * (1-lrate) + lrate * np.min(dat)
-        curvemean = curvemean * (1-lrate) + lrate * np.mean(dat)
-        curvemax  = curvemax  * (1-lrate) + lrate * np.max(dat)
+        # the learning rate determines how fast the threshold auto-scales (0=never, 1=immediate)
+        curvemin  = (1 - lrate) * curvemin  + lrate * np.min(dat)
+        curvemean = (1 - lrate) * curvemean + lrate * np.mean(dat)
+        curvemax  = (1 - lrate) * curvemax  + lrate * np.max(dat)
 
     # both are defined as positive
-    negrange = curvemean-curvemin
-    posrange = curvemax-curvemean
+    negrange = curvemean - curvemin
+    posrange = curvemax - curvemean
 
     if negrange>posrange:
         thresh = (curvemean - dat) > threshold * negrange
@@ -158,7 +149,7 @@ while True:
         thresh = (dat - curvemean) > threshold * posrange
 
     if not np.isnan(prev):
-        prevsample = int(round(prev*hdr_input.fSample)) - begsample
+        prevsample = int(round(prev * hdr_input.fSample)) - begsample
         if prevsample>0 and prevsample<len(thresh):
             thresh[0:prevsample] = False
 
@@ -184,21 +175,12 @@ while True:
         bpm  = 60./(last-prev)
         prev = last
 
-        if debug>0:
-            print key_rate, bpm
-
         if not np.isnan(bpm):
-            r.publish(key_rate, bpm)  # send it as trigger
-            r.publish(key_beat, bpm)  # send it as trigger
-            SetChannel(key_rate, bpm) # set it as continuous control channel
-            SetChannel(key_beat, 1)   # set it as binary control channel
-
-            # schedule a timer to switch the binary control channel off
-            duration = patch.getfloat('general', 'duration', default=0.1)
-            duration_scale = patch.getfloat('scale', 'duration', default=1)
+            # this is to schedule a timer that switches the gate off
+            duration        = patch.getfloat('general', 'duration', default=0.1)
+            duration_scale  = patch.getfloat('scale', 'duration', default=1)
             duration_offset = patch.getfloat('offset', 'duration', default=0)
-            duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
-            # some minimal time is needed for the delay
-            duration = EEGsynth.limit(duration, 0.05, float('Inf'))
-            t = threading.Timer(duration, SetChannel, args=[key_beat, 0])
-            t.start()
+            duration        = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+
+            patch.setvalue(key_rate, bpm, debug=debug)
+            patch.setvalue(key_beat, bpm, debug=debug, duration=duration)

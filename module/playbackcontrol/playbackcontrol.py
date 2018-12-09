@@ -2,6 +2,8 @@
 
 # This module plays back data from an EDF file to Redis
 #
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+#
 # Copyright (C) 2017 EEGsynth project, http://www.eegsynth.org
 #
 # This program is free software: you can redistribute it and/or modify
@@ -104,17 +106,21 @@ while True:
         begsample = 0
         endsample = blocksize-1
         block     = 0
-        continue
 
-    if patch.getint('playback', 'rewind'):
+    if patch.getint('playback', 'rewind', default=0):
         if debug>0:
             print "Rewind pressed, jumping back to start of file"
         begsample = 0
         endsample = blocksize-1
         block     = 0
+
+    if not patch.getint('playback', 'play', default=1):
+        if debug>0:
+            print "Stopped"
+        time.sleep(0.1);
         continue
 
-    if not patch.getint('playback', 'play'):
+    if patch.getint('playback', 'pause', default=0):
         if debug>0:
             print "Paused"
         time.sleep(0.1);

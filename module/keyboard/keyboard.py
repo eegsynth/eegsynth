@@ -2,7 +2,7 @@
 
 # This module receives MIDI events from a keyboard, and that sends MIDI events to the keyboard
 #
-# This code is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -248,18 +248,15 @@ try:
                 elif patch.getstring('processing','detect')=='press' and msg.velocity==0:
                     pass
                 else:
-                    # prefix.note=note
-                    key = '{}.note'.format(patch.getstring('output','prefix'))
-                    val = msg.note
-                    r.set(key, val)         # send it as control value
-                    r.publish(key, val)     # send it as trigger
                     # prefix.noteXXX=velocity
                     key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
-                    # map the MIDI values to Redis values
                     val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                    r.set(key, val)         # send it as control value
-                    r.publish(key, val)     # send it as trigger
+                    EEGsynth.setvalue(key, val)
+                    # prefix.note=note
+                    key = '{}.note'.format(patch.getstring('output','prefix'))
+                    val = msg.note
+                    EEGsynth.setvalue(key, val)
             elif hasattr(msg,'control'):
                 # ignore these
                 pass

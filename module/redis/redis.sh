@@ -52,4 +52,4 @@ echo COMMAND=$COMMAND
 echo CONFIG=$CONFIG
 echo VERBOSE=$VERBOSE
 
-${COMMAND} ${CONFIG} --loglevel $VERBOSE
+${COMMAND} ${CONFIG} --loglevel $VERBOSE --protected-mode no

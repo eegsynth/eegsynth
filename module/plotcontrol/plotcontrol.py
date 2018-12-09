@@ -2,7 +2,7 @@
 
 # Plotcontrol plots the (history of) control values
 #
-# Plotcontrol is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -20,8 +20,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyqtgraph.Qt import QtGui, QtCore
-from scipy.interpolate import interp1d
-from scipy.signal import butter, lfilter
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import argparse
@@ -29,9 +27,11 @@ import numpy as np
 import os
 import pyqtgraph as pg
 import sys
+import time
 import signal
 import math
-import time
+from scipy.interpolate import interp1d
+from scipy.signal import butter, lfilter
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -86,8 +86,8 @@ winheight   = patch.getfloat('display', 'height')
 
 # initialize graphical window
 app = QtGui.QApplication([])
-win = pg.GraphicsWindow(title="EEGsynth")
-win.setWindowTitle('EEGsynth')
+win = pg.GraphicsWindow(title="EEGsynth plotcontrol")
+win.setWindowTitle('EEGsynth plotcontrol')
 win.setGeometry(winx, winy, winwidth, winheight)
 
 # Enable antialiasing for prettier plots
@@ -95,14 +95,14 @@ pg.setConfigOptions(antialias=True)
 
 # Initialize variables
 inputhistory = np.ones((curve_nrs, historysize))
-inputplot = []
-inputcurve = []
+inputplot    = []
+inputcurve   = []
 
-# Create panel for each channel
+# Create panels for each channel
 for iplot in range(len(input_name)):
 
     inputplot.append(win.addPlot(title="%s" % (input_name[iplot])))
-    inputplot[iplot].setLabel('bottom', text = 'Time (sec)')
+    inputplot[iplot].setLabel('bottom', text = 'Time (s)')
     inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
     try:
@@ -132,16 +132,15 @@ def update():
    counter = 0
    for iplot in range(len(input_name)):
 
-       temp = input_variable[iplot].split(",")
+       input_variable_list = input_variable[iplot].split(",")
 
-       for ivar in range(len(temp)):
+       for ivar in range(len(input_variable_list)):
             try:
-                inputhistory[counter, historysize-1] = r.get(temp[ivar])
+                inputhistory[counter, historysize-1] = r.get(input_variable_list[ivar])
             except:
                 inputhistory[counter, historysize-1] = np.nan
 
             # time axis
-            # FIXME use np.roll instead of recreating it every time
             timeaxis = np.linspace(-secwindow, 0, historysize)
 
             # update timecourses
@@ -153,13 +152,14 @@ def update():
 def sigint_handler(*args):
     QtGui.QApplication.quit()
 
+
 signal.signal(signal.SIGINT, sigint_handler)
 
 # Set timer for update
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.setInterval(.01)  # timeout
-timer.start(delay*1000)
+timer.setInterval(10)            # timeout in milliseconds
+timer.start(int(delay * 1000))   # in milliseconds
 
 # Start
 QtGui.QApplication.instance().exec_()

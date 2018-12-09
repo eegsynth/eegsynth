@@ -3,7 +3,7 @@
 # Preprocessing performs basic signal processing to data in a FieldTrip buffer,
 # and puts this in a second FieldTrip buffer for further processing.
 #
-# Preprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017 EEGsynth project
 #
@@ -20,17 +20,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from copy import copy
-from numpy.matlib import repmat
-from scipy.ndimage import convolve1d
-from scipy.signal import firwin, decimate
 import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
 import redis
 import argparse
-import numpy as np
 import os
 import sys
 import time
+import numpy as np
+from copy import copy
+from numpy.matlib import repmat
+from scipy.signal import firwin, decimate, lfilter, lfiltic
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -61,13 +60,22 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('input_fieldtrip','timeout')
+timeout = patch.getfloat('input_fieldtrip', 'timeout')
+
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key in show_change.previous and show_change.previous[key]!=val) or (key not in show_change.previous):
+        print key, "=", val
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
 
 try:
     ftc_host = patch.getstring('input_fieldtrip','hostname')
@@ -115,62 +123,34 @@ if debug>1:
 window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
-ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, hdr_input.dataType, labels=hdr_input.labels)
-
-
-# downsample init
-try:
-    downsample = patch.getfloat('processing', 'downsample')
-except:
-    downsample = None
-
-# smoothing init
-try:
-    smoothing = patch.getfloat('processing', 'smoothing')
-except:
-    smoothing = None
-
-reference = patch.getstring('processing','reference')
-
-# Filtering init
-try:
-    lowpassfilter = patch.getfloat('processing', 'lowpassfilter')/hdr_input.fSample
-except:
-    lowpassfilter = None
+# Processing init
+downsample  = patch.getfloat('processing', 'downsample', default=None)
+smoothing   = patch.getfloat('processing', 'smoothing', default=None)
+reference   = patch.getstring('processing','reference')
+filterorder = patch.getint('processing', 'filterorder')
 
 try:
-    highpassfilter = patch.getfloat('processing', 'highpassfilter')/hdr_input.fSample
+    float(config.get('processing', 'highpassfilter'))
+    float(config.get('processing', 'lowpassfilter'))
+    # the filter frequencies are specified as numbers
+    default_scale = 1.
 except:
-    highpassfilter = None
+    # the filter frequencies are specified as Redis channels
+    # scale them to the Nyquist frequency
+    default_scale = hdr_input.fSample/2
 
-try:
-    filterorder = patch.getint('processing', 'filterorder')
-except:
-    filterorder = None
+scale_lowpass      = patch.getfloat('scale', 'lowpassfilter', default=default_scale)
+scale_highpass     = patch.getfloat('scale', 'highpassfilter', default=default_scale)
+offset_lowpass     = patch.getfloat('offset', 'lowpassfilter', default=0)
+offset_highpass    = patch.getfloat('offset', 'highpassfilter', default=0)
 
-# Low pass
-if not(lowpassfilter is None) and (highpassfilter is None):
-    fir_poly = firwin(filterorder, cutoff = lowpassfilter, window = "hamming")
-# High pass
-if not(highpassfilter is None) and (lowpassfilter is None):
-    fir_poly = firwin(filterorder, cutoff = highpassfilter, window = "hanning", pass_zero=False)
-# Band pass
-if not(highpassfilter is None) and not(lowpassfilter is None):
-    fir_poly = firwin(filterorder, cutoff = [highpassfilter, lowpassfilter], window = 'blackmanharris', pass_zero = False)
-
-def onlinefilter(fil_state, in_data):
-    m = in_data.shape[0]
-    n = len(fir_poly)
-    fil_state = np.concatenate((fil_state, np.atleast_2d(in_data)), axis=0)
-    fil_data = convolve1d(fil_state, fir_poly)
-    return fil_state[-n:, :], fil_data[-m:, :]
+if downsample == None:
+    ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
+else:
+    ft_output.putHeader(hdr_input.nChannels, round(hdr_input.fSample/downsample), FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
 
 # initialize the state for the smoothing
 previous = np.zeros((1, hdr_input.nChannels))
-
-# initialize the state for the filtering
-if not(highpassfilter is None) or not(lowpassfilter is None):
-    fil_state = np.zeros((filterorder, hdr_input.nChannels))
 
 # jump to the end of the stream
 if hdr_input.nSamples-1<window:
@@ -201,9 +181,30 @@ while True:
     dat_input  = ft_input.getData([begsample, endsample])
     dat_output = dat_input.astype(np.float32)
 
-    if debug>1:
+    if debug>2:
         print "------------------------------------------------------------"
         print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
+
+    # Online filtering
+    highpassfilter = patch.getfloat('processing', 'highpassfilter', default=None)
+    if highpassfilter != None:
+        highpassfilter = EEGsynth.rescale(highpassfilter, slope=scale_highpass, offset=offset_highpass)
+    lowpassfilter = patch.getfloat('processing', 'lowpassfilter', default=None)
+    if lowpassfilter != None:
+        lowpassfilter = EEGsynth.rescale(lowpassfilter, slope=scale_lowpass, offset=offset_lowpass)
+
+    change = False
+    change = show_change('highpassfilter',  highpassfilter) or change
+    change = show_change('lowpassfilter',   lowpassfilter)  or change
+    if change:
+        # update the filter parameters
+        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
+
+    if not(highpassfilter is None) or not(lowpassfilter is None):
+        # apply the filter to the data
+        dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
+        if debug>1:
+            print "filtered    ", window, "samples in", (time.time()-start)*1000, "ms"
 
     # Downsampling
     if not(downsample is None):
@@ -222,31 +223,22 @@ while True:
         if debug>1:
             print "smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms"
 
-    # Online filtering
-    if not(highpassfilter is None) or not(lowpassfilter is None):
-        fil_state, dat_output = onlinefilter(fil_state, dat_output)
-        if debug>1:
-            print "filtered    ", window_new, "samples in", (time.time()-start)*1000, "ms"
-
-    # Rereferencing
+    # Re-referencing
     if reference == 'median':
-        dat_output -= repmat(np.nanmedian(dat_output, axis=1),
-                             dat_output.shape[1], 1).T
+        dat_output -= repmat(np.nanmedian(dat_output, axis=1), dat_output.shape[1], 1).T
         if debug>1:
             print "rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms"
-
     elif reference == 'average':
-        dat_output -= repmat(np.nanmean(dat_output, axis=1),
-                             dat_output.shape[1], 1).T
+        dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
         if debug>1:
             print "rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
-    if debug==1:
+    if debug>0:
         print "preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms"
-    if debug>1:
+    if debug>2:
         print "wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms"
 
     # increment the counters for the next loop
