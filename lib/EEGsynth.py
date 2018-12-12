@@ -45,7 +45,7 @@ class midiwrapper():
                 print "Connected to MIDI output"
             except:
                 print "Error: cannot connect to MIDI output"
-                exit()
+                raise RuntimeError("Error: cannot connect to MIDI output")
 
         elif self.backend == 'midiosc':
             try:
@@ -54,10 +54,11 @@ class midiwrapper():
                 print "Connected to OSC server"
             except:
                 print "Error: cannot connect to OSC server"
-                exit()
+                raise RuntimeErrror("cannot connect to OSC server")
 
         else:
-            raise NameError('unsupported backend: ' + self.backend)
+            print 'Error: unsupported backend: ' + self.backend
+            raise RuntimeError('unsupported backend: ' + self.backend)
 
     def send(self, mido_msg):
         if self.backend == 'mido':
@@ -87,11 +88,12 @@ class midiwrapper():
                 osc_msg.append('pitch_bend')
                 osc_msg.append(mido_msg.pitch)
             else:
-                raise NameError('unsupported message type')
+                raise RuntimeError('unsupported message type')
             # send the OSC message, the receiving "midiosc" application will convert it back to MIDI
             self.outputport.send(osc_msg)
         else:
-            raise NameError('unsupported backend: ' + self.backend)
+            print 'Error: unsupported backend: ' + self.backend
+            raise RuntimeError('unsupported backend: ' + self.backend)
 
 
 ###################################################################################################

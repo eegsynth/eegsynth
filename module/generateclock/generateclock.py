@@ -67,16 +67,6 @@ def show_change(key, val):
         print key, "=", val
     previous[key] = val
 
-midiport = None
-def initialize_midi():
-    try:
-        midiport = EEGsynth.midiwrapper(config)
-        midiport.open_output()
-    except:
-        print "Error: cannot connect to MIDI output"
-        exit()
-    return midiport
-
 def find_nearest_value(list, value):
     # find the value in the list that is the nearest to the desired value
     return min(list, key=lambda x:abs(x-value))
@@ -194,7 +184,7 @@ redisthread = RedisThread()
 redisthread.start()
 
 # the MIDI interface will only be started when needed
-init_midi = False
+midiport = None
 
 previous_use_midi   = None
 previous_use_redis  = None
@@ -216,10 +206,10 @@ try:
         if previous_use_redis is None:
             previous_use_redis = not(use_redis);
 
-        if use_midi and not init_midi:
-            # this might not be running at the start
-            midiport = initialize_midi()
-            init_midi = True
+        if use_midi and midiport == None:
+            # the MIDI port should only be opened once needed
+            midiport = EEGsynth.midiwrapper(config)
+            midiport.open_output()
 
         if use_midi and not previous_use_midi:
             midithread.setEnabled(True)
@@ -287,7 +277,7 @@ try:
                 print "naptime =", naptime
             time.sleep(naptime)
 
-except KeyboardInterrupt:
+except (KeyboardInterrupt, RuntimeError) as e:
     print "Closing threads"
     midithread.stop()
     midithread.join()
