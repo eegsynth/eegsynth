@@ -68,3 +68,7 @@ See http://www.osculator.net
 
 This is a closed source application for OS X only.
 See https://neuromixer.com/products/avmixer-pro
+
+## Further reading
+
+On http://tedfelix.com/linux/linux-midi.html you can find a great page with details on Linux command line tools to explore soundcard and MIDI devices.
