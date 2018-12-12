@@ -139,20 +139,20 @@ class RedisThread(threading.Thread):
         self.running  = True
         self.enabled  = False
         self.steps    = 1   # this determines on which of the MIDI clock ticks the Redis message is sent
-        self.adjust   = 0   # this determines by how many MIDI clock ticks the Redis message is shifted
+        self.shift   = 0   # this determines by how many MIDI clock ticks the Redis message is shifted
         self.select   = [0] # this is the list of indices for the MIDI clock ticks
         self.key      = "{}.note".format(patch.getstring('output','prefix'))
     def setSteps(self, steps):
         if steps != self.steps:
             with lock:
                 self.steps = steps
-                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
+                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.shift, 24)
                 print "select =", self.select
-    def setAdjust(self, adjust):
-        if adjust != self.adjust:
+    def setShift(self, shift):
+        if shift != self.shift:
             with lock:
-                self.adjust = adjust
-                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24)
+                self.shift = shift
+                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.shift, 24)
                 print "select =", self.select
     def setEnabled(self, enabled):
         self.enabled = enabled
@@ -201,10 +201,10 @@ try:
         use_redis  = patch.getint('general', 'redis', default=0)
 
         if previous_use_midi is None:
-            previous_use_midi = not(use_midi);
+            previous_use_midi = not(use_midi)
 
         if previous_use_redis is None:
-            previous_use_redis = not(use_redis);
+            previous_use_redis = not(use_redis)
 
         if use_midi and midiport == None:
             # the MIDI port should only be opened once needed
@@ -231,44 +231,30 @@ try:
         rate        = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
         rate        = EEGsynth.limit(rate, 40., 240.)
 
-        scale_multiply  = patch.getfloat('scale', 'multiply', default=4)
-        offset_multiply = patch.getfloat('offset', 'multiply', default=-2.015748031495)
-        multiply        = patch.getfloat('input', 'multiply', default=0.5)
-        multiply        = EEGsynth.rescale(multiply, slope=scale_multiply, offset=offset_multiply)
-
-        # map the multiply value exponentially, i.e. -1 becomes 1/2, 0 becomes 1, 1 becomes 2
-        multiply = math.pow(2, multiply)
-        # it should be 1, 2, 3, 4 or 1/2, 1/3, 1/4, etc
-        if multiply>1:
-            multiply = round(multiply)
-        elif multiply<1:
-            multiply = 1.0/round(1.0/multiply);
-
         scale_steps  = patch.getfloat('scale', 'steps', default=1)
         offset_steps = patch.getfloat('offset', 'steps', default=0)
         steps        = patch.getfloat('input', 'steps', default=1)
         steps        = EEGsynth.rescale(steps, slope=scale_steps, offset=offset_steps)
         steps        = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], steps)
 
-        scale_adjust  = patch.getfloat('scale', 'adjust', default=1)
-        offset_adjust = patch.getfloat('offset', 'adjust', default=0)
-        adjust        = patch.getfloat('input', 'adjust', default=0)
-        adjust        = EEGsynth.rescale(adjust, slope=scale_adjust, offset=offset_adjust)
-        adjust        = int(adjust)
+        scale_shift   = patch.getfloat('scale', 'shift', default=1)
+        offset_shift  = patch.getfloat('offset', 'shift', default=0)
+        shift         = patch.getfloat('input', 'shift', default=0)
+        shift         = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
+        shift         = int(shift)
 
         if debug>0:
             # show the parameters whose value has changed
             show_change("use_midi",      use_midi)
             show_change("use_redis",     use_redis)
             show_change("rate",          rate)
-            show_change("multiply",      multiply)
             show_change("steps",         steps)
-            show_change("adjust",        adjust)
+            show_change("shift",         shift)
 
         # update the clock and redis
-        clockthread.setRate(rate * multiply)
+        clockthread.setRate(rate)
         redisthread.setSteps(steps)
-        redisthread.setAdjust(adjust)
+        redisthread.setShift(shift)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
