@@ -58,14 +58,27 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
+
+# these are for mapping the Redis values to internal values
+scale_rate   = patch.getfloat('scale', 'rate')
+offset_rate  = patch.getfloat('offset', 'rate')
+scale_shift  = patch.getfloat('scale', 'shift')
+offset_shift = patch.getfloat('offset', 'shift')
+scale_ppqn   = patch.getfloat('scale', 'ppqn')
+offset_ppqn  = patch.getfloat('offset', 'ppqn')
+
 
 # this can be used to selectively show parameters that have changed
-previous = {}
 def show_change(key, val):
-    if (key in previous and previous[key]!=val) or (key not in previous):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
         print key, "=", val
-    previous[key] = val
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
+
 
 def find_nearest_value(list, value):
     # find the value in the list that is the nearest to the desired value
@@ -118,14 +131,14 @@ class MidiThread(threading.Thread):
     def setEnabled(self, enabled):
         self.enabled = enabled
     def stop(self):
-        self.enabled = False
+        self.enables = False
         self.running = False
     def run(self):
         msg = mido.Message('clock')
         while self.running:
             if self.enabled and midiport:
                 if debug>1:
-                    print 'midi start'
+                    print 'midi start quarter note'
                 for tick in clock:
                     tick.wait()
                     midiport.send(msg)
@@ -138,22 +151,24 @@ class RedisThread(threading.Thread):
         threading.Thread.__init__(self)
         self.running  = True
         self.enabled  = False
-        self.steps    = 1   # this determines on which of the MIDI clock ticks the Redis message is sent
-        self.shift   = 0   # this determines by how many MIDI clock ticks the Redis message is shifted
-        self.select   = [0] # this is the list of indices for the MIDI clock ticks
-        self.key      = "{}.note".format(patch.getstring('output','prefix'))
-    def setSteps(self, steps):
-        if steps != self.steps:
+        self.ppqn     = 1      # this determines how many messages are sent per quarter note
+        self.shift    = 0      # this determines by how many ticks the Redis message is shifted
+        self.clock    = [0]    # it will send a message on the selected clock ticks
+        self.key      = "{}.note".format(patch.getstring('output', 'prefix'))
+    def setPpqn(self, ppqn):
+        if ppqn != self.ppqn:
             with lock:
-                self.steps = steps
-                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.shift, 24)
-                print "select =", self.select
+                self.ppqn = ppqn
+                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
+                if debug>0:
+                    print "redis select =", self.clock
     def setShift(self, shift):
         if shift != self.shift:
             with lock:
                 self.shift = shift
-                self.select = np.mod(np.arange(0, 24, 24/self.steps) + self.shift, 24)
-                print "select =", self.select
+                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
+                if debug>0:
+                    print "redis select =", self.clock
     def setEnabled(self, enabled):
         self.enabled = enabled
     def stop(self):
@@ -163,8 +178,8 @@ class RedisThread(threading.Thread):
         while self.running:
             if self.enabled:
                 if debug>1:
-                    print 'redis start'
-                for tick in [clock[indx] for indx in self.select]:
+                    print 'redis start quarter note'
+                for tick in [clock[indx] for indx in self.clock]:
                     tick.wait()
                     patch.setvalue(self.key, 1.)
             else:
@@ -186,8 +201,8 @@ redisthread.start()
 # the MIDI interface will only be started when needed
 midiport = None
 
-previous_use_midi   = None
-previous_use_redis  = None
+previous_play_midi   = None
+previous_play_redis  = None
 
 try:
     while True:
@@ -197,64 +212,58 @@ try:
         if debug>3:
             print 'loop'
 
-        use_midi   = patch.getint('general', 'midi', default=0)
-        use_redis  = patch.getint('general', 'redis', default=0)
+        play_midi   = patch.getint('midi', 'play')
+        play_redis  = patch.getint('redis', 'play')
 
-        if previous_use_midi is None:
-            previous_use_midi = not(use_midi)
+        if previous_play_midi is None:
+            previous_play_midi = not(play_midi)
 
-        if previous_use_redis is None:
-            previous_use_redis = not(use_redis)
+        if previous_play_redis is None:
+            previous_play_redis = not(play_redis)
 
-        if use_midi and midiport == None:
+        if play_midi and midiport == None:
             # the MIDI port should only be opened once needed
             midiport = EEGsynth.midiwrapper(config)
             midiport.open_output()
 
-        if use_midi and not previous_use_midi:
+        if play_midi and not previous_play_midi:
             midithread.setEnabled(True)
-            previous_use_midi = True
-        elif not use_midi and previous_use_midi:
+            previous_play_midi = True
+        elif not play_midi and previous_play_midi:
             midithread.setEnabled(False)
-            previous_use_midi = False
+            previous_play_midi = False
 
-        if use_redis and not previous_use_redis:
+        if play_redis and not previous_play_redis:
             redisthread.setEnabled(True)
-            previous_use_redis = True
-        elif not use_redis and previous_use_redis:
+            previous_play_redis = True
+        elif not play_redis and previous_play_redis:
             redisthread.setEnabled(False)
-            previous_use_redis = False
+            previous_play_redis = False
 
-        scale_rate  = patch.getfloat('scale', 'rate', default=127)
-        offset_rate = patch.getfloat('offset', 'rate', default=0)
-        rate        = patch.getfloat('input', 'rate', default=60./127)
-        rate        = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-        rate        = EEGsynth.limit(rate, 40., 240.)
+        rate         = patch.getfloat('input', 'rate')
+        rate         = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+        rate         = EEGsynth.limit(rate, 40., 240.)
 
-        scale_steps  = patch.getfloat('scale', 'steps', default=1)
-        offset_steps = patch.getfloat('offset', 'steps', default=0)
-        steps        = patch.getfloat('input', 'steps', default=1)
-        steps        = EEGsynth.rescale(steps, slope=scale_steps, offset=offset_steps)
-        steps        = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], steps)
+        shift        = patch.getfloat('input', 'shift')
+        shift        = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
+        shift        = int(shift)
 
-        scale_shift   = patch.getfloat('scale', 'shift', default=1)
-        offset_shift  = patch.getfloat('offset', 'shift', default=0)
-        shift         = patch.getfloat('input', 'shift', default=0)
-        shift         = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
-        shift         = int(shift)
+        ppqn         = patch.getint('input', 'ppqn')
+        ppqn         = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
+        ppqn         = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
 
         if debug>0:
             # show the parameters whose value has changed
-            show_change("use_midi",      use_midi)
-            show_change("use_redis",     use_redis)
+            show_change("play_midi",     play_midi)
+            show_change("play_redis",    play_redis)
             show_change("rate",          rate)
-            show_change("steps",         steps)
             show_change("shift",         shift)
+            show_change("ppqn",          ppqn)
 
         # update the clock and redis
         clockthread.setRate(rate)
-        redisthread.setSteps(steps)
         redisthread.setShift(shift)
+        redisthread.setPpqn(ppqn)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
