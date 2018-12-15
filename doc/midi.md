@@ -1,6 +1,12 @@
 # MIDI
 
-For the EEGsynth we are developing and testing with a variety of hardware, some of them using a MIDI interface. Furthermore, we make use of a variety of software.
+For the EEGsynth we are developing and testing with a variety of hardware, some of them using a MIDI interface. Furthermore, we make use of a variety of software that can be interfaced using MIDI.
+
+MIDI is useful for a number of features of the EEGsynth. For example, the knobs and sliders on the Novation [Launch Control XL](https://novationmusic.com/launch/launch-control-xl) are very useful to tweak the parameters of the EEGsynth, such as frequency bands used in the EEG spectral analysis or to adjust thresholds on the fly. Whenever you change the position of these knobs and sliders, a MIDI *control* message is sent; in the EEGsynth we map these onto Redis channels which can be continuously adjusted by one module and used by another.
+
+Another important feature of MIDI are the *note* messages, which are sent whenever you press or release a button on the Launchcontrol or a key on a keyboard. MIDI note messages have two values attached to them: one that specifies which key or button was pressed, and the other that specifies the velocity. For the Launch Control the velocity is 127 when a button is pressed down, and 0 when released. On a touch sensitive keyboard the note velocity will scale with the force with which you hit the key; when releasing the key the velocity is specified as zero.
+
+An important characteristic of MIDI notes is that they also convey information about the precise time of events. To ensure that the timing of MIDI events can be used in the EEGsynth, we *publish* notes to a Redis channel as messages on. Other modules can subscribe to a channel and will be notified for each published message. The publish/subscribe mechanism makes it possible to treat MIDI notes as triggers.
 
 ## Hardware
 
