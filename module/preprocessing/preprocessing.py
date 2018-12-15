@@ -69,7 +69,7 @@ timeout = patch.getfloat('input_fieldtrip', 'timeout')
 
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
-    if (key in show_change.previous and show_change.previous[key]!=val) or (key not in show_change.previous):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
         print key, "=", val
         show_change.previous[key] = val
         return True

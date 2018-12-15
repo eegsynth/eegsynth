@@ -66,12 +66,14 @@ debug = patch.getint('general', 'debug')
 lock = threading.Lock()
 
 # this can be used to selectively show parameters that have changed
-previous = {}
 def show_change(key, val):
-    if (key in previous and previous[key] != val) or (key not in previous):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
         print key, "=", val
-    previous[key] = val
-
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
 
 class SequenceThread(threading.Thread):
     def __init__(self, redischannel, key):
