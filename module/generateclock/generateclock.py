@@ -248,7 +248,7 @@ try:
         shift        = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
         shift        = int(shift)
 
-        ppqn         = patch.getint('input', 'ppqn')
+        ppqn         = patch.getfloat('input', 'ppqn')
         ppqn         = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
         ppqn         = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
 
