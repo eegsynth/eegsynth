@@ -17,8 +17,3 @@ The VCA shapes the audio envelope. The VCA has a single input controls for the a
 ## ADSR - attack, decay, sustain, release
 
 The ADSR takes a trigger as input and generates a continuous envelope as output. It has input controls for A, D, S and R and for the trigger.
-
-## Requirements
-
-The REDIS buffer should be running.
-A pair of speakers or headphones should be connected to the Raspberry Pi audio output.

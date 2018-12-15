@@ -33,23 +33,23 @@ For installing Python packages there are  [easy_install](https://setuptools.read
 
 In the subsequent Linux installation instructions we assume apt-get and pip as the primary package managers.
 
-### Install redis
+### Install Redis
 
 This is used for inter-process communication between modules.
 
 ```
-sudo apt-get install redis-server
+sudo apt-get install Redis-server
 ```
 
 Redis will be automatically started on Linux. If you look for running processes, you should see
 ```
-pi@hackpi:/etc/redis $ ps aux | grep redis
-redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379       
+pi@hackpi:/etc/Redis $ ps aux | grep Redis
+Redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/Redis-server 127.0.0.1:6379       
 ```
 
-If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration"
+If you want to connect between different computers, you should edit /etc/Redis/Redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration"
 ```
-sudo nano /etc/redis/redis.conf
+sudo nano /etc/Redis/Redis.conf
 ```
 
 and comment out the line "bind 127.0.0.1" like this:
@@ -67,19 +67,19 @@ and comment out the line "bind 127.0.0.1" like this:
 
 After changing the configuration file, you can kill the server, which will then restart with the correct configuration:
 ```
-pi@raspberry:/etc/redis $ ps aux | grep redis
+pi@raspberry:/etc/Redis $ ps aux | grep Redis
 sudo kill -9 <ID>
 ```
 
 And you should see that it restarts and binds to all interfaces:
 ```
-pi@raspberry:/etc/redis $ ps aux | grep redis
-redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/redis-server *:6379               
+pi@raspberry:/etc/Redis $ ps aux | grep Redis
+Redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/Redis-server *:6379               
 ```
 
-The redis command line interface is an useful tool for monitoring and debugging the redis server:
+The Redis command line interface is an useful tool for monitoring and debugging the Redis server:
 ```
-redis-cli monitor
+Redis-cli monitor
 ```
 
 ### Install portmidi
@@ -111,7 +111,7 @@ sudo pip install --upgrade pip
 
 Subsequently you can install the Python modules
 ```
-sudo pip install redis
+sudo pip install Redis
 sudo pip install mido
 sudo pip install python-rtmidi --pre
 sudo pip install pyserial

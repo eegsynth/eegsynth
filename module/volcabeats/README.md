@@ -19,14 +19,3 @@ open_hat   = 46
 clap       = 39
 
 Besides the MIDI codes for the beats, there are also MIDI codes for the controls.
-
-## Requirements
-
-The REDIS buffer should be running.
-
-## Software Requirements
-
-portmidi
-python 2.x
-mido python library
-redis python library

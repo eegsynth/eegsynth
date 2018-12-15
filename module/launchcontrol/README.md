@@ -1,6 +1,6 @@
 # Launch Control Module
 
-The purpose of this module is to process input MIDI commands from a Novation LaunchControl or LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the REDIS buffer. The button press and release events are sent as triggers to the REDIS buffer.
+The purpose of this module is to process input MIDI commands from a Novation LaunchControl or LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the Redis buffer. The button press and release events are sent as triggers to the Redis buffer.
 
 For the buttons you can specify whether they should respond as push buttons (on/off) or as toggle buttons.
 
@@ -16,19 +16,6 @@ Push buttons are momentary, i.e. only "on" while you keep your them depressed. T
 We are primarily developing with the XL version, but the code is confirmed to also with the smaller (non-XL) version.
 
 ![LaunchControl](./launchcontrol.jpg)
-
-## Requirements
-
-The LaunchControl should be connected to an USB port.
-The REDIS buffer should be running.
-
-## Software Requirements
-
-Python 2.x
-portmidi
-redis Python library
-mido Python library
-python-rtmidi Python library
 
 ## MIDI assignment
 

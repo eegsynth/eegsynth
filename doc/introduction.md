@@ -35,14 +35,14 @@ The EEGsynth is a collection of separate modules, directly inspired by  [modular
 
 ## Patching 
 
-In the EEGsynth patching (communication) between modules is implemented through the use of the open-source [Redis database](http://redis.io/) which stores [attribute-value pairs](https://en.wikipedia.org/wiki/Attribute%E2%80%93value_pair). Attribute-value pairs are nothing more than an attribute name with a value assigned to it, such as ('Name', 'John') or ('Height', 1.82). A module can put anything it wants into the database, such as ('Heartrate', 92). Another module can ask the database to return the value belonging to ('Heartrate'). This allows one to create complex, many-to-many patches. Interactions with Redis are specified separately for each module in their own* .ini* file (initialization file). The *.ini* file is a text file with human-understandable formatting (according to Python’s [ConfigParser class](https://docs.python.org/2/library/configparser.html)) where we define the attribute names that are used for input and output. For example, here we have [*spectral.ini*](https://github.com/eegsynth/eegsynth/modules/spectral/spectral.ini):
+In the EEGsynth patching (communication) between modules is implemented through the use of the open-source [Redis database](http://Redis.io/) which stores [attribute-value pairs](https://en.wikipedia.org/wiki/Attribute%E2%80%93value_pair). Attribute-value pairs are nothing more than an attribute name with a value assigned to it, such as ('Name', 'John') or ('Height', 1.82). A module can put anything it wants into the database, such as ('Heartrate', 92). Another module can ask the database to return the value belonging to ('Heartrate'). This allows one to create complex, many-to-many patches. Interactions with Redis are specified separately for each module in their own* .ini* file (initialization file). The *.ini* file is a text file with human-understandable formatting (according to Python’s [ConfigParser class](https://docs.python.org/2/library/configparser.html)) where we define the attribute names that are used for input and output. For example, here we have [*spectral.ini*](https://github.com/eegsynth/eegsynth/modules/spectral/spectral.ini):
 
 ```
 [general]
 debug=2
 delay=0.1
 
-[redis]
+[Redis]
 hostname=localhost
 port=6379
 
@@ -75,12 +75,12 @@ theta=5-8
 alpha=9-11
 beta=15-25
 gamma=35-45
-; it is also possible to specify the range using control values from redis
+; it is also possible to specify the range using control values from Redis
 redband=plotsignal.redband.lo-plotsignal.redband.hi
 blueband=plotsignal.blueband.lo-plotsignal.blueband.hi
 
 [output]
-; the results will be written to redis as "spectral.channel1.alpha" etc.
+; the results will be written to Redis as "spectral.channel1.alpha" etc.
 prefix=spectral
 ```
 

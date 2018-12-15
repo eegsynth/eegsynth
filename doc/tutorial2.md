@@ -19,15 +19,15 @@ After installation of the EEGsynth, the Redis database should be running in the 
 You can also add values to Redis directly in Python:
 
 1.   Start up Python, i.e. type _python_ in the terminal
-2.   Import Redis, i.e. type _import r as redis_
+2.   Import Redis, i.e. type _import r as Redis_
 3.   Set a key-value pair, by typing _r.set('test_key','10')_
 4.   Read a key-value pair, by typing _r.set('test_key')_
 
 ## Patching the plotsignal module
 
-You can now monitor the actions of Redis by opening a new terminal window and running _redis-cli monitor_. You should be able to see both _set_ and _get_ actions. So monitor this window while adding values in Redis as described above to see if it is working correctly. If you are using the launchcontrol module, you will see that the keys will be named something like _launchcontrol.control077_. We can tell the plotvisual module to use these values to adapt its behaviour. It will then take these values and relate them to the range of its spectral analysis, to determine frequency bands of its 'red band' and 'blue band'. The plotvisual module, in its turn, will output these frequency bands back into Redis. This makes them available to e.g. further EEG analysis. Take a moment to consider this pipeline. We call this connecting of modules via Redis parameters 'patching', referring to patching in modular synthesizers.
+You can now monitor the actions of Redis by opening a new terminal window and running _Redis-cli monitor_. You should be able to see both _set_ and _get_ actions. So monitor this window while adding values in Redis as described above to see if it is working correctly. If you are using the launchcontrol module, you will see that the keys will be named something like _launchcontrol.control077_. We can tell the plotvisual module to use these values to adapt its behaviour. It will then take these values and relate them to the range of its spectral analysis, to determine frequency bands of its 'red band' and 'blue band'. The plotvisual module, in its turn, will output these frequency bands back into Redis. This makes them available to e.g. further EEG analysis. Take a moment to consider this pipeline. We call this connecting of modules via Redis parameters 'patching', referring to patching in modular synthesizers.
 
-First determine which launchcontrol sliders/rotators you want to use by moving them and looking at the values that change in Redis (use _redis-cli monitor_). Let's say we will do the following:
+First determine which launchcontrol sliders/rotators you want to use by moving them and looking at the values that change in Redis (use _Redis-cli monitor_). Let's say we will do the following:
 * launchcontrol.control013 will determine the center frequency of red band
 * launchcontrol.control029 will determine the half-width of red band
 * launchcontrol.control014 will determine the center frequency of blue band
@@ -40,4 +40,4 @@ Then edit your _plotsignal.ini_ file to enter these as parameters as follows und
 * bluefreq=launchcontrol.control014
 * bluewidth=launchcontrol.control030
 
-The plotsignal module will now look into Redis to try to find values there corresponding to the status of these keys. If you now change the value of any of these key-value pairs by e.g. rotating a button, the LaunchControl module will update these values in Redis, where the plotsignal module will read them and adjust its display (the red and blue lines delineating the two frequency bands). You can now move the frequency bands around, and get visual feedback overlayed on the spectrum of the channels that you are plotting. The plotsignal module also makes a conversion between the state of the values it reads from Redis (the last read position of the knobs), to frequencies in Hertz. It outputs those back into Redis, e.g. under _plotsignal.redband.lo_, and _plotsignal.redband.hi_. You can check this by using _redis-cli monitor_.
+The plotsignal module will now look into Redis to try to find values there corresponding to the status of these keys. If you now change the value of any of these key-value pairs by e.g. rotating a button, the LaunchControl module will update these values in Redis, where the plotsignal module will read them and adjust its display (the red and blue lines delineating the two frequency bands). You can now move the frequency bands around, and get visual feedback overlayed on the spectrum of the channels that you are plotting. The plotsignal module also makes a conversion between the state of the values it reads from Redis (the last read position of the knobs), to frequencies in Hertz. It outputs those back into Redis, e.g. under _plotsignal.redband.lo_, and _plotsignal.redband.hi_. You can check this by using _Redis-cli monitor_.

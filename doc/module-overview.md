@@ -20,7 +20,7 @@ Detailed information about each module can be found in the README.md included in
 
 ## Communication between modules
 
-* [Redis](https://github.com/eegsynth/eegsynth/tree/master/module/redis) The database for communicating ccontrol values and messages between modules
+* [Redis](https://github.com/eegsynth/eegsynth/tree/master/module/Redis) The database for communicating ccontrol values and messages between modules
 * [Buffer](https://github.com/eegsynth/eegsynth/tree/master/module/buffer) FieldTrip buffer for communicating raw data
 
 ## Utilities for optimizing data flow, patching and prototyping

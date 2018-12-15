@@ -19,7 +19,7 @@ For many reasons, not the least to allow easy distributed collaboration, we deve
 ## Patching
 So, how do we patch the modules together? Indeed, there are many ways of doing this. Importantly, there has to be a place where everything can be connected in flexible way, allowing many-to-many connections. Take a google-image look at analog modular synthesizers, and you know what I mean. We have opted to use the open-source Redis database. It stores attribute-value pairs, which is nothing more than an attribute name and a value assigned to it, such as [Name, John] or [Height, 1.82]. A module can put anything it wants into the database, such as [Heartrate, 92]. Another module can ask the database to bring back the value belonging to [Heartrate], and the database will return 92. Of course, the modules will need to know what to ask for, and where to (out)put their own values for other modules (if any) to use.
 
-![redis-connection](figures/redis-connection.png)
+![Redis-connection](figures/Redis-connection.png)
 Figure 1. Visual depiction of how analysis modules, output modules and control modules are connected via the Redis database
 
 ## Initialization files

@@ -45,27 +45,27 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 
 Install the Redis server and command-line client with brew :
 ```
-brew install redis
+brew install Redis
 ```
 
 If you want to connect between different computers, you then need to edit the configuration file:
 ```
-sudo nano /etc/redis/redis.conf
+sudo nano /etc/Redis/Redis.conf
 ```
 and comment out the line "bind 127.0.0.1"
 
 You can then, either:
 - configure it to launch Redis when computer starts:
 ```
-ln -sfv /usr/local/opt/redis/*.plist ~/Library/LaunchAgents
+ln -sfv /usr/local/opt/Redis/*.plist ~/Library/LaunchAgents
 ```
 - launch it manually:
 ```
-launchctl load ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+launchctl load ~/Library/LaunchAgents/homebrew.mxcl.Redis.plist
 ```
 and then stop it later:
 ```
-launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.Redis.plist
 ```
 
 ## Install python modules
@@ -101,7 +101,7 @@ sudo pip install --upgrade pip
 
 Subsequently you can install the Python modules
 ```
-pip install redis
+pip install Redis
 pip install mido
 pip install python-rtmidi
 pip install pyserial
