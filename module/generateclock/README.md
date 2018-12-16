@@ -10,7 +10,7 @@ The clock rate is limited between 40 and 240 beats per minute.
 
 ## Sending MIDI clock messages and starting/stopping the external MIDI device
 
-Sending MIDI clock messages is in principle independent from whether the external MIDI sequencer is started or not. There are cases where you want to start the MIDI sequencer together with the sequencer (e.g. with the Endorphines device), but there are also cases when you want to start the MIDI sequencer by hand (e.g. with the Korg Volca devices).
+Sending MIDI clock messages is in principle independent from whether the external MIDI sequencer is started or not. There are cases where you want to start the MIDI sequencer together with the sequencer (e.g. with the Endorphines eurorack module), but there are also cases when you want to start the MIDI sequencer by hand (e.g. with the Korg Volca synthesizers).
 
 The following examples demonstrate how to configure the *play* and the *start* parameter in the ini file for some scenarios.
 
@@ -40,7 +40,7 @@ This allows you to start both the clock and the external MIDI device separately.
 
 ### The clock ticks immediately, but start/stop uses a toggle button
 
-In this example the clock is started as soon as the module starts, and the start/stop are controlled by a button in EEGsynth. If you have daisy chained multiple MIDI devices, this allows you to start/stop all of them at the same time.
+In this example the clock is started as soon as the module starts, and the start/stop is controlled by a button in the EEGsynth. If you have daisy chained multiple MIDI devices, this allows you to start/stop all of them at the same time.
 
   [midi]
   play=1
