@@ -108,7 +108,7 @@ class ClockThread(threading.Thread):
         slip = 0
         while self.running:
             if debug>1:
-                print 'clock start'
+                print 'clock beat'
             start  = time.time()
             delay  = 60/self.rate   # the rate is in bpm
             delay -= slip           # correct for the slip from the previous iteration
@@ -138,7 +138,7 @@ class MidiThread(threading.Thread):
         while self.running:
             if self.enabled and midiport:
                 if debug>1:
-                    print 'midi start quarter note'
+                    print 'midi beat'
                 for tick in clock:
                     tick.wait()
                     midiport.send(msg)
@@ -178,7 +178,7 @@ class RedisThread(threading.Thread):
         while self.running:
             if self.enabled:
                 if debug>1:
-                    print 'redis start quarter note'
+                    print 'redis beat'
                 for tick in [clock[indx] for indx in self.clock]:
                     tick.wait()
                     patch.setvalue(self.key, 1.)
@@ -201,8 +201,9 @@ redisthread.start()
 # the MIDI interface will only be started when needed
 midiport = None
 
-previous_play_midi   = None
-previous_play_redis  = None
+previous_midi_play   = None
+previous_midi_start  = None
+previous_redis_play  = None
 
 try:
     while True:
@@ -212,50 +213,67 @@ try:
         if debug>3:
             print 'loop'
 
-        play_midi   = patch.getint('midi', 'play')
-        play_redis  = patch.getint('redis', 'play')
+        redis_play  = patch.getint('redis', 'play')
+        midi_play   = patch.getint('midi', 'play')
+        midi_start  = patch.getint('midi', 'start')
 
-        if previous_play_midi is None:
-            previous_play_midi = not(play_midi)
+        if previous_redis_play is None and redis_play is not None:
+            previous_redis_play = not(redis_play)
 
-        if previous_play_redis is None:
-            previous_play_redis = not(play_redis)
+        if previous_midi_play is None and midi_play is not None:
+            previous_midi_play = not(midi_play)
 
-        if play_midi and midiport == None:
-            # the MIDI port should only be opened once needed
+        if previous_midi_start is None and midi_start is not None:
+            previous_midi_start = not(midi_start)
+
+        # the MIDI port should only be opened once, and only if needed
+        if midi_play and midiport == None:
             midiport = EEGsynth.midiwrapper(config)
             midiport.open_output()
 
-        if play_midi and not previous_play_midi:
-            midithread.setEnabled(True)
-            previous_play_midi = True
-        elif not play_midi and previous_play_midi:
-            midithread.setEnabled(False)
-            previous_play_midi = False
-
-        if play_redis and not previous_play_redis:
+        # do something whenever the value changes
+        if redis_play and not previous_redis_play:
             redisthread.setEnabled(True)
-            previous_play_redis = True
-        elif not play_redis and previous_play_redis:
+            previous_redis_play = True
+        elif not redis_play and previous_redis_play:
             redisthread.setEnabled(False)
-            previous_play_redis = False
+            previous_redis_play = False
 
-        rate         = patch.getfloat('input', 'rate')
-        rate         = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-        rate         = EEGsynth.limit(rate, 40., 240.)
+        # do something whenever the value changes
+        if midi_play and not previous_midi_play:
+            midithread.setEnabled(True)
+            previous_midi_play = True
+        elif not midi_play and previous_midi_play:
+            midithread.setEnabled(False)
+            previous_midi_play = False
 
-        shift        = patch.getfloat('input', 'shift')
-        shift        = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
-        shift        = int(shift)
+        # do something whenever the value changes
+        if midi_start and not previous_midi_start:
+            if midiport != None:
+                midiport.send(mido.Message('start'))
+            previous_midi_start = True
+        elif not midi_start and previous_midi_start:
+            if midiport != None:
+                midiport.send(mido.Message('stop'))
+            previous_midi_start = False
 
-        ppqn         = patch.getfloat('input', 'ppqn')
-        ppqn         = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
-        ppqn         = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
+        rate  = patch.getfloat('input', 'rate')
+        rate  = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+        rate  = EEGsynth.limit(rate, 40., 240.)
+
+        shift = patch.getfloat('input', 'shift')
+        shift = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
+        shift = int(shift)
+
+        ppqn  = patch.getfloat('input', 'ppqn')
+        ppqn  = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
+        ppqn  = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
 
         if debug>0:
             # show the parameters whose value has changed
-            show_change("play_midi",     play_midi)
-            show_change("play_redis",    play_redis)
+            show_change("redis_play",    redis_play)
+            show_change("midi_play",     midi_play)
+            show_change("midi_start",    midi_start)
             show_change("rate",          rate)
             show_change("shift",         shift)
             show_change("ppqn",          ppqn)
