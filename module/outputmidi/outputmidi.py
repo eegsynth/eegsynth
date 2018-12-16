@@ -60,18 +60,6 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-control_name = []
-control_code = []
-for code in range(1,128):
-    control_name.append("midi%03d" % code)
-    control_code.append(code)
-
-note_name = []
-note_code = []
-for code in range(1,128):
-    note_name.append("midi%03d" % code)
-    note_code.append(code)
-
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
@@ -80,14 +68,60 @@ outputport.open_output()
 input_scale  = patch.getfloat('input', 'scale', default=127)
 input_offset = patch.getfloat('input', 'offset', default=0)
 
+
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
+
+def sendMidi(name, code, val):
+    if debug>0:
+        print name, code, val
+    # the different MIDI messages have slightly different parameters
+    if name.startswith('note'):
+        if midichannel is None:
+            msg = mido.Message('note_on', note=code, velocity=val)
+        else:
+            msg = mido.Message('note_on', note=code, velocity=val, channel=midichannel)
+    elif name.startswith('control'):
+        if midichannel is None:
+            msg = mido.Message('control_change', control=code, value=val)
+        else:
+            msg = mido.Message('control_change', control=code, value=val, channel=midichannel)
+    elif name.startswith('polytouch'):
+        if midichannel is None:
+            msg = mido.Message('polytouch', note=code, value=val)
+        else:
+            msg = mido.Message('polytouch', note=code, value=val, channel=midichannel)
+    elif name == 'aftertouch':
+        if midichannel is None:
+            msg = mido.Message('aftertouch', value=val)
+        else:
+            msg = mido.Message('aftertouch', value=val, channel=midichannel)
+    elif name == 'pitchwheel':
+        if midichannel is None:
+            msg = mido.Message('pitchwheel', pitch=val)
+        else:
+            msg = mido.Message('pitchwheel', pitch=val, channel=midichannel)
+    elif name == 'start':
+        msg = mido.Message('start')
+    elif name == 'continue':
+        msg = mido.Message('continue')
+    elif name == 'stop':
+        msg = mido.Message('stop')
+    elif name == 'reset':
+        msg = mido.Message('reset')
+    # send the MIDI message
+    lock.acquire()
+    outputport.send(msg)
+    lock.release()
+
+
 class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, note):
+    def __init__(self, redischannel, name, code):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
-        self.note = note
+        self.name = name
+        self.code = code
         self.running = True
     def stop(self):
         self.running = False
@@ -100,38 +134,56 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
+                    if debug>1:
+                        print item['channel'], '=', item['data']
                     # map the Redis values to MIDI values
-                    val = EEGsynth.rescale(item['data'], slope=input_scale, offset=input_offset)
+                    val = item['data']
+                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
-                    if debug>1:
-                        print item['channel'], '=', val
-                    if midichannel is None:
-                        msg = mido.Message('note_on', note=self.note, velocity=val)
-                    else:
-                        msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
-                    lock.acquire()
-                    outputport.send(msg)
-                    lock.release()
+                    sendMidi(self.name, self.code, val)
 
-# each of the notes that can be played is mapped onto a different trigger
+trigger_name = []
+trigger_code = []
+for code in range(1,128):
+    trigger_name.append("note%03d" % code)
+    trigger_code.append(code)
+    trigger_name.append("control%03d" % code)
+    trigger_code.append(code)
+    trigger_name.append("polytouch%03d" % code)
+    trigger_code.append(code)
+for name in ['aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+    trigger_name.append(name)
+    trigger_code.append(None)
+
+# each of the Redis message is mapped onto a different MIDI message
 trigger = []
-for name, code in zip(note_name, note_code):
-    if config.has_option('note', name):
+for name, code in zip(trigger_name, trigger_code):
+    if config.has_option('trigger', name):
         # start the background thread that deals with this note
-        this = TriggerThread(patch.getstring('note', name), code)
+        this = TriggerThread(patch.getstring('trigger', name), name, code)
         trigger.append(this)
         if debug>1:
-            print name, 'OK'
-    else:
-        if debug>1:
-            print name, 'FAILED'
+            print name, 'trigger configured'
 
-# start the thread for each of the notes
+# start the thread for each of the triggers
 for thread in trigger:
     thread.start()
 
-# control values are only relevant when different from the previous value
+control_name = []
+control_code = []
+for code in range(1,128):
+    control_name.append("note%03d" % code)
+    control_code.append(code)
+    control_name.append("control%03d" % code)
+    control_code.append(code)
+    control_name.append("polytouch%03d" % code)
+    control_code.append(code)
+for name in ['aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+    control_name.append(name)
+    control_code.append(None)
+
+# control values are only interesting when different from the previous value
 previous_val = {}
 for name in control_name:
     previous_val[name] = None
@@ -140,27 +192,21 @@ try:
     while True:
         time.sleep(patch.getfloat('general', 'delay'))
 
-        for name, cmd in zip(control_name, control_code):
+        for name, code in zip(control_name, control_code):
             # loop over the control values
             val = patch.getfloat('control', name)
             if val is None:
-                continue # it should be skipped when not present in the ini or redis
+                continue # it should be skipped when not present in the ini or Redis
             if val==previous_val[name]:
                 continue # it should be skipped when identical to the previous value
             previous_val[name] = val
+
             # map the Redis values to MIDI values
             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
             val = EEGsynth.limit(val, 0, 127)
             val = int(val)
-            if midichannel is None:
-                msg = mido.Message('control_change', control=cmd, value=val)
-            else:
-                msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
-            if debug>1:
-                print cmd, val, name
-            lock.acquire()
-            outputport.send(msg)
-            lock.release()
+            sendMidi(name, code, val)
+
 
 except KeyboardInterrupt:
     print "Closing threads"
