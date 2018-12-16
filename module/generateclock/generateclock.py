@@ -108,7 +108,7 @@ class ClockThread(threading.Thread):
         slip = 0
         while self.running:
             if debug>1:
-                print 'clock start'
+                print 'clock beat'
             start  = time.time()
             delay  = 60/self.rate   # the rate is in bpm
             delay -= slip           # correct for the slip from the previous iteration
@@ -138,7 +138,7 @@ class MidiThread(threading.Thread):
         while self.running:
             if self.enabled and midiport:
                 if debug>1:
-                    print 'midi start quarter note'
+                    print 'midi beat'
                 for tick in clock:
                     tick.wait()
                     midiport.send(msg)
@@ -178,7 +178,7 @@ class RedisThread(threading.Thread):
         while self.running:
             if self.enabled:
                 if debug>1:
-                    print 'redis start quarter note'
+                    print 'redis beat'
                 for tick in [clock[indx] for indx in self.clock]:
                     tick.wait()
                     patch.setvalue(self.key, 1.)
@@ -249,28 +249,31 @@ try:
 
         # do something whenever the value changes
         if midi_start and not previous_midi_start:
-            midiport.send(mido.Message('start'))
+            if midiport != None:
+                midiport.send(mido.Message('start'))
             previous_midi_start = True
         elif not midi_start and previous_midi_start:
-            midiport.send(mido.Message('stop'))
+            if midiport != None:
+                midiport.send(mido.Message('stop'))
             previous_midi_start = False
 
-        rate         = patch.getfloat('input', 'rate')
-        rate         = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-        rate         = EEGsynth.limit(rate, 40., 240.)
+        rate  = patch.getfloat('input', 'rate')
+        rate  = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+        rate  = EEGsynth.limit(rate, 40., 240.)
 
-        shift        = patch.getfloat('input', 'shift')
-        shift        = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
-        shift        = int(shift)
+        shift = patch.getfloat('input', 'shift')
+        shift = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
+        shift = int(shift)
 
-        ppqn         = patch.getfloat('input', 'ppqn')
-        ppqn         = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
-        ppqn         = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
+        ppqn  = patch.getfloat('input', 'ppqn')
+        ppqn  = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
+        ppqn  = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
 
         if debug>0:
             # show the parameters whose value has changed
-            show_change("midi_play",     midi_play)
             show_change("redis_play",    redis_play)
+            show_change("midi_play",     midi_play)
+            show_change("midi_start",    midi_start)
             show_change("rate",          rate)
             show_change("shift",         shift)
             show_change("ppqn",          ppqn)
