@@ -60,18 +60,6 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-control_name = []
-control_code = []
-for code in range(1,128):
-    control_name.append("midi%03d" % code)
-    control_code.append(code)
-
-note_name = []
-note_code = []
-for code in range(1,128):
-    note_name.append("midi%03d" % code)
-    note_code.append(code)
-
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 outputport = EEGsynth.midiwrapper(config)
 outputport.open_output()
@@ -114,22 +102,37 @@ class TriggerThread(threading.Thread):
                     outputport.send(msg)
                     lock.release()
 
+trigger_name = []
+trigger_code = []
+for code in range(1,128):
+    trigger_name.append("note%03d" % code)
+    trigger_code.append(code)
+for name in ['polytouch', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+    trigger_name.append(name)
+    trigger_code.append(None)
+
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
-for name, code in zip(note_name, note_code):
-    if config.has_option('note', name):
+for name, code in zip(trigger_name, trigger_code):
+    if config.has_option('trigger', name):
         # start the background thread that deals with this note
-        this = TriggerThread(patch.getstring('note', name), code)
+        this = TriggerThread(patch.getstring('trigger', name), code)
         trigger.append(this)
         if debug>1:
-            print name, 'OK'
-    else:
-        if debug>1:
-            print name, 'FAILED'
+            print name, 'trigger configured'
 
 # start the thread for each of the notes
 for thread in trigger:
     thread.start()
+
+control_name = []
+control_code = []
+for code in range(1,128):
+    control_name.append("control%03d" % code)
+    control_code.append(code)
+for name in ['polytouch', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+    control_name.append(name)
+    control_code.append(None)
 
 # control values are only relevant when different from the previous value
 previous_val = {}
@@ -140,7 +143,7 @@ try:
     while True:
         time.sleep(patch.getfloat('general', 'delay'))
 
-        for name, cmd in zip(control_name, control_code):
+        for name, code in zip(control_name, control_code):
             # loop over the control values
             val = patch.getfloat('control', name)
             if val is None:
@@ -153,11 +156,11 @@ try:
             val = EEGsynth.limit(val, 0, 127)
             val = int(val)
             if midichannel is None:
-                msg = mido.Message('control_change', control=cmd, value=val)
+                msg = mido.Message('control_change', control=code, value=val)
             else:
-                msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
+                msg = mido.Message('control_change', control=code, value=val, channel=midichannel)
             if debug>1:
-                print cmd, val, name
+                print code, val, name
             lock.acquire()
             outputport.send(msg)
             lock.release()
