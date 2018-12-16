@@ -85,7 +85,7 @@ class TriggerThread(threading.Thread):
                 if item['channel']==self.redischannel:
                     if debug>0:
                         print item
-                    if int(item['data'])>0:
+                    if int(float(item['data']))>0:
                         pitch = int(8191)
                     else:
                         pitch = int(0)
