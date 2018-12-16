@@ -8,14 +8,17 @@ Another important feature of MIDI are the *note* messages, which are sent whenev
 
 An important characteristic of MIDI notes is that they also convey information about the precise time of events. To ensure that the timing of MIDI events can be used in the EEGsynth, we *publish* notes to a Redis channel as messages on. Other modules can subscribe to a channel and will be notified for each published message. The publish/subscribe mechanism makes it possible to treat MIDI notes as triggers.
 
+
 ## Hardware
 
 - Novation Launch Control, Launch Control XL and Launchpad
 - Korg Volca Beats, Bass and Keys
-- Yamaha P-95 digital piano (keyboard)
+- Yamaha P-95 digital piano
+- Roland V-Drum kit with [TD-9](https://www.roland.com/us/products/td-9/) sound module
 - Arturio Microbrute
 - Endorphines Shuttle Control
 - USB-MIDI converter cable from Ebay
+
 
 ## Software and programming interfaces
 
