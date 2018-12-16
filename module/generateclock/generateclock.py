@@ -257,15 +257,15 @@ try:
                 midiport.send(mido.Message('stop'))
             previous_midi_start = False
 
-        rate  = patch.getfloat('input', 'rate')
+        rate  = patch.getfloat('input', 'rate', default=0)
         rate  = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
         rate  = EEGsynth.limit(rate, 40., 240.)
 
-        shift = patch.getfloat('input', 'shift')
+        shift = patch.getfloat('input', 'shift', default=0)
         shift = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
         shift = int(shift)
 
-        ppqn  = patch.getfloat('input', 'ppqn')
+        ppqn  = patch.getfloat('input', 'ppqn', default=0)
         ppqn  = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
         ppqn  = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
 

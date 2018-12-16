@@ -280,6 +280,8 @@ class patch():
 def rescale(xval, slope=None, offset=None):
     if hasattr(xval, "__iter__"):
         return [rescale(x, slope, offset) for x in xval]
+    elif xval == None:
+        return None
     else:
         if slope==None:
             slope = 1.0
@@ -291,6 +293,8 @@ def rescale(xval, slope=None, offset=None):
 def limit(xval, lo=0.0, hi=127.0):
     if hasattr(xval, "__iter__"):
         return [limit(x, lo, hi) for x in xval]
+    elif xval == None:
+        return None
     else:
         xval = float(xval)
         lo = float(lo)
