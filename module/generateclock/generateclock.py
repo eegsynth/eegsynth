@@ -259,7 +259,7 @@ try:
 
         rate  = patch.getfloat('input', 'rate', default=0)
         rate  = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-        rate  = EEGsynth.limit(rate, 40., 240.)
+        rate  = EEGsynth.limit(rate, 30., 240.)
 
         shift = patch.getfloat('input', 'shift', default=0)
         shift = EEGsynth.rescale(shift, slope=scale_shift, offset=offset_shift)
