@@ -106,7 +106,7 @@ def forward_handler(addr, tags, data, source):
         # it is a single value
         key = prefix + addr.replace('/', '.')
         val = EEGsynth.rescale(data[0], slope=scale, offset=offset)
-        EEGsynth.setvalue(key, val)
+        patch.setvalue(key, val)
 
     else:
         for i in range(len(data)):
@@ -114,7 +114,7 @@ def forward_handler(addr, tags, data, source):
             # append the index to the key, this starts with 0
             key = prefix + addr.replace('/', '.') + '.%i' % i
             val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
-            EEGsynth.setvalue(key, val)
+            patch.setvalue(key, val)
 
 
 s.noCallback_handler = forward_handler

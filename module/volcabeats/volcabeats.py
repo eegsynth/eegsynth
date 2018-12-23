@@ -111,14 +111,12 @@ class TriggerThread(threading.Thread):
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
 for name, code in zip(note_name, note_code):
-    try:
-        # start the background thread that deals with the trigger
+    if config.has_option('note', name):
+        # start the background thread that deals with this note
         this = TriggerThread(patch.getstring('note', name), code)
         trigger.append(this)
-        print name+' OK'
-    except:
-        # this happens when it is commented out in the ini file
-        print name+' FAILED'
+        if debug>1:
+            print name, 'OK'
 
 # start the thread for each of the notes
 for thread in trigger:

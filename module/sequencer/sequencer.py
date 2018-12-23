@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Sequencer acts as a basic timer and sequencer
+# This module implements a basic monophonic sequencer
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -62,6 +62,16 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
+# these scale and offset parameters are used to map between Redis and internal values
+scale_active     = patch.getfloat('scale', 'active',     default=127.)
+scale_transpose  = patch.getfloat('scale', 'transpose',  default=127.)
+scale_note       = patch.getfloat('scale', 'note',       default=1.)
+scale_duration   = patch.getfloat('scale', 'duration',   default=1.)
+offset_active    = patch.getfloat('offset', 'active',    default=0.)
+offset_transpose = patch.getfloat('offset', 'transpose', default=0.)
+offset_note      = patch.getfloat('offset', 'note',      default=0.)
+offset_duration  = patch.getfloat('offset', 'duration',  default=0.)
+
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
@@ -82,7 +92,9 @@ class SequenceThread(threading.Thread):
         self.key = key
         self.sequence = []
         self.transpose = 0
-        self.duration = 0
+        self.duration = 0.5
+        self.steptime = 0.
+        self.prevtime = None
         self.step = 0
         self.running = True
 
@@ -94,7 +106,7 @@ class SequenceThread(threading.Thread):
         with lock:
             self.transpose = transpose
 
-    def setDuration(self, sequence):
+    def setDuration(self, duration):
         with lock:
             self.duration = duration
 
@@ -110,33 +122,40 @@ class SequenceThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
+                    now = time.time()
+                    if self.prevtime != None:
+                        self.steptime = now - self.prevtime
+                    self.prevtime = now
                     if len(self.sequence) > 0:
-                        val = self.sequence[self.step % len(self.sequence)]
                         # the sequence can consist of a list of values or a list of Redis channels
+                        val = self.sequence[self.step % len(self.sequence)]
+
                         try:
+                            # convert the string from the ini to floating point
                             val = float(val)
                         except:
+                            # get the value from Redis
                             val = r.get(val)
-                        val = val + self.transpose
-                        patch.setvalue(self.key, val, debug=debug)
-                        if val>=1.:
-                            # send it as sequencer.noteXXX with value 1.0
-                            key = '%s%03d' % (self.key, val)
-                            val = 1.
-                            patch.setvalue(key, val, debug=debug, duration=self.duration)
-                        self.step = (self.step + 1) % len(self.sequence)
-                        if debug>0:
-                            print "step", self.step, self.key, val
+                            if val == None:
+                                val = 0.
+                            else:
+                                # convert the string from Redis to floating point
+                                val = float(val)
 
-# these scale and offset parameters are used to map between Redis and internal values
-scale_select     = patch.getfloat('scale', 'select',     default=127.)
-scale_transpose  = patch.getfloat('scale', 'transpose',  default=127.)
-scale_note       = patch.getfloat('scale', 'note',       default=1.)
-scale_duration   = patch.getfloat('scale', 'duration',   default=1.)
-offset_select    = patch.getfloat('offset', 'select',    default=0.)
-offset_transpose = patch.getfloat('offset', 'transpose', default=0.)
-offset_note      = patch.getfloat('offset', 'note',      default=0.)
-offset_duration  = patch.getfloat('offset', 'duration',  default=0.)
+                        # apply the scaling, offset and transpose the note
+                        val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
+                        val += self.transpose
+                        # send it as sequencer.note with the note as value
+                        patch.setvalue(self.key, val, duration=self.duration*self.steptime)
+                        if val>=1.:
+                            # send it also as sequencer.noteXXX with value 1.0
+                            key = '%s%03d' % (self.key, val)
+                            patch.setvalue(key, 1., duration=self.duration*self.steptime)
+                        if debug>0:
+                            print "step %2d :" % (self.step + 1), self.key, "=", val
+                        # increment to the next step
+                        self.step = (self.step + 1) % len(self.sequence)
+
 
 # this is the clock signal for the sequence
 clock = patch.getstring('sequence', 'clock')
@@ -149,11 +168,11 @@ sequencethread = SequenceThread(clock, key)
 sequencethread.start()
 
 if debug > 0:
-    show_change('scale_select',     scale_select)
+    show_change('scale_active',     scale_active)
     show_change('scale_transpose',  scale_transpose)
     show_change('scale_note',       scale_note)
     show_change('scale_duration',   scale_duration)
-    show_change('offset_select',    offset_select)
+    show_change('offset_active',    offset_active)
     show_change('offset_transpose', offset_transpose)
     show_change('offset_note',      offset_note)
     show_change('offset_duration',  offset_duration)
@@ -166,33 +185,35 @@ try:
         if debug > 1:
             print 'loop'
 
-        # the selected pattern should be a integer between 0 and 127
-        select = patch.getfloat('sequence', 'select', default=0)
-        select = EEGsynth.rescale(select, slope=scale_select, offset=offset_select)
-        select = int(select)
+        # the active sequence is specified as an integer between 0 and 127
+        active = patch.getfloat('sequence', 'active', default=0)
+        active = EEGsynth.rescale(active, slope=scale_active, offset=offset_active)
+        active = int(active)
 
         # get the corresponding sequence as a single string
         try:
-            sequence = patch.getstring('sequence', "pattern{:d}".format(select), multiple=True)
+            sequence = patch.getstring('sequence', "sequence%03d" % active, multiple=True)
         except:
             sequence = []
 
         transpose = patch.getfloat('sequence', 'transpose', default=0.)
         transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)
 
-        duration = patch.getfloat('general', 'duration', default=0.)
+        # the duration is relative to the time between clock ticks
+        duration = patch.getfloat('sequence', 'duration', default=0.)
         duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
+        duration = EEGsynth.limit(duration, 0.1, 0.9)
+
+        if debug > 0:
+            # show the parameters whose value has changed
+            show_change("active",    active)
+            show_change("sequence",  sequence)
+            show_change("transpose", transpose)
+            show_change("duration",  duration)
 
         sequencethread.setSequence(sequence)
         sequencethread.setTranspose(transpose)
         sequencethread.setDuration(duration)
-
-        if debug > -1:
-            # show the parameters whose value has changed
-            show_change("select",    select)
-            show_change("sequence",  sequence)
-            show_change("transpose", transpose)
-            show_change("duration",  duration)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed

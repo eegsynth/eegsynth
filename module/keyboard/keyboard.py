@@ -252,11 +252,11 @@ try:
                     key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
                     val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                    EEGsynth.setvalue(key, val)
+                    patch.setvalue(key, val)
                     # prefix.note=note
                     key = '{}.note'.format(patch.getstring('output','prefix'))
                     val = msg.note
-                    EEGsynth.setvalue(key, val)
+                    patch.setvalue(key, val)
             elif hasattr(msg,'control'):
                 # ignore these
                 pass

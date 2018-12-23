@@ -273,7 +273,7 @@ class patch():
             print item, '=', val
         if duration > 0:
             # switch off after a certain amount of time
-            threading.Timer(duration, EEGynth.setstate, args=[item, 0.]).start()
+            threading.Timer(duration, self.setvalue, args=[item, 0.]).start()
 
 
 ####################################################################

@@ -6,7 +6,7 @@ The MIDI clock ticks are always send 24 times per quarter note, or 96 times per 
 
 The rate of the Redis messages is controlled by the *ppqn* (pulse per quarter note) parameter. Since Redis messages are aligned with the MIDI clock ticks, only integer divisors are possible. You can specify values of 1,2,3,4,6,8,12,24, where 1 means one pulse per quarter note. You can shift the Redis messages relative to the MIDI clock ticks by a quarter note using the *shift* parameter (between -12 and 12).
 
-The clock rate is limited between 40 and 240 beats per minute.
+The clock rate is limited between 30 and 240 beats per minute.
 
 ## Sending MIDI clock messages and starting/stopping the external MIDI device
 
