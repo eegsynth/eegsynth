@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Sequencer acts as a basic timer and sequencer
+# This module implements a basic monophonic sequencer
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -92,7 +92,9 @@ class SequenceThread(threading.Thread):
         self.key = key
         self.sequence = []
         self.transpose = 0
-        self.duration = 0
+        self.duration = 0.5
+        self.steptime = 0.
+        self.prevtime = None
         self.step = 0
         self.running = True
 
@@ -120,6 +122,10 @@ class SequenceThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
+                    now = time.time()
+                    if self.prevtime != None:
+                        self.steptime = now - self.prevtime
+                    self.prevtime = now
                     if len(self.sequence) > 0:
                         # the sequence can consist of a list of values or a list of Redis channels
                         val = self.sequence[self.step % len(self.sequence)]
@@ -140,11 +146,11 @@ class SequenceThread(threading.Thread):
                         val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
                         val += self.transpose
                         # send it as sequencer.note with the note as value
-                        patch.setvalue(self.key, val)
+                        patch.setvalue(self.key, val, duration=self.duration*self.steptime)
                         if val>=1.:
                             # send it also as sequencer.noteXXX with value 1.0
                             key = '%s%03d' % (self.key, val)
-                            patch.setvalue(key, 1., duration=self.duration)
+                            patch.setvalue(key, 1., duration=self.duration*self.steptime)
                         if debug>0:
                             print "step %2d :" % (self.step + 1), self.key, "=", val
                         # increment to the next step
@@ -193,8 +199,10 @@ try:
         transpose = patch.getfloat('sequence', 'transpose', default=0.)
         transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)
 
-        duration = patch.getfloat('general', 'duration', default=0.)
+        # the duration is relative to the time between clock ticks
+        duration = patch.getfloat('sequence', 'duration', default=0.)
         duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
+        duration = EEGsynth.limit(duration, 0.1, 0.9)
 
         if debug > 0:
             # show the parameters whose value has changed
