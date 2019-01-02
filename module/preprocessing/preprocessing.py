@@ -124,7 +124,7 @@ window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
 # Processing init
-downsample  = patch.getfloat('processing', 'downsample', default=None)
+downsample  = patch.getint('processing', 'downsample', default=None)
 smoothing   = patch.getfloat('processing', 'smoothing', default=None)
 reference   = patch.getstring('processing','reference')
 filterorder = patch.getint('processing', 'filterorder')
