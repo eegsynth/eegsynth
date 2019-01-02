@@ -76,6 +76,16 @@ except:
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
 
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
+        print key, "=", val
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
+
 
 def SetGate(gate, val):
     if debug > 1:
@@ -164,8 +174,8 @@ try:
             chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
             chanval = int(chanval)
 
-            if debug > 1:
-                print chanstr, '=', chanval
+            if debug > 0:
+                show_change(chanstr, chanval)
 
             lock.acquire()
             s.write('*c%dv%04d#' % (chanindx, chanval))
@@ -189,8 +199,8 @@ try:
             # the value for the gate should be 0 or 1
             chanval = int(chanval > 0)
 
-            if debug > 1:
-                print chanstr, '=', chanval
+            if debug > 0:
+                show_change(chanstr, chanval)
 
             lock.acquire()
             s.write('*g%dv%d#' % (chanindx, chanval))
