@@ -59,24 +59,35 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
+        print key, "=", val
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
+delay = patch.getfloat('general', 'delay')
+number = patch.getint('switch', 'number', default=3)
+prefix = patch.getstring('output', 'prefix')
 
-# the input scale and offset are used to map the Redis values to internal values
-input_scale = patch.getfloat('input', 'scale', default=1.)
-input_offset = patch.getfloat('input', 'offset', default=0.)
+# the scale and offset are used to map the Redis values to internal values
+scale_input      = patch.getfloat('scale', 'input', default=1.)
+scale_time       = patch.getfloat('scale', 'time', default=1.)
+scale_precision  = patch.getfloat('scale', 'precision', default=1.)
+offset_input     = patch.getfloat('offset', 'input', default=0.)
+offset_time      = patch.getfloat('offset', 'time', default=0.)
+offset_precision = patch.getfloat('offset', 'precision', default=0.)
 
-# the output scale and offset are used to map the internal values to Redis values
-output_scale = patch.getfloat('output', 'scale', default=1.)
-output_offset = patch.getfloat('output', 'offset', default=0.)
-
-# there can be any number of output channels
-channel_item, channel_name = zip(*config.items('output'))
-match = [str.startswith(key, 'channel') for key in channel_item]
-# make a list of the output channels
-channel_item = [c for (c, m) in zip(channel_item, match) if m]
-channel_name = [c for (c, m) in zip(channel_name, match) if m]
-nchannel = len(channel_item)
+channel_name = []
+for corner in range(number):
+    # each corner of the geometry has an output value
+    # the output names are like "geomixer.spectral.channel1.alpha.corner1"
+    channel_name.append('%s.%s.corner%d' % (prefix, patch.getstring('input', 'channel'), corner+1))
 
 def even(val):
     return not(val % 2)
@@ -85,7 +96,7 @@ def clip01(val):
     return min(max(val,0),1)
 
 dwelltime = 0.
-segment = 0
+edge = 0
 previous = 'no'
 
 while True:
@@ -93,13 +104,16 @@ while True:
     start = time.time()
 
     # these can change on the fly
-    delay = patch.getfloat('general', 'delay')
     switch_time = patch.getfloat('switch', 'time', default=1.0)
+    switch_time = EEGsynth.rescale(switch_time, slope=scale_time, offset=offset_time)
     switch_precision = patch.getfloat('switch', 'precision', default=0.1)
-    switch_precision = EEGsynth.rescale(switch_precision, slope=input_scale, offset=input_offset)
+    switch_precision = EEGsynth.rescale(switch_precision, slope=scale_precision, offset=offset_precision)
+    show_change('time', switch_time)
+    show_change('precision', switch_precision)
 
+    # get the input value and scale between 0 and 1
     input = patch.getfloat('input', 'channel', default=np.NaN)
-    input = EEGsynth.rescale(input, slope=input_scale, offset=input_offset)
+    input = EEGsynth.rescale(input, slope=scale_input, offset=offset_input)
 
     if switch_precision > 0:
         # the input value is scaled relative to the corners
@@ -117,8 +131,8 @@ while True:
         print '------------------------------------------------------------------'
 
     # is there a reason to change?
-    if even(segment):
-        # the direction is normal on the even segments
+    if even(edge):
+        # the direction is normal on the even edges
         if input > upper_treshold:
             change = 'up'
         elif input < lower_treshold:
@@ -126,7 +140,7 @@ while True:
         else:
             change = 'no'
     else:
-        # the direction is opposite on the odd segments
+        # the direction is opposite on the odd edges
         if input > upper_treshold:
             change = 'down'
         elif input < lower_treshold:
@@ -146,32 +160,33 @@ while True:
     # is the dwelltime long enough?
     if dwelltime > switch_time:
         if change == 'up':
-            # switch to the next segment
-            segment += 1
-        else:
-            # switch to the previous segment
-            segment -= 1
+            # switch to the next edge
+            edge += 1
+        elif change == 'down':
+            # switch to the previous edge
+            edge -= 1
+        # send the edge number as an integer value to Redis
+        key = '%s.%s.edge' % (prefix, patch.getstring('input', 'channel'))
+        patch.setvalue(key, edge)
         if debug > 1:
-            print 'switch to segment', segment
+            print 'switch to edge', edge
 
-    channel_val = [0. for i in range(nchannel)]
-    for this in range(nchannel):
-        if (segment % nchannel) == this:
-            next = (this + 1) % nchannel
+    channel_val = [0. for i in range(number)]
+    for this in range(number):
+        if (edge % number) == this:
+            next = (this + 1) % number
             # the scaled input value needs to be clipped between 0 and 1
-            if even(segment):
+            if even(edge):
                 channel_val[this] = 1. - clip01(input)
                 channel_val[next] = clip01(input)
             else:
                 channel_val[this] = clip01(input)
                 channel_val[next] = 1. - clip01(input)
-
-    for key, val in zip(channel_name, channel_val):
-        patch.setvalue(key, val)
+        patch.setvalue(channel_name[this], channel_val[this])
 
     if debug > 0:
         # print them all on a single line, this is Python 2 specific
-        print('segment=%2d' % segment),
+        print('edge=%2d' % edge),
         for key, val in zip(channel_name, channel_val):
             print(' %s = %0.2f' % (key, val)),
         print ""  # force a newline
