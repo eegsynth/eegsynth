@@ -14,16 +14,18 @@ The OpenBCI board comes with a right-angle 11x2 male header soldered to it. SRB 
 
 We have connected the 10 electrode leads to the SRB2 pin (the lower pin, i.e. closest to the PCB), P1-P8 (the upper pins) and one of the AGND pins, skipping the BIAS pin. This allows for a conventional common reference montage. The electrodes leads are cut to length to easily reach the following standard 10-20 electrode sites on the scalp:
 
-- pin SRB2 = 31 cm = left mastoid (M1) or alternatively AFz
-- pin P1 = 11 cm = electrode site O1
-- pin P2 = 18 cm = electrode site P3
-- pin P3 = 24 cm = electrode site C3
-- pin P4 = 31 cm = electrode site F3
-- pin P5 = 31 cm = electrode site F4
-- pin P6 = 24 cm = electrode site C4
-- pin P7 = 18 cm = electrode site P4
-- pin P8 = 11 cm = electrode site O2
-- pin AGND = 31 cm = right mastoid (M2) or alternatively FPz
+- pin SRB2 - 31 cm - white  - left mastoid (M1) or alternatively AFz
+- pin P1   - 11 cm - grey   - electrode site O1
+- pin P2   - 18 cm - purple - electrode site P3
+- pin P3   - 24 cm - blue   - electrode site C3
+- pin P4   - 31 cm - green  - electrode site F3
+- pin P5   - 31 cm - yellow - electrode site F4
+- pin P6   - 24 cm - orange - electrode site C4
+- pin P7   - 18 cm - red    - electrode site P4
+- pin P8   - 11 cm - brown  - electrode site O2
+- pin AGND - 31 cm - black  - right mastoid (M2) or alternatively Fpz
+
+Note that SRB2 is on the side with the "P" pins and SRB1 is on the side with the "N" pins. Contrary to the two photo's included in this documentation, the white wire connected to SRB2 should be in one line with the colored wires connected to the "P" pins.
 
 The leads are long enough so that they can reach one electrode site further to the front of the head. The longest ones (connected to the middle pins P4 and P5) can also reach around the head and be used for EOG.
 
