@@ -27,12 +27,14 @@ Detailed information about each module can be found in the README.md included in
 
 * [Recordsignal](https://github.com/eegsynth/eegsynth/tree/master/module/recordsignal) Record raw data to file
 * [Playbacksignal](https://github.com/eegsynth/eegsynth/tree/master/module/playbacksignal) Play back pre-recorded raw data
-* [Plotsignal](https://github.com/eegsynth/eegsynth/tree/master/module/plotsignal) Plot raw data and power spectra
+* [Plotsignal](https://github.com/eegsynth/eegsynth/tree/master/module/plotsignal) Plot raw data
+* [Plotspectral](../module/plotspectral) Plot spectrum of raw data
 * [Recordcontrol](https://github.com/eegsynth/eegsynth/tree/master/module/recordcontrol) Record control values from Redis to file
 * [Playbackcontrol](https://github.com/eegsynth/eegsynth/tree/master/module/playbackcontrol) Play back pre-recorded control values
 * [Plotcontrol](https://github.com/eegsynth/eegsynth/tree/master/module/plotcontrol) Plot control signals from Redis
 * [Postprocessing](https://github.com/eegsynth/eegsynth/tree/master/module/postprocessor) Allows computations, algorithms and combinations on the control values
 * [Preprocessing](https://github.com/eegsynth/eegsynth/tree/master/module/preprocessor) Filtering and preprocessing of raw data, results get written to another raw data buffer
+* [Plottrigger](../module/plottrigger) Plot pub/sub events from Redis
 
 ## External interfaces (open-source)
 
