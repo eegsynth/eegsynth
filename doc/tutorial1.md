@@ -22,11 +22,14 @@ We will then write some prerecorded data into the buffer as if it was being reco
 1.   Download some example data in .edf format. For example, from our [data directory on Google Drive](https://drive.google.com/drive/folders/0B10S8PeNnxw1ZnZPbUh0RWk0cjA). Or use the data you recorded in the [recording tutorial](https://braincontrolclub.miraheze.org/wiki/Recording_tutorial "Recording tutorial").
 2.   Place the .edf file in a directory, e.g. in _/eegsynth/datafiles_
 3.   Navigate to the playback module directory _/eegsynth/module/playbacksignal_
-4.   Copy the _playbacksignal.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in _../../inifiles_ relative to the buffer module directory)
-5.   Edit your _playbacksignal.ini_ to direct the playback module to the right edf data file, e.g. under _[playback]_ edit: _file = ../../datafiles/testBipolar20170827-0.edf_
-6.   Edit the two _playbacksignal.ini_ options for playback and rewind so that it will play back automatically (and not rewind): _play=1_ and _rewind=0_
+4.   Copy the _playbacksignal.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in 
+_../../inifiles_ relative to the buffer module directory)
+5.   Edit your _playbacksignal.ini_ to direct the playback module to the right edf data file, e.g. under ```[playback]```
+ edit: ```file = ../../datafiles/testBipolar20170827-0.edf```
+6.   Edit the two _playbacksignal.ini_ options for playback and rewind so that it will play back automatically 
+(and not rewind): ```play=1``` and ```rewind=0```
 7.   Make note that you can comment out (hide from the module) lines of text by adding a semicolon (;) at the beginning of the line
-8.   Now start up the playback module, using your own .ini file: _python playbacksignal.py -i ../../inifiles/playbacksignal.ini_
+8.   Now start up the playback module, using your own .ini file: ```python playbacksignal.py -i ../../inifiles/playbacksignal.ini```
 9.   If all is well, the module will print out the samples that it is 'playing back'. This is that data that is successively entered into the buffer as if was just recorded
 
 # Plotting streaming data in the buffer
@@ -35,6 +38,6 @@ If you made it so far the buffer is working. However, we can now also read from 
 
 1.   Navigate to the plotsignal module directory _/eegsynth/module/plotsignal_
 2.   Copy the _plotsignal.ini_ to your own ini directory (e.g. to _/eegsynth/inifiles_, which would be in _../../inifiles_ relative to the buffer module directory)
-3.   Edit your _plotsignal.ini_ to plot the first two channel, but editing under _[arguments]_ edit: _channels=1,2_
-4.   Now start up the plotsignal module, using your own .ini file: _python plotsignal.py -i ../../inifiles/plotsignal.ini_
+3.   Edit your _plotsignal.ini_ to plot the first two channel, but editing under ```[arguments]``` edit: ```channels=1,2```
+4.   Now start up the plotsignal module, using your own .ini file: ```python plotsignal.py -i ../../inifiles/plotsignal.ini```
 5.   If you see your data scroll by, bravo!
