@@ -84,10 +84,10 @@ offset_time      = patch.getfloat('offset', 'time', default=0.)
 offset_precision = patch.getfloat('offset', 'precision', default=0.)
 
 channel_name = []
-for corner in range(number):
-    # each corner of the geometry has an output value
-    # the output names are like "geomixer.spectral.channel1.alpha.corner1"
-    channel_name.append('%s.%s.corner%d' % (prefix, patch.getstring('input', 'channel'), corner+1))
+for vertex in range(number):
+    # each vertex of the geometry has an output value
+    # the output names are like "geomixer.spectral.channel1.alpha.vertex1"
+    channel_name.append('%s.%s.vertex%d' % (prefix, patch.getstring('input', 'channel'), vertex+1))
 
 def even(val):
     return not(val % 2)
@@ -116,14 +116,14 @@ while True:
     input = EEGsynth.rescale(input, slope=scale_input, offset=offset_input)
 
     if switch_precision > 0:
-        # the input value is scaled relative to the corners
-        # so that the switching happens exactly at the corners and is not visible
+        # the input value is scaled relative to the vertices
+        # so that the switching happens exactly at the vertices and is not visible
         input = input * (1 + 2 * switch_precision) - switch_precision
         lower_treshold = 0
         upper_treshold = 1
     else:
-        # the thresholds are scaled relative to the corners
-        # so that the switching happens prior to reaching the corner
+        # the thresholds are scaled relative to the vertices
+        # so that the switching happens prior to reaching the vertex
         lower_treshold = 0. - switch_precision
         upper_treshold = 1. + switch_precision
 
