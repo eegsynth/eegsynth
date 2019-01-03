@@ -7,3 +7,7 @@ The relevant action happens when the input value is close to 1, or close to 0 fo
 You can imagine a triangle with corners A, B and C (and corresponding output channels). The input value can be mapped on edge AB, activating partially output A and partially output B. If the input value lingers at corner B for some time, it switches over to edge BC. At that moment B is 1 and both A and C are 0, so the switch from AB to BC will not immediately change the output values. After the switch, a subsequent change in the input control value will cause it to traverse along the BC edge, where B and C will have some output and A will remain 0.
 
 The output on the N channels is only non-zero for the two channels corresponding to the geometrical edge that the input is mapped onto. Furthermore, the sum of all output channels is always 1. The two output channels that are non-zero change over time, depending on the switching at the corners.
+
+## Output channels
+
+For an N-sides polygon, this module creates N continuous output channels plus one integer channel that corresponds to the current edge. If the input channel is named "xxx", the continuous output channels are named prefix.xxx.vertex1, prefix.xxx.vertex2, etc. The integer output channel is named prefix.xxx.edge.
