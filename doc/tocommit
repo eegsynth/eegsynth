@@ -1,8 +1,0 @@
-standardize output:
-boilerplate
-tic-toc relative to delay setting to see if module runs fast enough
-
-Prefixing vs. postfixing. Do we really need the spectral modules to both prefix AND postfix (spectral.channel1.alpha) - I suggest to remove prefixes
-
-Rename OpenBCI2ft --> InputOpenBCI
-

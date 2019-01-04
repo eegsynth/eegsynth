@@ -18,7 +18,7 @@ for which one can find [many applications](https://patchstorage.com/platform/pd-
  
 ## Accessing EEGsynth with external software 
 
-Redis can also be accessed directly, and can e.g. be using in games using [PyGame](https://www.pygame.org/news). 
+Values that modules outputs to Redis can also be accessed directly (externally), e.g. for games using [PyGame](https://www.pygame.org/news). 
 
 ## Other applications
 
