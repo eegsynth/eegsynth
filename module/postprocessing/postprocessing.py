@@ -93,7 +93,7 @@ if debug>0:
 while True:
     time.sleep(patch.getfloat('general', 'delay'))
 
-    actual_value = [];
+    actual_value = []
     for name in input_name:
         actual_value.append(patch.getfloat('input', name))
 
