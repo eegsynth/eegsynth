@@ -6,7 +6,7 @@ Furthermore, while sonic feedback is ideal for monitoring changes over times in 
 represent the changes over time in the same instant. For these purposes you can use several basic plotting
 modules:
 
-* [Plotsignal](../module/plotsignal) Plot raw data 
-* [Plotspectral](../module/plotspectral) Plot spectrum of raw data
-* [Plotcontrol](../module/plotcontrol) Plot control signals from Redis
-* [Plottrigger](../module/plottrigger) Plot pub/sub events from Redis
+* [Plotsignal](../module/plotsignal) to plot raw data 
+* [Plotspectral](../module/plotspectral) to plot spectrum of raw data
+* [Plotcontrol](../module/plotcontrol) to plot control signals from Redis
+* [Plottrigger](../module/plottrigger) to plot pub/sub events from Redis
