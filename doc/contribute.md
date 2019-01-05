@@ -5,6 +5,19 @@ bugs or ambiguoities in the documentation, to writing and debugging code, to dev
 performances and sharing your experiences. We are also looking for financial contributions as
 well as scientific collaborations. In that case, please [email us directly](stephen.whitmarsh@gmail.com).
 
+# Modular contribution
+
+To allow the EEGsynth to be easily extendable, we maintain a modular design in which we try to add
+either generic functionality in the [EEGsynth library](../lib/EEGsynth.py), or add new modules with
+specific functionality that is not yet covered by other modules. When designing another module, one
+has to consider whether the same functionality would already be possible by patching together
+existing modules.
+
+When contributing code in the form of a new module, one can take an exisiting module as a starting point.
+This gives a head start in using the generic skeleton of functions and interfaces that have 
+already been developed. Please feel free to contact us with questions on what you would like to develop.
+We can probably give you advice to make it easy as possible to reach your goal.   
+
 # Wishlist
 
 What follows are some things that we would like to have support/input on. Ofcourse there are 

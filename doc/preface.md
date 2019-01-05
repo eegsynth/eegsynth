@@ -22,3 +22,4 @@ artist, but also a (neuro)scientist who understands the material (brains) and in
 be working with. Furthermore, although we try to make it as easy as possible, and in principle not requiring (experience in)
 programming, we might not be at that point just yet. 
 
+_Continue reading: [A brief history](history.md)_

@@ -67,3 +67,4 @@ To summarize, the EEGsynth is an open-source code-base that functions as an inte
 
 **Figure 3.** *Visual depiction of communication between modules via either the FieldTrip buffer for raw data (yellow) or via the Redis database (blue) for output and input parameters.*
 
+_Continue reading: [Patching](patching.md)_

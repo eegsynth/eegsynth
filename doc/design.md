@@ -14,3 +14,4 @@ Similarly as in modular synthesizers, the EEGsynth functions when several module
 and receiving information from each other. Similarly as in modular synthesizers, we call this patching.
 Read more about how we implement patching [here](patching.md)
 
+_Continue reading: [Python scripts](scripts.md)_

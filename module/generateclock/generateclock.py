@@ -205,7 +205,7 @@ previous_midi_play   = None
 previous_midi_start  = None
 previous_redis_play  = None
 
-try:
+try: # FIXME do we need this or can we catch errors before?
     while True:
         # measure the time to correct for the slip
         now = time.time()

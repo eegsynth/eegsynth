@@ -31,3 +31,5 @@ have integrated it in several performances.
 ## Calibration
 
 Every output device or application need their own calibration. Read more about it [here](calibration.md).
+
+_Continue reading: [Manual control](manual_control.md)_

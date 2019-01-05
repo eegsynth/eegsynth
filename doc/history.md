@@ -1,5 +1,7 @@
 # A brief history
 
+_(Feel free to skip this and continue with [A brief history](history.md))_
+
 Early development of what later became the EEGsynth was done as part of an interdisciplinary art-science 
 initiative [1+1=3](http://oneplusoneisthree.org/), which was on its part a spin-off of a successful international art-research collective
 [OuUnPo](http://www.ouunpo.org/). After years of intermittent performances and workshops within 
@@ -68,3 +70,5 @@ hype and broken promises. Many interesting questions can be found laying wayside
 bloated and oversold, resulting in inflation of artistic (and scientific) value. Like in any other field, it is a
 question of constructing new meaning and new value from this rubble, and using the achievements of the past to image the 
 future. The EEGsynth is developed to be a tool for this construction, to be used by interdsciplinary teams such as 1+1=3.
+
+_Continue reading: [Modular design](design.md)_

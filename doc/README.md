@@ -16,11 +16,11 @@ Please feel free to contact us with questions and ideas for collaborations via o
 # Installation
 
 Please follow the instruction for installation [here](installation.md). Please note that the EEGsynth
-is actively developed for OSX an Linux, Windows not so much.
+is actively developed for OSX and Linux, but no so much for Windows.
 
 # Documentation
 
-The documentation of the EEGsynth is provided here under the following sections. 
+The documentation of the EEGsynth is provided here under the following sections.
 
 * [Preface](preface.md)
 * [A brief history](history.md)
@@ -28,9 +28,9 @@ The documentation of the EEGsynth is provided here under the following sections.
   * [Python scripts](scripts.md)
   * [Initialisation files](inifile.md)
   * [Patching](patching.md)
-* [Manual control](manual_control.md)
 * [Input from electrophyiological recordings](input.md)
 * [Output to software and devices](output.md)
+* [Manual control](manual_control.md)
 * [Visualisation](visualisation.md)
 
 ## Tutorials

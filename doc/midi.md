@@ -18,8 +18,6 @@ analysis or to adjust thresholds on the fly. For example, we often use knobs and
 of a MIDI control device (e.g. the Novation [Launch Control XL](https://novationmusic.com/launch/launch-control-xl)) 
 in our live performance, or use it to simulate data in prototyping. We also use 
 
-
-
 ## MIDI as input
 
 Whenever you change the position of knobs or sliders of a MIDI control device, 
