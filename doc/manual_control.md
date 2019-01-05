@@ -14,3 +14,4 @@ modules.
 
 *The Novation LaunchControl XL, often used in EEGsynth setups*
 
+_Continue reading: [Visualisation](visualisation.md)_

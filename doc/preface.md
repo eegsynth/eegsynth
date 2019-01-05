@@ -17,8 +17,17 @@ Although there are plans to make it more 'plug-and-play', the EEGsynth has to be
 using [Python](https://www.python.org/) and [Bash](https://en.wikipedia.org/wiki/Bash_%28Unix_shell%29) scripts, 
 and is therefor not friendly for those not familiar with such an approach.
 
-When you start an project with the EEGsynth, one should therefor really consider doing it together with not only an 
-artist, but also a (neuro)scientist who understands the material (brains) and instrumentation (EEG) that you will 
-be working with. Furthermore, although we try to make it as easy as possible, and in principle not requiring (experience in)
-programming, we might not be at that point just yet. 
+When you start an project with the EEGsynth, consider doing it together with in a group of people that have 
+knowledge and experience complimentary to you, in particular within electrophyiology, neuroscience or psychology, 
+programming, computer science and signal processing. The EEGsynth allows interdisciplinary work - which is best done
+in a group!
 
+Since December 2018, the EEGsynth is registered as a legal _Association_ with the French authorities.
+ 
+More information can be found at [our website](https://www.eegsynth.org).
+Follow us on [Facebook](https://www.facebook.com/EEGsynth/) 
+and [Twitter](https://twitter.com/eegsynth), 
+and check our past and upcoming events on [our calendar](http://www.eegsynth.org/?calendar=eegsynth-calendar).
+Please feel free to contact us via our [contact form](http://www.eegsynth.org/?page_id=233).
+
+_Continue reading: [A brief history](history.md)_

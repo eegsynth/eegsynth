@@ -100,7 +100,7 @@ while True:
     if not patch.getint('signal', 'play', default=1):
         if debug>0:
             print "Stopped"
-        time.sleep(0.1);
+        time.sleep(0.1)
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
         phase = 0
@@ -109,17 +109,18 @@ while True:
     if patch.getint('signal', 'pause', default=0):
         if debug>0:
             print "Paused"
-        time.sleep(0.1);
+        time.sleep(0.1)
         continue
 
     # measure the time that it takes
-    start = time.time();
+    start = time.time()
 
     frequency = patch.getfloat('signal', 'frequency', default=0.2)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.3)
     offset    = patch.getfloat('signal', 'offset', default=0.5)      # the DC component of the output signal
     noise     = patch.getfloat('signal', 'noise', default=0.1)
     dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)   # for the square wave
+
     # map the Redis values to signal parameters
     frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
     amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
@@ -162,7 +163,7 @@ while True:
     val = signal.sawtooth(phase, 1) * amplitude + offset + np.random.randn(1) * noise
     patch.setvalue(key, val[0])
 
-    # this is a short-term approach, estimating the sleep for every block
+    # FIXME this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
     desired = stepsize
     elapsed = time.time()-start

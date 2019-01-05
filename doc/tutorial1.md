@@ -41,3 +41,5 @@ If you made it so far the buffer is working. However, we can now also read from 
 3.   Edit your _plotsignal.ini_ to plot the first two channel, but editing under ```[arguments]``` edit: ```channels=1,2```
 4.   Now start up the plotsignal module, using your own .ini file: ```python plotsignal.py -i ../../inifiles/plotsignal.ini```
 5.   If you see your data scroll by, bravo!
+
+_Continue reading: [Tutorial 2](tutorial2.md)_

@@ -65,3 +65,5 @@ of the channels that you are plotting. The plotsignal module also makes a conver
 state of the values it reads from Redis (the last read position of the knobs), to frequencies in 
 Hertz. It outputs those back into Redis, e.g. under _plotsignal.redband.lo_, and 
 _plotsignal.redband.hi_. You can check this by using ```Redis-cli monitor```.
+
+_Continue reading: [Tutorial 3](tutorial3.md)_
