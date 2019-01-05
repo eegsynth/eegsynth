@@ -50,6 +50,12 @@ local git repository, which will then not create annoying conflicts with the rem
 update. You can find several examples of patch directories in the [patches directory](https://github.com/eegsynth/eegsynth/patches).
 These also function as documentation of past performances. 
 
+## Summary
+To summarize, the EEGsynth is an open-source code-base that functions as an interface between electrophysiological recordings devices and external software and devices. It takes care for the analyis of data on the one hand, and the translation into external protocols on the other. This is done in a powerful, flexible way, by running separate modules in parallel. These modules exchange data and parameters using the FieldTrip buffer and Redis database, respectively. This _patching_ is defined using text-based initialization files of each module. The EEGsynth is run from the command-line, without a GUI and interacted with using MIDI controllers rather than computer keyboards. The upside is that the EEGsynth is easily customized and expanded, has the true feel and function of a real-time feedback system, and can be light enough to run e.g. on a Raspberry-Pi (i.e. on Raspian). Below you can see and already outdated collection of modules, showing the two different ways of communication: via the FieldTrip bugger (data in yellow) and via Redis (control values and parameters in blue).
+
+[![](http://www.eegsynth.org/wp-content/uploads/2016/08/EEGsynth_comm_overview-1024x576.jpg?resize=1024%2C576)](http://www.eegsynth.org/wp-content/uploads/2016/08/EEGsynth_comm_overview-1024x576.jpg)
+
+**Figure 3.** *Visual depiction of communication between modules via either the FieldTrip buffer for raw data (yellow) or via the Redis database (blue) for output and input parameters.*
 
 
 
