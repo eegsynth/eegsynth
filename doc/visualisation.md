@@ -1,3 +1,5 @@
+# Visualisation
+
 In contrast to most Brain-Computer-Interfaces (BCIs), the EEGsynth is not intended for visual feedback,
 but mainly focuses on the control of sonic feedback. We do support the control of light equipment via
 DMX (see [output](output.md)). However, visualization in some cases is important for purposes of development,
