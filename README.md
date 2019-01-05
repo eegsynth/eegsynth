@@ -27,8 +27,8 @@ using [Python](https://www.python.org/) and [Bash](https://en.wikipedia.org/wiki
 and is therefor not friendly for those not familiar with such an approach.
 
 When you start an project with the EEGsynth, consider doing it together with in a group of people that have 
-knowledge and experience complimentary to you, in particular within electrophyiology, neuroscience or psychology, 
-programming, computer science and signal processing. 
+knowledge and experience complimentary to yours, such as in electrophyiology, neuroscience, psychology, 
+programming, computer science or signal processing. 
 
 Since December 2018, the EEGsynth is registered as a legal _Association_ with the French authorities. 
 More information can be found at [our website](https://www.eegsynth.org).
