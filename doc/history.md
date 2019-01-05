@@ -1,6 +1,6 @@
 # A brief history
 
-_(Feel free to skip this and continue with [A brief history](history.md))_
+_(Feel free to skip this and continue with [Modular design](design.md)_
 
 Early development of what later became the EEGsynth was done as part of an interdisciplinary art-science 
 initiative [1+1=3](http://oneplusoneisthree.org/), which was on its part a spin-off of a successful international art-research collective
