@@ -1,10 +1,9 @@
 # Design of the EEGsynth
 
 The design of the EEGsynth is modular, directly inspired by 
-[modular synthesizers](https://en.wikipedia.org/wiki/Modular_synthesizer).
+[modular synthesizers](https://en.wikipedia.org/wiki/Modular_synthesizer), such as the Doepfer A-100 below:
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Doepfer_A-100.jpg/330px-Doepfer_A-100.jpg)
-*Doepfer A-100 modular synthesizer*
 
 Every module does a specific task. Each module consists of a python script, and is contained in its own directory. 
 For instance, in [eegsynth\modules\launchcontrol](https://github.com/eegsynth/eegsynth/modules/launchcontrol) we find:
