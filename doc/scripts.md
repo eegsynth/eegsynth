@@ -363,5 +363,5 @@ except (KeyboardInterrupt, RuntimeError) as e:
 
 For examples on pubsub, take a look at the [keyboard module](../module/keyboard) and [launchcontrol module](../module/launchcontrol).
 
-_Continue reading: [ini files](inifiles.md)_
+_Continue reading: [ini files](inifile.md)_
 
