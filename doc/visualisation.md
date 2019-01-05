@@ -12,3 +12,5 @@ modules:
 * [Plotspectral](../module/plotspectral) to plot spectrum of raw data
 * [Plotcontrol](../module/plotcontrol) to plot control signals from Redis
 * [Plottrigger](../module/plottrigger) to plot pub/sub events from Redis
+
+_Why not continue and do the [first tutorial](tutorial1.md)?_
