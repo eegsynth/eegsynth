@@ -1,8 +1,3 @@
-# Installation
-
-Please follow the instruction for installation [here](installation.md). Please note that the EEGsynth
-is actively developed for OSX and Linux, but no so much for Windows.
-
 # Documentation
 * [Preface](preface.md)
 * [A brief history](history.md)
@@ -12,8 +7,14 @@ is actively developed for OSX and Linux, but no so much for Windows.
   * [Patching](patching.md)
 * [Input from electrophyiological recordings](input.md)
 * [Output to software and devices](output.md)
-* [Manual control](manual_control.md)
+* [Manual control](manual-control.md)
 * [Visualisation](visualisation.md)
+
+## Installation
+* [General instructions](installation.md)
+* [Instructions for Linux](installation-linux.md)
+* [Instructions for OS-X](installation-osx.md)
+* [Instructions for Windows](installation-windows.md)
 
 ## Tutorials
 * [Tutorial 1: Playback data, and display on monitor](tutorial1.md)
@@ -26,3 +27,13 @@ is actively developed for OSX and Linux, but no so much for Windows.
 * [Recording and Playback](recording.md)
 * [How and what to contribute](contribute.md)
 * [Frequently Asked Questions](faq.md)
+* [AVmixer](avmixer.md)
+* [Buffer](buffer.md)
+* [Funding](funding.md)
+* [Matrix mixer](matrixmixer.md)
+* [MIDI](midi.md)
+* [MidiOSC](midiosc.md)
+* [Open BCI](openbci.md)
+* [Recording](recording.md)
+* [Redis](redis.md)
+* [Rythms](rhythms.md)

@@ -32,4 +32,4 @@ have integrated it in several performances.
 
 Every output device or application need their own calibration. Read more about it [here](calibration.md).
 
-_Continue reading: [Manual control](manual_control.md)_
+_Continue reading: [Manual control](manual-control.md)_
