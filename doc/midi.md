@@ -16,7 +16,7 @@ pitch, velocity, vibrato and panning are all great sonic parameters to put under
 MIDI is also very useful to tweak parameters of the EEGsynth, such as frequency bands used in the EEG spectral 
 analysis or to adjust thresholds on the fly. For example, we often use knobs and sliders 
 of a MIDI control device (e.g. the Novation [Launch Control XL](https://novationmusic.com/launch/launch-control-xl)) 
-in our live performance, or use it to simulate data in prototyping. We also use 
+in our live performance, or use it to simulate data in prototyping.
 
 ## MIDI as input
 
@@ -40,7 +40,7 @@ possible to treat MIDI notes as triggers.
 ## MIDI clock signal
 
 As we said above, MIDI can also be used to set the speed of a musical device, such as a sequencer.
-To understand on how to use MIDI signals to control the speed, some MIDI and music 
+To understand on how to use MIDI signals to control the speed, we need to understand the terms used in music, and MIDI in particular. 
 
 ### Tempo
 Tempo is the speed at which something is played – e.g. fast and constant in electronic dance music, 
@@ -85,6 +85,17 @@ The software interface to MIDI devices is often implemented over multiple layers
 E.g. on OS X the EEGsynth modules connect with the hardware like this:
 
 EEGsynth (Python) &rarr; **mido** &rarr; **portmidi** &rarr; **coremidi** &rarr; MIDI hardware
+
+## Modules that directly interface with MIDI
+
+* [generateclock](../module/generateclock)
+* [sequencer](../module/sequencer)
+* [inputmidi](../module/inputmidi)
+* [ouputmidi](../module/ouputmidi)
+* [launchcontrol](../module/launchcontrol)
+* [volcabass](../module/volcabass)
+* [volcabeats](../module/volcabeats)
+* [volcakeys](../module/volcakeys)
 
 ## MIDI hardware we work with (OSX and Linux) for input, output or both
 
