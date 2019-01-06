@@ -18,7 +18,7 @@ If openbci2ft gives this error trying to access /dev/ttyUSB0, it is because the 
 
 ## How can I identify my MIDI devices?
 
-Most EEGsynth modules that interface with MIDI will print all available MIDI input and output devices upon startup. On http://tedfelix.com/linux/linux-midi.html you can find a great page with details on Linux command line tools to explore soundcard and MIDI devices. On OS X you can use the "Audio MIDI Setup.app" application. 
+Most EEGsynth modules that interface with MIDI will print all available MIDI input and output devices upon startup. On http://tedfelix.com/linux/linux-midi.html you can find a great page with details on Linux command line tools to explore soundcard and MIDI devices. On macOS you can use the "Audio MIDI Setup.app" application.
 
 ## How can I improve the timing of the OpenBCI data stream?
 
@@ -32,11 +32,11 @@ This error can happen on OS X El Captain, even if you have installed portmidi co
 To work around this you can [disable system integrity protection](
 http://www.howtogeek.com/230424/how-to-disable-system-integrity-protection-on-a-mac-and-why-you-shouldnt/).
 
-If you run into this on older versions of OS X, it is probably due to libmacports.dylib not being installed, or due to an incorrect setting of DYLD_LIBRARY_PATH.
+If you run into this on older versions of macOS, it is probably due to libmacports.dylib not being installed, or due to an incorrect setting of DYLD_LIBRARY_PATH.
 
-## Localhost not recognized on OS X
+## Localhost not recognized on macOS
 
-In some OS X installations the name "localhost" does not refer to 127.0.0.1 as it should. This can be fixed by adding the following line to /etc/hosts
+In some macOS installations the name "localhost" does not refer to 127.0.0.1 as it should. This can be fixed by adding the following line to /etc/hosts
 
 ```
 127.0.0.1        localhost

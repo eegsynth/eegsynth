@@ -14,7 +14,7 @@
 
 **Figure 1.** *Example of complex modular synthesizer patch*
 
-## Patching 
+## Patching
 
 
 ```
@@ -82,4 +82,4 @@ To summarize, the EEGsynth is an open-source code-base that functions as an inte
 
 ## Contributing
 It is strongly advised to work within you own cloned repository and keep up to date with EEGsynth commits, as the EEGsynth is in constant development.
-* For installation please follow our installation instructions for [Linux](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-linux.md), [OSX](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-osx.md) and [Windows](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-windows.md). Please note that Windows and OSX are not actively supported. Linux is the main target, partly because we want the EEGsynth to be compatible with the [Raspberry Pi](http://raspberrypi.org/), partly because some Python libraries do not support Windows, and partly because we rely on command-line interface anyway.
+* For installation please follow our installation instructions for [Linux](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-linux.md), [macOS](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-macos.md) and [Windows](https://github.com/eegsynth/eegsynth/blob/master/doc/installation-windows.md). Please note that Windows and macOS are not actively supported. Linux is the main target, partly because we want the EEGsynth to be compatible with the [Raspberry Pi](http://raspberrypi.org/), partly because some Python libraries do not support Windows, and partly because we rely on command-line interface anyway.

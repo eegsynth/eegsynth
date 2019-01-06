@@ -1,11 +1,11 @@
-# Software installation instructions
+# Installation instructions
 
-The EEGsynth software is developed with Linux and OS X in mind. In principle it should also work on Windows, but we don't actively work on that platform.
+The EEGsynth software is developed with Linux and macOS in mind. In principle it should also work on Windows, but we don't actively work on that platform.
 
 The first section consists of the installation of the dependencies, i.e. the external software that EEGsynth builds on.
 
   * [Installation instructions for Linux](installation-linux.md)
-  * [Installation instructions for OS-X](installation-osx.md)
+  * [Installation instructions for macOS](installation-macos.md)
   * [Installation instructions for Windows](installation-windows.md)
 
 After completing the external dependencies for your operating system, you should return here and continue below.
@@ -16,7 +16,7 @@ After completing the external dependencies for your operating system, you should
 git clone https://github.com/eegsynth/eegsynth.git
 ```
 
-## Install the dependencies on FieldTrip
+## Install the binary dependencies on FieldTrip
 
 For interfacing with the EEG amplifiers we use the FieldTrip buffer and the associated amplifier-specific applications. Each of them is a small executable that is implemented in C and already compiled. These executables are different for each computing platform (i386, ARM, etc.) and for each operating system. In the eegsynth/bin directory you can find a small installer script that helps you to select and download the correct ones.
 

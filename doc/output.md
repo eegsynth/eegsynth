@@ -23,9 +23,9 @@ Values that modules outputs to Redis can also be accessed directly (externally),
 ## Other applications
 
 * [MidiOSC](https://github.com/jstutters/MidiOSC) is an open source C++ application that uses the RtMidi interface.
-* [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-midi) is a closed source application for OS X or Windows.
-* [OSCulator](http://www.osculator.net) is a closed source application for OS X.
-* [AVMixer](https://neuromixer.com/products/avmixer-pro) is a closed source application for OS X. [Here](avmixer.md) is how we 
+* [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-midi) is a closed source application for macOS or Windows.
+* [OSCulator](http://www.osculator.net) is a closed source application for macOS.
+* [AVMixer](https://neuromixer.com/products/avmixer-pro) is a closed source application for macOS. [Here](avmixer.md) is how we 
 have integrated it in several performances.
 
 ## Calibration

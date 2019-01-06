@@ -1,6 +1,6 @@
 # Using MidiOSC
 
-[MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing bidirectional conversion of MIDI to OSC. It is available for OSX and for Linux.
+[MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing bidirectional conversion of MIDI to OSC. It is available for macOS and for Linux.
 
 Compared to [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-midi) it has the advantage that any MIDI messages can be transferred over the network, not only those from the TouchOSC application running on your tablet or smartphone.
 
@@ -25,9 +25,9 @@ sudo apt-get install jackd2
 ```
 
 
-## Getting MidoOSC running on OS X
+## Getting MidoOSC running on macOS
 
-I am using [macports](https://www.macports.org) as package manager on OS X.
+I am using [macports](https://www.macports.org) as package manager on macOS.
 
 ```
 sudo port install liblo
