@@ -3,7 +3,8 @@
 This Git repository is organized as follows:
 
  * [eegsynth/bin](bin) contains binaries for the buffer and for EEG acquisition
- * [eegsynth/doc](doc) contains the documentation
+ * [eegsynth/doc](doc) contains the documentation on the EEGsynth software
+ * [eegsynth/hardware](hardware) contains the documentation on hardware
  * [eegsynth/modules](modules) directories contains the modules
  * [eegsynth/patches](patches) directories contains patches from performances and for testing
 
