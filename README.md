@@ -6,7 +6,7 @@ The EEGsynth code is organized as follows:
  * [eegsynth/doc](doc) contains the documentation on the EEGsynth software
  * [eegsynth/hardware](hardware) contains the documentation on hardware
  * [eegsynth/lib](lib) contains EEGsynth and other Python libraries
- * [eegsynth/modules](modules) directories contains the modules
+ * [eegsynth/module](module) directories contains the modules
  * [eegsynth/patches](patches) directories contains patches from performances and for testing
 
 
