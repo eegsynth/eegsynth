@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import math
 import multiprocessing
@@ -45,14 +45,14 @@ parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
                                                             os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -70,20 +70,20 @@ blocksize = patch.getint('audio', 'blocksize')
 nchans = 1
 format = p.get_format_from_width(2)  # the desired sample width in bytes (1, 2, 3, or 4)
 
-print '------------------------------------------------------------------'
+print('------------------------------------------------------------------')
 info = p.get_host_api_info_by_index(0)
-print info
-print '------------------------------------------------------------------'
+print(info)
+print('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        print "Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name')
+        print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        print "Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name')
-print '------------------------------------------------------------------'
+        print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+print('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-print "Selected device is", devinfo['name']
-print devinfo
-print '------------------------------------------------------------------'
+print("Selected device is", devinfo['name'])
+print(devinfo)
+print('------------------------------------------------------------------')
 
 stream = p.open(format=format,
                 channels=nchans,
@@ -115,7 +115,7 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                print item['channel'], "=", item['data']
+                print(item['channel'], "=", item['data'])
                 lock.acquire()
                 self.last = self.time
                 lock.release()
@@ -215,19 +215,19 @@ class ControlThread(threading.Thread):
             self.vca_envelope = vca_envelope
             lock.release()
             if debug > 2:
-                print '----------------------------------'
-                print 'vco_pitch      =', vco_pitch
-                print 'vco_sin        =', vco_sin
-                print 'vco_tri        =', vco_tri
-                print 'vco_saw        =', vco_saw
-                print 'vco_sqr        =', vco_sqr
-                print 'lfo_depth      =', lfo_depth
-                print 'lfo_frequency  =', lfo_frequency
-                print 'adsr_attack    =', adsr_attack
-                print 'adsr_decay     =', adsr_decay
-                print 'adsr_sustain   =', adsr_sustain
-                print 'adsr_release   =', adsr_release
-                print 'vca_envelope   =', vca_envelope
+                print('----------------------------------')
+                print('vco_pitch      =', vco_pitch)
+                print('vco_sin        =', vco_sin)
+                print('vco_tri        =', vco_tri)
+                print('vco_saw        =', vco_saw)
+                print('vco_sqr        =', vco_sqr)
+                print('lfo_depth      =', lfo_depth)
+                print('lfo_frequency  =', lfo_frequency)
+                print('adsr_attack    =', adsr_attack)
+                print('adsr_decay     =', adsr_decay)
+                print('adsr_sustain   =', adsr_sustain)
+                print('adsr_release   =', adsr_release)
+                print('vca_envelope   =', vca_envelope)
 
 
 # start the background thread that deals with control value changes
@@ -248,7 +248,7 @@ try:
         ################################################################################
         BUFFER = ''
 
-        for t in xrange(offset, offset + blocksize):
+        for t in range(offset, offset + blocksize):
             # update the time for the trigger detection
 
             lock.acquire()
@@ -311,7 +311,7 @@ try:
         offset = offset + blocksize
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     control.stop()
     control.join()
     trigger.stop()

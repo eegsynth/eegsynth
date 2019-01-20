@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyqtgraph.Qt import QtGui, QtCore
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import redis
 import argparse
 import numpy as np
@@ -48,14 +48,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -95,7 +95,7 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     if debug>1:
-                        print item
+                        print(item)
                     lock.acquire()
                     now = time.time()
                     val = float(item['data'])
@@ -115,7 +115,7 @@ for i in range(1, 17):
         this = TriggerThread(patch.getstring('gate', name), i)
         gate.append(this)
         if debug>1:
-            print name, 'OK'
+            print(name, 'OK')
 
 # start the thread for each of the notes
 for thread in gate:
@@ -183,7 +183,7 @@ timer.start(int(round(delay * 1000)))     # in milliseconds
 # Start
 QtGui.QApplication.instance().exec_()
 
-print 'Closing threads'
+print('Closing threads')
 for thread in gate:
     thread.stop()
 r.publish('PLOTTRIGGER_UNBLOCK', 1)

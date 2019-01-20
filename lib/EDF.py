@@ -357,8 +357,8 @@ class EDFReader():
 if False:
     file_in = EDFReader()
     file_in.open('/Users/roboos/day 01[10.03].edf')
-    print file_in.readSamples(0, 0, 0)
-    print file_in.readSamples(0, 0, 128)
+    print(file_in.readSamples(0, 0, 0))
+    print(file_in.readSamples(0, 0, 128))
 
 
 if False:

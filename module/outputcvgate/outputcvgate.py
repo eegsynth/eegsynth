@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import os
 import redis
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -68,9 +68,9 @@ duration_offset = patch.getfloat('duration', 'offset', default=0)
 try:
     s = serial.Serial(patch.getstring('serial', 'device'), patch.getint('serial', 'baudrate'), timeout=3.0)
     if debug > 0:
-        print "Connected to serial port"
+        print("Connected to serial port")
 except:
-    print "Error: cannot connect to serial port"
+    print("Error: cannot connect to serial port")
     exit()
 
 # this is to prevent two triggers from being activated at the same time
@@ -79,7 +79,7 @@ lock = threading.Lock()
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print key, "=", val
+        print(key, "=", val)
         show_change.previous[key] = val
         return True
     else:
@@ -89,7 +89,7 @@ show_change.previous = {}
 
 def SetGate(gate, val):
     if debug > 1:
-        print "gate%d" % (gate), "=", val
+        print("gate%d" % (gate), "=", val)
     lock.acquire()
     s.write('*g%dv%d#' % (gate, val))
     lock.release()
@@ -141,7 +141,7 @@ for chanindx in range(1, 5):
         except:
             trigger.append(TriggerThread(channel, chanindx, None))
         if debug > 0:
-            print "configured", channel, chanindx
+            print("configured", channel, chanindx)
     except:
         pass
 
@@ -162,7 +162,7 @@ try:
             if chanval == None:
                 # the value is not present in Redis, skip it
                 if debug > 2:
-                    print chanstr, 'not available'
+                    print(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -188,7 +188,7 @@ try:
             if chanval == None:
                 # the value is not present in Redis, skip it
                 if debug > 2:
-                    print chanstr, 'not available'
+                    print(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -207,7 +207,7 @@ try:
             lock.release()
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTCVGATE_UNBLOCK', 1)

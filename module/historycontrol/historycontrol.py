@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -45,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -93,16 +93,16 @@ while True:
 
     if enable and prev_enable:
         if debug > 0:
-            print "Updating"
+            print("Updating")
     elif enable and not prev_enable:
         if debug > 0:
-            print "Enabling the updating"
+            print("Enabling the updating")
     elif not enable and not prev_enable:
         if debug > 0:
-            print "Not updating"
+            print("Not updating")
     elif not enable and prev_enable:
         if debug > 0:
-            print "Disabling the updating"
+            print("Disabling the updating")
 
     if not enable:
         time.sleep(0.1)
@@ -144,13 +144,13 @@ while True:
         historic['min_att'] = np.nanmin(history_att, axis=1)
         historic['max_att'] = np.nanmax(history_att, axis=1)
 
-        for operation in historic.keys():
+        for operation in list(historic.keys()):
             for channel in range(numchannel):
                 key = inputlist[channel] + "." + operation
                 val = historic[operation][channel]
                 patch.setvalue(key, val)
                 if debug>1:
-                    print key + ':' + str(val)
+                    print(key + ':' + str(val))
 
         elapsed = time.time() - start
         naptime = stepsize - elapsed

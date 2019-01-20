@@ -1,4 +1,4 @@
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import mido
 import os
 import sys
@@ -12,7 +12,7 @@ try:
     import OSC
 except:
     # this means that midiosc is not supported as midi backend
-    print "Warning: pyOSC not found"
+    print("Warning: pyOSC not found")
 
 ###################################################################################################
 class midiwrapper():
@@ -26,11 +26,11 @@ class midiwrapper():
         self.outputport = None
         try:
             self.backend = config.get('midi', 'backend')
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             self.backend = 'mido'
         try:
             self.debug = config.getint('general', 'debug')
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             self.debug = 0
 
     def open_output(self):
@@ -42,22 +42,22 @@ class midiwrapper():
                 print('-------------------------')
             try:
                 self.outputport  = mido.open_output(self.config.get('midi', 'device'))
-                print "Connected to MIDI output"
+                print("Connected to MIDI output")
             except:
-                print "Error: cannot connect to MIDI output"
+                print("Error: cannot connect to MIDI output")
                 raise RuntimeError("Error: cannot connect to MIDI output")
 
         elif self.backend == 'midiosc':
             try:
                 self.outputport = OSC.OSCClient()
                 self.outputport.connect((self.config.get('midi','hostname'), self.config.getint('midi','port')))
-                print "Connected to OSC server"
+                print("Connected to OSC server")
             except:
-                print "Error: cannot connect to OSC server"
+                print("Error: cannot connect to OSC server")
                 raise RuntimeErrror("cannot connect to OSC server")
 
         else:
-            print 'Error: unsupported backend: ' + self.backend
+            print('Error: unsupported backend: ' + self.backend)
             raise RuntimeError('unsupported backend: ' + self.backend)
 
     def send(self, mido_msg):
@@ -92,7 +92,7 @@ class midiwrapper():
             # send the OSC message, the receiving "midiosc" application will convert it back to MIDI
             self.outputport.send(osc_msg)
         else:
-            print 'Error: unsupported backend: ' + self.backend
+            print('Error: unsupported backend: ' + self.backend)
             raise RuntimeError('unsupported backend: ' + self.backend)
 
 
@@ -270,7 +270,7 @@ class patch():
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
         if debug:
-            print item, '=', val
+            print(item, '=', val)
         if duration > 0:
             # switch off after a certain amount of time
             threading.Timer(duration, self.setvalue, args=[item, 0.]).start()
@@ -388,24 +388,24 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
 
     if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
         # totally blocking all signal
-        print 'using NULL filter', [highpass, lowpass]
+        print('using NULL filter', [highpass, lowpass])
         b = np.zeros(window)
         a = np.ones(1)
     elif not(lowpass is None) and (highpass is None):
-        print 'using lowpass filter', [highpass, lowpass]
+        print('using lowpass filter', [highpass, lowpass])
         b = firwin(order, cutoff = lowpass, window = filtwin, pass_zero = True)
         a = np.ones(1)
     elif not(highpass is None) and (lowpass is None):
-        print 'using highpass filter', [highpass, lowpass]
+        print('using highpass filter', [highpass, lowpass])
         b = firwin(order, cutoff = highpass, window = filtwin, pass_zero = False)
         a = np.ones(1)
     elif not(highpass is None) and not(lowpass is None):
-        print 'using bandpass filter', [highpass, lowpass]
+        print('using bandpass filter', [highpass, lowpass])
         b = firwin(order, cutoff = [highpass, lowpass], window = filtwin, pass_zero = False)
         a = np.ones(1)
     else:
         # no filtering at all
-        print 'using IDENTITY filter', [highpass, lowpass]
+        print('using IDENTITY filter', [highpass, lowpass])
         b = np.ones(1)
         a = np.ones(1)
 

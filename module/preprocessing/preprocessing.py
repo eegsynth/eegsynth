@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import redis
 import argparse
 import os
@@ -48,14 +48,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -70,7 +70,7 @@ timeout = patch.getfloat('input_fieldtrip', 'timeout')
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print key, "=", val
+        print(key, "=", val)
         show_change.previous[key] = val
         return True
     else:
@@ -81,44 +81,44 @@ try:
     ftc_host = patch.getstring('input_fieldtrip','hostname')
     ftc_port = patch.getint('input_fieldtrip','port')
     if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_input = FieldTrip.Client()
     ft_input.connect(ftc_host, ftc_port)
     if debug>0:
-        print "Connected to input FieldTrip buffer"
+        print("Connected to input FieldTrip buffer")
 except:
-    print "Error: cannot connect to input FieldTrip buffer"
+    print("Error: cannot connect to input FieldTrip buffer")
     exit()
 
 try:
     ftc_host = patch.getstring('output_fieldtrip','hostname')
     ftc_port = patch.getint('output_fieldtrip','port')
     if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ftc_host, ftc_port)
     if debug>0:
-        print "Connected to output FieldTrip buffer"
+        print("Connected to output FieldTrip buffer")
 except:
-    print "Error: cannot connect to output FieldTrip buffer"
+    print("Error: cannot connect to output FieldTrip buffer")
     exit()
 
 hdr_input = None
 start = time.time()
 while hdr_input is None:
     if debug>0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
     if (time.time()-start)>timeout:
-        print "Error: timeout while waiting for data"
+        print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 if debug>0:
-    print "Data arrived"
+    print("Data arrived")
 if debug>1:
-    print hdr_input
-    print hdr_input.labels
+    print(hdr_input)
+    print(hdr_input.labels)
 
 window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
@@ -160,7 +160,7 @@ else:
     begsample = hdr_input.nSamples-window
     endsample = hdr_input.nSamples-1
 
-print "STARTING PREPROCESSING STREAM"
+print("STARTING PREPROCESSING STREAM")
 while True:
     start = time.time()
 
@@ -169,10 +169,10 @@ while True:
         time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if (hdr_input.nSamples-1)<(endsample-window):
-            print "Error: buffer reset detected"
+            print("Error: buffer reset detected")
             raise SystemExit
         if (time.time()-start)>timeout:
-            print "Error: timeout while waiting for data"
+            print("Error: timeout while waiting for data")
             raise SystemExit
 
     # determine the start of the actual processing
@@ -182,8 +182,8 @@ while True:
     dat_output = dat_input.astype(np.float32)
 
     if debug>2:
-        print "------------------------------------------------------------"
-        print "read        ", window, "samples in", (time.time()-start)*1000, "ms"
+        print("------------------------------------------------------------")
+        print("read        ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Online filtering
     highpassfilter = patch.getfloat('processing', 'highpassfilter', default=None)
@@ -204,14 +204,14 @@ while True:
         # apply the filter to the data
         dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
         if debug>1:
-            print "filtered    ", window, "samples in", (time.time()-start)*1000, "ms"
+            print("filtered    ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Downsampling
     if not(downsample is None):
         dat_output = decimate(dat_output, downsample, ftype='iir', axis=0, zero_phase=True)
         window_new = int(window / downsample)
         if debug>1:
-            print "downsampled ", window, "samples in", (time.time()-start)*1000, "ms"
+            print("downsampled ", window, "samples in", (time.time()-start)*1000, "ms")
     else:
         window_new = window
 
@@ -221,25 +221,25 @@ while True:
             dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
             previous = copy(dat_output[t, :])
         if debug>1:
-            print "smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms"
+            print("smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # Re-referencing
     if reference == 'median':
         dat_output -= repmat(np.nanmedian(dat_output, axis=1), dat_output.shape[1], 1).T
         if debug>1:
-            print "rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms"
+            print("rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms")
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
         if debug>1:
-            print "rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms"
+            print("rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
     if debug>0:
-        print "preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms"
+        print("preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms")
     if debug>2:
-        print "wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms"
+        print("wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # increment the counters for the next loop
     begsample += window

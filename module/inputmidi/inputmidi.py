@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -43,14 +43,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -73,9 +73,9 @@ offset = patch.getfloat('output', 'offset', default=0)
 try:
     inputport  = mido.open_input(patch.getstring('midi', 'device'))
     if debug>0:
-        print "Connected to MIDI input"
+        print("Connected to MIDI input")
 except:
-    print "Error: cannot connect to MIDI input"
+    print("Error: cannot connect to MIDI input")
     exit()
 
 while True:
@@ -84,7 +84,7 @@ while True:
     for msg in inputport.iter_pending():
 
         if debug>1:
-            print msg
+            print(msg)
 
         if hasattr(msg, "control"):
             # prefix.control000=value

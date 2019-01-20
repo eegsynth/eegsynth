@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import datetime
 import numpy as np
@@ -52,14 +52,14 @@ parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
                                                             os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -88,14 +88,14 @@ while True:
 
     if recording and not patch.getint('recording', 'record'):
         if debug > 0:
-            print "Recording disabled - closing", fname
+            print("Recording disabled - closing", fname)
         f.close()
         recording = False
         continue
 
     if not recording and not patch.getint('recording', 'record'):
         if debug > 0:
-            print "Recording is not enabled"
+            print("Recording is not enabled")
         time.sleep(1)
 
     if not recording and patch.getint('recording', 'record'):
@@ -120,11 +120,11 @@ while True:
 
         # search-and-replace to reduce the length of the channel labels
         for replace in config.items('replace'):
-            print replace
+            print(replace)
             for i in range(len(channelz)):
                 channelz[i] = channelz[i].replace(replace[0], replace[1])
         for s, z in zip(channels, channelz):
-            print "Writing control value", s, "as channel", z
+            print("Writing control value", s, "as channel", z)
 
         # these are required for mapping floating point values onto 16 bit integers
         physical_min = patch.getfloat('recording', 'physical_min')
@@ -132,7 +132,7 @@ while True:
 
         # write the header to file
         if debug > 0:
-            print "Opening", fname
+            print("Opening", fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -179,9 +179,9 @@ while True:
             patch.setvalue("recordcontrol.synchronize", sample)
 
         if debug > 1:
-            print "Writing", D
+            print("Writing", D)
         elif debug > 0:
-            print "Writing sample", sample, "as", np.shape(D)
+            print("Writing sample", sample, "as", np.shape(D))
 
         if fileformat == 'edf':
             f.writeBlock(D)
