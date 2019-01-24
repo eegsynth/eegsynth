@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import OSC          # see https://trac.v2.nl/wiki/pyOSC
 import argparse
 import os
@@ -45,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -65,10 +65,10 @@ debug = patch.getint('general', 'debug')
 try:
     s = OSC.OSCServer((patch.getstring('osc', 'address'), patch.getint('osc', 'port')))
     if debug > 0:
-        print "Started OSC server"
+        print("Started OSC server")
 except:
-    print "Unexpected error:", sys.exc_info()[0]
-    print "Error: cannot start OSC server"
+    print("Unexpected error:", sys.exc_info()[0])
+    print("Error: cannot start OSC server")
     exit()
 
 # this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
@@ -92,11 +92,11 @@ def forward_handler(addr, tags, data, source):
     global offset
 
     if debug > 1:
-        print "---"
-        print "source %s" % OSC.getUrlStr(source)
-        print "addr   %s" % addr
-        print "tags   %s" % tags
-        print "data   %s" % data
+        print("---")
+        print("source %s" % OSC.getUrlStr(source))
+        print("addr   %s" % addr)
+        print("tags   %s" % tags)
+        print("data   %s" % data)
 
     if addr[0] != '/':
         # ensure it starts with a slash
@@ -122,12 +122,12 @@ s.addDefaultHandlers()
 # s.addMsgHandler("/1/faderA", test_handler)
 
 # just checking which handlers we have added
-print "Registered Callback-functions are :"
+print("Registered Callback-functions are :")
 for addr in s.getOSCAddressSpace():
-    print addr
+    print(addr)
 
 # start the server thread
-print "\nStarting module. Use ctrl-C to quit."
+print("\nStarting module. Use ctrl-C to quit.")
 st = threading.Thread(target=s.serve_forever)
 st.start()
 
@@ -142,8 +142,8 @@ try:
         prefix = patch.getstring('output', 'prefix')
 
 except KeyboardInterrupt:
-    print "\nClosing module."
+    print("\nClosing module.")
     s.close()
-    print "Waiting for Server-thread to finish."
+    print("Waiting for Server-thread to finish.")
     st.join()
-    print "Done."
+    print("Done.")

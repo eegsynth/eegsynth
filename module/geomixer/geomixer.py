@@ -19,7 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
+from __future__ import print_function
+
+import configparser
 import argparse
 import math
 import numpy as np
@@ -46,14 +48,14 @@ parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
                                                             os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -62,7 +64,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print key, "=", val
+        print(key, "=", val)
         show_change.previous[key] = val
         return True
     else:
@@ -128,7 +130,7 @@ while True:
         upper_treshold = 1. + switch_precision
 
     if debug > 1:
-        print '------------------------------------------------------------------'
+        print('------------------------------------------------------------------')
 
     # is there a reason to change?
     if even(edge):
@@ -154,7 +156,7 @@ while True:
     else:
         dwelltime += delay
         if debug > 1:
-            print 'dwelling for', dwelltime
+            print('dwelling for', dwelltime)
     previous = change
 
     # is the dwelltime long enough?
@@ -169,7 +171,7 @@ while True:
         key = '%s.%s.edge' % (prefix, patch.getstring('input', 'channel'))
         patch.setvalue(key, edge)
         if debug > 1:
-            print 'switch to edge', edge
+            print('switch to edge', edge)
 
     channel_val = [0. for i in range(number)]
     for this in range(number):
@@ -186,10 +188,10 @@ while True:
 
     if debug > 0:
         # print them all on a single line, this is Python 2 specific
-        print('edge=%2d' % edge),
+        print(('edge=%2d' % edge), end=' ')
         for key, val in zip(channel_name, channel_val):
-            print(' %s = %0.2f' % (key, val)),
-        print ""  # force a newline
+            print((' %s = %0.2f' % (key, val)), end=' ')
+        print('')  # force a newline
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl

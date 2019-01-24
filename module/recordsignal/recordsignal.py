@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import datetime
 import numpy as np
@@ -54,14 +54,14 @@ parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
                                                             os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -85,31 +85,31 @@ try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
     ftc_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ftc = FieldTrip.Client()
     ftc.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to FieldTrip buffer"
+        print("Connected to FieldTrip buffer")
 except:
-    print "Error: cannot connect to FieldTrip buffer"
+    print("Error: cannot connect to FieldTrip buffer")
     exit()
 
 hdr_input = None
 start = time.time()
 while hdr_input is None:
     if debug > 0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
     if (time.time() - start) > timeout:
-        print "Error: timeout while waiting for data"
+        print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug > 0:
-    print "Data arrived"
+    print("Data arrived")
 if debug > 1:
-    print hdr_input
-    print hdr_input.labels
+    print(hdr_input)
+    print(hdr_input.labels)
 
 recording = False
 
@@ -118,21 +118,21 @@ while True:
 
     if recording and hdr_input is None:
         if debug > 0:
-            print "Header is empty - closing", fname
+            print("Header is empty - closing", fname)
         f.close()
         recording = False
         continue
 
     if recording and not patch.getint('recording', 'record'):
         if debug > 0:
-            print "Recording disabled - closing", fname
+            print("Recording disabled - closing", fname)
         f.close()
         recording = False
         continue
 
     if not recording and not patch.getint('recording', 'record'):
         if debug > 0:
-            print "Recording is not enabled"
+            print("Recording is not enabled")
         time.sleep(1)
 
     if not recording and patch.getint('recording', 'record'):
@@ -154,7 +154,7 @@ while True:
 
         # write the header to file
         if debug > 0:
-            print "Opening", fname
+            print("Opening", fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -174,7 +174,7 @@ while True:
             chan_info['digital_max'] = hdr_input.nChannels * [MAXINT16]
             chan_info['ch_names'] = hdr_input.labels
             chan_info['n_samps'] = hdr_input.nChannels * [blocksize]
-            print chan_info
+            print(chan_info)
             f = EDF.EDFWriter(fname)
             f.writeHeader((meas_info, chan_info))
         elif fileformat == 'wav':
@@ -198,7 +198,7 @@ while True:
 
     if recording and hdr_input.nSamples < begsample - 1:
         if debug > 0:
-            print "Header was reset - closing", fname
+            print("Header was reset - closing", fname)
         f.close()
         recording = False
         continue
@@ -206,7 +206,7 @@ while True:
     if recording and endsample > hdr_input.nSamples - 1:
         # the data is not yet available
         if debug > 2:
-            print "Waiting for data", endsample, hdr_input.nSamples
+            print("Waiting for data", endsample, hdr_input.nSamples)
         time.sleep((endsample - hdr_input.nSamples) / hdr_input.fSample)
         continue
 
@@ -216,7 +216,7 @@ while True:
             patch.setvalue("recordsignal.synchronize", endsample - startsample + 1)
         D = ftc.getData([begsample, endsample])
         if debug > 0:
-            print "Writing sample", begsample, "to", endsample, "as", np.shape(D)
+            print("Writing sample", begsample, "to", endsample, "as", np.shape(D))
         if fileformat == 'edf':
             f.writeBlock(np.transpose(D))
         elif fileformat == 'wav':

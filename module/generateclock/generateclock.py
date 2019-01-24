@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import math
 import mido
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -72,7 +72,7 @@ offset_ppqn  = patch.getfloat('offset', 'ppqn')
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print key, "=", val
+        print(key, "=", val)
         show_change.previous[key] = val
         return True
     else:
@@ -108,7 +108,7 @@ class ClockThread(threading.Thread):
         slip = 0
         while self.running:
             if debug>1:
-                print 'clock beat'
+                print('clock beat')
             start  = time.time()
             delay  = 60/self.rate   # the rate is in bpm
             delay -= slip           # correct for the slip from the previous iteration
@@ -138,7 +138,7 @@ class MidiThread(threading.Thread):
         while self.running:
             if self.enabled and midiport:
                 if debug>1:
-                    print 'midi beat'
+                    print('midi beat')
                 for tick in clock:
                     tick.wait()
                     midiport.send(msg)
@@ -161,14 +161,14 @@ class RedisThread(threading.Thread):
                 self.ppqn = ppqn
                 self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
                 if debug>0:
-                    print "redis select =", self.clock
+                    print("redis select =", self.clock)
     def setShift(self, shift):
         if shift != self.shift:
             with lock:
                 self.shift = shift
                 self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
                 if debug>0:
-                    print "redis select =", self.clock
+                    print("redis select =", self.clock)
     def setEnabled(self, enabled):
         self.enabled = enabled
     def stop(self):
@@ -178,7 +178,7 @@ class RedisThread(threading.Thread):
         while self.running:
             if self.enabled:
                 if debug>1:
-                    print 'redis beat'
+                    print('redis beat')
                 for tick in [clock[indx] for indx in self.clock]:
                     tick.wait()
                     patch.setvalue(self.key, 1.)
@@ -211,7 +211,7 @@ try: # FIXME do we need this or can we catch errors before?
         now = time.time()
 
         if debug>3:
-            print 'loop'
+            print('loop')
 
         redis_play  = patch.getint('redis', 'play')
         midi_play   = patch.getint('midi', 'play')
@@ -287,11 +287,11 @@ try: # FIXME do we need this or can we catch errors before?
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime>0:
             if debug>3:
-                print "naptime =", naptime
+                print("naptime =", naptime)
             time.sleep(naptime)
 
 except (KeyboardInterrupt, RuntimeError) as e:
-    print "Closing threads"
+    print("Closing threads")
     midithread.stop()
     midithread.join()
     redisthread.stop()

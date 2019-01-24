@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import os
 import redis
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -85,7 +85,7 @@ try:
             if chanval==None:
                 # the value is not present in Redis, skip it
                 if debug>2:
-                    print chanstr, 'not available'
+                    print(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -101,7 +101,7 @@ try:
                 # update the DMX value for this channel
                 dmxdata[chanindx-1] = chanval
                 if debug>1:
-                    print "DMX channel%03d" % chanindx, '=', chanval
+                    print("DMX channel%03d" % chanindx, '=', chanval)
                 artnet.broadcastDMX(dmxdata,address)
             elif (time.time()-prevtime)>1:
                 # send a maintenance packet now and then
@@ -111,7 +111,7 @@ try:
 except KeyboardInterrupt:
     # blank out
     if debug>0:
-        print "closing..."
+        print("closing...")
     dmxdata = [0] * 512
     artnet.broadcastDMX(dmxdata,address)
     time.sleep(0.1) # this seems to take some time

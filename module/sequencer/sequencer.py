@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import math
 import numpy as np
@@ -45,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -78,7 +78,7 @@ lock = threading.Lock()
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print key, "=", val
+        print(key, "=", val)
         show_change.previous[key] = val
         return True
     else:
@@ -152,7 +152,7 @@ class SequenceThread(threading.Thread):
                             key = '%s%03d' % (self.key, val)
                             patch.setvalue(key, 1., duration=self.duration*self.steptime)
                         if debug>0:
-                            print "step %2d :" % (self.step + 1), self.key, "=", val
+                            print("step %2d :" % (self.step + 1), self.key, "=", val)
                         # increment to the next step
                         self.step = (self.step + 1) % len(self.sequence)
 
@@ -183,7 +183,7 @@ try:
         now = time.time()
 
         if debug > 1:
-            print 'loop'
+            print('loop')
 
         # the active sequence is specified as an integer between 0 and 127
         active = patch.getfloat('sequence', 'active', default=0)
@@ -222,11 +222,11 @@ try:
 
 except KeyboardInterrupt:
     try:
-        print "Disabling last note"
+        print("Disabling last note")
         patch.setvalue(key, 0.)
     except:
         pass
-    print "Closing threads"
+    print("Closing threads")
     sequencethread.stop()
     r.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()

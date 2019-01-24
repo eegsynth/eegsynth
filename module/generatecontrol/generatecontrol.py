@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -75,7 +75,7 @@ offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
 stepsize          = patch.getfloat('generate', 'stepsize') # in seconds
 
 if debug > 1:
-    print "update", update
+    print("update", update)
 
 prev_frequency = -1
 prev_amplitude = -1
@@ -87,19 +87,19 @@ prev_dutycycle = -1
 sample = 0
 phase = 0
 
-print "STARTING STREAM"
+print("STARTING STREAM")
 while True:
 
     if patch.getint('signal', 'rewind', default=0):
         if debug>0:
-            print "Rewind pressed, jumping back to start of signal"
+            print("Rewind pressed, jumping back to start of signal")
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
         phase = 0
 
     if not patch.getint('signal', 'play', default=1):
         if debug>0:
-            print "Stopped"
+            print("Stopped")
         time.sleep(0.1)
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
@@ -108,7 +108,7 @@ while True:
 
     if patch.getint('signal', 'pause', default=0):
         if debug>0:
-            print "Paused"
+            print("Paused")
         time.sleep(0.1)
         continue
 
@@ -129,19 +129,19 @@ while True:
     dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
     if frequency!=prev_frequency or debug>2:
-        print "frequency =", frequency
+        print("frequency =", frequency)
         prev_frequency = frequency
     if amplitude!=prev_amplitude or debug>2:
-        print "amplitude =", amplitude
+        print("amplitude =", amplitude)
         prev_amplitude = amplitude
     if offset!=prev_offset or debug>2:
-        print "offset    =", offset
+        print("offset    =", offset)
         prev_offset = offset
     if noise!=prev_noise or debug>2:
-        print "noise     =", noise
+        print("noise     =", noise)
         prev_noise = noise
     if dutycycle!=prev_dutycycle or debug>2:
-        print "dutycycle =", dutycycle
+        print("dutycycle =", dutycycle)
         prev_dutycycle = dutycycle
 
     # compute the phase of this sample
@@ -174,4 +174,4 @@ while True:
 
     sample += 1
     if debug>0:
-        print "generated sample", sample, "in", (time.time()-start)*1000, "ms"
+        print("generated sample", sample, "in", (time.time()-start)*1000, "ms")

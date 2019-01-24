@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import os
 import redis
@@ -42,14 +42,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -131,7 +131,7 @@ trigger = []
 for chan in channel:
     for mult in multiplier:
         trigger.append(TriggerThread(chan, mult, learning_rate))
-        print "x%d.%s" % (mult, chan)
+        print("x%d.%s" % (mult, chan))
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -141,10 +141,10 @@ try:
     while True:
         time.sleep(1)
         if debug > 0:
-            print "count =", count / len(multiplier)
+            print("count =", count / len(multiplier))
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('CLOCKMULTIPLIER_UNBLOCK', 1)

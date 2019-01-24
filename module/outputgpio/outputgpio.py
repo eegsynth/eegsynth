@@ -19,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import ConfigParser
+import configparser
 import argparse
 import os
 import redis
@@ -46,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -97,7 +96,7 @@ lock = threading.Lock()
 def SetGPIO(gpio, val=1):
     lock.acquire()
     if debug > 1:
-        print gpio, pin[gpio], val
+        print(gpio, pin[gpio], val)
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
 
@@ -145,7 +144,7 @@ wiringpi.wiringPiSetup()
 # set up PWM for the control channels
 previous_val = {}
 for gpio, channel in config.items('control'):
-    print "control", channel, gpio
+    print("control", channel, gpio)
     wiringpi.softPwmCreate(pin[gpio], 0, 100)
     # control values are only relevant when different from the previous value
     previous_val[gpio] = None
@@ -159,7 +158,7 @@ for gpio, channel in config.items('trigger'):
     except:
         duration = None
     trigger.append(TriggerThread(channel, gpio, duration))
-    print "trigger", channel, gpio
+    print("trigger", channel, gpio)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -185,7 +184,7 @@ try:
             lock.release()
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTGPIO_UNBLOCK', 1)

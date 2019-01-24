@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from copy import copy
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -43,14 +43,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -77,45 +77,45 @@ try:
     ftc_host = patch.getstring('input_fieldtrip', 'hostname')
     ftc_port = patch.getint('input_fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_input = FieldTrip.Client()
     ft_input.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to input FieldTrip buffer"
+        print("Connected to input FieldTrip buffer")
 except:
-    print "Error: cannot connect to input FieldTrip buffer"
+    print("Error: cannot connect to input FieldTrip buffer")
     exit()
 
 try:
     ftc_host = patch.getstring('output_fieldtrip', 'hostname')
     ftc_port = patch.getint('output_fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to output FieldTrip buffer"
+        print("Connected to output FieldTrip buffer")
 except:
-    print "Error: cannot connect to output FieldTrip buffer"
+    print("Error: cannot connect to output FieldTrip buffer")
     exit()
 
 hdr_input = None
 start = time.time()
 while hdr_input is None:
     if debug > 0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
     if (time.time()-start) > timeout:
-        print "Error: timeout while waiting for data"
+        print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 if debug > 0:
-    print "Data arrived"
+    print("Data arrived")
 
 if debug > 1:
-    print "input nsample", hdr_input.nSamples
-    print "input nchan", hdr_input.nChannels
+    print("input nsample", hdr_input.nSamples)
+    print("input nchan", hdr_input.nChannels)
 
 # set up the output data stream
 if len(right)>0:
@@ -127,8 +127,8 @@ else:
 hdr_output = ft_output.getHeader()
 
 if debug > 1:
-    print "output nsample", hdr_output.nSamples
-    print "output nchan", hdr_output.nChannels
+    print("output nsample", hdr_output.nSamples)
+    print("output nchan", hdr_output.nChannels)
 
 # this is the number of samples per input and per output block
 nInput = int(round(window*hdr_input.fSample))
@@ -191,12 +191,12 @@ for i in range(0,len(right)):
 
 
 if debug>0:
-    print "left audio channels", left
-    print "left audio frequencies", left_f
-    print "right audio channels", right
-    print "right audio frequencies", right_f
+    print("left audio channels", left)
+    print("left audio frequencies", left_f)
+    print("right audio channels", right)
+    print("right audio frequencies", right_f)
 
-print "STARTING STREAM"
+print("STARTING STREAM")
 
 while True:
 
@@ -206,10 +206,10 @@ while True:
         time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if hdr_input.nSamples < begsample:
-            print "Error: buffer reset detected"
+            print("Error: buffer reset detected")
             raise SystemExit
         if (time.time()-start) > timeout:
-            print "Error: timeout while waiting for data"
+            print("Error: timeout while waiting for data")
             raise SystemExit
 
     # get the input data
@@ -222,7 +222,7 @@ while True:
     tim_input = np.linspace(begtime, endtime, nInput, endpoint=False)
     tim_output = np.linspace(begtime, endtime, nOutput, endpoint=False)
 
-    for chan, i in zip(left, range(len(left))):
+    for chan, i in zip(left, list(range(len(left)))):
         # interpolate each channel onto the output sampling rate
         vec_output = np.interp(tim_output, tim_input, dat_input[:, chan-1])
         # multiply with the modulating signal
@@ -232,7 +232,7 @@ while True:
         # add it to the output
         dat_output[:,0] += vec_output
 
-    for chan, i in zip(right, range(len(right))):
+    for chan, i in zip(right, list(range(len(right)))):
         # interpolate each channel onto the output sampling rate
         vec_output = np.interp(tim_output, tim_input, dat_input[:, chan-1])
         # multiply with the modulating signal
@@ -267,7 +267,7 @@ while True:
     #    nOutput = int(round(nOutput))
 
     if debug>0:
-        print "wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms"
+        print("wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms")
 
     # shift to the next block of data
     begsample += nInput

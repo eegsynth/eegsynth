@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -46,14 +46,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -68,29 +68,29 @@ try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
     ftc_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_input = FieldTrip.Client()
     ft_input.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to input FieldTrip buffer"
+        print("Connected to input FieldTrip buffer")
 except:
-    print "Error: cannot connect to input FieldTrip buffer"
+    print("Error: cannot connect to input FieldTrip buffer")
     exit()
 
 hdr_input = None
 start = time.time()
 while hdr_input is None:
     if debug > 0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
     if (time.time()-start) > timeout:
-        print "Error: timeout while waiting for data"
+        print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 if debug > 1:
-    print "input nsample", hdr_input.nSamples
-    print "input nchan", hdr_input.nChannels
+    print("input nsample", hdr_input.nSamples)
+    print("input nchan", hdr_input.nChannels)
 
 inputlist   = patch.getint('input', 'channels', multiple=True)
 prefix      = patch.getstring('output', 'prefix')
@@ -133,20 +133,20 @@ while True:
 
     if enable and prev_enable:
         if debug > 0:
-            print "Updating"
+            print("Updating")
     elif enable and not prev_enable:
         if debug > 0:
-            print "Enabling the updating"
+            print("Enabling the updating")
             # jump to the end of the stream
             hdr_input = ft_input.getHeader()
             begsample = hdr_input.nSamples-stepsize
             endsample = hdr_input.nSamples-1
     elif not enable and not prev_enable:
         if debug > 0:
-            print "Not updating"
+            print("Not updating")
     elif not enable and prev_enable:
         if debug > 0:
-            print "Disabling the updating"
+            print("Disabling the updating")
 
     if not enable:
         time.sleep(patch.getfloat('general', 'delay'))
@@ -157,14 +157,14 @@ while True:
             time.sleep(patch.getfloat('general', 'delay'))
             hdr_input = ft_input.getHeader()
             if hdr_input.nSamples < begsample:
-                print "Error: buffer reset detected"
+                print("Error: buffer reset detected")
                 raise SystemExit
             if (time.time()-start) > timeout:
-                print "Error: timeout while waiting for data"
+                print("Error: timeout while waiting for data")
                 raise SystemExit
 
         if debug>1:
-            print "reading samples", begsample, "to", endsample
+            print("reading samples", begsample, "to", endsample)
 
         # get the input data, sample vector and time vector
         dat_input = ft_input.getData([begsample, endsample])
@@ -194,7 +194,7 @@ while True:
             # see https://en.wikipedia.org/wiki/Interquartile_range
             historic['iqr']     = historic['p84'] - historic['p16']
 
-        for operation in historic.keys():
+        for operation in list(historic.keys()):
             key = prefix + "." + operation
             val = historic[operation]
             patch.setvalue(key, val, debug>1)

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import os
 import redis
@@ -43,14 +43,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -71,9 +71,9 @@ try:
     # rtscts=0
     s.open()
     if debug>0:
-        print "Connected to serial port"
+        print("Connected to serial port")
 except:
-    print "Error: cannot connect to serial port"
+    print("Error: cannot connect to serial port")
     exit()
 
 # give the device some time to initialize
@@ -81,13 +81,13 @@ time.sleep(2)
 
 # determine the size of the universe
 dmxsize = 16
-chanlist,chanvals = map(list, zip(*config.items('input')))
+chanlist,chanvals = list(map(list, list(zip(*config.items('input')))))
 for chanindx in range(1, 512):
     chanstr = "channel%03d" % chanindx
     if chanstr in chanlist:
         dmxsize = chanindx
 if debug>0:
-    print "universe size = %d" % dmxsize
+    print("universe size = %d" % dmxsize)
 
 # This is from https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
 #
@@ -150,7 +150,7 @@ try:
             if chanval==None:
                 # the value is not present in Redis, skip it
                 if debug>2:
-                    print chanstr, 'not available'
+                    print(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -164,7 +164,7 @@ try:
 
             if dmxdata[chanindx]!=chr(chanval):
                 if debug>0:
-                    print "DMX channel%03d" % chanindx, '=', chanval
+                    print("DMX channel%03d" % chanindx, '=', chanval)
                 # update the DMX value for this channel
                 dmxdata = senddmx(dmxdata,chanindx,chanval)
             elif (time.time()-prevtime)>1:
@@ -174,5 +174,5 @@ try:
 
 except KeyboardInterrupt:
     if debug>0:
-        print "closing..."
+        print("closing...")
     sys.exit()

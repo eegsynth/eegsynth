@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called 'configparser' and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -49,14 +49,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print 'Error: cannot connect to redis server'
+    print('Error: cannot connect to redis server')
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -78,17 +78,17 @@ mididevice = patch.getstring('midi', 'device')
 try:
     inputport  = mido.open_input(mididevice)
     if debug>0:
-        print "Connected to MIDI input"
+        print("Connected to MIDI input")
 except:
-    print "Error: cannot connect to MIDI input"
+    print("Error: cannot connect to MIDI input")
     exit()
 
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
-        print "Connected to MIDI output"
+        print("Connected to MIDI output")
 except:
-    print "Error: cannot connect to MIDI output"
+    print("Error: cannot connect to MIDI output")
     exit()
 
 try:
@@ -120,7 +120,7 @@ lock = threading.Lock()
 # this is used to send direct and delayed messages
 def SendMessage(msg):
     lock.acquire()
-    print msg
+    print(msg)
     outputport.send(msg)
     lock.release()
 
@@ -176,11 +176,11 @@ class TriggerThread(threading.Thread):
                         duration = self.duration
 
                     if debug>1:
-                        print '----------------------------------------------'
-                        print "onset   ", self.onset,       "=", val
-                        print "velocity", self.velocity,    "=", velocity
-                        print "pitch   ", self.pitch,       "=", pitch
-                        print "duration", self.duration,    "=", duration
+                        print('----------------------------------------------')
+                        print("onset   ", self.onset,       "=", val)
+                        print("velocity", self.velocity,    "=", velocity)
+                        print("pitch   ", self.pitch,       "=", pitch)
+                        print("duration", self.duration,    "=", duration)
 
                     if midichannel is None:
                         msg = mido.Message('note_on', note=pitch, velocity=velocity)
@@ -208,7 +208,7 @@ for name, code in zip(note_name, note_code):
         duration = None
         trigger.append(TriggerThread(onset, velocity, pitch, duration))
         if debug>1:
-            print name, 'OK'
+            print(name, 'OK')
 
 try:
     # the keyboard notes can also be controlled using a single trigger
@@ -218,7 +218,7 @@ try:
     duration = patch.getstring('input', 'duration')
     trigger.append(TriggerThread(onset, velocity, pitch, duration))
     if debug>1:
-        print 'onset, velocity, pitch and duration OK'
+        print('onset, velocity, pitch and duration OK')
 except:
     pass
 
@@ -239,7 +239,7 @@ try:
                     pass
 
             if debug>0 and msg.type!='clock':
-                print msg
+                print(msg)
 
             if hasattr(msg,'note'):
                 print(msg)
@@ -265,7 +265,7 @@ try:
                 pass
 
 except KeyboardInterrupt:
-    print 'Closing threads'
+    print('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('KEYBOARD_UNBLOCK', 1)

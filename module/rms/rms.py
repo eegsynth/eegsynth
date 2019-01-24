@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from nilearn import signal
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import math
 import multiprocessing
@@ -48,14 +48,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -71,31 +71,31 @@ try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
     ftc_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ftc = FieldTrip.Client()
     ftc.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to FieldTrip buffer"
+        print("Connected to FieldTrip buffer")
 except:
-    print "Error: cannot connect to FieldTrip buffer"
+    print("Error: cannot connect to FieldTrip buffer")
     exit()
 
 hdr_input = None
 start = time.time()
 while hdr_input is None:
     if debug > 0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
     if (time.time() - start) > timeout:
-        print "Error: timeout while waiting for data"
+        print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
 if debug > 0:
-    print "Data arrived"
+    print("Data arrived")
 if debug > 1:
-    print hdr_input
-    print hdr_input.labels
+    print(hdr_input)
+    print(hdr_input.labels)
 
 channel_items = config.items('input')
 channame = []
@@ -117,7 +117,7 @@ while True:
 
     hdr_input = ftc.getHeader()
     if (hdr_input.nSamples - 1) < endsample:
-        print "Error: buffer reset detected"
+        print("Error: buffer reset detected")
         raise SystemExit
 
     endsample = hdr_input.nSamples - 1
@@ -136,7 +136,7 @@ while True:
         rms[i] = math.sqrt(rms[i] / len(chanvec))
 
     if debug > 0:
-        print "rms =", rms
+        print("rms =", rms)
 
     for name, val in zip(channame, rms):
         # send it as control value: prefix.channelX=val

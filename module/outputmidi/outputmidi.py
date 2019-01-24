@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -75,7 +75,7 @@ lock = threading.Lock()
 
 def sendMidi(name, code, val):
     if debug>0:
-        print name, code, val
+        print(name, code, val)
     # the different MIDI messages have slightly different parameters
     if name.startswith('note'):
         if midichannel is None:
@@ -135,7 +135,7 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     if debug>1:
-                        print item['channel'], '=', item['data']
+                        print(item['channel'], '=', item['data'])
                     # map the Redis values to MIDI values
                     val = item['data']
                     val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
@@ -164,7 +164,7 @@ for name, code in zip(trigger_name, trigger_code):
         this = TriggerThread(patch.getstring('trigger', name), name, code)
         trigger.append(this)
         if debug>1:
-            print name, 'trigger configured'
+            print(name, 'trigger configured')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -209,7 +209,7 @@ try:
 
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTMIDI_UNBLOCK', 1)

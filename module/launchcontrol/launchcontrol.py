@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -43,14 +43,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -80,23 +80,23 @@ try:
 except:
     mididevice_output = patch.getstring('midi', 'device') # fallback
 
-print mididevice_input
-print mididevice_output
+print(mididevice_input)
+print(mididevice_output)
 
 try:
     inputport = mido.open_input(mididevice_input)
     if debug > 0:
-        print "Connected to MIDI input"
+        print("Connected to MIDI input")
 except:
-    print "Error: cannot connect to MIDI input"
+    print("Error: cannot connect to MIDI input")
     exit()
 
 try:
     outputport = mido.open_output(mididevice_output)
     if debug > 0:
-        print "Connected to MIDI output"
+        print("Connected to MIDI output")
 except:
-    print "Error: cannot connect to MIDI output"
+    print("Error: cannot connect to MIDI output")
     exit()
 
 try:
@@ -106,7 +106,7 @@ except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
     midichannel = None
-print "midichannel = ", midichannel
+print("midichannel = ", midichannel)
 
 push    = patch.getint('button', 'push',    multiple=True)      # push-release button
 toggle1 = patch.getint('button', 'toggle1', multiple=True)      # on-off button
@@ -189,7 +189,7 @@ while True:
                 pass
 
         if debug>1 and msg.type!='clock':
-            print msg
+            print(msg)
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
@@ -212,48 +212,48 @@ while True:
             if msg.note in toggle1:
                 status = state1change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
-                if status in state1color.keys():
+                if status in list(state1color.keys()):
                     ledcolor(msg.note, state1color[status])
-                if status in state1value.keys():
+                if status in list(state1value.keys()):
                     val = state1value[status]
             elif msg.note in toggle2:
                 status = state2change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
-                if status in state2color.keys():
+                if status in list(state2color.keys()):
                     ledcolor(msg.note, state2color[status])
-                if status in state2value.keys():
+                if status in list(state2value.keys()):
                     val = state2value[status]
             elif msg.note in toggle3:
                 status = state3change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
-                if status in state3color.keys():
+                if status in list(state3color.keys()):
                     ledcolor(msg.note, state3color[status])
-                if status in state3value.keys():
+                if status in list(state3value.keys()):
                     val = state3value[status]
             elif msg.note in toggle4:
                 status = state4change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
-                if status in state4color.keys():
+                if status in list(state4color.keys()):
                     ledcolor(msg.note, state4color[status])
-                if status in state4value.keys():
+                if status in list(state4value.keys()):
                     val = state4value[status]
             elif msg.note in slap:
                 status = state5change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
-                if status in state5color.keys():
+                if status in list(state5color.keys()):
                     ledcolor(msg.note, state5color[status])
-                if status in state5value.keys():
+                if status in list(state5value.keys()):
                     val = state5value[status]
             else:
                 status = state0change[status]
                 status_list[note_list.index(msg.note)] = status # remember the state
-                if status in state0color.keys():
+                if status in list(state0color.keys()):
                     ledcolor(msg.note, state0color[status])
-                if status in state0value.keys():
+                if status in list(state0value.keys()):
                     val = state0value[status]
 
             if debug > 1:
-                print status, val
+                print(status, val)
 
             if not val is None:
                 # prefix.noteXXX=value

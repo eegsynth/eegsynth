@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import datetime
 import os
@@ -46,14 +46,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -99,16 +99,16 @@ class TriggerThread(threading.Thread):
                         f.write("%s\t%g\t%s\n" % (self.redischannel, val, timestamp))
                         lock.release()
                         if debug>0:
-                            print("%s\t%g\t%s" % (self.redischannel, val, timestamp))
+                            print(("%s\t%g\t%s" % (self.redischannel, val, timestamp)))
 
 # create the background threads that deal with the triggers
 trigger = []
 if debug>1:
-    print "Setting up threads for each trigger"
+    print("Setting up threads for each trigger")
 for item in config.items('trigger'):
         trigger.append(TriggerThread(item[0]))
         if debug>1:
-            print item[0], 'OK'
+            print(item[0], 'OK')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -120,14 +120,14 @@ try:
 
         if recording and not patch.getint('recording', 'record'):
             if debug>0:
-                print "Recording disabled - closing", fname
+                print("Recording disabled - closing", fname)
             f.close()
             recording = False
             continue
 
         if not recording and not patch.getint('recording', 'record'):
             if debug>0:
-                print "Recording is not enabled"
+                print("Recording is not enabled")
             time.sleep(1)
 
         if not recording and patch.getint('recording', 'record'):
@@ -139,7 +139,7 @@ try:
                 ext = '.' + fileformat
             fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
             if debug>0:
-                print "Recording enabled - opening", fname
+                print("Recording enabled - opening", fname)
             f = open(fname, 'w')
             f.write("event\tvalue\ttimestamp\n")
             f.flush()
@@ -147,9 +147,9 @@ try:
 
 except KeyboardInterrupt:
     if not f.closed:
-        print 'Closing file'
+        print('Closing file')
         f.close()
-    print 'Closing threads'
+    print('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('RECORDTRIGGER_UNBLOCK', 1)
