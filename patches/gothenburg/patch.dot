@@ -1,6 +1,6 @@
 # To convert this into a bitmap representation, do this
-#   dot -Tpng -o patch.png patch.dot 
-# 
+#   dot -Tpng -o patch.png patch.dot
+#
 digraph {
     openbci2ft -> buffer1;
     generatesignal -> buffer1;
@@ -11,10 +11,11 @@ digraph {
     buffer2 -> recordsignal;
     buffer2 -> spectral -> postprocessing;
     spectral -> historycontrol -> postprocessing;
+    plotspectral -> spectral;
     postprocessing -> outputcvgate;
     postprocessing -> geomixer -> postprocessing -> outputmidi;
-    generatecontrol -> outputartnet;
-    launchcontrol -> generatecontrol;
+    postprocessing -> outputartnet;
+    postprocessing -> recordcontrol;
     launchcontrol -> generatesignal;
     launchcontrol -> geomixer;
     launchcontrol -> historycontrol;
@@ -22,4 +23,6 @@ digraph {
     launchcontrol -> playbacksignal;
     launchcontrol -> plotspectral;
     launchcontrol -> recordsignal;
+    launchcontrol -> recordcontrol;
+
 }
