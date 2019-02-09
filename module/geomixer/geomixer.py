@@ -21,7 +21,13 @@
 
 from __future__ import print_function
 
-import configparser
+try:
+    # Python 2
+    import configparser as configparser
+except ImportError:
+    # Python 3
+    import ConfigParser as configparser
+
 import argparse
 import math
 import numpy as np

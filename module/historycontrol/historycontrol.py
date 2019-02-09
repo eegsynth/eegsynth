@@ -18,7 +18,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
-import configparser
+try:
+    # Python 2
+    import configparser as configparser
+except ImportError:
+    # Python 3
+    import ConfigParser as configparser
+
 import argparse
 import numpy as np
 import os

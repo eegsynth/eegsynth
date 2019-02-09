@@ -20,7 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
+try:
+    # Python 2
+    import configparser as configparser
+except ImportError:
+    # Python 3
+    import ConfigParser as configparser
+
 import redis
 import argparse
 import os
