@@ -46,7 +46,7 @@ parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
                                                             os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:

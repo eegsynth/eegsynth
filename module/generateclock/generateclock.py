@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
@@ -228,8 +228,14 @@ try: # FIXME do we need this or can we catch errors before?
 
         # the MIDI port should only be opened once, and only if needed
         if midi_play and midiport == None:
-            midiport = EEGsynth.midiwrapper(config)
-            midiport.open_output()
+            mididevice = patch.getstring('midi', 'device')
+            try:
+                outputport  = mido.open_output(mididevice)
+                if debug>0:
+                    print("Connected to MIDI output")
+            except:
+                print("Error: cannot connect to MIDI output")
+                exit()
 
         # do something whenever the value changes
         if redis_play and not previous_redis_play:

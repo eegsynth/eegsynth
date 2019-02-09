@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
@@ -60,8 +60,20 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
-outputport = EEGsynth.midiwrapper(config)
-outputport.open_output()
+# this is only for debugging, and check which MIDI devices are accessible
+print('------ OUTPUT ------')
+for port in mido.get_output_names():
+  print(port)
+print('-------------------------')
+
+mididevice = patch.getstring('midi', 'device')
+try:
+    outputport  = mido.open_output(mididevice)
+    if debug>0:
+        print("Connected to MIDI output")
+except:
+    print("Error: cannot connect to MIDI output")
+    exit()
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()

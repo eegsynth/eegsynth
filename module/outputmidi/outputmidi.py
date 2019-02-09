@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
@@ -61,8 +61,15 @@ patch = EEGsynth.patch(config, r)
 debug = patch.getint('general','debug')
 
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
-outputport = EEGsynth.midiwrapper(config)
-outputport.open_output()
+mididevice = patch.getstring('midi', 'device')
+
+try:
+    outputport  = mido.open_output(mididevice)
+    if debug>0:
+        print("Connected to MIDI output")
+except:
+    print("Error: cannot connect to MIDI output")
+    exit()
 
 # the scale and offset are used to map Redis values to MIDI values
 input_scale  = patch.getfloat('input', 'scale', default=127)
