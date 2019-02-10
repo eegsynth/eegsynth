@@ -1,0 +1,9 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+    launchcontrol -> outputartnet;
+    launchcontrol -> postprocessing;
+    playbackcontrol -> postprocessing;
+    postprocessing -> outputartnet;
+}
