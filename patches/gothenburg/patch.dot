@@ -2,14 +2,14 @@
 #   dot -Tpng -o patch.png patch.dot
 #
 digraph {
-    openbci2ft -> buffer1;
-    generatesignal -> buffer1;
-    playbacksignal -> buffer1;
-    buffer1 -> preprocessing -> buffer2;
-    buffer2 -> plotsignal;
-    buffer2 -> plotspectral;
-    buffer2 -> recordsignal;
-    buffer2 -> spectral -> postprocessing;
+    openbci2ft -> buffer1972;
+    generatesignal -> buffer1972;
+    playbacksignal -> buffer1972;
+    buffer1972 -> preprocessing -> buffer1973;
+    buffer1973 -> plotsignal;
+    buffer1973 -> plotspectral;
+    buffer1973 -> recordsignal;
+    buffer1973 -> spectral -> postprocessing;
     spectral -> historycontrol -> postprocessing;
     plotspectral -> spectral;
     postprocessing -> outputcvgate;
@@ -24,5 +24,4 @@ digraph {
     launchcontrol -> plotspectral;
     launchcontrol -> recordsignal;
     launchcontrol -> recordcontrol;
-
 }
