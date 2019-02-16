@@ -8,15 +8,18 @@ The correct way to start the modules is
 -  inputmidi.sh an alternative is to use redis-cli, see below
 -  openbci2ft.sh
 -  audio2ft.sh
+-  preprocessing.sh
 -  plotsignal.sh
 -  plotspectral.sh
 -  recordsignal_edf.sh
 -  recordsignal_wav.sh
 
-Instead of the openbci2ft and the audio2ft modules, you can start
+Instead of using the openbci2ft and the audio2ft modules in the recording
+session, you can start the following modules in the playback session.
 
 -  playbacksignal_edf.sh
 -  playbacksignal_wav.sh
+-  outputaudio.sh
 
 The openbci2ft and the audio2ft modules MUST be switched of once these are
 running. Furthermore, the two playback modules will respond to a midi note
@@ -41,13 +44,6 @@ redis-cli set midi.note011 1  # for playback pause on
 redis-cli set midi.note011 0  # for playback pause off
 redis-cli set midi.note012 1  # for playback rewind on
 redis-cli set midi.note012 0  # for playback rewind off
-
-# Further improvements
-
-Perhaps it is an idea to start a third buffer and to use preprocessing to apply
-some filters on the raw EEG data (high pass to prevent drift, and low pass to
-get rid of some of the 50Hz). In that case I would record the EEG output of the
-preprocessing rather than the raw EEG.
 
 # Schematic representation
 
