@@ -149,6 +149,7 @@ class EDFWriter():
             assert(fid.tell() > 0)
             for i in range(meas_info['nchan']):
                 raw = deepcopy(data[i])
+                raw = np.asarray(raw, dtype=np.float64)
 
                 assert(len(raw)==chan_info['n_samps'][i])
                 if min(raw)<chan_info['physical_min'][i]:
