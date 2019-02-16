@@ -42,9 +42,13 @@ redis-cli set midi.note011 0  # for playback pause off
 redis-cli set midi.note012 1  # for playback rewind on
 redis-cli set midi.note012 0  # for playback rewind off
 
-# Furtther improvements
+# Further improvements
 
-Perhaps it is an idea to start a 3rd buffer and to use preprocessing to apply
+Perhaps it is an idea to start a third buffer and to use preprocessing to apply
 some filters on the raw EEG data (high pass to prevent drift, and low pass to
 get rid of some of the 50Hz). In that case I would record the EEG output of the
 preprocessing rather than the raw EEG.
+
+# Schematic representation
+
+![image](patch.png)
