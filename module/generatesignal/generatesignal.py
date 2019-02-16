@@ -75,12 +75,27 @@ except:
     print("Error: cannot connect to output FieldTrip buffer")
     exit()
 
-datatype  = FieldTrip.DATATYPE_FLOAT32
+datatype  = 'float32'
 nchannels = patch.getint('generate', 'nchannels')
 fsample   = patch.getfloat('generate', 'fsample')
 blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
 
-ft_output.putHeader(nchannels, fsample, datatype)
+if datatype == 'uint8':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)
+elif datatype == 'int8':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT8)
+elif datatype == 'uint16':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT16)
+elif datatype == 'int16':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT16)
+elif datatype == 'uint32':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT32)
+elif datatype == 'int32':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT32)
+elif datatype == 'float32':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT32)
+elif datatype == 'float64':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT64)
 
 if debug > 1:
     print("nchannels", nchannels)
@@ -189,7 +204,22 @@ while True:
         dat_output[:,chan] += signal
 
     # write the data to the output buffer
-    ft_output.putData(dat_output.astype(np.float32))
+    if datatype == 'uint8':
+        ft_output.putData(dat_output.astype(np.uint8))
+    elif datatype == 'int8':
+        ft_output.putData(dat_output.astype(np.int8))
+    elif datatype == 'uint16':
+        ft_output.putData(dat_output.astype(np.uint16))
+    elif datatype == 'int16':
+        ft_output.putData(dat_output.astype(np.int16))
+    elif datatype == 'uint32':
+        ft_output.putData(dat_output.astype(np.uint32))
+    elif datatype == 'int32':
+        ft_output.putData(dat_output.astype(np.int32))
+    elif datatype == 'float32':
+        ft_output.putData(dat_output.astype(np.float32))
+    elif datatype == 'float64':
+        ft_output.putData(dat_output.astype(np.float64))
 
     begsample += blocksize
     endsample += blocksize

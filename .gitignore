@@ -10,6 +10,7 @@ interface/node_modules
 *.log
 *.pyc
 *.edf
+*.wav
 *.tsv
 .DS_Store
 

@@ -215,9 +215,11 @@ while True:
         if ((endsample - startsample + 1) % synchronize) == 0:
             patch.setvalue("recordsignal.synchronize", endsample - startsample + 1)
         D = ftc.getData([begsample, endsample])
+        D = np.asarray(D, dtype=np.float64)
         if debug > 0:
             print("Writing sample", begsample, "to", endsample, "as", np.shape(D))
         if fileformat == 'edf':
+            # the scaling is done in the EDF writer
             f.writeBlock(np.transpose(D))
         elif fileformat == 'wav':
             for sample in range(len(D)):
