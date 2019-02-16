@@ -228,6 +228,6 @@ while True:
                 y = y * ((float(MAXINT32) - float(MININT32)) / 2)
                 # convert them to packed binary data
                 z = "".join((wave.struct.pack('i', item) for item in y))
-                f.writeframes(z)
+                f.writeframesraw(z)
         begsample += blocksize
         endsample += blocksize
