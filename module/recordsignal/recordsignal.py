@@ -213,7 +213,8 @@ while True:
     if recording:
         # the data is available, send a synchronization trigger prior to reading the data
         if ((endsample - startsample + 1) % synchronize) == 0:
-            patch.setvalue("recordsignal.synchronize", endsample - startsample + 1)
+            key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
+            patch.setvalue(key, endsample - startsample + 1)
         D = ftc.getData([begsample, endsample])
         D = np.asarray(D, dtype=np.float64)
         if debug > 0:
