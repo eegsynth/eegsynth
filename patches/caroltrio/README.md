@@ -32,6 +32,7 @@ The list of modules for the recording part of the performance is
 -  plotspectral.sh
 -  recordsignal_edf.sh
 -  recordsignal_wav.sh
+-  recordtrigger.sh
 
 The list of modules for the playback part of the performance is
 
@@ -64,14 +65,14 @@ values directly to the Redis buffer.
 The actual midi notes correspond to the row of buttons on the small Launch
 Control device.
 
-redis-cli set midi.note009 1  # for record on
-redis-cli set midi.note009 0  # for record off
-redis-cli set midi.note010 1  # for playback on
-redis-cli set midi.note010 0  # for playback off
-redis-cli set midi.note011 1  # for playback pause on
-redis-cli set midi.note011 0  # for playback pause off
-redis-cli set midi.note012 1  # for playback rewind on
-redis-cli set midi.note012 0  # for playback rewind off
+    redis-cli set midi.note009 1  # for record on
+    redis-cli set midi.note009 0  # for record off
+    redis-cli set midi.note010 1  # for playback on
+    redis-cli set midi.note010 0  # for playback off
+    redis-cli set midi.note011 1  # for playback pause on
+    redis-cli set midi.note011 0  # for playback pause off
+    redis-cli set midi.note012 1  # for playback rewind on
+    redis-cli set midi.note012 0  # for playback rewind off
 
 ## Schematic representation
 
