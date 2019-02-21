@@ -176,7 +176,9 @@ while True:
         sample += 1
 
         if (sample % synchronize) == 0:
-            patch.setvalue("recordcontrol.synchronize", sample)
+            key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
+            patch.setvalue(key, sample)
+            
 
         if debug > 1:
             print("Writing", D)
