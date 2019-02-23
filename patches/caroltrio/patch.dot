@@ -2,17 +2,17 @@
 #   dot -Tpng -o patch.png patch.dot
 #
 digraph {
-  inputmidi -> recordsignal_edf -> file_edf;
-  inputmidi -> recordsignal_wav -> file_wav;
-  inputmidi -> playbacksignal_edf;
-  inputmidi -> playbacksignal_wav;
+  inputmidi -> recordsignal_eeg -> file_eeg;
+  inputmidi -> recordsignal_sound -> file_sound;
+  inputmidi -> playbacksignal_eeg;
+  inputmidi -> playbacksignal_sound;
   openbci2ft -> buffer1972 -> preprocessing -> buffer1973;
   audio2ft -> buffer1974;
   buffer1973 -> plotsignal;
   buffer1973 -> plotspectral;
-  buffer1973 -> recordsignal_edf;
-  buffer1974 -> recordsignal_wav;
+  buffer1973 -> recordsignal_eeg;
+  buffer1974 -> recordsignal_sound;
   buffer1974 -> outputaudio;
-  file_edf ->  playbacksignal_edf -> buffer1973;
-  file_wav -> playbacksignal_wav -> buffer1974;
+  file_eeg ->  playbacksignal_eeg -> buffer1973;
+  file_sound -> playbacksignal_sound -> buffer1974;
 }
