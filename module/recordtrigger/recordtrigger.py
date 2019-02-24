@@ -96,10 +96,10 @@ class TriggerThread(threading.Thread):
                     val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                     if not f.closed:
                         lock.acquire()
-                        f.write("%s\t%g\t%s\n" % (self.redischannel, val, timestamp))
+                        f.write("%s\t%d\t%s\n" % (self.redischannel, val, timestamp))
                         lock.release()
                         if debug>0:
-                            print(("%s\t%g\t%s" % (self.redischannel, val, timestamp)))
+                            print(("%s\t%d\t%s" % (self.redischannel, val, timestamp)))
 
 # create the background threads that deal with the triggers
 trigger = []
