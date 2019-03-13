@@ -60,6 +60,15 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
+# this is only for debugging, and check which MIDI devices are accessible
+print('------ INPUT ------')
+for port in mido.get_input_names():
+  print(port)
+print('------ OUTPUT ------')
+for port in mido.get_output_names():
+  print(port)
+print('-------------------------')
+
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice = patch.getstring('midi', 'device')
 
