@@ -113,7 +113,7 @@ offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
 offset_offset     = patch.getfloat('offset', 'offset', default=0)
 offset_noise      = patch.getfloat('offset', 'noise', default=0)
 offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
-shape             = patch.getstring('signal', 'shape') # sin, square, triangle or sawtooth
+shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
 
 prev_frequency = -1
 prev_amplitude = -1
@@ -198,6 +198,8 @@ while True:
         signal = sp.sawtooth(phasevec, 0.5) * amplitude + offset
     elif shape=='sawtooth':
         signal = sp.sawtooth(phasevec, 1) * amplitude + offset
+    elif shape=='dc':
+        signal = phasevec * 0. + offset
 
     dat_output = np.random.randn(blocksize, nchannels) * noise
     for chan in range(nchannels):
