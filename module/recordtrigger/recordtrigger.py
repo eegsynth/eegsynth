@@ -62,8 +62,8 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug        = patch.getint('general','debug')
 delay        = patch.getfloat('general','delay')
-input_scale  = patch.getfloat('input', 'scale', default=1)
-input_offset = patch.getfloat('input', 'offset', default=0)
+input_scale  = patch.getfloat('input', 'scale', default=None)
+input_offset = patch.getfloat('input', 'offset', default=None)
 fileformat   = 'tsv'
 
 # start with a temporary file which is immediately closed
@@ -93,10 +93,13 @@ class TriggerThread(threading.Thread):
                 if item['channel']==self.redischannel:
                     # the trigger value should also be saved
                     val = item['data']
-                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                    if input_scale!=None or input_offset!=None:
+                        # apply the scaling and the offset, this requires the value to be a single number
+                        val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                     if not f.closed:
                         lock.acquire()
-                        f.write("%s\t%d\t%s\n" % (self.redischannel, val, timestamp))
+                        # write the value, it can be either a number or a string
+                        f.write("%s\t%s\t%s\n" % (self.redischannel, val, timestamp))
                         lock.release()
                         if debug>0:
                             print(("%s\t%d\t%s" % (self.redischannel, val, timestamp)))
