@@ -91,18 +91,23 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    # the trigger value should also be saved
+                    # the trigger value should be saved
                     val = item['data']
                     if input_scale!=None or input_offset!=None:
-                        # apply the scaling and the offset, this requires the value to be a single number
-                        val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                        try:
+                            # convert it to a number and apply the scaling and the offset
+                            val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                        except ValueError:
+                            # keep it as a string
+                            if debug>0:
+                                print(("cannot apply scaling, writing %s as string" % (self.redischannel)))
                     if not f.closed:
                         lock.acquire()
                         # write the value, it can be either a number or a string
                         f.write("%s\t%s\t%s\n" % (self.redischannel, val, timestamp))
                         lock.release()
                         if debug>0:
-                            print(("%s\t%d\t%s" % (self.redischannel, val, timestamp)))
+                            print(("%s\t%s\t%s" % (self.redischannel, val, timestamp)))
 
 # create the background threads that deal with the triggers
 trigger = []
