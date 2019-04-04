@@ -59,10 +59,14 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
-prefix = patch.getstring('output', 'prefix')
-output_scale  = patch.getfloat('output', 'scale', default=1./127)
-output_offset = patch.getfloat('output', 'offset', default=0.)
+debug           = patch.getint('general', 'debug')
+prefix          = patch.getstring('output', 'prefix')
+output_scale    = patch.getfloat('output', 'scale', default=1./127)
+output_offset   = patch.getfloat('output', 'offset', default=0.)
+winx            = patch.getfloat('display', 'xpos')
+winy            = patch.getfloat('display', 'ypos')
+winwidth        = patch.getfloat('display', 'width')
+winheight       = patch.getfloat('display', 'height')
 
 slider  = []
 button  = []
@@ -75,8 +79,9 @@ for item in config.items('button'):
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
-        self.setGeometry(50,50,500,300)
-        self.setWindowTitle("inputcontrol")
+        self.setGeometry(winx, winy, winwidth, winheight)
+        self.setStyleSheet("background-color:black;");
+        self.setWindowTitle("EEGsynth inputcontrol")
         self.drawlayout()
 
     def drawlayout(self):
@@ -86,16 +91,20 @@ class Window(QWidget):
             s = QSlider(Qt.Vertical)
             s.name = item
             s.type = 'slider'
-            s.setMinimum(0)
+            s.setMinimum(0.)
             s.setMaximum(127)
             s.setValue(0)
             s.setTickInterval(1)
-            s.setTickPosition(QSlider.TicksBelow)
+            s.setTickPosition(QSlider.NoTicks)
+            s.setStyleSheet("background-color: rgb(64,64,64);")
             s.valueChanged.connect(self.changevalue)
             sliderlayout.addWidget(s)
+            sliderlayout.setAlignment(s, Qt.AlignHCenter)
             l = QLabel(item)
-            l.setAlignment(Qt.AlignCenter)
+            l.setAlignment(Qt.AlignHCenter)
+            l.setStyleSheet("color: rgb(200,200,200);")
             sliderlayout.addWidget(l)
+            sliderlayout.setAlignment(l, Qt.AlignHCenter)
             mainlayout.addLayout(sliderlayout)
 
         boxlayout = QVBoxLayout()
@@ -104,25 +113,34 @@ class Window(QWidget):
             b.name = item[0]
             b.type = item[1]
             b.value = 0
-            if item[1]=='slap':
+            if item[1]=='slap' or item[1]=='push':
                 b.pressed.connect(self.changevalue) # push down
+                b.released.connect(self.changevalue) # release
             else:
-                b.clicked.connect(self.changevalue) # push down and release
+                b.pressed.connect(self.changevalue) # push down
+                b.released.connect(self.changecolor) # release
             self.setcolor(b)
             boxlayout.addWidget(b)
 
         mainlayout.addLayout(boxlayout)
         self.setLayout(mainlayout)
 
+    def changecolor(self):
+        target = self.sender()
+        self.setcolor(target)
+
     def changevalue(self):
         target = self.sender()
-
+        send = True
         if target.type=='slider':
             val = target.value()
         elif target.type=='slap':
-            val = 127
+            target.value = (target.value + 1) % 2
+            val = target.value * 127 / 1
+            send = val>0 # only send the press, not the repease
         elif target.type=='push':
-            val = 127
+            target.value = (target.value + 1) % 2
+            val = target.value * 127 / 1
         elif target.type=='toggle1':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1
@@ -136,19 +154,26 @@ class Window(QWidget):
             target.value = (target.value + 1) % 5
             val = target.value * 127 / 4
         self.setcolor(target)
-        key = "%s.%s" % (prefix, target.name)
-        val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-        patch.setvalue(key, val, debug=debug)
+        if send:
+            key = "%s.%s" % (prefix, target.name)
+            val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
+            patch.setvalue(key, val, debug=debug)
 
     def setcolor(self, target):
         # see https://www.w3schools.com/css/css3_buttons.asp
-        grey   = "background-color: rgb(250,250,250); border: 1px solid gray; border-radius: 4px; padding: 8px 4px;"
-        red    = "background-color: rgb(255,0,0);     border: 1px solid gray; border-radius: 4px; padding: 8px 4px;"
-        yellow = "background-color: rgb(250,250,60);  border: 1px solid gray; border-radius: 4px; padding: 8px 4px;"
-        green  = "background-color: rgb(60,200,60);   border: 1px solid gray; border-radius: 4px; padding: 8px 4px;"
-        amber  = "background-color: rgb(250,220,90);  border: 1px solid gray; border-radius: 4px; padding: 8px 4px;"
+        grey   = "background-color: rgb(250,250,250); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
+        red    = "background-color: rgb(255,0,0);     border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
+        yellow = "background-color: rgb(250,250,60);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
+        green  = "background-color: rgb(60,200,60);   border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
+        amber  = "background-color: rgb(250,190,45);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
 
-        if target.type=='toggle1':
+        if target.type=='slap':
+            if target.value==1:
+                target.setStyleSheet(amber);
+            else:
+                target.setStyleSheet(grey);
+
+        elif target.type=='toggle1' or target.type=='push':
             if target.value==1:
                 target.setStyleSheet(red);
             else:
@@ -187,13 +212,20 @@ class Window(QWidget):
         elif target.type=='slap' or target.type=='push':
             target.setStyleSheet(grey);
 
+def sigint_handler(*args):
+    # close the application cleanly
+    QApplication.quit()
 
-def main():
+if __name__ == '__main__':
     app = QApplication(sys.argv)
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    # Let the interpreter run every 200 ms
+    # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
+    timer = QTimer()
+    timer.start(400)
+    timer.timeout.connect(lambda: None)
+
     ex = Window()
     ex.show()
     sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
