@@ -76,8 +76,8 @@ try:
     while True:
         time.sleep(patch.getfloat('general', 'delay'))
 
-        # loop over the control values
-        for chanindx in range(1, 256):
+        # loop over the control values, these are 1-offset in the ini file
+        for chanindx in range(1, 512):
             chanstr = "channel%03d" % chanindx
             # this returns None when the channel is not present
             chanval = patch.getfloat('input', chanstr)
