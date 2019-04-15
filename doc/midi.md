@@ -100,7 +100,8 @@ EEGsynth (Python) &rarr; **mido** &rarr; **portmidi** &rarr; **coremidi** &rarr;
 ## MIDI hardware we work with (macOS and Linux) for input, output or both
 
 * Novation Launch Control, Launch Control XL and Launchpad
-* Korg Volca Beats, Bass and Keys
+* Korg Volca Beats, Volca Bass and Volca Keys
+* Doepfer A-190-2, A-190-3, MCV4 and Dark Link MIDI to CV/Gate interfaces
 * Yamaha P-95 digital piano
 * Roland V-Drum kit with [TD-9](https://www.roland.com/us/products/td-9/) sound module
 * Arturio Microbrute

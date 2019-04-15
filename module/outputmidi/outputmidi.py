@@ -90,10 +90,15 @@ lock = threading.Lock()
 
 
 def sendMidi(name, code, val):
+    # the different MIDI messages have slightly different parameters
     if debug>0:
         print(name, code, val)
-    # the different MIDI messages have slightly different parameters
-    if name.startswith('note'):
+    if name == 'note':
+        if midichannel is None:
+            msg = mido.Message('note_on', note=val, velocity=127)
+        else:
+            msg = mido.Message('note_on', note=val, velocity=127, channel=midichannel)
+    elif name.startswith('note'):
         if midichannel is None:
             msg = mido.Message('note_on', note=code, velocity=val)
         else:
@@ -168,7 +173,7 @@ for code in range(1,128):
     trigger_code.append(code)
     trigger_name.append("polytouch%03d" % code)
     trigger_code.append(code)
-for name in ['aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
     trigger_name.append(name)
     trigger_code.append(None)
 
@@ -195,7 +200,7 @@ for code in range(1,128):
     control_code.append(code)
     control_name.append("polytouch%03d" % code)
     control_code.append(code)
-for name in ['aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
     control_name.append(name)
     control_code.append(None)
 
