@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-# Plotsignal plots data from the FieldTrip buffer. Currently it also includes user-defined filtering
+# Plotsignal plots the last segment of data from the FieldTrip buffer.
+# It also includes some user-defined filtering.
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -238,7 +239,7 @@ def update():
         channr = int(chanarray[ichan])
 
         # time axis
-        timeaxis = np.linspace(-window / hdr_input.fSample, 0, len(data))
+        timeaxis = np.linspace(-(window-2*clipsize) / hdr_input.fSample, 0, len(data))
 
         # update timecourses
         curve[ichan].setData(timeaxis, data[:, channr])
