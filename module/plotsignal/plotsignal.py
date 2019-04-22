@@ -211,10 +211,16 @@ def update():
         print("reading from sample %d to %d" % (begsample, endsample))
 
     data = ft_input.getData([begsample, endsample])
+    data = np.copy(data).astype(np.float32)
+
+
+    # demean data before filtering to reduce edge artefacts and to center timecourse
+    if patch.getint('arguments', 'demean', default=0):
+        data = detrend(data, axis=0, type='constant')
 
     # detrend data before filtering to reduce edge artefacts and to center timecourse
-    if patch.getint('arguments', 'detrend', default=1):
-        data = detrend(data, axis=0)
+    if patch.getint('arguments', 'detrend', default=0):
+        data = detrend(data, axis=0, type='linear')
 
     # apply the user-defined filtering
     if not np.isnan(freqrange[0]) and not np.isnan(freqrange[1]):
@@ -226,7 +232,7 @@ def update():
 
     # remove the filter padding
     if clipsize > 0:
-        data = data[clipsize:-clipsize]
+        data = data[clipsize:-clipsize,:]
 
     for ichan in range(chan_nrs):
         channr = int(chanarray[ichan])
