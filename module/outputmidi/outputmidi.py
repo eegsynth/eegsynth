@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# This module writes Redis control values and events to MIDI.
+# This module translates Redis control values and events to MIDI.
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017-2018 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,6 +72,16 @@ print('-------------------------')
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice = patch.getstring('midi', 'device')
 
+# remove leading and trailing quotation marks, this is needed to include leading or trailing spaces
+if mididevice[0]=='"':
+    mididevice = mididevice[1:]
+if mididevice[0]=='\'':
+    mididevice = mididevice[1:]
+if mididevice[-1]=='"':
+    mididevice = mididevice[0:-1]
+if mididevice[-1]=='\'':
+    mididevice = mididevice[0:-1]
+
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
@@ -88,17 +98,38 @@ input_offset = patch.getfloat('input', 'offset', default=0)
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
+# this is to switch off the previous note
+previous = None
 
+
+def previousNoteOff():
+    global previous
+    if previous != None:
+        if midichannel is None:
+            msg = mido.Message('note_off', note=previous, velocity=0)
+        else:
+            msg = mido.Message('note_off', note=previous, velocity=0, channel=midichannel)
+        # send the MIDI message
+        lock.acquire()
+        outputport.send(msg)
+        lock.release()
+
+
+# the different MIDI messages have slightly different parameters
 def sendMidi(name, code, val):
-    # the different MIDI messages have slightly different parameters
+    global previous
     if debug>0:
         print(name, code, val)
     if name == 'note':
+        previousNoteOff()
+        previous = val
         if midichannel is None:
             msg = mido.Message('note_on', note=val, velocity=127)
         else:
             msg = mido.Message('note_on', note=val, velocity=127, channel=midichannel)
     elif name.startswith('note'):
+        previousNoteOff()
+        previous = val
         if midichannel is None:
             msg = mido.Message('note_on', note=code, velocity=val)
         else:
@@ -119,6 +150,8 @@ def sendMidi(name, code, val):
         else:
             msg = mido.Message('aftertouch', value=val, channel=midichannel)
     elif name == 'pitchwheel':
+        # the input value is from 0 to 127, the pitch bend should be from -8192 to 8191
+        val = int(val * 16383./127. - 8192)
         if midichannel is None:
             msg = mido.Message('pitchwheel', pitch=val)
         else:
