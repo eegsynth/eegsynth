@@ -24,7 +24,6 @@ The previous resulted in a working application, but it would not find any of the
 sudo apt-get install jackd2
 ```
 
-
 ## Getting MidoOSC running on macOS
 
 I am using [macports](https://www.macports.org) as package manager on macOS.
@@ -40,7 +39,7 @@ cd MidiOSC
 scons
 ```
 
-The *pyliblo* Pthon package is only needed for testing the example.py  script provided in MidiOSC.
+The _pyliblo_ Pthon package is only needed for testing the example.py script provided in MidiOSC.
 
 I had to make the following changes to the SConstruct file to deal with the liblo header and library being in /opt/local, which is the default place for macports.
 

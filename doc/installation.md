@@ -4,9 +4,9 @@ The EEGsynth software is developed with Linux and macOS in mind. In principle it
 
 The first section consists of the installation of the dependencies, i.e. the external software that EEGsynth builds on.
 
-  * [Installation instructions for Linux](installation-linux.md)
-  * [Installation instructions for macOS](installation-macos.md)
-  * [Installation instructions for Windows](installation-windows.md)
+- [Installation instructions for Linux](installation-linux.md)
+- [Installation instructions for macOS](installation-macos.md)
+- [Installation instructions for Windows](installation-windows.md)
 
 After completing the external dependencies for your operating system, you should return here and continue below.
 
@@ -27,19 +27,20 @@ install.sh
 
 ## Switch the Launch Control XL to low-power mode
 
-To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the *User* and *Factory Template* buttons and insert the USB cable. Release the buttons and press *Record Arm*. Finally press the right arrow button.
-
+To use the Launch Control XL connected directly (without powered USB hub) with the Raspberry Pi you must first switch it to low-power mode. To do this hold down both the _User_ and _Factory Template_ buttons and insert the USB cable. Release the buttons and press _Record Arm_. Finally press the right arrow button.
 
 ## Quick test
 
 Start the EEGsynth modules: buffer, Redis, and openbci2ft
 
-Add the FieldTrip Python module to the PYTHONPATH, where $EEGSYNTHPATH is the eegsynth base folder.
+Add the FieldTrip Python module to the PYTHONPATH, where \$EEGSYNTHPATH is the eegsynth base folder.
+
 ```
 export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/lib
 ```
 
 Then, in a Python console:
+
 ```
 import FieldTrip
 
@@ -50,6 +51,7 @@ print 'number of channels ' + str(h.nChannels)
 ```
 
 Wait some time and then you can plot the EEG signals:
+
 ```
 import matplotlib.pyplot as plt
 import scipy.signal

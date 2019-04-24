@@ -1,6 +1,6 @@
 # AVmixer
 
-The AVmixer software incorporates a MIDI interface which can pick up software MIDI messages from other software running on the same computer, such as the EEGsynth outputmidi module. The AVmixer MIDI settings panel allows the mapping of the incoming MIDI messages onto software functions. It allows three presets for different MIDI interfaces.  
+The AVmixer software incorporates a MIDI interface which can pick up software MIDI messages from other software running on the same computer, such as the EEGsynth outputmidi module. The AVmixer MIDI settings panel allows the mapping of the incoming MIDI messages onto software functions. It allows three presets for different MIDI interfaces.
 
 ![AVmixer settings](figures/avmixer.png)
 

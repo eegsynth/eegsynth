@@ -27,10 +27,9 @@ you can find suggestions to improve timing for the FTDI driver that is used with
 
 ## I receive a "OSError: dlopen(libportmidi.dylib, 6): image not found" error
 
-This error can happen on OS X El Captain, even if you have installed portmidi correctly using macports or homebrew. The problem is that python cannot load custom libraries due to the [system integrity protection](https://en.wikipedia.org/wiki/System_Integrity_Protection) feature introduced with El Captain.
+This error can happen on macOS El Captain, even if you have installed portmidi correctly using macports or homebrew. The problem is that Python cannot load custom libraries due to the [system integrity protection](https://en.wikipedia.org/wiki/System_Integrity_Protection) feature introduced with El Captain.
 
-To work around this you can [disable system integrity protection](
-http://www.howtogeek.com/230424/how-to-disable-system-integrity-protection-on-a-mac-and-why-you-shouldnt/).
+To work around this you can [disable system integrity protection](http://www.howtogeek.com/230424/how-to-disable-system-integrity-protection-on-a-mac-and-why-you-shouldnt/).
 
 If you run into this on older versions of macOS, it is probably due to libmacports.dylib not being installed, or due to an incorrect setting of DYLD_LIBRARY_PATH.
 

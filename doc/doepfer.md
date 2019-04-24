@@ -20,7 +20,7 @@ You have to send the "note off" message prior to sending a new "note on" message
 
 This is controlled by MIDI pitch bend. The range can be set to approximately -2.5 to +2.5V (default) or to approximately 0 to +5V using an internal jumper.
 
-Pitch bend MIDI values go from -8192 to 8191. Since all other MIDI messages go from 0 to 127, the [outputmidi](../module/outputmidi) module shifts and scales the Redis values  with an extra amount to map trhem onto the full output range.
+Pitch bend MIDI values go from -8192 to 8191. Since all other MIDI messages go from 0 to 127, the [outputmidi module](../module/outputmidi) shifts and scales the Redis values with an extra amount to map trhem onto the full output range.
 
 ### CV3
 
@@ -28,13 +28,15 @@ This is controlled by MIDI velocity. The range is approximately 0 to +5V. Accord
 
 ### CV4
 
-This is controlled by MIDI control change messages, free assignable controller in learn mode. The range is approximately  0 to +5V. The control change that CV4 responds to can be programmed.
+This is controlled by MIDI control change messages, free assignable controller in learn mode. The range is approximately 0 to +5V. The control change that CV4 responds to can be programmed.
 
 ## Programming the MIDI interface
 
-It is required that you program the interface for CV1. Press the "Learn" button until the LED starts to blink. The first note that you send will determine the MIDI channel to which CV1 will respond, and also the lowest pitch that corresponds to 0V. Hence you should send the lowest note of the range that you will be using. With the command-line [sendmidi](https://github.com/gbevin/SendMIDI) application you could do:  
+It is required that you program the interface for CV1. Press the "Learn" button until the LED starts to blink. The first note that you send will determine the MIDI channel to which CV1 will respond, and also the lowest pitch that corresponds to 0V. Hence you should send the lowest note of the range that you will be using. With the command-line [sendmidi](https://github.com/gbevin/SendMIDI) application you could do:
 
-  sendmidi dev 'USB MIDI Dark Energy' ch 0 on 12 64
+```
+sendmidi dev 'USB MIDI Dark Energy' ch 0 on 12 64
+```
 
 For CV4 it is required that you learn the interface to which control signal it should respond.
 

@@ -7,8 +7,8 @@ We have developed some custom hardware for the EEGsynth, mostly based on the Ard
 * [EEG Headband](headband/README.md)
 * OpenBCI enclosure [version 1](openbci_enclosure_v1/README.md)
 * OpenBCI enclosure [version 2](openbci_enclosure_v2/README.md)
-* [USB to CV/Gate: 1-channel version](usb2cvgate_1channel/README.md)
-* [USB to CV/Gate: 4-channel version](usb2cvgate_4channel/README.md)
+* Arduino-based USB to CV/Gate: [1-channel version](usb2cvgate_1channel/README.md)
+* Arduino-based USB to CV/Gate: [4-channel version](usb2cvgate_4channel/README.md)
 
 Furthermore, we are using the EEGsynth frequently in combination with commercial off-the-shelf hardware. For some of these we have matching software modules.
 

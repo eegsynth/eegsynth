@@ -21,10 +21,10 @@ in our live performance, or use it to simulate data in prototyping.
 ## MIDI as input
 
 Whenever you change the position of knobs or sliders of a MIDI control device,
-a MIDI *control* message is sent; in the EEGsynth we map these onto Redis channels which
+a MIDI _control_ message is sent; in the EEGsynth we map these onto Redis channels which
 can be continuously adjusted by one module and used by another.
 
-Another important feature of MIDI are the *note* messages, which are sent whenever you press or
+Another important feature of MIDI are the _note_ messages, which are sent whenever you press or
 release a button on the Launchcontrol or a key on a keyboard. MIDI note messages have two
 values attached to them: one that specifies which key or button was pressed, and the other
 that specifies the velocity. For the Launch Control the velocity is 127 when a button is pressed
@@ -33,7 +33,7 @@ force with which you hit the key; when releasing the key the velocity is specifi
 
 An important characteristic of MIDI notes is that they also convey information about the precise
 time of events. To ensure that the timing of MIDI events can be used in the EEGsynth, we
-*publish* notes to a Redis channel as messages on. Other modules can subscribe to a channel
+_publish_ notes to a Redis channel as messages on. Other modules can subscribe to a channel
 and will be notified for each published message. The publish/subscribe mechanism makes it
 possible to treat MIDI notes as triggers.
 
@@ -43,12 +43,14 @@ As we said above, MIDI can also be used to set the speed of a musical device, su
 To understand on how to use MIDI signals to control the speed, we need to understand the terms used in music, and MIDI in particular.
 
 ### Tempo
+
 Tempo is the speed at which something is played – e.g. fast and constant in electronic dance music,
 and slower and more variable in instrumental music. While between humans a drummer might snap his drumsticks to set
 the tempo, and while Latin (e.g. Adagio) and German words (e.g. kräftig) are using in classical music notation,
 in digital music we simply use beats per minute (BMP).
 
 ### Beats
+
 But what is a beat? Psychologically it’s that moment at which you tap your feet while you are listening to
 (or playing) music. And of course in common parlance ‘a beat’ often refers to the sound(s) used for the rhythm.
 However, in music theory, beats are the basic units of time that describe the moment when things happen, whether
@@ -57,6 +59,7 @@ are described by ‘notes’. How beats are organized in time, and how they rela
 to happen.
 
 ### Time signature
+
 In music theory, beats are organized in blocks of beats called measures or bars, which then repeat themselves
 throughout (parts of) a song. Within a measure, the way in which beats relate to events (notes) is called its
 time-signature. The most common time-signature is 4/4, therefor also called ‘common time’. In common time, one bar
@@ -66,6 +69,7 @@ to know that the elementary sequence of beats is a measure, consisting of a numb
 correspond to a particular note-duration (typically a quarter note).
 
 ### Pulses Per Quarter Note
+
 The time-signature says nothing about how slow or fast the notes are played. As I said earlier, that is determined
 by its tempo, described in BPM or more subjective descriptions (Andante, i.e. ‘at a walking pace’, referring to
 76–108 BPM). The last thing we need to say is a bit technical: for a MIDI instruments to communicate the tempo,
@@ -88,41 +92,41 @@ EEGsynth (Python) &rarr; **mido** &rarr; **portmidi** &rarr; **coremidi** &rarr;
 
 ## Modules that directly interface with MIDI
 
-* [generateclock](../module/generateclock)
-* [sequencer](../module/sequencer)
-* [inputmidi](../module/inputmidi)
-* [ouputmidi](../module/ouputmidi)
-* [launchcontrol](../module/launchcontrol)
-* [volcabass](../module/volcabass)
-* [volcabeats](../module/volcabeats)
-* [volcakeys](../module/volcakeys)
+- [generateclock](../module/generateclock)
+- [sequencer](../module/sequencer)
+- [inputmidi](../module/inputmidi)
+- [ouputmidi](../module/ouputmidi)
+- [launchcontrol](../module/launchcontrol)
+- [volcabass](../module/volcabass)
+- [volcabeats](../module/volcabeats)
+- [volcakeys](../module/volcakeys)
 
 ## MIDI hardware we work with (macOS and Linux) for input, output or both
 
-* Novation Launch Control, Launch Control XL and Launchpad
-* Korg Volca Beats, Volca Bass and Volca Keys
-* Doepfer A-190-2, A-190-3, MCV4 and Dark Link MIDI to CV/Gate interfaces
-* Yamaha P-95 digital piano
-* Roland V-Drum kit with [TD-9](https://www.roland.com/us/products/td-9/) sound module
-* Arturio Microbrute
-* Endorphines Shuttle Control
-* Generic USB-MIDI converter cables from Ebay
+- Novation Launch Control, Launch Control XL and Launchpad
+- Korg Volca Beats, Volca Bass and Volca Keys
+- Doepfer A-190-2, A-190-3, MCV4 and Dark Link MIDI to CV/Gate interfaces
+- Yamaha P-95 digital piano
+- Roland V-Drum kit with [TD-9](https://www.roland.com/us/products/td-9/) sound module
+- Arturio Microbrute
+- Endorphines Shuttle Control
+- Generic USB-MIDI converter cables from Ebay
 
 ## Software and programming interfaces
 
-* [RtMidi](https://www.music.mcgill.ca/~gary/rtmidi/) is a C++ programming library that is
-supported on Linux, macOS and Windows.
-* [PortMidi](http://portmedia.sourceforge.net/portmidi/) is a C++ programming library that is supported on Linux, macOS
-and Windows.
-* [Core MIDI](https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/CACoreMIDIRef/)
-is a programming library for macOS.
-* [Python/MIDO](https://mido.readthedocs.org) is a Python package that can use either the PortMidi
-interface or the RtMidi interface.
-* [Python-RtMidi](https://pypi.python.org/pypi/python-rtmidi) is a Python package for RtMidi.
-* [RtMidi-Python](https://pypi.python.org/pypi/rtmidi-python) is another Python wrapper for RtMidi.
-* [MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing
-bidirectional conversion of MIDI to OSC. It is available for macOS and for Linux. We explain how we
-use it [here](midiosc.md).  
+- [RtMidi](https://www.music.mcgill.ca/~gary/rtmidi/) is a C++ programming library that is
+  supported on Linux, macOS and Windows.
+- [PortMidi](http://portmedia.sourceforge.net/portmidi/) is a C++ programming library that is supported on Linux, macOS
+  and Windows.
+- [Core MIDI](https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/CACoreMIDIRef/)
+  is a programming library for macOS.
+- [Python/MIDO](https://mido.readthedocs.org) is a Python package that can use either the PortMidi
+  interface or the RtMidi interface.
+- [Python-RtMidi](https://pypi.python.org/pypi/python-rtmidi) is a Python package for RtMidi.
+- [RtMidi-Python](https://pypi.python.org/pypi/rtmidi-python) is another Python wrapper for RtMidi.
+- [MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing
+  bidirectional conversion of MIDI to OSC. It is available for macOS and for Linux. We explain how we
+  use it [here](midiosc.md).
 
 ## Further reading
 

@@ -6,10 +6,10 @@ To facilitate the interoperability between modules, we follow the convention tha
 
 Some of the control values are not bounded, e.g. when spectral power is computed from the EEG signal. To use such control signals, they need to be calibrated and rescaled to predictable values using one of the following modules:
 
-* The [calibration](../module/calibration) module to scale, offset and compress/expand data.
-* The [historycontrol](../module/historycontrol) module to calculate properties from the history of control values,
-such as the median and the standard deviation, using a sliding window. To be used together with the [postprocessing](../module/postprocessing) or the [calibration](../module/calibration) module to scale the data.
-* The [quantizer](../module/quantizer) module to map continuous values onto a predefined scale.
+- The [calibration module](../module/calibration) to scale, offset and compress/expand data.
+- The [historycontrol module](../module/historycontrol) to calculate properties from the history of control values,
+  such as the median and the standard deviation, using a sliding window. To be used together with the [postprocessing module](../module/postprocessing) or the [calibration module](../module/calibration) to scale the data.
+- The [quantizer module](../module/quantizer) to map continuous values onto a predefined scale.
 
 ## Control Voltage range for external hardware devices
 
