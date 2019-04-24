@@ -67,6 +67,8 @@ for port in mido.get_output_names():
 print('-------------------------')
 
 mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
+
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:

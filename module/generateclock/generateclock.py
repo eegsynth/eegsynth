@@ -229,6 +229,7 @@ try: # FIXME do we need this or can we catch errors before?
         # the MIDI port should only be opened once, and only if needed
         if midi_play and midiport == None:
             mididevice = patch.getstring('midi', 'device')
+            mididevice = EEGsynth.trimquotes(mididevice)
             try:
                 outputport  = mido.open_output(mididevice)
                 if debug>0:

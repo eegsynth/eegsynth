@@ -66,17 +66,20 @@ for port in mido.get_input_names():
   print(port)
 print('-------------------------')
 
-# the scale and offset are used to map MIDI values to Redis values
-scale  = patch.getfloat('output', 'scale', default=127)
-offset = patch.getfloat('output', 'offset', default=0)
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
 
 try:
-    inputport  = mido.open_input(patch.getstring('midi', 'device'))
+    inputport  = mido.open_input(mididevice)
     if debug>0:
         print("Connected to MIDI input")
 except:
     print("Error: cannot connect to MIDI input")
     exit()
+
+# the scale and offset are used to map MIDI values to Redis values
+scale  = patch.getfloat('output', 'scale', default=127)
+offset = patch.getfloat('output', 'offset', default=0)
 
 while True:
     time.sleep(patch.getfloat('general','delay'))

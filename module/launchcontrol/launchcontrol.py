@@ -73,15 +73,23 @@ print('-------------------------')
 # use "input/output" when specified, or otherwise use "device" for both
 try:
     mididevice_input = patch.getstring('midi', 'input')
+    mididevice_input = EEGsynth.trimquotes(mididevice_input)
 except:
     mididevice_input = patch.getstring('midi', 'device') # fallback
+    mididevice_input = EEGsynth.trimquotes(mididevice_input)
 try:
     mididevice_output = patch.getstring('midi', 'output')
+    mididevice_output = EEGsynth.trimquotes(mididevice_output)
 except:
     mididevice_output = patch.getstring('midi', 'device') # fallback
+    mididevice_output = EEGsynth.trimquotes(mididevice_output)
+
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
 
 print(mididevice_input)
 print(mididevice_output)
+print(mididevice)
 
 try:
     inputport = mido.open_input(mididevice_input)
@@ -106,6 +114,7 @@ except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
     midichannel = None
+
 print("midichannel = ", midichannel)
 
 push    = patch.getint('button', 'push',    multiple=True)      # push-release button

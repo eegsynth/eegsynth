@@ -71,16 +71,8 @@ print('-------------------------')
 
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
 
-# remove leading and trailing quotation marks, this is needed to include leading or trailing spaces
-if mididevice[0]=='"':
-    mididevice = mididevice[1:]
-if mididevice[0]=='\'':
-    mididevice = mididevice[1:]
-if mididevice[-1]=='"':
-    mididevice = mididevice[0:-1]
-if mididevice[-1]=='\'':
-    mididevice = mididevice[0:-1]
 
 try:
     outputport  = mido.open_output(mididevice)

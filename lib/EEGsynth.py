@@ -15,6 +15,20 @@ except:
     print("Warning: pyOSC not found")
 
 ###################################################################################################
+def trimquotes(option):
+    # remove leading and trailing quotation marks
+    # this is needed to include leading or trailing spaces in an ini-file option
+    if option[0]=='"':
+        option = option[1:]
+    if option[0]=='\'':
+        option = option[1:]
+    if option[-1]=='"':
+        option = option[0:-1]
+    if option[-1]=='\'':
+        option = option[0:-1]
+    return option
+
+###################################################################################################
 class midiwrapper():
     """Class to provide a generalized interface to MIDI interfaces on the local computer
     or to MIDI interfaces that are accessed on another computer over the network

@@ -75,6 +75,8 @@ print('-------------------------')
 
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
+
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
