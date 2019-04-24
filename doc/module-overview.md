@@ -12,9 +12,11 @@ Detailed information about each module can be found in the README.md included in
 
 ## Data acquisition
 
-- [Openbci2ft](../module/openbci2ft) Records raw data from the OpenBCI amplifier and places it in the buffer.
-- [Bitalino2ft](../module/bitalino2ft) Records raw data from the Bitalino amplifier and places it in the buffer.
-- [Jaga2ft](../module/jaga2ft) Records raw data from Jaga amplifier and places it in the buffer
+- [Openbci2ft](../module/openbci2ft) Records raw data from the OpenBCI amplifier and places it in the buffer
+- [Bitalino2ft](../module/bitalino2ft) Records raw data from the Bitalino amplifier and places it in the buffer
+- [Jaga2ft](../module/jaga2ft) Records raw data from the Jaga amplifier and places it in the buffer
+- [Lsl2ft](../module/lsl2ft) Records raw data from Lab Streaming Layer and places it in the buffer
+- [Audio2ft](../module/audio2ft) Records raw data from the computer's audio input and places it in the buffer
 - For more supported acquisition devices [look here](http://www.fieldtriptoolbox.org/development/realtime/implementation)
 
 ## Communication between modules
@@ -45,7 +47,7 @@ Detailed information about each module can be found in the README.md included in
 - [OutputAudio](../module/outputaudio) Send (sound) to soundcard
 - [OutputArtNet](../module/outputartnet) Send data according to [Art-Net protocol](https://en.wikipedia.org/wiki/Art-Net)
 - [OutputDMX](../module/outputdmx512) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
-- [OutputCVgate](../master/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](http://www.ouunpo.com/eegsynth/?page_id=516)
+- [OutputCVgate](../master/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](../hardware/usb2cvgate_4channel)
 
 ## External interfaces (consumer)
 
@@ -64,6 +66,6 @@ Detailed information about each module can be found in the README.md included in
 - [Synthesizer](../module/synthesizer) A basic synthesizer to send our waveforms
 - [Quantizer](../module/quantizer) Quantize output chromatically or according to musical scales
 
-## COGITO project
+## Cogito project
 
-- [Cogito](../master/module/cogito) Streaming EEG data (from the Gtec EEG) to audio for interstellar EEG transmission, as part of the [COGITO](http://www.cogitoinspace.org/) project
+- [Cogito](../master/module/cogito) Streaming EEG data from the Gtec EEG system to audio for interstellar transmission, as part of the [Cogito](http://www.cogitoinspace.org/) project

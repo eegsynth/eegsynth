@@ -87,7 +87,7 @@ Redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/Redis-
 The Redis command line interface is an useful tool for monitoring and debugging the Redis server:
 
 ```
-Redis-cli monitor
+redis-cli monitor
 ```
 
 ### Install portmidi

@@ -28,3 +28,5 @@ The most important lesson here is actually how to set up proper EEG recordings, 
 5.  Start up the openbci2ft module, using your own ini file: `python openbci2ft.py -i ../../inifiles/openbci2ft.ini`. If things are working, you the terminal will print a message that it is waiting to connect.
 6.  You can now turn on the EEG board (not the dongle) by moving the little switch to either side. After a couple of second you should see the dongle starting to blink a green and red light. This means it is configuring the EEG board with the settings specified in the .ini file, which will take a couple of seconds. After that you should have your data coming in, being transferred into the fieldtrip buffer.
 7.  Now you can check the incoming data with the [plotsignal module](../module/plotsignal).
+
+_Continue reading: [Documentation overview](README.md)_
