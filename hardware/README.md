@@ -15,7 +15,7 @@ Furthermore, we are using the EEGsynth frequently in combination with commercial
 * Novation [Launchcontrol](https://global.novationmusic.com/launch/launch-control) and [Launchcontrol XL](https://global.novationmusic.com/launch/launch-control-xl) USB-to-MIDI controller
 * Novation [Launchpad](https://global.novationmusic.com/launch/launchpad) and [Launchpad Mini](https://global.novationmusic.com/launch/launchpad-mini) USB-to-MIDI controller
 * Endorpines [Shuttle Control](https://www.modulargrid.net/e/endorphin-es-shuttle-control) USB-to-MIDI-to-CV converter
-* Doepfer [A-190-3 and MCV4](../doc/doepfer.md) USB-to-MIDI-to-CV converters
+* Doepfer [A-190-2, A-190-3, MCV4 and Dark Link](../doc/doepfer.md) USB-to-MIDI-to-CV converters
 * Korg [volca bass](http://www.korg.com/us/products/dj/volca_bass/) analog bass machine
 * Korg [volca keys](http://www.korg.com/us/products/dj/volca_keys/) analog loop synth
 * Korg [volca kick](http://www.korg.com/us/products/dj/volca_kick/) analog kick generator
