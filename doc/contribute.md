@@ -3,7 +3,7 @@
 There are many ways in which you can help develop the EEGsynth, from keeping us informed about
 bugs or ambiguities in the documentation, to writing and debugging code, to developing
 performances and sharing your experiences. We are also looking for financial contributions as
-well as scientific collaborations. In that case, please [email us directly](stephen.whitmarsh@gmail.com).
+well as scientific collaborations. In that case, please [email us directly](mailto:stephen.whitmarsh@gmail.com).
 
 # Modular contribution
 
