@@ -1,4 +1,4 @@
-## Recording
+## Recording and playback
 
 Although the primary use of the EEGsynth is to perform real-time analysis and to use the control signals for direct feedback, there are cases where it can be useful to record the data to disk. One of these is when you want to optimize a certain signal processing algorithm, another is if you want to replay the control signals to try out different analog patches of a synthesizer or light system.
 

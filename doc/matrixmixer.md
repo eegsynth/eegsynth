@@ -1,4 +1,4 @@
-# Matrix Mixer
+# Matrix mixer
 
 A matrix mixer allows flexible reconfiguration of the patching while all modules are running.
 This was already used in the [EMS VCS3](https://en.wikipedia.org/wiki/EMS_VCS_3) analog synthesizer

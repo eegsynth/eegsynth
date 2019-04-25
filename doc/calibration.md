@@ -1,4 +1,4 @@
-# Calibration
+# Scaling and calibration
 
 The EEGsynth uses various control signals that have a different units and different absolute scaling. For example, MIDI values are between 0 and 127, OSC values are often (by convention) between 0 and 1, and EEG values are typically between -100 and +100 microvolt. Note that this is not only a problem for the EEGsynth; real-world modular synthesizers also use different [control voltage](https://en.wikipedia.org/wiki/CV/gate#CV) ranges.
 

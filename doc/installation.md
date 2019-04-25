@@ -1,4 +1,4 @@
-# Installation instructions
+# General installation instructions
 
 The EEGsynth software is developed with Linux and macOS in mind. In principle it should also work on Windows, but we don't actively work on that platform.
 
