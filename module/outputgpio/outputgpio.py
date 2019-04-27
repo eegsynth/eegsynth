@@ -82,12 +82,9 @@ pin = {
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 delay = patch.getfloat('general', 'delay')
-# control values for PWM should be between 0 and 100
-input_scale = patch.getfloat('input', 'scale', default=100)
-input_offset = patch.getfloat('input', 'offset', default=0)
-# values between 0 and 1 are quite nice for the duration
-duration_scale = patch.getfloat('duration', 'scale', default=1)
-duration_offset = patch.getfloat('duration', 'offset', default=0)
+# values between 0 and 1 are nice for the duration
+scale_duration = patch.getfloat('scale', 'duration', default=1)
+offset_duration = patch.getfloat('offset', 'duration', default=0)
 
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
@@ -123,15 +120,18 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
+                    # the scale and offset options are channel specific and can be changed on the fly
+                    scale = patch.getfloat('scale', self.gpio, default=100)
+                    offset = patch.getfloat('offset', self.gpio, default=0)
                     # switch to the PWM value specified in the event
                     val = item['data']
-                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
                     val = int(val)
                     SetGPIO(self.gpio, val)
                     if self.duration != None:
                         # schedule a timer to switch it off after the specified duration
                         duration = patch.getfloat('duration', self.gpio)
-                        duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+                        duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
                         # some minimal time is needed for the delay
                         duration = EEGsynth.limit(duration, 0.05, float('Inf'))
                         t = threading.Timer(duration, SetGPIO, args=[self.gpio, 0])
@@ -171,12 +171,16 @@ try:
 
         for gpio, channel in config.items('control'):
             val = patch.getfloat('control', gpio)
+
             if val == None:
                 continue  # it should be skipped when not present
             if val == previous_val[gpio]:
                 continue  # it should be skipped when identical to the previous value
             previous_val[gpio] = val
-            val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+            # the scale and offset options are channel specific and can be changed on the fly
+            scale = patch.getfloat('scale', gpio, default=100)
+            offset = patch.getfloat('offset', gpio, default=0)
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
             val = EEGsynth.limit(val, 0, 100)
             val = int(val)
             lock.acquire()
