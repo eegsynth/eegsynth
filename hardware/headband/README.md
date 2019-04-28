@@ -12,7 +12,7 @@ To facilitate the use of cup electrodes, we designed a head sweatband with the O
 
 The OpenBCI board comes with a right-angle 11x2 male header soldered to it. SRB is on the left, followed by N1P-N8P, BIAS and AGND. The outer most pads on the PCB (AVSS on the left and AVDD on the right) are not connected to the header.
 
-We have connected the 10 electrode leads to the SRB2 pin (the upper pin), P1-P8 (the upper pins) and one of the AGND pins, skipping the BIAS pin. This allows for a conventional common reference montage. The electrodes leads are cut to length to easily reach the following standard 10-20 electrode sites on the scalp:
+We have connected the reference electrode lead to the SRB1 pin (the upper pin), 8 electrode leads to P1-P8 (the upper pins) and the ground electrode lead to one of the AGND pins, skipping the BIAS pin. This allows for a conventional common reference montage. The electrodes leads are cut to length to easily reach the following standard 10-20 electrode sites on the scalp:
 
 - pin SRB1 - 31 cm - white  - left mastoid (M1) or alternatively AFz
 - pin P1   - 11 cm - grey   - electrode site O1
@@ -24,6 +24,8 @@ We have connected the 10 electrode leads to the SRB2 pin (the upper pin), P1-P8 
 - pin P7   - 18 cm - red    - electrode site P4
 - pin P8   - 11 cm - brown  - electrode site O2
 - pin AGND - 31 cm - black  - right mastoid (M2) or alternatively Fpz
+
+**Warning: in the [schematics](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_V3_32bit-Schematic.jpg) of the OpenBCI cyton board the SRB1 and SBB2 labels are swapped; in the TI [ADS1299 datasheet](http://www.ti.com/lit/ds/symlink/ads1299.pdf) you can see that SRB1 is pin 17 on the corner, and hence following the [PCB layout](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_32bit_layerTop.jpg) connected to the top pin of the double cyton header.**
 
 Note that SRB1 is on the upper side with the "P" pins and SRB2 is on the lower side with the "N" pins. Contrary to the two photo's included in this documentation, the white wire connected to SRB1 should be in one line with the colored wires connected to the upper "P" pins. For the AGND you can use either upper or lower pin.
 

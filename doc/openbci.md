@@ -71,9 +71,11 @@ These are the settings for 8 monopolar channels in the `openbci.ini` file. All c
     chan7 = x7160101X
     chan8 = x8060101X
 
+_Rumor has it that with this configuration, the output of the ADS1299 and hence the Cyton board is inverted._
+
 The OpenBCI board comes with a right-angle 11x2 male header soldered to it. With the header _pointing away from you_, SRB is on the left, followed by N1P-N8P, BIAS and AGND. The outer most pads on the PCB (AVSS on the left and AVDD on the right) are not connected to the header. SRB1 is on the upper side with the "P" pins and SRB2 is on the lower side with the "N" pins.
 
-_Rumor has it that with this configuration, the ouput of the ADS1299 and hence the Cyton board is inverted._
+**Warning: in the [schematics](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_V3_32bit-Schematic.jpg) of the OpenBCI cyton board the SRB1 and SBB2 labels are swapped; in the TI [ADS1299 datasheet](http://www.ti.com/lit/ds/symlink/ads1299.pdf) you can see that SRB1 is pin 17 on the corner, and hence following the [PCB layout](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_32bit_layerTop.jpg) connected to the top pin of the double cyton header.**
 
 We usually connect the 10 electrode leads to the SRB1 pin (the upper pin), P1-P8 (the upper pins) and one of the AGND pins, skipping the BIAS pin. This allows for a conventional common reference montage.
 
