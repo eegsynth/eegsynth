@@ -7,4 +7,16 @@ However, as with analogue synthesizers, we like the tactile real-time aspect of 
 
 _The Novation LaunchControl XL, often used in EEGsynth setups_
 
+## Manual control on phone or tablet
+
+The [TouchOSC](https://hexler.net/products/touchosc) application for iOS or Android provides a modular control surface with bottons, sliders and knobs on touchscreen devices.
+
+![](../figures/touchosc.png)
+
+_Example TouchOSC interface, these can be fully configured using an editor_
+
+## Manual control using GUI on computer
+
+The [inputcontrol module](../module/inputcontrol) provides a configurable graphical user interface with sliders and buttons whose value is directly written to the Redis buffer.
+
 _Continue reading: [Visualisation](visualisation.md)_

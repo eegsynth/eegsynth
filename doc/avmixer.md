@@ -6,7 +6,7 @@ The AVmixer software incorporates a MIDI interface which can pick up software MI
 
 AVmixer can also be controlled using the TouchOSC app, which sends OSC messages that are translated by the [TouchOSC MIDI bridge](http://hexler.net/docs/touchosc-configuration-connections-bridge) into software MIDI commands. AVmixer includes a TouchOSC template layout that is configured to work out of the box with the factory configured presets "3".
 
-![TouchOSC](figures/touchosc.png)
+![TouchOSC AVmixer interface](figures/touchosc-avmixer.png)
 
 You can control the AVmixer software both (and simultaneously) from this EEGsynth module and from the TouchOSC interface.
 

@@ -6,7 +6,7 @@ The design of the EEGsynth is modular, directly inspired by [modular synthesizer
 
 Every module does a specific task. Each module consists of a Python script, and is contained in its own directory.
 
-For instance, in the directory [eegsynth\modules\launchcontrol](https://github.com/eegsynth/eegsynth/module/launchcontrol) we find:
+For instance, in the directory [module/launchcontrol](https://github.com/eegsynth/eegsynth/module/launchcontrol) we find:
 
 - [launchcontrol.py](https://github.com/eegsynth/eegsynth/module/launchcontrol/launchcontrol.py) which is the [Python](https://www.python.org/) script. Read more about the Python scripts [here](scripts.md).
 - [launchcontrol.ini](https://github.com/eegsynth/eegsynth/module/launchcontrol/launchcontrol.ini) which is the initialization file setting the parameters and the way it's connected. Read more about the ini files [here](inifile.md)

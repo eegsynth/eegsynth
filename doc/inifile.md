@@ -1,6 +1,6 @@
 # Ini files
 
-Every module directory contains an initialization file, which has the same name as the module and an _.ini_ extention. The initialisation file is a text file, formatted according to Python’s [ConfigParser class](https://docs.python.org/2/library/configparser.html). You can easily edit the files with any text editor. The text is organized in fields defined between square brackets (e.g. `[general]`), followed by settings that ... with an equal sign (e.g. `debug=1`).
+Every module directory contains an initialization file, which has the same name as the module and an _.ini_ extention. The initialisation file is a text file, formatted according to Python’s [configparser class](https://docs.python.org/2/library/configparser.html). You can easily edit the files with any text editor. The text is organized in fields defined between square brackets (e.g. `[general]`), followed by settings that ... with an equal sign (e.g. `debug=1`).
 
 The ini file contains all the settings of a module. Some fields occur specific for a module, while many occur in almost all modules. We will discuss the latter below. Information about module specific configurations can be found in the _README.md_ in the module directory.
 

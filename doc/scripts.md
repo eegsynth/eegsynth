@@ -61,7 +61,7 @@ Note that you are obliged to conform to the GNU General Public License (also in 
 The EEGsynth uses standard Python libraries as well as it's own, located in the `eegsynth/lib` directory:
 
 ```
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -106,7 +106,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(args.inifile)
 
 try:
@@ -146,19 +146,25 @@ More about MIDI and the EEGsynth is explained [here](midi.md).
 MIDI devices can be accessed in de code using the EEGsynth library:
 
 ```
-midiport = EEGsynth.midiwrapper(config)
-midiport.open_output()
+mididevice = patch.getstring('midi', 'device')
+try:
+    outputport  = mido.open_output(mididevice)
+    if debug>0:
+        print("Connected to MIDI output")
+except:
+    print("Error: cannot connect to MIDI output")
+    exit()
 ```
 
 (From [generateclock.py](../module/generateclock/generateclock.py))
 
-Sending MIDI messages can be send using [Python/MIDO](https://mido.readthedocs.org):
+Sending MIDI is done using the [MIDO](https://mido.readthedocs.org) library:
 
 ```
 midiport.send(mido.Message('stop'))
 ```
 
-To read MIDI input, please take as an example the [Launchcontrol module](../module/launchcontrol)
+To read MIDI input, please take as an example the [launchcontrol module](../module/launchcontrol)
 
 ### Connecting to the FieldTrip buffer
 

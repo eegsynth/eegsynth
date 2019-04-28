@@ -4,16 +4,15 @@ In the EEGsynth, each module runs independently (in parallel), performing a spec
 
 A basic patch might have the following modules run (in parallel):
 
-- The **[Redis server](redis.md)** to communicate _control signals_ between modules
-- The **[buffer module](buffer.md)** to communicate _data_ between modules
-- The **[OpenBCI module](../module/openbci2ft)** reading new ECG data from an OpenBCI board and placing it in the _data_ buffer
-- The **[heartrate module](../module/heartrate)** reading new ECG data from the data buffer and sending the heartrate as a _control signal_ to Redis
-- The **[generateclock module](../module/generateclock)** sending regular triggers through MIDI to a sequencer,
+- The [Redis server](redis.md) to communicate _control signals_ between modules
+- The [Buffer server](buffer.md) to communicate _data_ between modules
+- The [openbci module](../module/openbci2ft) reading new ECG data from an OpenBCI board and placing it in the _data_ buffer
+- The [heartrate module](../module/heartrate) reading new ECG data from the data buffer and sending the heartrate as a _control signal_ to Redis
+- The [generateclock module](../module/generateclock) sending regular triggers through MIDI to a sequencer,
   with the speed dependent on the heartrate read from Redis
 
 As you can see here, there are two ways in which the modules communicate, depending on whether **data** or
-**control signals** are communicated. This is a similar distinction as made in e.g. Pure Data (software) or modular
-synthesizers (hardware).
+**control signals** are communicated. This is a similar distinction as made in e.g. [Pure Data](https://puredata.info) (software) or modular synthesizers (hardware).
 
 ## Control signal communication
 
@@ -30,7 +29,7 @@ to the module. E.g. [module/spectral](https://github.com/eegsynth/eegsynth/tree/
 contains [spectral.py](https://github.com/eegsynth/eegsynth/tree/master/module/spectral/spectral.py)
 and [spectral.ini](https://github.com/eegsynth/eegsynth/tree/master/module/spectral/spectral.ini).
 
-This ini file shows the required fields and some default values. However, we highly recommend you save your edited [ini files](inifile.md) in a separate patch directory, such as [here](../patches/robinson). In this patch directory you store all the .ini files belonging to one patch. You can then also more easily Bash script you modules so that you don't have to start them up one by one. [Here](../patches/robinson/patch.sh) you can find an example for Linux. Collecting the necessary [ini files](inifile.md) in one place, helps organizing your patches as well as your local git repository, which will then not create annoying conflicts with the remote repository whenever you want to
+This ini file shows the required fields and some default values. However, we highly recommend you save your edited [ini files](inifile.md) in a separate patch directory, such as [here](../patches/robinson). In this patch directory you store all the .ini files belonging to one patch. You can then also more easily Bash script you modules so that you don't have to start them up one by one. [Here](../patches/robinson/patch.sh) you can find an example to start a complete patch at once in Linux. Collecting the necessary [ini files](inifile.md) in one place helps organizing your patches, as well as your local git repository, which will then not create annoying conflicts with the remote repository whenever you want to
 update. You can find several examples of patch directories in the [patches directory](https://github.com/eegsynth/eegsynth/patches). These also function as documentation of past performances.
 
 ## Summary
