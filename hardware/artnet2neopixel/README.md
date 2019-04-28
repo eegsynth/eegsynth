@@ -4,7 +4,7 @@ This hardware module receives control signals over Art-Net (i.e. UDP packets) ov
 
 This hardware works well with the *outputartnet* Python module.
 
-We made multiple versions of this hardware, including versions that have the LEDs in a 12, 16 or 24 pixel ring (from Adafruit) or that have a long strip of LEDs (from Ebay).
+We made multiple versions of this hardware, including versions that have the LEDs in a 12, 16 or 24 pixel ring (from Adafruit), that have a long strip of LEDs (from Ebay) or as an 8x8 matrix array.
 
 ![photo](artnet2neopixel-ring.jpg)
 
@@ -14,13 +14,12 @@ The firmware supports over-the-air setup of the WiFi network and configuration i
 
 The Arduino code for the firmware of this device can be found on [github](https://github.com/robertoostenveld/arduino/tree/master/esp8266_artnet_neopixel). More background documentation can be found [here](http://robertoostenveld.nl/esp-8266-art-net-neopixel-module/).
 
-
 The pattern that is specified in the configuration determines how the Art-Net channels are mapped onto the features of the LED strip. On this [youtube](https://youtu.be/aLTDIZ6WQQQ) clip you can find an example of a specific pattern, using three different size rings and a linear strip.
 
 ## Patterns
 
 ```
-  mode 0: individual pixel control
+mode 0: individual pixel control
   channel 1 = pixel 1 red
   channel 2 = pixel 1 green
   channel 3 = pixel 1 blue
@@ -150,4 +149,16 @@ The pattern that is specified in the configuration determines how the Art-Net ch
   channel 1 = saturation
   channel 2 = value
   channel 3 = speed
+
+  mode 13: dual color letter for 8x8 RGBW neopixel array
+  channel 1  = color 1 red
+  channel 2  = color 1 green
+  channel 3  = color 1 blue
+  channel 4  = color 1 white
+  channel 5  = color 2 red
+  channel 6  = color 2 green
+  channel 7  = color 2 blue
+  channel 8  = color 2 white
+  channel 9  = intensity
+  channel 10 = ASCII code
 ```
