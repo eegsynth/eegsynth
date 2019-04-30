@@ -1,4 +1,4 @@
-# EEG headband
+# OpenBCI headband
 
 The OpenBCI Ultracortex headset is a nice piece of hardware, but rather expensive (350-800 USD) and does not always provide a good fit with the subjects in terms of comfort and signal quality.
 
@@ -25,11 +25,11 @@ We have connected the reference electrode lead to the SRB1 pin (the upper pin), 
 - pin P8   - 11 cm - brown  - electrode site O2
 - pin AGND - 31 cm - black  - right mastoid (M2) or alternatively Fpz
 
+The leads are long enough so that they can reach one electrode site further to the front of the head. The longest ones (connected to the middle pins P4 and P5) can also reach around the head and be used for EOG.
+
 **Warning: in the [schematics](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_V3_32bit-Schematic.jpg) of the OpenBCI cyton board the SRB1 and SBB2 labels are swapped; in the TI [ADS1299 datasheet](http://www.ti.com/lit/ds/symlink/ads1299.pdf) you can see that SRB1 is pin 17 on the corner, and hence following the [PCB layout](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_32bit_layerTop.jpg) connected to the top pin of the double cyton header.**
 
 Note that SRB1 is on the upper side with the "P" pins and SRB2 is on the lower side with the "N" pins. Contrary to the two photo's included in this documentation, the white wire connected to SRB1 should be in one line with the colored wires connected to the upper "P" pins. For the AGND you can use either upper or lower pin.
-
-The leads are long enough so that they can reach one electrode site further to the front of the head. The longest ones (connected to the middle pins P4 and P5) can also reach around the head and be used for EOG.
 
 ![headband leads](headband_leads.jpg)
 

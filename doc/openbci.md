@@ -41,7 +41,7 @@ The [OpenBCI_C](https://github.com/OpenBCI/OpenBCI_C) implementation is very inc
 
 EMG, EOG or ECG is best implemented using a bipolar configuration.
 
-These are the settings for 8 bipolar channels in the `openbci.ini` file:
+These are the `openbci.ini` settings for 8 bipolar channels:
 
     chan1 = x1060000X
     chan2 = x2060000X
@@ -58,9 +58,9 @@ With the header _pointing away from you_, the AGND is all the way on the right (
 
 EEG is best implemented using a unipolar configuration in which all 8 channels are referenced to a common reference. For N channels, you have to attach N+2 electrodes to the head, which includes a ground and a reference electrode.
 
-Using an 11x2 female header and a head sweatband you can construct a [head mounted](../hardware/headband) system that facilitates electrode placements and wireless recordings. Here we summarize the main features of that configuration.
+Using an 11x2 female header and a head sweatband you can construct a [head mounted](../hardware/openbci_headband) system that facilitates electrode placements and wireless recordings. Here we summarize the main features of that configuration, in which we connect all electrode leads to the top row.
 
-These are the settings for 8 monopolar channels in the `openbci.ini` file. All channels are enabled for bias, although we usually use AGND for ground rather than BIAS.
+These are the `openbci.ini` settings for 8 monopolar channels using SRB1 as reference. All channels are enabled for bias, although we usually use AGND rather than BIAS.
 
     chan1 = x1060101X
     chan2 = x2160101X
@@ -76,16 +76,3 @@ _Rumor has it that with this configuration, the output of the ADS1299 and hence 
 The OpenBCI board comes with a right-angle 11x2 male header soldered to it. With the header _pointing away from you_, SRB is on the left, followed by N1P-N8P, BIAS and AGND. The outer most pads on the PCB (AVSS on the left and AVDD on the right) are not connected to the header. SRB1 is on the upper side with the "P" pins and SRB2 is on the lower side with the "N" pins.
 
 **Warning: in the [schematics](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_V3_32bit-Schematic.jpg) of the OpenBCI cyton board the SRB1 and SBB2 labels are swapped; in the TI [ADS1299 datasheet](http://www.ti.com/lit/ds/symlink/ads1299.pdf) you can see that SRB1 is pin 17 on the corner, and hence following the [PCB layout](https://raw.githubusercontent.com/OpenBCI/Docs/master/assets/images/OBCI_32bit_layerTop.jpg) connected to the top pin of the double cyton header.**
-
-We usually connect the 10 electrode leads to the SRB1 pin (the upper pin), P1-P8 (the upper pins) and one of the AGND pins, skipping the BIAS pin. This allows for a conventional common reference montage.
-
-- pin SRB1 - white - left mastoid (M1) or alternatively AFz
-- pin P1 - grey - electrode site O1
-- pin P2 - purple - electrode site P3
-- pin P3 - blue - electrode site C3
-- pin P4 - green - electrode site F3
-- pin P5 - yellow - electrode site F4
-- pin P6 - orange - electrode site C4
-- pin P7 - red - electrode site P4
-- pin P8 - brown - electrode site O2
-- pin AGND - black - right mastoid (M2) or alternatively Fpz
