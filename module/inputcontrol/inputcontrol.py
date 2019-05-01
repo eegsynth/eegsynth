@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This module provides a graphical interface with sliders and buttons
+# This module allows the user to design a graphical interface with dials (knobs), sliders and buttons.
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -42,7 +42,7 @@ sys.path.insert(0,os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument('-i', '--inifile', default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help='optional name of the configuration file')
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -52,7 +52,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print("Error: cannot connect to redis server")
+    print('Error: cannot connect to redis server')
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -68,62 +68,116 @@ winy            = patch.getfloat('display', 'ypos')
 winwidth        = patch.getfloat('display', 'width')
 winheight       = patch.getfloat('display', 'height')
 
-slider  = []
-button  = []
-
-for item in config.items('slider'):
-    slider.append(item[0])
-for item in config.items('button'):
-    button.append(item)
-
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
-        self.setStyleSheet("background-color:black;");
-        self.setWindowTitle("EEGsynth inputcontrol")
-        self.drawlayout()
+        self.setStyleSheet('background-color:black;');
+        self.setWindowTitle('EEGsynth inputcontrol')
+        self.drawmain()
 
-    def drawlayout(self):
-        mainlayout = QHBoxLayout()
-        for item in slider:
-            sliderlayout = QVBoxLayout()
-            s = QSlider(Qt.Vertical)
-            s.name = item
-            s.type = 'slider'
-            s.setMinimum(0.)
-            s.setMaximum(127)
-            s.setValue(0)
-            s.setTickInterval(1)
-            s.setTickPosition(QSlider.NoTicks)
-            s.setStyleSheet("background-color: rgb(64,64,64);")
-            s.valueChanged.connect(self.changevalue)
-            sliderlayout.addWidget(s)
-            sliderlayout.setAlignment(s, Qt.AlignHCenter)
-            l = QLabel(item)
-            l.setAlignment(Qt.AlignHCenter)
-            l.setStyleSheet("color: rgb(200,200,200);")
-            sliderlayout.addWidget(l)
-            sliderlayout.setAlignment(l, Qt.AlignHCenter)
-            mainlayout.addLayout(sliderlayout)
+    # each row or column with sliders/dials/buttons is a panel
+    def drawpanel(self, panel, list):
+        for item in list:
+            if item[1]=='label':
+                l = QLabel(item[0])
+                l.setAlignment(Qt.AlignHCenter)
+                l.setStyleSheet('color: rgb(200,200,200);')
+                panel.addWidget(l)
 
-        boxlayout = QVBoxLayout()
-        for item in button:
-            b = QPushButton(item[0])
-            b.name = item[0]
-            b.type = item[1]
-            b.value = 0
-            if item[1]=='slap' or item[1]=='push':
-                b.pressed.connect(self.changevalue) # push down
-                b.released.connect(self.changevalue) # release
-            else:
-                b.pressed.connect(self.changevalue) # push down
-                b.released.connect(self.changecolor) # release
-            self.setcolor(b)
-            boxlayout.addWidget(b)
+            elif item[1]=='slider':
+                s = QSlider(Qt.Vertical)
+                s.name = item[0]
+                s.type = item[1]
+                s.setValue(0)
+                s.setMinimum(0)
+                s.setMaximum(127)
+                s.setTickInterval(1)
+                s.setTickPosition(QSlider.NoTicks)
+                s.setStyleSheet('background-color: rgb(64,64,64);')
+                s.valueChanged.connect(self.changevalue)
+                l = QLabel(s.name)
+                l.setAlignment(Qt.AlignHCenter)
+                l.setStyleSheet('color: rgb(200,200,200);')
+                # position the label under the slider
+                sl = QVBoxLayout()
+                sl.addWidget(s)
+                sl.setAlignment(s, Qt.AlignHCenter)
+                sl.addWidget(l)
+                sl.setAlignment(l, Qt.AlignHCenter)
+                panel.addLayout(sl)
 
-        mainlayout.addLayout(boxlayout)
+            elif item[1]=='dial':
+                s = QDial()
+                s.name = item[0]
+                s.type = item[1]
+                s.setValue(0)
+                s.setMinimum(0)
+                s.setMaximum(127)
+                s.setStyleSheet('background-color: rgb(64,64,64);')
+                s.valueChanged.connect(self.changevalue)
+                l = QLabel(s.name)
+                l.setAlignment(Qt.AlignHCenter)
+                l.setStyleSheet('color: rgb(200,200,200);')
+                # position the label under the dial
+                sl = QVBoxLayout()
+                sl.addWidget(s)
+                sl.setAlignment(s, Qt.AlignHCenter)
+                sl.addWidget(l)
+                sl.setAlignment(l, Qt.AlignHCenter)
+                panel.addLayout(sl)
+
+            elif item[1] in ['push', 'slap', 'toggle1', 'toggle2', 'toggle3', 'toggle4']:
+                b = QPushButton(item[0])
+                b.name = item[0]
+                b.type = item[1]
+                b.value = 0
+                if item[1]=='slap' or item[1]=='push':
+                    b.pressed.connect(self.changevalue) # push down
+                    b.released.connect(self.changevalue) # release
+                else:
+                    b.pressed.connect(self.changevalue) # push down
+                    b.released.connect(self.changecolor) # release
+                self.setcolor(b)
+                panel.addWidget(b)
+
+    def drawmain(self):
+        # the left contains the rows, the right the columns
+        leftlayout  = QVBoxLayout()
+        rightlayout = QHBoxLayout()
+        mainlayout  = QHBoxLayout()
+        mainlayout.addLayout(leftlayout)
+        mainlayout.addLayout(rightlayout)
         self.setLayout(mainlayout)
+
+        # the section 'slider' is treated as the first row
+        section = 'slider'
+        if config.has_section(section):
+            sectionlayout = QHBoxLayout()
+            self.drawpanel(sectionlayout, config.items(section))
+            leftlayout.addLayout(sectionlayout)
+
+        for row in range(0,16):
+            section = 'row%d' % (row+1)
+            if config.has_section(section):
+                sectionlayout = QHBoxLayout()
+                self.drawpanel(sectionlayout, config.items(section))
+                leftlayout.addLayout(sectionlayout)
+
+        # the section 'button' is treated as the first column
+        section = 'button'
+        if config.has_section(section):
+            sectionlayout = QVBoxLayout()
+            self.drawpanel(sectionlayout, config.items(section))
+            rightlayout.addLayout(sectionlayout)
+
+        for column in range(0,16):
+            section = 'column%d' % (column+1)
+            if config.has_section(section):
+                sectionlayout = QVBoxLayout()
+                self.drawpanel(sectionlayout, config.items(section))
+                rightlayout.addLayout(sectionlayout)
+
 
     def changecolor(self):
         target = self.sender()
@@ -132,12 +186,12 @@ class Window(QWidget):
     def changevalue(self):
         target = self.sender()
         send = True
-        if target.type=='slider':
+        if target.type=='slider' or target.type=='dial':
             val = target.value()
         elif target.type=='slap':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1
-            send = val>0 # only send the press, not the repease
+            send = val>0 # only send the press, not the release
         elif target.type=='push':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1
@@ -155,17 +209,17 @@ class Window(QWidget):
             val = target.value * 127 / 4
         self.setcolor(target)
         if send:
-            key = "%s.%s" % (prefix, target.name)
+            key = '%s.%s' % (prefix, target.name)
             val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
             patch.setvalue(key, val, debug=debug)
 
     def setcolor(self, target):
         # see https://www.w3schools.com/css/css3_buttons.asp
-        grey   = "background-color: rgb(250,250,250); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
-        red    = "background-color: rgb(255,0,0);     border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
-        yellow = "background-color: rgb(250,250,60);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
-        green  = "background-color: rgb(60,200,60);   border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
-        amber  = "background-color: rgb(250,190,45);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;"
+        grey   = 'background-color: rgb(250,250,250); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        red    = 'background-color: rgb(255,0,0);     border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        yellow = 'background-color: rgb(250,250,60);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        green  = 'background-color: rgb(60,200,60);   border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        amber  = 'background-color: rgb(250,190,45);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
 
         if target.type=='slap':
             if target.value==1:
