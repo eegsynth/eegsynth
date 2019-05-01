@@ -11,7 +11,7 @@ _The Novation LaunchControl XL, often used in EEGsynth setups_
 
 The [TouchOSC](https://hexler.net/products/touchosc) application for iOS or Android provides a modular control surface with bottons, sliders and knobs on touchscreen devices.
 
-![](../figures/touchosc.png)
+![](figures/touchosc.png)
 
 _Example TouchOSC interface, these can be fully configured using an editor_
 
