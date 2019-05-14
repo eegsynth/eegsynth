@@ -7,7 +7,7 @@ The purpose of the EEGsynth is to control external software and hardware with el
 - [Open Sound Control](http://opensoundcontrol.org/introduction-osc) with the [outputosc module](../module/outputosc).
   This can also be used to control music software such as [Pure Data](https://puredata.info/)
   for which one can find [many applications](https://patchstorage.com/platform/pd-extended/) in music, art, games and science.
-- [DMX512](https://en.wikipedia.org/wiki/DMX512) with the [outputdmx module](../module/outputdmx512)
+- [DMX512](https://en.wikipedia.org/wiki/DMX512) with the [outputdmx module](../module/outputdmx)
 - [Art-Net](https://en.wikipedia.org/wiki/Art-Net) with the [outputartnet module](../module/outputartnet)
 - Custom [CV/gate hardware](../hardware/usb2cvgate_4channel) using the [outputcvgate module](../module/outputcvgate) or commercial [CV/gate interfaces](doepfer.md) using the [outputmidi module](../module/outputmidi) and [endorphines module](../module/endorphines)
 - When using a [Raspberry Pi](http://raspberrypi.org/), one can also control the general purpose input/output (GPIO) pins using the [outputgio module](../module/outputgpio)

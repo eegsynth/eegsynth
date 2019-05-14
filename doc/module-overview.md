@@ -46,7 +46,7 @@ Detailed information about each module can be found in the README.md included in
 - [InputAudio](../module/InputAudio) Receive (sound) from soundcard
 - [OutputAudio](../module/outputaudio) Send (sound) to soundcard
 - [OutputArtNet](../module/outputartnet) Send data according to [Art-Net protocol](https://en.wikipedia.org/wiki/Art-Net)
-- [OutputDMX](../module/outputdmx512) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
+- [OutputDMX](../module/outputdmx) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
 - [OutputCVgate](../master/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](../hardware/usb2cvgate_4channel)
 
 ## External interfaces (consumer)
