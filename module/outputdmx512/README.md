@@ -1,3 +1,8 @@
-# Output DMX512 Module
+# DMX Output Module
 
-The purpose of this module is to send control values from Redis to DMX512 light systems using an Enntec DMX USB Pro (or compatible) converter.
+This module implements control of DMX compatible light fixtures using an Enttec DMX USB Pro, DMXKing ultraDMX Micro, or compatible USB-to-DMX converter. It reads control values from Redis and sends them in DMX format to your light fixtures.
+
+## See also
+
+- <https://www.enttec.com/range/controls/dmx-usb-interfaces>
+- <https://dmxking.com/usbdmx/ultradmxmicro>
