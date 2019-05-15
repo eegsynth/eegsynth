@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# OutputDMX sends Redis data according to the DMX protocol
+# OutputDMX sends DMX data using an Enttec DMX USB Pro, DMXKing ultraDMX Micro, or compatible interface
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -19,14 +19,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import EEGsynth
 import configparser
 import argparse
 import os
 import redis
-import serial
 import sys
 import time
+import serial
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -38,9 +37,11 @@ installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
+import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
+                                                            os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -59,16 +60,26 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
+# determine the size of the universe
+dmxsize = 0
+chanlist, chanvals = list(map(list, list(zip(*config.items('input')))))
+for chanindx in range(0, 512):
+    chanstr = "channel%03d" % (chanindx + 1)
+    if chanstr in chanlist:
+        # the last channel determines the size
+        dmxsize = chanindx
+
+# my fixture won't work if the frame size is too small
+dmxsize = max(dmxsize, 16)
+print("universe size = %d" % dmxsize)
+
+# make an empty frame
+dmxframe = [0] * dmxsize
+
 try:
     s = serial.Serial()
     s.port = patch.getstring('serial', 'device')
-    s.baudrate = patch.getstring('serial', 'baudrate', default=57600)
-    s.bytesize = 8
-    s.parity = 'N'
-    s.stopbits = 2
-    s.timeout = 3.0
-    # xonxoff = 0
-    # rtscts = 0
+    s.baudrate = 57600
     s.open()
     if debug > 0:
         print("Connected to serial port")
@@ -76,55 +87,28 @@ except:
     print("Error: cannot connect to serial port")
     exit()
 
-# give the device some time to initialize
-time.sleep(2)
+# See http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
+# See https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
 
-# determine the size of the universe
-dmxsize = 0
-chanlist, chanvals = list(map(list, list(zip(*config.items('input')))))
-for chanindx in range(1, 513):
-    chanstr = "channel%03d" % chanindx
-    if chanstr in chanlist:
-        dmxsize = chanindx
+START_VAL = 0x7E
+END_VAL = 0xE7
+TX_DMX_PACKET = 0x06
+FRAME_PAD = 0x00
 
-if debug > 0:
-    print("universe size = %d" % dmxsize)
-
-# This is from https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
-#
-# Reprogram Firmware Request (Label=1, no data)
-# Program Flash Page Request (Label=2) -> Program Flash Page Reply (Label=2)
-# Get Widget Parameters Request (Label=3) -> Get Widget Parameters Reply (Label=3)
-# Set Widget Parameters Request (Label=4)
-# Received DMX Packet (Label=5)
-# Output Only Send DMX Packet Request (Label=6)
-# Send RDM Packet Request (Label=7)
-# Receive DMX On Change (Label=8)
-# Received DMX Change Of State Packet (Label=9)
-# Get Widget Serial Number Request (Label = 10, no data) -> Get Widget Serial Number Reply (Label = 10)
-# Send RDM Discovery Request (Label=11)
-
-# This is from http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
-DMXOPEN = chr(126)                                      # char 126 is 7E in hex. It's used to start all DMX512 commands
-DMXCLOSE = chr(231)                                     # char 231 is E7 in hex. It's used to close all DMX512 commands
-DMXINIT1 = chr(3) + chr(2) + chr(0) + chr(0) + chr(0)   # request widget params
-DMXINIT2 = chr(10) + chr(2) + chr(0) + chr(0) + chr(0)  # request widget serial
-DMXSENDPACKET = chr(6) + chr(1) + chr(2) 		        # this is hard-coded for a universe size of 512 (plus one)
-
-# Set up an array corresponding to the universe size plus one.
-# The first element is the start code, which is 0.
-# The second element is channel 1, etc.
-chrdata = [chr(0)] * (dmxsize + 1)
-intdata = [0] * (dmxsize + 1)
-
-# this writes the initialization codes to the DMX
-s.write(DMXOPEN + DMXINIT1 + DMXCLOSE)
-s.write(DMXOPEN + DMXINIT2 + DMXCLOSE)
-
-# update the universe size
-MSB = int(len(chrdata) / 256)
-LSB = len(chrdata) - MSB * 256
-DMXSENDPACKET = chr(6) + chr(LSB) + chr(MSB)
+def sendframe():
+    packet = [
+        START_VAL,
+        TX_DMX_PACKET,
+        ((len(dmxframe) + 1) >> 0) & 0xFF,
+        ((len(dmxframe) + 1) >> 8) & 0xFF,
+        FRAME_PAD
+    ]
+    packet.extend(dmxframe)
+    packet.append(END_VAL)
+    if debug > 1:
+        print(packet)
+    packet = map(chr, packet)
+    s.write(''.join(packet))
 
 # keep a timer to send a packet every now and then
 prevtime = time.time()
@@ -134,15 +118,13 @@ try:
         time.sleep(patch.getfloat('general', 'delay'))
 
         update = False
-        for chanindx in range(1, 512):
-            chanstr = "channel%03d" % chanindx
+        for chanindx in range(0, dmxsize):
+            chanstr = "channel%03d" % (chanindx + 1)
             # this returns None when the channel is not present
             chanval = patch.getfloat('input', chanstr)
 
             if chanval == None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print("DMX channel%03d not available" % chanindx)
                 continue
 
             # the scale and offset options are channel specific
@@ -154,25 +136,27 @@ try:
             chanval = EEGsynth.limit(chanval, lo=0, hi=255)
             chanval = int(chanval)
 
-            if intdata[chanindx] != chanval:
-                update = True
+            # only update if the value has changed
+            if dmxframe[chanindx] != chanval:
                 if debug > 0:
                     print("DMX channel%03d" % chanindx, '=', chanval)
-                chrdata[chanindx] = chanval
-                intdata[chanindx] = chr(chanval)
+                dmxframe[chanindx] = chanval
+                update = True
 
         if update:
-            # join turns the array data into a string that we can send down the serial port
-            s.write(DMXOPEN + DMXSENDPACKET + ''.join(chrdata) + DMXCLOSE)
-            update = False
+            sendframe()
+            prevtime = time.time()
 
-        elif (time.time() - prevtime) > 1:
-            # join turns the array data into a string that we can send down the serial port
-            s.write(DMXOPEN + DMXSENDPACKET + ''.join(chrdata) + DMXCLOSE)
+        elif (time.time() - prevtime) > 0.5:
+            # send a maintenance frame every 0.5 seconds
+            sendframe()
             prevtime = time.time()
 
 
 except KeyboardInterrupt:
     if debug > 0:
         print("closing...")
+    # blank out everything
+    dmxframe = [0] * 512
+    sendframe()
     sys.exit()
