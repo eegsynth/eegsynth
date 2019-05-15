@@ -62,8 +62,11 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
+osc_address = patch.getstring('osc', 'address', default=socket.gethostbyname(socket.gethostname()))
+osc_port    = patch.getint('osc', 'port')
+
 try:
-    s = OSC.OSCServer((patch.getstring('osc', 'address'), patch.getint('osc', 'port')))
+    s = OSC.OSCServer((osc_address, osc_port))
     if debug > 0:
         print("Started OSC server")
 except:
@@ -71,13 +74,9 @@ except:
     print("Error: cannot start OSC server")
     exit()
 
-# this is a list of OSC messages that are to be processed as button presses, i.e. using a pubsub message in redis
-button_list = patch.getstring('button', 'push', multiple=True)
-
 # the scale and offset are used to map OSC values to Redis values
 scale = patch.getfloat('output', 'scale', default=1)
 offset = patch.getfloat('output', 'offset', default=0)
-
 # the results will be written to redis as "osc.1.faderA" etc.
 prefix = patch.getstring('output', 'prefix')
 
@@ -103,7 +102,7 @@ def forward_handler(addr, tags, data, source):
         addr = '/' + addr
 
     if tags == 'f' or tags == 'i':
-        # it is a single value
+        # it is a single scalar value
         key = prefix + addr.replace('/', '.')
         val = EEGsynth.rescale(data[0], slope=scale, offset=offset)
         patch.setvalue(key, val)
@@ -111,8 +110,8 @@ def forward_handler(addr, tags, data, source):
     else:
         for i in range(len(data)):
             # it is a list, send it as multiple scalar control values
-            # append the index to the key, this starts with 0
-            key = prefix + addr.replace('/', '.') + '.%i' % i
+            # append the index to the key, this starts with 1
+            key = prefix + addr.replace('/', '.') + '.%i' % (i+1)
             val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
             patch.setvalue(key, val)
 
@@ -122,7 +121,7 @@ s.addDefaultHandlers()
 # s.addMsgHandler("/1/faderA", test_handler)
 
 # just checking which handlers we have added
-print("Registered Callback-functions are :")
+print("Registered Callback functions are :")
 for addr in s.getOSCAddressSpace():
     print(addr)
 
@@ -131,7 +130,7 @@ print("\nStarting module. Use ctrl-C to quit.")
 st = threading.Thread(target=s.serve_forever)
 st.start()
 
-# loop while incoming OSC messages are being handled
+# keep looping while incoming OSC messages are being handled
 try:
     while True:
         time.sleep(update)
@@ -144,6 +143,6 @@ try:
 except KeyboardInterrupt:
     print("\nClosing module.")
     s.close()
-    print("Waiting for Server-thread to finish.")
+    print("Waiting for OSC server thread to finish.")
     st.join()
     print("Done.")
