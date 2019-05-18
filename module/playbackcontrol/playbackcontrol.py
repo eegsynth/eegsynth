@@ -92,6 +92,7 @@ for replace in config.items('replace'):
 for s,z in zip(channels, channelz):
     print("Writing channel", s, "as control value", z)
 
+# this should write data in one-sample blocks
 blocksize = 1
 begsample = 0
 endsample = blocksize-1
@@ -132,8 +133,10 @@ while True:
     if debug>1:
         print("Playing control value", block, 'from', begsample, 'to', endsample)
 
-    dat = list(map(int, f.readBlock(block)))
-    r.mset(dict(list(zip(channelz,dat))))
+    for indx in range(len(channelz)):
+        # read one sample for a single channel
+        val = float(f.readSamples(indx, begsample, endsample))
+        patch.setvalue(channelz[indx], val)
 
     begsample += blocksize
     endsample += blocksize
