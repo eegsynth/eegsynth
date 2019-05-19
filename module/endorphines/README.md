@@ -1,4 +1,4 @@
-# Endorphines Module
+# Endorphines module
 
 The purpose of this module is to send control values from Redis to the Endorphin.es Shuttle Control. The Shuttle Control is a MIDI to CV/Gate converter with 16 channels that can be controlled from -5 to +5 Volt.
 

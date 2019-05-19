@@ -1,7 +1,7 @@
-# Output GPIO Module
+# Output GPIO module
 
-The purpose of this module is to transform control signals and published events
-from Redis to the GPIO pins of a Raspberry Pi.
+This module transforms control signals and messages from Redis to the GPIO
+pins of a Raspberry Pi.
 
 The naming of GPIO pins follows the WiringPi convention, which differs from the
 Broadcom and the header pin numbers.
@@ -36,6 +36,4 @@ odd pins of the header and the right side of the table to the even pins.
 
 # Requirements
 
-Redis should be running.
-
-This module should be started on a Raspberry Pi on which [WiringPi](http://wiringpi.com/download-and-install/) should be installed.
+This module only works on a Raspberry Pi and [WiringPi](http://wiringpi.com/download-and-install/) should be installed.

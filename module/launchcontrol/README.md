@@ -1,6 +1,6 @@
-# Launch Control Module
+# Launchcontrol module
 
-The purpose of this module is to process input MIDI commands from a Novation LaunchControl or LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the Redis buffer. The button press and release events are sent as triggers to the Redis buffer.
+This module processes input MIDI commands from a Novation LaunchControl or LaunchControlXL digital control surface. The values of the sliders and knobs are sent as control signals to the Redis buffer. The button press and release events are sent as triggers to the Redis buffer.
 
 For the buttons you can specify whether they should respond as push buttons (on/off), slap buttons (not responding to off) or as toggle buttons. While push buttons are momentary, i.e. only "on" while you keep your them depressed, toggle buttons retain their state after you release them, pressing once more switches to the next state. The following options are supported, which are also represented using the color code of the LED:
 

@@ -1,3 +1,4 @@
-# Signal Playback Module
+# Playbacksignal module
 
-The purpose of this module is to read ExG signals from an EDF or a WAV file and to play those back in real-time to the FieldTrip buffer.
+This module reads ExG or audio signals from an EDF or a WAV file and plays
+those back in real-time to the FieldTrip buffer.

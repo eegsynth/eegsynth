@@ -1,3 +1,3 @@
-# Input MIDI Module
+# Input MIDI module
 
-The purpose of this module is to process incoming commands from a generic MIDI device or from MIDI software running on the same computer.
+This module processes incoming MIDI messages from a generic MIDI device or from MIDI software running on the same computer.

@@ -1,4 +1,4 @@
-# Inputcontrol
+# Inputcontrol module
 
 This module presents a graphical user interface (GUI) with a configurable number of sliders, dials (knobs) and buttons. It can be used as an alternative to a hardware MIDI controller such as the Novation LaunchControlXL. The values of the sliders and dials are sent as control signals to the Redis buffer. The button press and release events are sent as triggers to the Redis buffer.
 

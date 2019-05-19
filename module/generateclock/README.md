@@ -1,4 +1,4 @@
-# Generate clock module
+# Generateclock module
 
 The goal of this module is to generate regular clock signals. The rate of these clock signals is determined by a continuous control value. The output is sent as message to the Redis buffer and as clock ticks to MIDI. The Redis and MIDI messages are synchronous.
 

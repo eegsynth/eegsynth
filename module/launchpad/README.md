@@ -1,6 +1,6 @@
 # Launchpad Module
 
-The purpose of this module is to process input MIDI commands from a Novation Launchpad digital control surface. The button press and release events are sent as triggers to the Redis buffer.
+This module processes input MIDI commands from a Novation Launchpad digital control surface. The button press and release events are sent as triggers to the Redis buffer.
 
 For the buttons you can specify whether they should respond as push buttons (on/off) or as toggle buttons.
 

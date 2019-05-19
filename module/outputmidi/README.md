@@ -1,6 +1,6 @@
 # Output MIDI Module
 
-The purpose of this module is to send triggers and control values from Redis to an external MIDI device. The mapping between triggers and control channels can be fully configured in the ini file.
+This module sends triggers and control values from Redis to an external MIDI device. The mapping between triggers and control channels can be fully configured in the ini file.
 
 In the EEGsynth we are using two different mechanisms for communication. Continuous control channels are represented in Redis using *set/get*, which allow relatively slowly changing values to be represented persistently. Triggers are represented in Redis using *publish/subscribe*, which allows precise timing of events to be synchronized.
 

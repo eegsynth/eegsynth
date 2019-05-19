@@ -1,6 +1,6 @@
-# OpenBCI Module
+# OpenBCI module
 
-The goal of this module is to read data from the OpenBCI board (over the Bluetooth RF interface) and to write this data to the FieldTrip buffer. At the start of data acquisition the FieldTrip buffer will be reset.
+This module reads data from the OpenBCI Cyton board (over the USB dongle) and writes this data to the FieldTrip buffer. At the start of data acquisition the FieldTrip buffer will be reset.
 
 ![OpenBCI](./openbci.jpg)
 

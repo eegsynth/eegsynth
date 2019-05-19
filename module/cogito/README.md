@@ -1,4 +1,4 @@
-# Cogito Module
+# Cogito module
 
 The purpose of this module is to convert an multi-channel EEG signal into a single-channel audio signal, which can be played in real-time using the [outputaudio module](../outputaudio).
 

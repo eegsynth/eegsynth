@@ -1,4 +1,4 @@
-# EEG Processing Module
+# Spectral Power Module
 
 The goal of this module is to read EEG data from the FieldTrip buffer, to Fourier transform it and compute power in specific frequency bands. The power in each frequency band in each channel is written as control values to the Redis buffer.
 

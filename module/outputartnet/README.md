@@ -1,6 +1,6 @@
-# Art-Net Output Module
+# Output Art-Net module
 
-The purpose of this module is to send control values from Redis over Art-Net to network-connected DMX devices.
+This module sends control values from Redis over Art-Net to network-connected DMX devices.
 
 ## Neopixel strip/ring
 
