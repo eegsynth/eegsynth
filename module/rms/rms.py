@@ -19,11 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from nilearn import signal
 import configparser
 import argparse
 import math
-import multiprocessing
 import numpy as np
 import os
 import redis
@@ -102,7 +100,7 @@ channame = []
 chanindx = []
 for item in channel_items:
     # channel numbers are one-offset in the ini file, zero-offset in the code
-    channame.append(item[0])                           # the channel name
+    channame.append(item[0])                             # the channel name
     chanindx.append(patch.getint('input', item[0]) - 1)  # the channel number
 
 prefix = patch.getstring('output', 'prefix')
@@ -133,7 +131,9 @@ while True:
     for i, chanvec in enumerate(D.transpose()):
         for chanval in chanvec:
             rms[i] += chanval * chanval
-        rms[i] = math.sqrt(rms[i] / len(chanvec))
+        if rms[i]>0:
+            # this avoids an occasional "ValueError: math domain error"
+            rms[i] = math.sqrt(rms[i] / window)
 
     if debug > 0:
         print("rms =", rms)
