@@ -1,6 +1,9 @@
 # Karlstad patch
 
-This patch is for the performance in Karlstad on Saturday 25 May, 2019.
+This patch is for the performance by Per Huttner and Jean-Louis Huhta at
+Galleri Ekdahl in Karlstad on Saturday 25 May, 2019.
+
+- <https://www.galleriekdahl.se>
 
 ## Modules
 
@@ -24,3 +27,8 @@ The EEGsynth modules should then be started in the following order:
 11. playbackcontrol
 12. outputmidi.sh
 13. outputartnet.sh
+14. recordcontrol.sh
+
+## Schematic representation of the patch
+
+![flowchart](patch.png)

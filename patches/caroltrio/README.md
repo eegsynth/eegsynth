@@ -76,6 +76,6 @@ Control device.
     redis-cli set midi.note012 1  # for playback rewind on
     redis-cli set midi.note012 0  # for playback rewind off
 
-## Schematic representation
+## Schematic representation of the patch
 
-![image](patch.png)
+![flowchart](patch.png)

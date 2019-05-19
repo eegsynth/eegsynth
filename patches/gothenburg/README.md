@@ -6,11 +6,11 @@ The EEG goes into the spectral module and then into the `historycontrol` module 
 
 Furthermore, there are three videos (A, B and C) that fade into each other. The mix is controlled by a single brain control signal, which goes through the `geomixer` module to map it onto three channels for each A, B and C. The AVmixer software has "mixer 1" that controls the balance between A and B, and "mixer 2" that controls the balance between the A+B and the C mix. The `postprocessing` module is used to map the three channels from the `geomixer` onto the two hierarchical mixer channels, which are transmitted by `outputmidi` to the AVmixer software.
 
-## Graphical representation
+## Schematic representation of the patch
 
 The following visualizes the relation between the modules. The `redis` module is not displayed explicitly but is omnipresent, since most communication between modules goes over Redis.
 
-![flowchart of the patch](patch.png)
+![flowchart](patch.png)
 
 ## MIDI
 
