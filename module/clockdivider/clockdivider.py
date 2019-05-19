@@ -91,30 +91,30 @@ class TriggerThread(threading.Thread):
                         val = item['data']
                         patch.setvalue(self.key, val)
 
-channel = patch.getstring('clock', 'channel', multiple=True)
-divider = patch.getint('clock', 'rate',  multiple=True)
+channels = patch.getstring('clock', 'channel', multiple=True)
+dividers = patch.getint('clock', 'rate',  multiple=True)
 
-trigger = []
-for chan in channel:
-    for div in divider:
-        trigger.append(TriggerThread(chan, div))
-        print("d%d.%s" % (div, chan))
+triggers = []
+for channel in channels:
+    for divider in dividers:
+        triggers.append(TriggerThread(channel, divider))
+        print("d%d.%s" % (divider, channel))
 
 # start the thread for each of the triggers
-for thread in trigger:
+for thread in triggers:
     thread.start()
 
 try:
     while True:
         time.sleep(1)
         if debug > 0:
-            print("count =", count / len(divider))
+            print("count =", count / len(dividers))
 
 except KeyboardInterrupt:
     print("Closing threads")
-    for thread in trigger:
+    for thread in triggers:
         thread.stop()
     r.publish('CLOCKDIVIDER_UNBLOCK', 1)
-    for thread in trigger:
+    for thread in triggers:
         thread.join()
     sys.exit()

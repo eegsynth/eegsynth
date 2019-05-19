@@ -99,11 +99,11 @@ class TriggerThread(threading.Thread):
                     self.timer = []
 
                     if self.previous == None:
-                        # not yet possible to estimate the interval
+                        # it is not yet possible to estimate the interval
                         self.previous = now
                         continue
                     elif self.interval == None:
-                        # first estimate of the interval between triggers
+                        # this is the first estimate of the interval between triggers
                         self.interval = now - self.previous
                         self.previous = now
                     else:
@@ -113,41 +113,42 @@ class TriggerThread(threading.Thread):
                         self.previous = now
 
                     val = item['data']
+
                     # send the first one immediately
                     patch.setvalue(self.key, val)
 
+                    # schedule the subsequent ones after some time
                     for number in range(1, self.rate):
-                        # schedule the subsequent ones after some time
                         delay = number * (self.interval / self.rate)
                         t = threading.Timer(delay, patch.setvalue, args=[self.key, val])
                         t.start()
                         self.timer.append(t)
 
-channel = patch.getstring('clock', 'channel', multiple=True)
-multiplier = patch.getint('clock', 'rate',  multiple=True)
+channels = patch.getstring('clock', 'channel', multiple=True)
+multipliers = patch.getint('clock', 'rate',  multiple=True)
 learning_rate = patch.getfloat('clock', 'learning_rate')
 
-trigger = []
-for chan in channel:
-    for mult in multiplier:
-        trigger.append(TriggerThread(chan, mult, learning_rate))
-        print("x%d.%s" % (mult, chan))
+triggers = []
+for channel in channels:
+    for multiplier in multipliers:
+        triggers.append(TriggerThread(channel, multiplier, learning_rate))
+        print("x%d.%s" % (multiplier, channel))
 
 # start the thread for each of the triggers
-for thread in trigger:
+for thread in triggers:
     thread.start()
 
 try:
     while True:
         time.sleep(1)
         if debug > 0:
-            print("count =", count / len(multiplier))
+            print("count =", count / len(multipliers))
 
 except KeyboardInterrupt:
     print("Closing threads")
-    for thread in trigger:
+    for thread in triggers:
         thread.stop()
     r.publish('CLOCKMULTIPLIER_UNBLOCK', 1)
-    for thread in trigger:
+    for thread in triggers:
         thread.join()
     sys.exit()
