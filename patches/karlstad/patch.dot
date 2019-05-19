@@ -14,6 +14,7 @@ digraph {
   spectral -> postprocessing;
   historycontrol -> postprocessing;
   playbackcontrol -> outputmidi;
+  postprocessing -> recordcontrol;
   postprocessing -> outputmidi;
   postprocessing -> outputartnet;
 }
