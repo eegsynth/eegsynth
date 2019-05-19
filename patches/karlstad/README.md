@@ -24,10 +24,11 @@ The EEGsynth modules should then be started in the following order:
 8. spectral.sh
 9. historycontrol.sh
 10. postprocessing.sh
-11. playbackcontrol
-12. outputmidi.sh
-13. outputartnet.sh
-14. recordcontrol.sh
+11. quantizer.sh
+12. playbackcontrol
+13. outputmidi.sh
+14. outputartnet.sh
+15. recordcontrol.sh
 
 ## Schematic representation of the patch
 

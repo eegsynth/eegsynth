@@ -16,5 +16,6 @@ digraph {
   playbackcontrol -> outputmidi;
   postprocessing -> recordcontrol;
   postprocessing -> outputmidi;
+  postprocessing -> quantizer -> outputmidi;
   postprocessing -> outputartnet;
 }
