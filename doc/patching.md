@@ -2,7 +2,7 @@
 
 In the EEGsynth, each module runs independently (in parallel), performing a specific function and communicating the result with each other. There is a great benefit in allowing modules to run independently, in their own time (anachronistically). In this way, some modules can run fast (e.g. pulling new data from an external device, and putting it in the data buffer), while others can run at a slower pace, e.g. calculating power over second-long windows.
 
-A basic patch might have the following modules run (in parallel):
+A basic patch for example could have the following modules running in parallel:
 
 - The [Redis server](redis.md) to communicate _control signals_ between modules
 - The [Buffer server](buffer.md) to communicate _data_ between modules
