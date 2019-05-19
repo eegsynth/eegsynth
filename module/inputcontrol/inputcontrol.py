@@ -79,6 +79,30 @@ class Window(QWidget):
     # each row or column with sliders/dials/buttons is a panel
     def drawpanel(self, panel, list):
         for item in list:
+
+            try:
+                # read the previous value from Redis
+                key = '%s.%s' % (prefix, item[0])
+                val = float(patch.redis.get(key))
+                # sliders and dials have an internal value between 0 and 127
+                val = int(EEGsynth.rescale(val, slope=output_scale, offset=output_offset, reverse=True))
+                # buttons have an internal value of 0, 1, 2, 3, 4
+                if item[1]=='slap':
+                    val = int(1. * val / 127.)
+                elif item[1]=='toggle1':
+                    val = int(1. * val / 127.)
+                elif item[1]=='toggle2':
+                    val = int(2. * val / 127.)
+                elif item[1]=='toggle3':
+                    val = int(3. * val / 127.)
+                elif item[1]=='toggle4':
+                    val = int(4. * val / 127.)
+                if debug>0:
+                    print(key, val)
+            except:
+                # set the default initial value to 0
+                val = 0
+
             if item[1]=='label':
                 l = QLabel(item[0])
                 l.setAlignment(Qt.AlignHCenter)
@@ -89,9 +113,9 @@ class Window(QWidget):
                 s = QSlider(Qt.Vertical)
                 s.name = item[0]
                 s.type = item[1]
-                s.setValue(0)
                 s.setMinimum(0)
-                s.setMaximum(127)
+                s.setMaximum(127) # default is 100
+                s.setValue(val)
                 s.setTickInterval(1)
                 s.setTickPosition(QSlider.NoTicks)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
@@ -111,9 +135,9 @@ class Window(QWidget):
                 s = QDial()
                 s.name = item[0]
                 s.type = item[1]
-                s.setValue(0)
                 s.setMinimum(0)
-                s.setMaximum(127)
+                s.setMaximum(127) # default is 100
+                s.setValue(val)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
                 s.valueChanged.connect(self.changevalue)
                 l = QLabel(s.name)
@@ -131,12 +155,12 @@ class Window(QWidget):
                 b = QPushButton(item[0])
                 b.name = item[0]
                 b.type = item[1]
-                b.value = 0
+                b.value = val
                 if item[1]=='slap' or item[1]=='push':
-                    b.pressed.connect(self.changevalue) # push down
+                    b.pressed.connect(self.changevalue)  # push down
                     b.released.connect(self.changevalue) # release
                 else:
-                    b.pressed.connect(self.changevalue) # push down
+                    b.pressed.connect(self.changevalue)  # push down
                     b.released.connect(self.changecolor) # release
                 self.setcolor(b)
                 panel.addWidget(b)
