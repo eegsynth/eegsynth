@@ -12,7 +12,7 @@ Some interesting hardware modules are:
 
 - [Knight's Gallop](http://www.shakmatmodular.com/products/kg.html)
 
-The following Python code can be used to generate a list of Euclidean rhythms that can be used in the sequencer module.
+The following Python code can be used to generate a list of Euclidean rhythms to be used in the sequencer module.
 
 ```
 f=lambda n,k,a='1',b='0':n-k<2and a*k+b*(n-k)or[f(n-k,k,a+b,b),f(k,n-k,a+b,a)][2*k>n]

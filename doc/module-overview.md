@@ -6,7 +6,7 @@ Detailed information about each module can be found in the README.md included in
 
 - [Spectral](../module/spectral) Analyzes power in frequency bands in the raw data buffer
 - [Muscle](../module/muscle) Calculates RMS from EMG recordings in the raw data buffer
-- [Accelerometer](../module/accelerometer) Extracts accelerometer data (X,Y,Z) from onboard sensor of the OpenBCI in the raw data buffer
+- [Accelerometer](../module/accelerometer) Extracts accelerometer data (X,Y,Z) from the onboard sensor of the OpenBCI stream in the raw data buffer
 - [EyeBlink](../module/eyeblink) Detects eye blinks in the raw data buffer
 - [HeartRate](../module/heartrate) Extracts heart rate in the raw data buffer
 
