@@ -1,0 +1,9 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+  polar_wearlink -> historycontrol -> postprocessing -> display_price;
+  polar_wearlink -> postprocessing -> outputdmx;
+  inputcontrol -> postprocessing;
+  polar_wearlink -> plotcontrol;
+}
