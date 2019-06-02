@@ -202,7 +202,9 @@ try:
         # the duration is relative to the time between clock ticks
         duration = patch.getfloat('sequence', 'duration', default=0.)
         duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
-        duration = EEGsynth.limit(duration, 0.1, 0.9)
+        if duration > 0:
+            # a duration of 0 or less means that the note will not switch off
+            duration = EEGsynth.limit(duration, 0.1, 0.9)
 
         if debug > 0:
             # show the parameters whose value has changed
