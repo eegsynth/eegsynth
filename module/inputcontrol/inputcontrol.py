@@ -109,6 +109,25 @@ class Window(QWidget):
                 l.setStyleSheet('color: rgb(200,200,200);')
                 panel.addWidget(l)
 
+            elif item[1]=='text':
+                t = QLineEdit()
+                t.name = item[0]
+                t.type = item[1]
+                t.setText("%d" % val)
+                t.setAlignment(Qt.AlignHCenter)
+                t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
+                t.editingFinished.connect(self.changevalue)
+                l = QLabel(s.name)
+                l.setAlignment(Qt.AlignHCenter)
+                l.setStyleSheet('color: rgb(200,200,200);')
+                # position the label under the slider
+                tl = QVBoxLayout()
+                tl.addWidget(t)
+                tl.setAlignment(t, Qt.AlignHCenter)
+                tl.addWidget(l)
+                tl.setAlignment(l, Qt.AlignHCenter)
+                panel.addLayout(tl)
+
             elif item[1]=='slider':
                 s = QSlider(Qt.Vertical)
                 s.name = item[0]
@@ -175,6 +194,7 @@ class Window(QWidget):
         self.setLayout(mainlayout)
 
         # the section 'slider' is treated as the first row
+        # this is only for backward compatibility
         section = 'slider'
         if config.has_section(section):
             sectionlayout = QHBoxLayout()
@@ -189,6 +209,7 @@ class Window(QWidget):
                 leftlayout.addLayout(sectionlayout)
 
         # the section 'button' is treated as the first column
+        # this is only for backward compatibility
         section = 'button'
         if config.has_section(section):
             sectionlayout = QVBoxLayout()
@@ -212,6 +233,9 @@ class Window(QWidget):
         send = True
         if target.type=='slider' or target.type=='dial':
             val = target.value()
+        elif target.type=='text':
+            val = int(target.text())    # convert the string into an integer
+            target.setText('%d' % val)  # ensure that the displayed value is consistent
         elif target.type=='slap':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1
