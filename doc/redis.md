@@ -4,15 +4,15 @@
 
 The EEGsynth implements patching modules by means of the open-source [Redis
 database](http://Redis.io/). In the code, modules _put_ [attribute-value
-pair](https://en.wikipedia.org/wiki/Attribute%E2%80%93value_pair) into the
+pairs](https://en.wikipedia.org/wiki/Attribute%E2%80%93value_pair) into the
 database, e.g. `put('Heartrate', 92)`, or request the value of an attribute,
-e.g. `get('Heartrate')`. In addition, modules publish/subscribe and can respond
+e.g. `get('Heartrate')`. In addition, modules can publish/subscribe and thereby respond
 near instantly to singular events or to changes in continuous values. The user
 of the EEGsynth specifies the attribute names for input and output in each
 module's [initialization file](inifile.md), and often adds prefixes or postfixes
 to the input attributes. Because the Redis database is network-transparent, it
-can easily be accessed via e.g. other programs, e.g. with Python (see
-documentation on [output and control](output.md))
+can easily be accessed on other computers via e.g. other programs, e.g. with
+Python (see documentation on [output and control](output.md))
 
 ## Extended explanation
 
@@ -20,9 +20,9 @@ documentation on [output and control](output.md))
 
 Processes in the body and brain - and their analysis - can be considers to have
 two categorically different ways of relating to time: they are either
-continuous, or they consist of momentary events. Power within a particular
-frequency range is an example of the former, while the occurrence of a
-heart-beat would be an example of an event. Both are implemented using a
+continuous, or they consist of momentary events. The amplitude in a specific EEG
+frequency band is an example of the former, while the occurrence of a
+heartbeat would be an example of an event. Both are implemented using a
 database ([Redis](http://Redis.io/)), with put/get for continuous signals, and
 pub/sub (publish/subscribe) to deal with events. To understand how this works in
 practical contexts, such as when controlling a modular synthesizer, we need to
@@ -49,8 +49,8 @@ large brain events spontaneously, such as in epilepsy. For most intents and
 purposes, however, EEG just does not provide much to work with when it comes to
 events. Instead we can look at other electrophysiological signals, such as
 electrocardiography (ECG). With ECG we can clearly identify ‘events’, namely
-heart-beats, e.g. detected by the R-peak of the QRS complex. We know the time
-between heart-beats, the inter-beat-interval (or it’s inverse: the heart-rate),
+heartbeats, e.g. detected by the R-peak of the QRS complex. We know the time
+between heartbeats, the inter-beat-interval (or it’s inverse: the heart-rate),
 has physiological meaning (heart-rate variability is a reliable indicator of
 physiological health), displays variation over time, and can be brought to some
 degree under conscious control via biofeedback, altogether making it a very
@@ -125,7 +125,7 @@ message to which they can respond instantly. That's how we implement triggers.
 
 After correct [installation](installation.md), you should have Redis running in
 the background. You can open a Redis interface by typing: `redis-cli`. You can
-then `put('myname','blabla')` and `get('myname')`, to return the value
-('blabla'). Another great trick, is to monitor changes in the content of Redis
+then `put myname blabla` to store the value and `get myname`, to retrieve the value.
+Another great trick, is to monitor changes in the content of Redis
 while the EEGsynth is running, by opening a new terminal and running `redis-cli
 monitor`.
