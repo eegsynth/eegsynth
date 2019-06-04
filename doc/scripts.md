@@ -4,7 +4,7 @@ The EEGsynth is designed as a collection of [modules](design.md), where each mod
 
 ## Starting the scripts
 
-The core of each modules consist of a [Python](https://python.org) script. These scripts are executed in their own terminal window (or tab) as a Python script, with the `-i` option followed by the name of their [ini file](inifile.md).
+The core of each modules consist of a single [Python](https://python.org) script. These scripts are executed in their own terminal window (or tab), with the `-i` option followed by the name of their [ini file](inifile.md).
 
 For example:
 
@@ -12,24 +12,15 @@ For example:
 python launchcontrol.py -i ../../patches/launchcontrol.ini
 ```
 
-If the script is run without the `-i` option, it will default to the ini file in the
-current directory with the same name as the module. As explained [here](patching.md), we strongly
-advice you to place your edited [ini files](inifile.md) in a separate patch directory to keep
-your patches organized and free from conflicts with the EEGsynth repository.
+If the script is run without the `-i` option, it will default to the ini file in the current directory with the same name as the module. As explained [here](patching.md), we strongly advice you to place your edited [ini files](inifile.md) in a separate patch directory to keep your patches organized and free from conflicts with the EEGsynth repository.
 
 ## Design of the scripts
 
-To use the modules you do not need to be able to understand [Python](https://python.org) or be
-able to program. However, for those who do want to [contribute](contribute.md), what follows is
-an explanation of a 'skeleton' of code, that can be used to design you own module or extend the
-functionality of an existing one (although as explained [here](contribute.md) we do adhere to
-a modular design in which each module addresses a specific and limited function). When going
-through the code of a script like that, you will notice that most of the code is, in fact, the same.
+To use the modules you do not need to be able to understand [Python](https://python.org) or be able to program. However, for those who do want to [contribute](contribute.md), what follows is an explanation of a 'skeleton' of code, that can be used to design you own module or extend the functionality of an existing one (although as explained [here](contribute.md) we do adhere to a modular design in which each module addresses a specific and limited function). When going through the code of a script like that, you will notice that most of the code is, in fact, the same.
 
 ### Description and license
 
-Each script is prefaced with a commented text explaining it's functionality, as well as GNU license.
-Note that you are obliged to conform to the GNU General Public License (also in derived works):
+Each script is prefaced with a commented text explaining it's functionality, as well as GNU license. Note that you are obliged to conform to the GNU General Public License, also in derived works:
 
 ```
 #!/usr/bin/env python
@@ -87,9 +78,7 @@ import EEGsynth
 
 ### The patch object
 
-What follows is a couple of lines of code that read and combine settings from both the ini file
-and Redis in a patch object. It is important to understand their interaction, as it account of a lot of
-the EEGsynth's flexibility and real-time element:
+What follows is a couple of lines of code that read and combine settings from both the ini file and Redis in a patch object. It is important to understand their interaction, as it account of a lot of the EEGsynth's flexibility and real-time element:
 
 - Values can be set by both the ini file and by Redis. None take priority - the last edit remains.
 - Any (running) module can set values in Redis, so multiple modules can read and write to Redis, allowing many-to-many interactions.
@@ -301,16 +290,10 @@ patch.setvalue(key, val[0])
 
 ### ADVANCED: Using multithreading
 
-The above way of iterating through the main code assumes two things: time is not of essence,
-and all the code can be executed sequentially. This is by far the easiest way to think and code.
-However, sometimes it is necessary to have several processes running at the same time, especially
-when time is of the essence, and the code should respond to an event as soon as it happens,
-without waiting for other code to finish. In such cases it one should probably first try to
-see whether the intended scenario cannot be accomplished with two separate modules. If not, one
-might want to use threads.
+The above way of iterating through the main code assumes two things: time is not of essence, and all the code can be executed sequentially. This is by far the easiest way to think and code. However, sometimes it is necessary to have several processes running at the same time, especially when time is of the essence, and the code should respond to an event as soon as it happens,
+without waiting for other code to finish. In such cases it one should probably first try to see whether the intended scenario cannot be accomplished with two separate modules. If not, one might want to use threads.
 
-Threads are started before the main loop, which then often only has to be there to allow those threads
-to remain active and permit keyboard interrupts (CTRL+C) to be able to stop the code:
+Threads are started before the main loop, which then often only has to be there to allow those threads to remain active and permit keyboard interrupts (CTRL+C) to be able to stop the code:
 
 ```
 class ClockThread(threading.Thread):

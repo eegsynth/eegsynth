@@ -2,12 +2,12 @@
 
 The EEGsynth code is organized as follows:
 
- * [eegsynth/bin](bin) contains binaries for the buffer and for EEG acquisition
- * [eegsynth/doc](doc) contains the documentation on the EEGsynth software
- * [eegsynth/hardware](hardware) contains the documentation on hardware
- * [eegsynth/lib](lib) contains EEGsynth and other Python libraries
- * [eegsynth/module](module) directories contains the modules
- * [eegsynth/patches](patches) directories contains patches from performances and for testing
+ * [bin](bin) contains binaries for the buffer and for some EEG systems
+ * [doc](doc) contains the documentation on the EEGsynth software
+ * [hardware](hardware) contains the hardware documentation
+ * [lib](lib) contains some libraries
+ * [module](module) contains the EEGsynth modules
+ * [patches](patches) contains patches for performances
 
 
 # EEGsynth.org

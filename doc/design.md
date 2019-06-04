@@ -4,7 +4,7 @@ The design of the EEGsynth is modular, directly inspired by [modular synthesizer
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Doepfer_A-100.jpg/330px-Doepfer_A-100.jpg)
 
-Every module does a specific task. Each module consists of a Python script, and is contained in its own directory.
+Every module does a specific task. Each module consists of a single Python script, and is contained in its own directory.
 
 For instance, in the directory [module/launchcontrol](https://github.com/eegsynth/eegsynth/module/launchcontrol) we find:
 
@@ -12,7 +12,6 @@ For instance, in the directory [module/launchcontrol](https://github.com/eegsynt
 - [launchcontrol.ini](https://github.com/eegsynth/eegsynth/module/launchcontrol/launchcontrol.ini) which is the initialization file setting the parameters and the way it's connected. Read more about the ini files [here](inifile.md)
 - [README.md](https://github.com/eegsynth/eegsynth/module/launchcontrol/README.md) which is the explanation of the module in [markdown](https://en.wikipedia.org/wiki/Markdown) format
 
-Similarly as in modular synthesizers, the EEGsynth works by having several modules interconnected, sending
-and receiving information between each other. Similarly as in modular synthesizers, we call this _patching_. Read more about how we implement patching [here](patching.md).
+As in modular synthesizers, the EEGsynth works by having several modules interconnected, sending and receiving information between each other. Similarly as in modular synthesizers, we call this _patching_. Read more about how we implement patching [here](patching.md), or go [here](module-overview.md) for the module overview.
 
 _Continue reading: [Python scripts](scripts.md)_
