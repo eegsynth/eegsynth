@@ -85,6 +85,10 @@ except:
     print("Error: cannot connect to MIDI output")
     exit()
 
+# the scale and offset are used to map Redis values to MIDI values
+scale  = patch.getfloat('input', 'scale', default=127)
+offset = patch.getfloat('input', 'offset', default=0)
+
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
@@ -134,10 +138,6 @@ for thread in trigger:
 previous_val = {}
 for name in control_name:
     previous_val[name] = None
-
-# the scale and offset are used to map Redis values to MIDI values
-scale  = patch.getfloat('input', 'scale', default=127)
-offset = patch.getfloat('input', 'offset', default=0)
 
 try:
     while True:
