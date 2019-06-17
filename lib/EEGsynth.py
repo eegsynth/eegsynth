@@ -406,7 +406,7 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
     if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
         # totally blocking all signal
         print('using NULL filter', [highpass, lowpass])
-        b = np.zeros(window)
+        b = np.zeros(order)
         a = np.ones(1)
     elif not(lowpass is None) and (highpass is None):
         print('using lowpass filter', [highpass, lowpass])
