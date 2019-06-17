@@ -61,7 +61,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 # get the input and output options
 input_name, input_variable = list(zip(*config.items('input')))
