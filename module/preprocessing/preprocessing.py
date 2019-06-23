@@ -126,8 +126,10 @@ window = int(round(window*hdr_input.fSample))
 # Processing init
 downsample  = patch.getint('processing', 'downsample', default=None)
 smoothing   = patch.getfloat('processing', 'smoothing', default=None)
-reference   = patch.getstring('processing','reference')
-filterorder = patch.getint('processing', 'filterorder')
+try:
+    reference = patch.getstring('processing','reference')
+except:
+    reference = 'none'
 
 try:
     float(config.get('processing', 'highpassfilter'))
@@ -139,10 +141,17 @@ except:
     # scale them to the Nyquist frequency
     default_scale = hdr_input.fSample/2
 
-scale_lowpass      = patch.getfloat('scale', 'lowpassfilter', default=default_scale)
-scale_highpass     = patch.getfloat('scale', 'highpassfilter', default=default_scale)
-offset_lowpass     = patch.getfloat('offset', 'lowpassfilter', default=0)
-offset_highpass    = patch.getfloat('offset', 'highpassfilter', default=0)
+scale_lowpass       = patch.getfloat('scale', 'lowpassfilter', default=default_scale)
+scale_highpass      = patch.getfloat('scale', 'highpassfilter', default=default_scale)
+scale_notchfilter   = patch.getfloat('scale', 'notchfilter', default=default_scale)
+offset_lowpass      = patch.getfloat('offset', 'lowpassfilter', default=0)
+offset_highpass     = patch.getfloat('offset', 'highpassfilter', default=0)
+offset_notchfilter  = patch.getfloat('offset', 'notchfilter', default=0)
+
+scale_filterorder   = patch.getfloat('scale', 'filterorder', default=1)
+scale_notchquality  = patch.getfloat('scale', 'notchquality', default=1)
+offset_filterorder  = patch.getfloat('offset', 'filterorder', default=0)
+offset_notchquality = patch.getfloat('offset', 'notchquality', default=0)
 
 if downsample == None:
     ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
@@ -185,19 +194,25 @@ while True:
         print("------------------------------------------------------------")
         print("read        ", window, "samples in", (time.time()-start)*1000, "ms")
 
-    # Online filtering
+    # Online bandpass filtering
     highpassfilter = patch.getfloat('processing', 'highpassfilter', default=None)
     if highpassfilter != None:
         highpassfilter = EEGsynth.rescale(highpassfilter, slope=scale_highpass, offset=offset_highpass)
     lowpassfilter = patch.getfloat('processing', 'lowpassfilter', default=None)
     if lowpassfilter != None:
         lowpassfilter = EEGsynth.rescale(lowpassfilter, slope=scale_lowpass, offset=offset_lowpass)
+    filterorder = patch.getfloat('processing', 'filterorder', default=int(2*hdr_input.fSample))
+    if filterorder != None:
+        filterorder = EEGsynth.rescale(filterorder, slope=scale_filterorder, offset=offset_filterorder)
 
     change = False
     change = show_change('highpassfilter',  highpassfilter) or change
     change = show_change('lowpassfilter',   lowpassfilter)  or change
+    change = show_change('filterorder',     filterorder)    or change
     if change:
         # update the filter parameters
+        filterorder = int(filterorder)                     # ensure it is an integer
+        filterorder = filterorder + (filterorder%2 ==0)    # ensure it is odd
         b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
 
     if not(highpassfilter is None) or not(lowpassfilter is None):
@@ -205,6 +220,27 @@ while True:
         dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
         if debug>1:
             print("filtered    ", window, "samples in", (time.time()-start)*1000, "ms")
+
+    # Online notch filtering
+    notchfilter = patch.getfloat('processing', 'notchfilter', default=None)
+    if notchfilter != None:
+        notchfilter = EEGsynth.rescale(notchfilter, slope=scale_notchfilter, offset=offset_notchfilter)
+    notchquality = patch.getfloat('processing', 'notchquality', default=25)
+    if notchquality != None:
+        notchquality = EEGsynth.rescale(notchquality, slope=scale_notchquality, offset=offset_notchquality)
+
+    change = False
+    change = show_change('notchfilter',  notchfilter)  or change
+    change = show_change('notchquality', notchquality) or change
+    if change:
+        # update the filter parameters
+        nb, na, nzi = EEGsynth.initialize_online_notchfilter(hdr_input.fSample, notchfilter, notchquality, dat_output, axis=0)
+
+    if not(notchfilter is None):
+        # apply the filter to the data
+        dat_output, nzi = EEGsynth.online_filter(nb, na, dat_output, axis=0, zi=nzi)
+        if debug>1:
+            print("notched     ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Downsampling
     if not(downsample is None):
