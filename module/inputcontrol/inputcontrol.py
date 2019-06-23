@@ -117,7 +117,7 @@ class Window(QWidget):
                 t.setAlignment(Qt.AlignHCenter)
                 t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
                 t.editingFinished.connect(self.changevalue)
-                l = QLabel(s.name)
+                l = QLabel(t.name)
                 l.setAlignment(Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the slider
