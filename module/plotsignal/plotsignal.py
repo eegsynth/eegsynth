@@ -147,16 +147,21 @@ chanarray = patch.getint('arguments', 'channels', multiple=True)
 chanarray = [chan - 1 for chan in chanarray] # since python using indexing from 0 instead of 1
 
 chan_nrs    = len(chanarray)
+winx        = patch.getfloat('display', 'xpos')
+winy        = patch.getfloat('display', 'ypos')
+winwidth    = patch.getfloat('display', 'width')
+winheight   = patch.getfloat('display', 'height')
 window      = patch.getfloat('arguments', 'window')        # in seconds
 window      = int(round(window * hdr_input.fSample))       # in samples
 clipsize    = patch.getfloat('arguments', 'clipsize')      # in seconds
 clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
 stepsize    = patch.getfloat('arguments', 'stepsize')      # in seconds
-winx        = patch.getfloat('display', 'xpos')
-winy        = patch.getfloat('display', 'ypos')
-winwidth    = patch.getfloat('display', 'width')
-winheight   = patch.getfloat('display', 'height')
 lrate       = patch.getfloat('arguments', 'learning_rate')
+
+try:
+    ylim    = patch.getfloat('arguments', 'ylim', 'multiple', True)
+except Exception as e:
+    ylim    = []
 
 # lowpass, highpass and bandpass are optional, but mutually exclusive
 filtorder = 9
@@ -244,10 +249,12 @@ def update():
         # update timecourses
         curve[ichan].setData(timeaxis, data[:, channr])
 
-        # adapt the vertical scale to the running mean of max
-        curvemax[ichan] = curvemax[ichan] * (1 - lrate) + lrate * max(abs(data[:, channr]))
-        timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
-
+        if len(ylim)==2:
+            timeplot[ichan].setYRange(ylim[0], ylim[1])
+        else:
+            # adapt the vertical scale to the running mean of max
+            curvemax[ichan] = curvemax[ichan] * (1 - lrate) + lrate * max(abs(data[:, channr]))
+            timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
 
 # keyboard interrupt handling
 def sigint_handler(*args):
