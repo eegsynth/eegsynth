@@ -4,7 +4,7 @@ import os
 import sys
 import threading
 import numpy as np
-from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic
+from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 try:
     # see https://trac.v2.nl/wiki/pyOSC
@@ -382,6 +382,37 @@ def squeeze(char, string):
     return string
 
 ####################################################################
+def initialize_online_notchfilter(fsample, fnotch, quality, x, axis=-1):
+    nyquist = fsample / 2.
+    ndim = len(x.shape)
+    axis = axis % ndim
+
+    if fnotch != None:
+        fnotch = fnotch/nyquist
+        if fnotch < 0.001:
+            fnotch = None
+        elif fnotch > 0.999:
+            fnotch = None
+
+    if not(fnotch == None) and (quality>0):
+        print('using NOTCH filter', [fnotch, quality])
+        b, a = iirnotch(fnotch, quality)
+    else:
+        # no filtering at all
+        print('using IDENTITY filter', [fnotch, quality])
+        b = np.ones(1)
+        a = np.ones(1)
+
+    # initialize the state for the filtering based on the previous data
+    if ndim == 1:
+        zi = zi = lfiltic(b, a, x, x)
+    elif ndim == 2:
+        f = lambda x : lfiltic(b, a, x, x)
+        zi = np.apply_along_axis(f, axis, x)
+
+    return b, a, zi
+
+####################################################################
 def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
     # boxcar, triang, blackman, hamming, hann, bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann
     filtwin = 'nuttall'
@@ -391,38 +422,38 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
 
     if highpass != None:
         highpass = highpass/nyquist
-        if highpass < 0.01:
+        if highpass < 0.001:
             highpass = None
-        elif highpass > 0.99:
+        elif highpass > 0.999:
             highpass = None
 
     if lowpass != None:
         lowpass = lowpass/nyquist
-        if lowpass < 0.01:
+        if lowpass < 0.001:
             lowpass = None
-        elif lowpass > 0.99:
+        elif lowpass > 0.999:
             lowpass = None
 
     if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
         # totally blocking all signal
-        print('using NULL filter', [highpass, lowpass])
+        print('using NULL filter', [highpass, lowpass, order])
         b = np.zeros(order)
         a = np.ones(1)
     elif not(lowpass is None) and (highpass is None):
-        print('using lowpass filter', [highpass, lowpass])
+        print('using lowpass filter', [highpass, lowpass, order])
         b = firwin(order, cutoff = lowpass, window = filtwin, pass_zero = True)
         a = np.ones(1)
     elif not(highpass is None) and (lowpass is None):
-        print('using highpass filter', [highpass, lowpass])
+        print('using highpass filter', [highpass, lowpass, order])
         b = firwin(order, cutoff = highpass, window = filtwin, pass_zero = False)
         a = np.ones(1)
     elif not(highpass is None) and not(lowpass is None):
-        print('using bandpass filter', [highpass, lowpass])
+        print('using bandpass filter', [highpass, lowpass, order])
         b = firwin(order, cutoff = [highpass, lowpass], window = filtwin, pass_zero = False)
         a = np.ones(1)
     else:
         # no filtering at all
-        print('using IDENTITY filter', [highpass, lowpass])
+        print('using IDENTITY filter', [highpass, lowpass, order])
         b = np.ones(1)
         a = np.ones(1)
 
