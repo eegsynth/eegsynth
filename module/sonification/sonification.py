@@ -56,6 +56,16 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
+        print(key, "=", val)
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
+
 debug       = patch.getint('general', 'debug')                 # this determines how much debugging information gets printed
 timeout     = patch.getfloat('input_fieldtrip', 'timeout')     # this is the timeout for the FieldTrip buffer
 sample_rate = patch.getfloat('sonification', 'sample_rate')
@@ -72,6 +82,24 @@ scaling        = patch.getfloat('sonification', 'scaling')
 scaling_method = patch.getstring('sonification', 'scaling_method')
 scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
 offset_scaling = patch.getfloat('offset', 'scaling', default=0)
+
+try:
+    float(config.get('processing', 'highpassfilter'))
+    float(config.get('processing', 'lowpassfilter'))
+    # the filter frequencies are specified as numbers
+    default_scale = 1.
+except:
+    # the filter frequencies are specified as Redis channels
+    # scale them to the Nyquist frequency
+    default_scale = sample_rate/2
+
+# these are for bandpass filtering
+scale_lowpass       = patch.getfloat('scale', 'lowpassfilter', default=default_scale)
+scale_highpass      = patch.getfloat('scale', 'highpassfilter', default=default_scale)
+offset_lowpass      = patch.getfloat('offset', 'lowpassfilter', default=0)
+offset_highpass     = patch.getfloat('offset', 'highpassfilter', default=0)
+scale_filterorder   = patch.getfloat('scale', 'filterorder', default=1)
+offset_filterorder  = patch.getfloat('offset', 'filterorder', default=0)
 
 try:
     ftc_host = patch.getstring('input_fieldtrip', 'hostname')
@@ -227,9 +255,10 @@ while True:
         vec_output = np.interp(tim_output, tim_input, dat_input[:, chan-1])
         # multiply with the modulating signal
         vec_output *= np.cos(tim_output * left_f[i] * 2 * np.pi)
-        # apply the filter to remove one sideband
-        vec_output, left_zi[i] = EEGsynth.online_filter(left_b[i], left_a[i], vec_output, zi=left_zi[i])
-        # add it to the output
+        if highpass != None or lowpass != None:
+            # apply the filter to remove one sideband
+            vec_output, left_zi[i] = EEGsynth.online_filter(left_b[i], left_a[i], vec_output, zi=left_zi[i])
+        # add it to the left-channel output
         dat_output[:,0] += vec_output
 
     for chan, i in zip(right, list(range(len(right)))):
@@ -237,10 +266,36 @@ while True:
         vec_output = np.interp(tim_output, tim_input, dat_input[:, chan-1])
         # multiply with the modulating signal
         vec_output *= np.cos(tim_output * right_f[i] * 2 * np.pi)
-        # apply the filter to remove one sideband
-        vec_output, right_zi[i] = EEGsynth.online_filter(right_b[i], right_a[i], vec_output, zi=right_zi[i])
-        # add it to the output
+        if highpass != None or lowpass != None:
+            # apply the filter to remove one sideband
+            vec_output, right_zi[i] = EEGsynth.online_filter(right_b[i], right_a[i], vec_output, zi=right_zi[i])
+        # add it to the right-channel output
         dat_output[:,1] += vec_output
+
+    # Online filtering
+    highpassfilter = patch.getfloat('processing', 'highpassfilter', default=None)
+    if highpassfilter != None:
+        highpassfilter = EEGsynth.rescale(highpassfilter, slope=scale_highpass, offset=offset_highpass)
+    lowpassfilter = patch.getfloat('processing', 'lowpassfilter', default=None)
+    if lowpassfilter != None:
+        lowpassfilter = EEGsynth.rescale(lowpassfilter, slope=scale_lowpass, offset=offset_lowpass)
+    filterorder = patch.getfloat('processing', 'filterorder', default=int(2*hdr_input.fSample))
+    if filterorder != None:
+        filterorder = EEGsynth.rescale(filterorder, slope=scale_filterorder, offset=offset_filterorder)
+
+    change = False
+    change = show_change('highpassfilter',  highpassfilter) or change
+    change = show_change('lowpassfilter',   lowpassfilter)  or change
+    change = show_change('filterorder',     filterorder)    or change
+    if change:
+        # update the filter parameters
+        filterorder = int(filterorder)                     # ensure it is an integer
+        filterorder = filterorder + (filterorder%2 ==0)    # ensure it is odd
+        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
+
+    if not(highpassfilter is None) or not(lowpassfilter is None):
+        # apply the filter to the data
+        dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
 
     # normalize for the number of channels
     dat_output /= hdr_input.nChannels
