@@ -62,7 +62,7 @@ del config
 
 # this determines how much debugging information gets printed
 debug    = patch.getint('general', 'debug')
-delay    = patch.getint('general', 'delay')
+delay    = patch.getfloat('general', 'delay')
 lsl_name = patch.getstring('lsl', 'name')
 lsl_type = patch.getstring('lsl', 'type')
 
@@ -121,8 +121,8 @@ nominal_srate = inlet.info().nominal_srate()
 ft_output.putHeader(channel_count, nominal_srate, FieldTrip.DATATYPE_FLOAT32)
 
 # this is used for feedback
-start = time.time()
 count = 0
+start = -np.Inf
 
 print("STARTING STREAM")
 while True:
@@ -131,6 +131,6 @@ while True:
         dat = np.asarray(chunk, dtype=np.float32)
         count += dat.shape[0]
         ft_output.putData(dat)
-        if debug>0 and (start-time.time())>delay:
+        if debug>0 and (time.time()-start)>delay:
             print("processed %d samples" % count)
             start = time.time()
