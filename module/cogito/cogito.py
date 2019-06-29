@@ -2,9 +2,9 @@
 
 # Cogito processes data for the COGITO project by Daniela de Paulis
 #
-# Cogito is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from copy import copy
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -46,14 +46,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -69,31 +69,31 @@ try:
     ftc_host = patch.getstring('input_fieldtrip', 'hostname')
     ftc_port = patch.getint('input_fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_input = FieldTrip.Client()
     ft_input.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to input FieldTrip buffer"
+        print("Connected to input FieldTrip buffer")
 except:
-    print "Error: cannot connect to input FieldTrip buffer"
+    print("Error: cannot connect to input FieldTrip buffer")
     exit()
 
 try:
     ftc_host = patch.getstring('output_fieldtrip', 'hostname')
     ftc_port = patch.getint('output_fieldtrip', 'port')
     if debug > 0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ftc_host, ftc_port)
     if debug > 0:
-        print "Connected to output FieldTrip buffer"
+        print("Connected to output FieldTrip buffer")
 except:
-    print "Error: cannot connect to output FieldTrip buffer"
+    print("Error: cannot connect to output FieldTrip buffer")
     exit()
 
 # get the input and output options
-input_number, input_channel = map(list, zip(*config.items('input_channel')))
-output_number, output_channel = map(list, zip(*config.items('output_channel')))
+input_number, input_channel = list(map(list, list(zip(*config.items('input_channel')))))
+output_number, output_channel = list(map(list, list(zip(*config.items('output_channel')))))
 
 # convert to integer and make the indices zero-offset
 input_number = [int(number)-1 for number in input_number]
@@ -103,18 +103,18 @@ hdr_input = None
 start = time.time()
 while hdr_input is None:
     if debug > 0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
     if (time.time()-start)>timeout:
-        print "Error: timeout while waiting for data"
+        print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 if debug > 0:
-    print "Data arrived"
+    print("Data arrived")
 if debug > 1:
-    print hdr_input
-    print hdr_input.labels
+    print(hdr_input)
+    print(hdr_input.labels)
 
 # ensure that all input channels have a label
 nInputs = hdr_input.nChannels
@@ -128,7 +128,7 @@ for number, channel in zip(input_number, input_channel):
         hdr_input.labels[number] = channel
 
 # update the input channel specification
-input_number = range(nInputs)
+input_number = list(range(nInputs))
 input_channel = hdr_input.labels
 
 # ensure that all output channels have a label
@@ -138,16 +138,16 @@ for number, channel in zip(output_number, output_channel):
     tmp[number] = channel
 
 # update the output channel specification
-output_number = range(nOutputs)
+output_number = list(range(nOutputs))
 output_channel = tmp
 
 if debug > 0:
-    print '===== input channels ====='
+    print('===== input channels =====')
     for number, channel in zip(input_number, input_channel):
-        print number, '=', channel
-    print '===== output channels ====='
+        print(number, '=', channel)
+    print('===== output channels =====')
     for number, channel in zip(output_number, output_channel):
-        print number, '=', channel
+        print(number, '=', channel)
 
 sample_rate         = patch.getfloat('cogito', 'sample_rate')
 window              = patch.getfloat('cogito', 'window')
@@ -176,9 +176,9 @@ val = (val - val.min())/(val.max()-val.min())*definition
 positions = np.round(val).astype(int)
 
 if debug > 1:
-    print "nsample", hdr_input.nSamples
-    print "nchan", hdr_input.nChannels
-    print "window", window
+    print("nsample", hdr_input.nSamples)
+    print("nchan", hdr_input.nChannels)
+    print("window", window)
 
 # jump to the end of the stream
 if hdr_input.nSamples-1<window:
@@ -188,7 +188,7 @@ else:
     begsample = hdr_input.nSamples-window
     endsample = hdr_input.nSamples-1
 
-print "STARTING COGITO STREAM"
+print("STARTING COGITO STREAM")
 while True:
     start_time = time.time()
 
@@ -197,16 +197,16 @@ while True:
         time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if (hdr_input.nSamples-1)<(endsample-window):
-            print "Error: buffer reset detected"
+            print("Error: buffer reset detected")
             raise SystemExit
         if (time.time()-start_time)>timeout:
-            print "Error: timeout while waiting for data"
+            print("Error: timeout while waiting for data")
             raise SystemExit
 
     dat_input = ft_input.getData([begsample, endsample])
 
     if debug > 1:
-        print 'time waiting for data: ' + str((time.time() - start_time) * 1000)
+        print('time waiting for data: ' + str((time.time() - start_time) * 1000))
 
     # determine the start of the actual processing
     loop_time = time.time()
@@ -249,14 +249,14 @@ while True:
         tmp.append(convert)
 
         if debug > 1:
-            print 'time to process single channel: ' + str((time.time() - chan_time) * 1000)
+            print('time to process single channel: ' + str((time.time() - chan_time) * 1000))
 
     signal_time = time.time()
     signal = np.fft.irfft(np.concatenate(tmp), int(sample_rate))
     dat_output = np.atleast_2d(signal).T.astype(np.float32)
 
     if debug > 1:
-        print 'time to inverse FFT: ' + str((time.time() - signal_time) * 1000)
+        print('time to inverse FFT: ' + str((time.time() - signal_time) * 1000))
 
     write_time = time.time()
 
@@ -264,11 +264,11 @@ while True:
     ft_output.putData(dat_output)
 
     if debug > 1:
-        print 'time to write data to buffer: ' + str((time.time() - write_time) * 1000)
+        print('time to write data to buffer: ' + str((time.time() - write_time) * 1000))
 
     # increment the counters for the next loop
     begsample += window
     endsample += window
 
     if debug > 0:
-	    print "processed", window, "samples in", (time.time()-loop_time)*1000, "ms"
+	    print("processed", window, "samples in", (time.time()-loop_time)*1000, "ms")

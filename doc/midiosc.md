@@ -1,6 +1,6 @@
 # Using MidiOSC
 
-[MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing bidirectional conversion of MIDI to OSC. It is available for OSX and for Linux.
+[MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing bidirectional conversion of MIDI to OSC. It is available for macOS and for Linux.
 
 Compared to [TouchOSC Bridge](http://hexler.net/docs/touchosc-getting-started-midi) it has the advantage that any MIDI messages can be transferred over the network, not only those from the TouchOSC application running on your tablet or smartphone.
 
@@ -24,10 +24,9 @@ The previous resulted in a working application, but it would not find any of the
 sudo apt-get install jackd2
 ```
 
+## Getting MidoOSC running on macOS
 
-## Getting MidoOSC running on OS X
-
-I am using [macports](https://www.macports.org) as package manager on OS X.
+I am using [macports](https://www.macports.org) as package manager on macOS.
 
 ```
 sudo port install liblo
@@ -40,7 +39,7 @@ cd MidiOSC
 scons
 ```
 
-The *pyliblo* Pthon package is only needed for testing the example.py  script provided in MidiOSC.
+The _pyliblo_ Pthon package is only needed for testing the example.py script provided in MidiOSC.
 
 I had to make the following changes to the SConstruct file to deal with the liblo header and library being in /opt/local, which is the default place for macports.
 

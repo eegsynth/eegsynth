@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-# Postprocessing performs basic algorithms on redis data
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
-#
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -47,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -72,16 +70,15 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-inputlist   = patch.getstring('input', 'channels').split(",")
-stepsize    = patch.getfloat('smoothing', 'stepsize')   # in seconds
-window      = patch.getfloat('smoothing', 'window')     # in seconds
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+enable      = patch.getint('history', 'enable', default=1)
+stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
+window      = patch.getfloat('history', 'window')                   # in seconds
 numchannel  = len(inputlist)
 numhistory  = int(round(window/stepsize))
-freeze      = False
 
 # this will contain the full list of historic values
-history = np.empty((numchannel, numhistory))
-history[:] = np.NAN
+history = np.empty((numchannel, numhistory)) * np.NAN
 
 # this will contain the statistics of the historic values
 historic = {}
@@ -89,22 +86,28 @@ historic = {}
 while True:
     # determine the start of the actual processing
     start = time.time()
-    print freeze
-    if not freeze and patch.getint('input', 'freeze'):
-        if debug > 0:
-            print "Freezing updating!"
-        freeze = True
-        continue
 
-    if freeze and patch.getint('input', 'freeze'):
-        if debug > 0:
-            print "Not updating..."
-        time.sleep(1)
+    # update the enable status
+    prev_enable = enable
+    enable = patch.getint('history', 'enable', default=1)
 
-    if not freeze and not patch.getint('input', 'freeze'):
+    if enable and prev_enable:
         if debug > 0:
-            print "Updating:"
+            print("Updating")
+    elif enable and not prev_enable:
+        if debug > 0:
+            print("Enabling the updating")
+    elif not enable and not prev_enable:
+        if debug > 0:
+            print("Not updating")
+    elif not enable and prev_enable:
+        if debug > 0:
+            print("Disabling the updating")
 
+    if not enable:
+        time.sleep(0.1)
+
+    else:
         # shift data to next sample
         history[:, :-1] = history[:, 1:]
 
@@ -141,13 +144,13 @@ while True:
         historic['min_att'] = np.nanmin(history_att, axis=1)
         historic['max_att'] = np.nanmax(history_att, axis=1)
 
-        for operation in historic.keys():
+        for operation in list(historic.keys()):
             for channel in range(numchannel):
                 key = inputlist[channel] + "." + operation
                 val = historic[operation][channel]
-                r.set(key, val)
+                patch.setvalue(key, val)
                 if debug>1:
-                    print key + ':' + str(val)
+                    print(key + ':' + str(val))
 
         elapsed = time.time() - start
         naptime = stepsize - elapsed

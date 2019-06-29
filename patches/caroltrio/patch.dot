@@ -1,0 +1,18 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+  inputmidi -> recordsignal_eeg -> file_eeg;
+  inputmidi -> recordsignal_sound -> file_sound;
+  inputmidi -> playbacksignal_eeg;
+  inputmidi -> playbacksignal_sound;
+  openbci2ft -> buffer1972 -> preprocessing -> buffer1973;
+  audio2ft -> buffer1974;
+  buffer1973 -> plotsignal;
+  buffer1973 -> plotspectral;
+  buffer1973 -> recordsignal_eeg;
+  buffer1974 -> recordsignal_sound;
+  buffer1974 -> outputaudio;
+  file_eeg ->  playbacksignal_eeg -> buffer1973;
+  file_sound -> playbacksignal_sound -> buffer1974;
+}

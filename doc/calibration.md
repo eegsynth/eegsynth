@@ -1,27 +1,25 @@
-# Calibration
+# Scaling and calibration
 
-The EEGsynth uses various control signals that have a different units and different absolute scaling. For example, MIDI values are between 0 and 127, OSC values are often (by convention) between 0 and 1, and EEG values are typically between -100 and +100 microvolt. Note that this is not only a problem for the EEGsynth, real-world modular synthesizers also use different [control voltage](https://en.wikipedia.org/wiki/CV/gate#CV) ranges.
+The EEGsynth uses various control signals that have a different units and different absolute scaling. For example, MIDI values are between 0 and 127, OSC values are often (by convention) between 0 and 1, and EEG values are typically between -100 and +100 microvolt. Note that this is not only a problem for the EEGsynth; real-world modular synthesizers also use different [control voltage](https://en.wikipedia.org/wiki/CV/gate#CV) ranges.
 
-To facilitate the interoperability between modules, we follow the convention that - whenever values are absolutely bounded between a known minimum and maximum - we scale the control values in Redis as a floating point value between 0 and 1. If another scaling is needed, e.g. for MIDI output, the control values can be read from Redis and scaled up to the desired level.
+To facilitate the interoperability between modules, we follow the convention that whenever values are absolutely bounded between a known minimum and maximum we scale the control values in Redis as a floating point value between 0 and 1. If another scaling is needed, e.g. for MIDI output between 0 and 127, the control values can be read from Redis and scaled up to the desired level.
 
-Some of the control values are not bounded, e.g. when spectral power is computed from the EEG signal. To use such control signals, they need to be calibrated and rescaled to predictable values using one of the following modules.
+Some of the control values are not bounded, e.g. when spectral power is computed from the EEG signal. To use such control signals, they need to be calibrated and rescaled to predictable values using one of the following modules:
 
-* [postprocessing](https://github.com/eegsynth/eegsynth/tree/master/module/postprocessing)
-* [normalizecontrol](https://github.com/eegsynth/eegsynth/tree/master/module/normalizecontrol)
-* [calibration](https://github.com/eegsynth/eegsynth/tree/master/module/calibration)
-* [quantizer](https://github.com/eegsynth/eegsynth/tree/master/module/quantizer)
+- The [calibration module](../module/calibration) to scale, offset and compress/expand data.
+- The [historycontrol module](../module/historycontrol) to calculate properties from the history of control values,
+  such as the median and the standard deviation, using a sliding window. To be used together with the [postprocessing module](../module/postprocessing) or the [calibration module](../module/calibration) to scale the data.
+- The [quantizer module](../module/quantizer) to map continuous values onto a predefined scale.
 
-Related to this is that the [smoothing](https://github.com/eegsynth/eegsynth/tree/master/module/smoothing) module can be used to compute a smoothed version of specific control values.
-
-## Control voltage range for external devices
+## Control Voltage range for external hardware devices
 
 ### Endorphins Shuttle Control
 
-The EEGsynth uses the [Endorphins Shuttle Control](https://www.modulargrid.net/e/endorphin-es-shuttle-control) optimally with the +/-5V pitchweel setting, which is the maximum range supported by the Shuttle Control. For more info see [this](http://www.eegsynth.org/?p=480).
+The EEGsynth uses the [Endorphines Shuttle Control](https://www.modulargrid.net/e/endorphin-es-shuttle-control) optimally with the +/-5V pitchweel setting, which is the maximum range supported by the Shuttle Control. For more info see [this blogpost](http://www.eegsynth.org/?p=480) as well as [the readme](../module/endorphines/README.md). Through the endorphines .ini the output control voltage can be restricted to 0-5V.
 
-Through the endorphins .ini the output control voltage can be restricted to 0-5V.
+### Doepfer MIDI to CV/Gate interfaces
 
-Because of the many (16) output channels, it is handy to test with both the polar and non-polar outputs, the latter mainly for the LFO/PW/ECHO modules of the Erebus.
+The Doepfer [A-190-2, A-190-3, MCV4 and Dark Link](doepfer.md) have a 0-5 V output for CV1, CV3 and CV4, with 1 V/octave for the pitch on CV1. The CV2 (pitch bend) can be set to -2.5 to +2.5V (default) or to 0-5V using an internal jumper.
 
 ### Erebus Dreadbox
 

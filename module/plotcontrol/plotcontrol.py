@@ -2,9 +2,9 @@
 
 # Plotcontrol plots the (history of) control values
 #
-# Plotcontrol is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,18 +20,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyqtgraph.Qt import QtGui, QtCore
-from scipy.interpolate import interp1d
-from scipy.signal import butter, lfilter
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import redis
 import argparse
 import numpy as np
 import os
 import pyqtgraph as pg
 import sys
+import time
 import signal
 import math
-import time
+from scipy.interpolate import interp1d
+from scipy.signal import butter, lfilter
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -50,14 +50,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -66,7 +66,7 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
-input_name, input_variable = zip(*config.items('input'))
+input_name, input_variable = list(zip(*config.items('input')))
 
 # count total nr. of curves to be drawm
 curve_nrs = 0
@@ -75,7 +75,7 @@ for i in range(len(input_name)):
     for ii in range(len(temp)):
         curve_nrs += 1
 
-ylim_name, ylim_value = zip(*config.items('ylim'))
+ylim_name, ylim_value = list(zip(*config.items('ylim')))
 delay       = patch.getfloat('general', 'delay')
 historysize = int(patch.getfloat('general', 'window') / delay)
 secwindow   = patch.getfloat('general', 'window')
@@ -86,8 +86,8 @@ winheight   = patch.getfloat('display', 'height')
 
 # initialize graphical window
 app = QtGui.QApplication([])
-win = pg.GraphicsWindow(title="EEGsynth")
-win.setWindowTitle('EEGsynth')
+win = pg.GraphicsWindow(title="EEGsynth plotcontrol")
+win.setWindowTitle('EEGsynth plotcontrol')
 win.setGeometry(winx, winy, winwidth, winheight)
 
 # Enable antialiasing for prettier plots
@@ -95,23 +95,23 @@ pg.setConfigOptions(antialias=True)
 
 # Initialize variables
 inputhistory = np.ones((curve_nrs, historysize))
-inputplot = []
-inputcurve = []
+inputplot    = []
+inputcurve   = []
 
-# Create panel for each channel
+# Create panels for each channel
 for iplot in range(len(input_name)):
 
     inputplot.append(win.addPlot(title="%s" % (input_name[iplot])))
-    inputplot[iplot].setLabel('bottom', text = 'Time (sec)')
+    inputplot[iplot].setLabel('bottom', text = 'Time (s)')
     inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
     try:
         index = ylim_name.index(input_name[iplot])
         temp = ylim_value[index].split(",")
         inputplot[iplot].setRange(yRange=(int(temp[0]), int(temp[1])))
-        print "Setting Ylim according to user input"
+        print("Setting Ylim according to user input")
     except:
-        print "No Ylim giving, will let it flow"
+        print("No Ylim giving, will let it flow")
 
     # if input_name == ylim_name
     # if any(input_name in s for s in ylim_name):
@@ -132,16 +132,15 @@ def update():
    counter = 0
    for iplot in range(len(input_name)):
 
-       temp = input_variable[iplot].split(",")
+       input_variable_list = input_variable[iplot].split(",")
 
-       for ivar in range(len(temp)):
+       for ivar in range(len(input_variable_list)):
             try:
-                inputhistory[counter, historysize-1] = r.get(temp[ivar])
+                inputhistory[counter, historysize-1] = r.get(input_variable_list[ivar])
             except:
                 inputhistory[counter, historysize-1] = np.nan
 
             # time axis
-            # FIXME use np.roll instead of recreating it every time
             timeaxis = np.linspace(-secwindow, 0, historysize)
 
             # update timecourses
@@ -153,13 +152,14 @@ def update():
 def sigint_handler(*args):
     QtGui.QApplication.quit()
 
+
 signal.signal(signal.SIGINT, sigint_handler)
 
 # Set timer for update
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.setInterval(.01)  # timeout
-timer.start(delay*1000)
+timer.setInterval(10)            # timeout in milliseconds
+timer.start(int(delay * 1000))   # in milliseconds
 
 # Start
 QtGui.QApplication.instance().exec_()

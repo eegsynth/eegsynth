@@ -1,11 +1,4 @@
-# Control Playback Module
+# Playbackcontrol module
 
-The purpose of this module is to play control values from an EDF file to Redis.
-
-## Requirements
-
-Redis should be running.
-
-## Software Requirements
-
-Python 2.x
+This module plays (relatively slowly changing) control values from an EDF or
+WAV file and plays them back in real-time to Redis.

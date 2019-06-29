@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Volcabeats outputs redis data via MIDI to the Korg Volca Beats synthesizer
+# Volcabeats outputs Redis data via MIDI to the Korg Volca Beats synthesizer
 #
-# Volcabeats is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -67,15 +67,27 @@ control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 
 note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
 note_code = [36, 38, 43, 50, 42, 46, 39]
 
-# this is only for debugging
+# this is only for debugging, and check which MIDI devices are accessible
 print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
-outputport = EEGsynth.midiwrapper(config)
-outputport.open_output()
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
+
+try:
+    outputport  = mido.open_output(mididevice)
+    if debug>0:
+        print("Connected to MIDI output")
+except:
+    print("Error: cannot connect to MIDI output")
+    exit()
+
+# the scale and offset are used to map Redis values to MIDI values
+scale  = patch.getfloat('input', 'scale', default=127)
+offset = patch.getfloat('input', 'offset', default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -102,7 +114,7 @@ class TriggerThread(threading.Thread):
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
                     if debug>1:
-                        print item['channel'], "=", val
+                        print(item['channel'], "=", val)
                     msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
                     outputport.send(msg)
@@ -111,14 +123,12 @@ class TriggerThread(threading.Thread):
 # each of the notes that can be played is mapped onto a different trigger
 trigger = []
 for name, code in zip(note_name, note_code):
-    try:
-        # start the background thread that deals with the trigger
+    if config.has_option('note', name):
+        # start the background thread that deals with this note
         this = TriggerThread(patch.getstring('note', name), code)
         trigger.append(this)
-        print name+' OK'
-    except:
-        # this happens when it is commented out in the ini file
-        print name+' FAILED'
+        if debug>1:
+            print(name, 'OK')
 
 # start the thread for each of the notes
 for thread in trigger:
@@ -128,10 +138,6 @@ for thread in trigger:
 previous_val = {}
 for name in control_name:
     previous_val[name] = None
-
-# the scale and offset are used to map Redis values to MIDI values
-scale  = patch.getfloat('input', 'scale', default=127)
-offset = patch.getfloat('input', 'offset', default=0)
 
 try:
     while True:
@@ -151,13 +157,13 @@ try:
             val = int(val)
             msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
             if debug>1:
-                print cmd, val, name
+                print(cmd, val, name)
             lock.acquire()
             outputport.send(msg)
             lock.release()
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('VOLCABEATS_UNBLOCK', 1)

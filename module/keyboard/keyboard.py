@@ -2,9 +2,9 @@
 
 # This module receives MIDI events from a keyboard, and that sends MIDI events to the keyboard
 #
-# This code is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called 'configparser' and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -49,14 +49,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print 'Error: cannot connect to redis server'
+    print('Error: cannot connect to redis server')
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -75,20 +75,22 @@ for port in mido.get_output_names():
 print('-------------------------')
 
 mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
+
 try:
     inputport  = mido.open_input(mididevice)
     if debug>0:
-        print "Connected to MIDI input"
+        print("Connected to MIDI input")
 except:
-    print "Error: cannot connect to MIDI input"
+    print("Error: cannot connect to MIDI input")
     exit()
 
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
-        print "Connected to MIDI output"
+        print("Connected to MIDI output")
 except:
-    print "Error: cannot connect to MIDI output"
+    print("Error: cannot connect to MIDI output")
     exit()
 
 try:
@@ -120,7 +122,7 @@ lock = threading.Lock()
 # this is used to send direct and delayed messages
 def SendMessage(msg):
     lock.acquire()
-    print msg
+    print(msg)
     outputport.send(msg)
     lock.release()
 
@@ -176,11 +178,11 @@ class TriggerThread(threading.Thread):
                         duration = self.duration
 
                     if debug>1:
-                        print '----------------------------------------------'
-                        print "onset   ", self.onset,       "=", val
-                        print "velocity", self.velocity,    "=", velocity
-                        print "pitch   ", self.pitch,       "=", pitch
-                        print "duration", self.duration,    "=", duration
+                        print('----------------------------------------------')
+                        print("onset   ", self.onset,       "=", val)
+                        print("velocity", self.velocity,    "=", velocity)
+                        print("pitch   ", self.pitch,       "=", pitch)
+                        print("duration", self.duration,    "=", duration)
 
                     if midichannel is None:
                         msg = mido.Message('note_on', note=pitch, velocity=velocity)
@@ -208,7 +210,7 @@ for name, code in zip(note_name, note_code):
         duration = None
         trigger.append(TriggerThread(onset, velocity, pitch, duration))
         if debug>1:
-            print name, 'OK'
+            print(name, 'OK')
 
 try:
     # the keyboard notes can also be controlled using a single trigger
@@ -218,7 +220,7 @@ try:
     duration = patch.getstring('input', 'duration')
     trigger.append(TriggerThread(onset, velocity, pitch, duration))
     if debug>1:
-        print 'onset, velocity, pitch and duration OK'
+        print('onset, velocity, pitch and duration OK')
 except:
     pass
 
@@ -239,7 +241,7 @@ try:
                     pass
 
             if debug>0 and msg.type!='clock':
-                print msg
+                print(msg)
 
             if hasattr(msg,'note'):
                 print(msg)
@@ -248,18 +250,15 @@ try:
                 elif patch.getstring('processing','detect')=='press' and msg.velocity==0:
                     pass
                 else:
-                    # prefix.note=note
-                    key = '{}.note'.format(patch.getstring('output','prefix'))
-                    val = msg.note
-                    r.set(key, val)         # send it as control value
-                    r.publish(key, val)     # send it as trigger
                     # prefix.noteXXX=velocity
                     key = '{}.note{:0>3d}'.format(patch.getstring('output','prefix'), msg.note)
                     val = msg.velocity
-                    # map the MIDI values to Redis values
                     val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                    r.set(key, val)         # send it as control value
-                    r.publish(key, val)     # send it as trigger
+                    patch.setvalue(key, val)
+                    # prefix.note=note
+                    key = '{}.note'.format(patch.getstring('output','prefix'))
+                    val = msg.note
+                    patch.setvalue(key, val)
             elif hasattr(msg,'control'):
                 # ignore these
                 pass
@@ -268,7 +267,7 @@ try:
                 pass
 
 except KeyboardInterrupt:
-    print 'Closing threads'
+    print('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('KEYBOARD_UNBLOCK', 1)

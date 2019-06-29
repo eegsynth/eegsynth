@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-# This module writes Rediscontrol values and triggers to the Raspberry Pi GPIO header
+# This module writes Redis control values and triggers to the Raspberry Pi GPIO header.
 #
-# Copyright (C) 2018, Robert Oostenveld for the EEGsynth project, http://www.eegsynth.org
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+#
+# Copyright (C) 2018-2019, Robert Oostenveld for the EEGsynth project, http://www.eegsynth.org
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
-import ConfigParser
+import configparser
 import argparse
 import os
 import redis
@@ -44,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -81,22 +82,21 @@ pin = {
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 delay = patch.getfloat('general', 'delay')
-# control values for PWM should be between 0 and 100
-input_scale = patch.getfloat('input', 'scale', default=100)
-input_offset = patch.getfloat('input', 'offset', default=0)
-# values between 0 and 1 are quite nice for the duration
-duration_scale = patch.getfloat('duration', 'scale', default=1)
-duration_offset = patch.getfloat('duration', 'offset', default=0)
+# values between 0 and 1 are nice for the duration
+scale_duration = patch.getfloat('scale', 'duration', default=1)
+offset_duration = patch.getfloat('offset', 'duration', default=0)
 
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
 
+
 def SetGPIO(gpio, val=1):
     lock.acquire()
     if debug > 1:
-        print gpio, pin[gpio], val
+        print(gpio, pin[gpio], val)
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
+
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, gpio, duration):
@@ -120,19 +120,23 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
+                    # the scale and offset options are channel specific and can be changed on the fly
+                    scale = patch.getfloat('scale', self.gpio, default=100)
+                    offset = patch.getfloat('offset', self.gpio, default=0)
                     # switch to the PWM value specified in the event
                     val = item['data']
-                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
                     val = int(val)
                     SetGPIO(self.gpio, val)
                     if self.duration != None:
-                        # schedule a timer to switch off after the specified duration
+                        # schedule a timer to switch it off after the specified duration
                         duration = patch.getfloat('duration', self.gpio)
-                        duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+                        duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
                         # some minimal time is needed for the delay
                         duration = EEGsynth.limit(duration, 0.05, float('Inf'))
                         t = threading.Timer(duration, SetGPIO, args=[self.gpio, 0])
                         t.start()
+
 
 # use the WiringPi numbering, see http://wiringpi.com/reference/setup/
 wiringpi.wiringPiSetup()
@@ -140,7 +144,7 @@ wiringpi.wiringPiSetup()
 # set up PWM for the control channels
 previous_val = {}
 for gpio, channel in config.items('control'):
-    print "control", channel, gpio
+    print("control", channel, gpio)
     wiringpi.softPwmCreate(pin[gpio], 0, 100)
     # control values are only relevant when different from the previous value
     previous_val[gpio] = None
@@ -154,7 +158,7 @@ for gpio, channel in config.items('trigger'):
     except:
         duration = None
     trigger.append(TriggerThread(channel, gpio, duration))
-    print "trigger", channel, gpio
+    print("trigger", channel, gpio)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -167,12 +171,16 @@ try:
 
         for gpio, channel in config.items('control'):
             val = patch.getfloat('control', gpio)
+
             if val == None:
-                continue # it should be skipped when not present
+                continue  # it should be skipped when not present
             if val == previous_val[gpio]:
-                continue # it should be skipped when identical to the previous value
+                continue  # it should be skipped when identical to the previous value
             previous_val[gpio] = val
-            val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+            # the scale and offset options are channel specific and can be changed on the fly
+            scale = patch.getfloat('scale', gpio, default=100)
+            offset = patch.getfloat('offset', gpio, default=0)
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
             val = EEGsynth.limit(val, 0, 100)
             val = int(val)
             lock.acquire()
@@ -180,7 +188,7 @@ try:
             lock.release()
 
 except KeyboardInterrupt:
-    print "Closing threads"
+    print("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTGPIO_UNBLOCK', 1)

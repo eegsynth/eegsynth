@@ -2,7 +2,9 @@
 
 # This module records Redis messages (i.e. triggers) to a TSV file
 #
-# Copyright (C) 2018, Robert Oostenveld for the EEGsynth project, http://www.eegsynth.org
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+#
+# Copyright (C) 2018-2019, Robert Oostenveld for the EEGsynth project, http://www.eegsynth.org
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import datetime
 import os
@@ -44,14 +46,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -60,8 +62,8 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug        = patch.getint('general','debug')
 delay        = patch.getfloat('general','delay')
-input_scale  = patch.getfloat('input', 'scale', default=1)
-input_offset = patch.getfloat('input', 'offset', default=0)
+input_scale  = patch.getfloat('input', 'scale', default=None)
+input_offset = patch.getfloat('input', 'offset', default=None)
 fileformat   = 'tsv'
 
 # start with a temporary file which is immediately closed
@@ -89,24 +91,32 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    # the trigger value should also be saved
+                    # the trigger value should be saved
                     val = item['data']
-                    val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                    if input_scale!=None or input_offset!=None:
+                        try:
+                            # convert it to a number and apply the scaling and the offset
+                            val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
+                        except ValueError:
+                            # keep it as a string
+                            if debug>0:
+                                print(("cannot apply scaling, writing %s as string" % (self.redischannel)))
                     if not f.closed:
                         lock.acquire()
-                        f.write("%s\t%g\t%s\n" % (self.redischannel, val, timestamp))
+                        # write the value, it can be either a number or a string
+                        f.write("%s\t%s\t%s\n" % (self.redischannel, val, timestamp))
                         lock.release()
                         if debug>0:
-                            print("%s\t%g\t%s" % (self.redischannel, val, timestamp))
+                            print(("%s\t%s\t%s" % (self.redischannel, val, timestamp)))
 
 # create the background threads that deal with the triggers
 trigger = []
 if debug>1:
-    print "Setting up threads for each trigger"
+    print("Setting up threads for each trigger")
 for item in config.items('trigger'):
         trigger.append(TriggerThread(item[0]))
         if debug>1:
-            print item[0], 'OK'
+            print(item[0], 'OK')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -118,14 +128,14 @@ try:
 
         if recording and not patch.getint('recording', 'record'):
             if debug>0:
-                print "Recording disabled - closing", fname
+                print("Recording disabled - closing", fname)
             f.close()
             recording = False
             continue
 
         if not recording and not patch.getint('recording', 'record'):
             if debug>0:
-                print "Recording is not enabled"
+                print("Recording is not enabled")
             time.sleep(1)
 
         if not recording and patch.getint('recording', 'record'):
@@ -137,7 +147,7 @@ try:
                 ext = '.' + fileformat
             fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
             if debug>0:
-                print "Recording enabled - opening", fname
+                print("Recording enabled - opening", fname)
             f = open(fname, 'w')
             f.write("event\tvalue\ttimestamp\n")
             f.flush()
@@ -145,9 +155,9 @@ try:
 
 except KeyboardInterrupt:
     if not f.closed:
-        print 'Closing file'
+        print('Closing file')
         f.close()
-    print 'Closing threads'
+    print('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('RECORDTRIGGER_UNBLOCK', 1)

@@ -149,6 +149,7 @@ class EDFWriter():
             assert(fid.tell() > 0)
             for i in range(meas_info['nchan']):
                 raw = deepcopy(data[i])
+                raw = np.asarray(raw, dtype=np.float64)
 
                 assert(len(raw)==chan_info['n_samps'][i])
                 if min(raw)<chan_info['physical_min'][i]:
@@ -330,7 +331,7 @@ class EDFReader():
         return data[begsample:(endsample+1)]
 
 ####################################################################################################
-# the following are a number  of helper functions to make the behaviour of this EDFReader
+# the following are a number of helper functions to make the behaviour of this EDFReader
 # class more similar to https://bitbucket.org/cleemesser/python-edf/
 ####################################################################################################
 
@@ -348,8 +349,8 @@ class EDFReader():
         return self.chan_info['n_samps'] * self.meas_info['n_records']
 
     def readSignal(self, chanindx):
-        begsample = 0;
-        endsample = self.chan_info['n_samps'][chanindx] * self.meas_info['n_records'] - 1;
+        begsample = 0
+        endsample = self.chan_info['n_samps'][chanindx] * self.meas_info['n_records'] - 1
         return self.readSamples(chanindx, begsample, endsample)
 
 ####################################################################################################
@@ -357,8 +358,8 @@ class EDFReader():
 if False:
     file_in = EDFReader()
     file_in.open('/Users/roboos/day 01[10.03].edf')
-    print file_in.readSamples(0, 0, 0)
-    print file_in.readSamples(0, 0, 128)
+    print(file_in.readSamples(0, 0, 0))
+    print(file_in.readSamples(0, 0, 128))
 
 
 if False:

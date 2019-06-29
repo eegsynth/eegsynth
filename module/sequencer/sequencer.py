@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Sequencer acts as a basic timer and sequencer
+# This module implements a basic monophonic sequencer
 #
-# Sequencer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
 # Copyright (C) 2017-2018 EEGsynth project
 #
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific,on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import math
 import numpy as np
@@ -31,28 +31,28 @@ import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -60,234 +60,176 @@ patch = EEGsynth.patch(config, r)
 del config
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
-# this can be used to selectively show parameters that have changed
-previous = {}
-def show_change(key, val):
-    if (key in previous and previous[key]!=val) or (key not in previous):
-        print key, "=", val
-    previous[key] = val
+# these scale and offset parameters are used to map between Redis and internal values
+scale_active     = patch.getfloat('scale', 'active',     default=127.)
+scale_transpose  = patch.getfloat('scale', 'transpose',  default=127.)
+scale_note       = patch.getfloat('scale', 'note',       default=1.)
+scale_duration   = patch.getfloat('scale', 'duration',   default=1.)
+offset_active    = patch.getfloat('offset', 'active',    default=0.)
+offset_transpose = patch.getfloat('offset', 'transpose', default=0.)
+offset_note      = patch.getfloat('offset', 'note',      default=0.)
+offset_duration  = patch.getfloat('offset', 'duration',  default=0.)
 
-# this is to prevent two threads accesing a variable at the same time
+# this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
-clock = []
-for iteration in range(24):
-    clock.append(threading.Event())
-
-class ClockThread(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.running = True
-        self.rate = 60              # the rate is in bpm, i.e. quarternotes per minute
-    def setRate(self, rate):
-        with lock:
-            self.rate = rate
-    def stop(self):
-        self.running = False
-    def run(self):
-        slip = 0
-        while self.running:
-            now    = time.time()
-            delay  = 60/self.rate   # the rate is in bpm
-            delay -= slip           # correct for the slip from the previous iteration
-            jiffy = delay/(24)
-            if debug>1:
-                print 'clock step'
-            for iteration in range(24):
-                clock[iteration].set()
-                clock[iteration].clear()
-                if jiffy>0:
-                    time.sleep(jiffy)
-            # the actual time used in this loop will be slightly different than desired
-            # this will be corrected on the next iteration
-            slip = time.time() - now - delay
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
+        print(key, "=", val)
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
 
 class SequenceThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, redischannel, key):
         threading.Thread.__init__(self)
-        self.running   = True
-        self.steps     = 0
-        self.adjust    = 0
-        self.sequence  = []
+        self.redischannel = redischannel
+        self.key = key
+        self.sequence = []
         self.transpose = 0
-        self.current   = 0
-    def setSteps(self, steps):
-        with lock:
-            self.steps = steps
-    def setAdjust(self, adjust):
-        with lock:
-            self.adjust = adjust
+        self.duration = 0.5
+        self.steptime = 0.
+        self.prevtime = None
+        self.step = 0
+        self.running = True
+
     def setSequence(self, sequence):
         with lock:
             self.sequence = sequence
+
     def setTranspose(self, transpose):
         with lock:
             self.transpose = transpose
+
+    def setDuration(self, duration):
+        with lock:
+            self.duration = duration
+
     def stop(self):
         self.running = False
+
     def run(self):
+        pubsub = r.pubsub()
+        pubsub.subscribe('SEQUENCER_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe(self.redischannel)    # this message contains the note
         while self.running:
-            if self.steps in [1, 2, 3, 4, 6, 8, 12, 24] and len(self.sequence):
-                with lock:
-                    step = np.mod(np.arange(0, 24, 24/self.steps) + self.adjust, 24).astype(int).tolist()
-                if debug>1:
-                    print "sequence step =", step
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel'] == self.redischannel:
+                    now = time.time()
+                    if self.prevtime != None:
+                        self.steptime = now - self.prevtime
+                    self.prevtime = now
+                    if len(self.sequence) > 0:
+                        # the sequence can consist of a list of values or a list of Redis channels
+                        val = self.sequence[self.step % len(self.sequence)]
 
-                for tick in [clock[i] for i in step]:
-                    # the note can be a value or a string pointing to a Redis channel
-                    with lock:
-                        if len(self.sequence):
-                            note = self.sequence[np.mod(self.current, len(self.sequence))]
-                        else:
-                            note = None
-                    note = r.get(note) or note
-                    try:
-                        note = float(note)
-                    except TypeError:
-                        # this happens if it is not a number or a string, e.g. None
-                        note = None
-                    except ValueError:
-                        # this happens if it is a string that cannot be converted
-                        note = None
-                    if note:
-                        # map the Redis values to the internally used values
-                        note = EEGsynth.rescale(note, slope=pattern_scale, offset=pattern_offset)
-                        note = note + self.transpose
-                        # map the internally used values to Redis values
-                        val = EEGsynth.rescale(note, slope=output_scale, offset=output_offset)
-                    if debug>1:
-                        print 'sequence note =', note
-                    tick.wait()             # wait for synchronization with the clock thread
-                    if note:
-                        r.set(key, val)     # send it as control value
-                        r.publish(key, val) # send it as trigger
-                    self.current += 1
-            else:
-                # if self.steps is not appropriate
-                time.sleep(patch.getfloat('general', 'delay'))
+                        try:
+                            # convert the string from the ini to floating point
+                            val = float(val)
+                        except:
+                            # get the value from Redis
+                            val = r.get(val)
+                            if val == None:
+                                val = 0.
+                            else:
+                                # convert the string from Redis to floating point
+                                val = float(val)
 
-# create and start the thread that manages the clock
-clockthread = ClockThread()
-clockthread.start()
+                        # apply the scaling, offset and transpose the note
+                        val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
+                        val += self.transpose
+                        # send it as sequencer.note with the note as value
+                        patch.setvalue(self.key, val, duration=self.duration*self.steptime)
+                        if val>=1.:
+                            # send it also as sequencer.noteXXX with value 1.0
+                            key = '%s%03d' % (self.key, val)
+                            patch.setvalue(key, 1., duration=self.duration*self.steptime)
+                        if debug>0:
+                            print("step %2d :" % (self.step + 1), self.key, "=", val)
+                        # increment to the next step
+                        self.step = (self.step + 1) % len(self.sequence)
 
-# create and start the thread for the output
-sequencethread = SequenceThread()
-sequencethread.start()
 
-# these scale and offset parameters are used to map Redis values to internal values
-scale_pattern    = patch.getfloat('scale', 'pattern',   default=127.) # internal MIDI values
-scale_rate       = patch.getfloat('scale', 'rate',      default=127.) # beats per minute
-scale_transpose  = patch.getfloat('scale', 'transpose', default=127.) # internal MIDI values
-scale_steps      = patch.getfloat('scale', 'steps',     default=1.)
-scale_adjust     = patch.getfloat('scale', 'adjust',    default=1.)
-
-offset_pattern   = patch.getfloat('offset', 'pattern',   default=0.)
-offset_rate      = patch.getfloat('offset', 'rate',      default=0.)
-offset_transpose = patch.getfloat('offset', 'transpose', default=0.)
-offset_steps     = patch.getfloat('offset', 'steps',     default=0.)
-offset_adjust    = patch.getfloat('offset', 'adjust',    default=0.)
-
-# the output scale and offset are used to map the internal values to Redis values
-pattern_scale  = patch.getfloat('output', 'scale', default=127.)
-pattern_offset = patch.getfloat('output', 'offset', default=0.)
-
-# the output scale and offset are used to map the internal values to Redis values
-output_scale  = patch.getfloat('output', 'scale', default=1./127)
-output_offset = patch.getfloat('output', 'offset', default=0.)
+# this is the clock signal for the sequence
+clock = patch.getstring('sequence', 'clock')
 
 # the notes will be sent to Redis using this key
-key = "{}.note".format(patch.getstring('output','prefix'))
+key = "{}.note".format(patch.getstring('output', 'prefix'))
 
-if debug>0:
-    show_change('scale_pattern',    scale_pattern)
+# create and start the thread for the output
+sequencethread = SequenceThread(clock, key)
+sequencethread.start()
+
+if debug > 0:
+    show_change('scale_active',     scale_active)
     show_change('scale_transpose',  scale_transpose)
-    show_change('scale_rate',       scale_rate)
-    show_change('scale_steps',      scale_steps)
-    show_change('scale_adjust',     scale_adjust)
-    show_change('offset_pattern',   offset_pattern)
+    show_change('scale_note',       scale_note)
+    show_change('scale_duration',   scale_duration)
+    show_change('offset_active',    offset_active)
     show_change('offset_transpose', offset_transpose)
-    show_change('offset_rate',      offset_rate)
-    show_change('offset_steps',     offset_steps)
-    show_change('offset_adjust',    offset_adjust)
+    show_change('offset_note',      offset_note)
+    show_change('offset_duration',  offset_duration)
 
 try:
     while True:
         # measure the time to correct for the slip
         now = time.time()
 
-        if debug>0:
-            print 'loop'
+        if debug > 1:
+            print('loop')
 
-        # the pattern should be a integer between 0 and 127
-        pattern = patch.getfloat('control','pattern', default=0)
-        pattern = EEGsynth.rescale(pattern, slope=scale_pattern, offset=offset_pattern)
-        pattern = int(pattern)
-
-        # use a default rate of 90 bpm
-        rate = patch.getfloat('control','rate', default=90./127)
-        rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-        # ensure that the rate is within meaningful limits
-        rate = EEGsynth.limit(rate, 40., 240.)
-
-        # use a default transposition of 48
-        transpose = patch.getfloat('control','transpose', default=48./127)
-        transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)
-
-        steps = patch.getfloat('control', 'steps', default=1)
-        steps = EEGsynth.rescale(steps, slope=scale_steps, offset=offset_steps)
-        steps = int(steps)
-
-        adjust = patch.getfloat('control', 'adjust', default=0)
-        adjust = EEGsynth.rescale(adjust, slope=scale_adjust, offset=offset_adjust)
-        adjust = int(adjust)
+        # the active sequence is specified as an integer between 0 and 127
+        active = patch.getfloat('sequence', 'active', default=0)
+        active = EEGsynth.rescale(active, slope=scale_active, offset=offset_active)
+        active = int(active)
 
         # get the corresponding sequence as a single string
         try:
-            sequence = patch.getstring('sequence',"pattern{:d}".format(pattern))
+            sequence = patch.getstring('sequence', "sequence%03d" % active, multiple=True)
         except:
-            sequence = ''
-        if sequence.find(",") > -1:
-            separator = ","
-        else:
-            separator = " "
-        # convert the single string into a list
-        sequence = sequence.split(separator)
-        # remove the empty items, e.g. spaces
-        sequence = filter(len, sequence)
+            sequence = []
 
-        if debug>0:
+        transpose = patch.getfloat('sequence', 'transpose', default=0.)
+        transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)
+
+        # the duration is relative to the time between clock ticks
+        duration = patch.getfloat('sequence', 'duration', default=0.)
+        duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
+        if duration > 0:
+            # a duration of 0 or less means that the note will not switch off
+            duration = EEGsynth.limit(duration, 0.1, 0.9)
+
+        if debug > 0:
             # show the parameters whose value has changed
-            show_change("pattern",   pattern)
+            show_change("active",    active)
             show_change("sequence",  sequence)
-            show_change("rate",      rate)
             show_change("transpose", transpose)
-            show_change("steps",     steps)
-            show_change("adjust",    adjust)
+            show_change("duration",  duration)
 
         sequencethread.setSequence(sequence)
-        clockthread.setRate(rate)
         sequencethread.setTranspose(transpose)
-        sequencethread.setSteps(steps)
-        sequencethread.setAdjust(adjust)
+        sequencethread.setDuration(duration)
 
         elapsed = time.time() - now
         naptime = patch.getfloat('general', 'delay') - elapsed
-        if naptime>0:
+        if naptime > 0:
             time.sleep(naptime)
 
 except KeyboardInterrupt:
     try:
-        print "Disabling last note"
-        r.set(key,0)
-        r.publish(key,0)
+        print("Disabling last note")
+        patch.setvalue(key, 0.)
     except:
         pass
-    print "Closing threads"
+    print("Closing threads")
     sequencethread.stop()
+    r.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()
-    # the thread that manages the clock should be stopped the last
-    clockthread.stop()
-    clockthread.join()
     sys.exit()

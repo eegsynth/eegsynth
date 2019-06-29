@@ -1,0 +1,27 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+    openbci2ft -> buffer1972;
+    generatesignal -> buffer1972;
+    playbacksignal -> buffer1972;
+    buffer1972 -> preprocessing -> buffer1973;
+    buffer1973 -> plotsignal;
+    buffer1973 -> plotspectral;
+    buffer1973 -> recordsignal;
+    buffer1973 -> spectral -> postprocessing;
+    spectral -> historycontrol -> postprocessing;
+    plotspectral -> spectral;
+    postprocessing -> outputcvgate;
+    postprocessing -> geomixer -> postprocessing -> outputmidi;
+    postprocessing -> outputartnet;
+    postprocessing -> recordcontrol;
+    launchcontrol -> generatesignal;
+    launchcontrol -> geomixer;
+    launchcontrol -> historycontrol;
+    launchcontrol -> outputmidi;
+    launchcontrol -> playbacksignal;
+    launchcontrol -> plotspectral;
+    launchcontrol -> recordsignal;
+    launchcontrol -> recordcontrol;
+}

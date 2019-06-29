@@ -1,14 +1,7 @@
-# Cogito Module
+# Cogito module
 
-The purpose of this module is to convert an EEG buffer (channel x samples) into a single channel buffer, which can be played as audio in real time thanks to the ft2audio program.
+The purpose of this module is to convert an multi-channel EEG signal into a single-channel audio signal, which can be played in real-time using the [outputaudio module](../outputaudio).
 
-The conversion follow the interstellar protocol developped for the Cogito project.
+The conversion follow the interstellar protocol developed for the [Cogito](http://cogitoinspace.org/) project.
 
-More info at http://www.eegsynth.org/?p=751
-
-## Software Requirements
-
-Python 2.7.x
-numpy
-pandas
-h5py
+More info at <http://www.eegsynth.org/?p=751>.

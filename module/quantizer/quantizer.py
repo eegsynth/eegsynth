@@ -2,9 +2,9 @@
 
 # Quantizer does chromatic quantification of Redis values for musical interfaces
 #
-# Quantizer is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -43,14 +43,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -67,8 +67,8 @@ output_scale  = patch.getfloat('output', 'scale', default=0.00787401574803149606
 output_offset = patch.getfloat('output', 'offset', default=0)
 
 # get the input and output options
-input_channel, input_name = map(list, zip(*config.items('input')))
-output_name, output_value = map(list, zip(*config.items('quantization')))
+input_channel, input_name = list(map(list, list(zip(*config.items('input')))))
+output_name, output_value = list(map(list, list(zip(*config.items('quantization')))))
 
 # remove the scale and offset from the input list
 del input_channel[input_channel.index('scale')]
@@ -94,19 +94,20 @@ while True:
     time.sleep(patch.getfloat('general', 'delay'))
 
     if debug>0:
-        print '----------------------------------------'
+        print('----------------------------------------')
+
     for channel, name in zip(input_channel, input_name):
         val = patch.getfloat('input', channel)
         if val is None:
             if debug>0:
-                print name, 'not found'
+                print(name, 'not found')
             pass
         else:
             # map the Redis values to the internally used values
             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
             # look up the nearest index of the input_value vector
             if debug>0:
-                print name, '=', val
+                print(name, '=', val)
             idx = find_nearest_idx(input_value, val)
             for qname, qvalue in zip(output_name, output_value):
                 key = '{}.{}'.format(name, qname)
@@ -117,7 +118,7 @@ while True:
                     # take the last value from the output list
                     val = qvalue[-1]
                 if debug>0:
-                    print key, '=', val
+                    print(key, '=', val)
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                r.set(key, val)             # send it as control value
+                patch.setvalue(key, val)

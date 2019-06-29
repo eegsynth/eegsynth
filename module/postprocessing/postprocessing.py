@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Postprocessing performs basic algorithms on redis data
+# Postprocessing performs basic algorithms on Redis data
 #
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -47,25 +47,25 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 # get the input and output options
-input_name, input_variable = zip(*config.items('input'))
-output_name, output_equation = zip(*config.items('output'))
+input_name, input_variable = list(zip(*config.items('input')))
+output_name, output_equation = list(zip(*config.items('output')))
 
 def sanitize(equation):
     equation = equation.replace('(', '( ')
@@ -81,19 +81,19 @@ def sanitize(equation):
 output_equation = [sanitize(equation) for equation in output_equation]
 
 if debug>0:
-    print '===== input variables ====='
+    print('===== input variables =====')
     for name,variable in zip(input_name, input_variable):
-        print name, '=', variable
-    print '===== output equations ====='
+        print(name, '=', variable)
+    print('===== output equations =====')
     for name,equation in zip(output_name, output_equation):
-        print name, '=', equation
-    print '============================'
+        print(name, '=', equation)
+    print('============================')
 
 
 while True:
     time.sleep(patch.getfloat('general', 'delay'))
 
-    actual_value = [];
+    actual_value = []
     for name in input_name:
         actual_value.append(patch.getfloat('input', name))
 
@@ -109,7 +109,7 @@ while True:
             try:
                 val = eval(equation)
                 if debug>1:
-                    print key, '=', equation, '=', val
-                r.set(key, val)             # send it as control value
+                    print(key, '=', equation, '=', val)
+                patch.setvalue(key, val)
             except:
-                print 'Error in evaluation'
+                print('Error in evaluation')

@@ -1,6 +1,6 @@
 # Launchpad Module
 
-The purpose of this module is to process input MIDI commands from a Novation Launchpad digital control surface. The button press and release events are sent as triggers to the REDIS buffer.
+This module processes input MIDI commands from a Novation Launchpad digital control surface. The button press and release events are sent as triggers to the Redis buffer.
 
 For the buttons you can specify whether they should respond as push buttons (on/off) or as toggle buttons.
 
@@ -16,18 +16,6 @@ Push buttons are momentary, i.e. only "on" while you keep your them depressed. T
 We are developing for the Mini version, but expect that the same code will also work with the larger MK2 version.
 
 ![Launchpad MK2](./launchpad-mk2.png)
-
-## Requirements
-
-The LaunchPad should be connected to an USB port.
-The REDIS buffer should be running.
-
-## Software Requirements
-
-- portmidi
-- Python 2.x
-- mido Python library
-- Redis Python library
 
 ## MIDI assignment
 

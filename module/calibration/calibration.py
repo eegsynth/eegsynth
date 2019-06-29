@@ -2,9 +2,9 @@
 
 # Postprocessing performs basic algorithms on redis data
 #
-# Postprocessing is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -47,14 +47,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -64,21 +64,20 @@ del config
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 
-prefix      = patch.getstring('output','prefix')
-inputlist   = patch.getstring('input','channels').split(",")
-stepsize    = patch.getfloat('calibration','stepsize')   # in seconds
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+stepsize    = patch.getfloat('calibration', 'stepsize')                 # in seconds
+prefix      = patch.getstring('output', 'prefix')
 numchannel  = len(inputlist)
 
 # this will contain the initial and calibrated values
-value = np.empty((numchannel))
-value[:] = np.NAN
+value = np.empty((numchannel)) * np.NAN
 
 while True:
     # determine the start of the actual processing
     start = time.time()
 
     # update with current data
-    for chanindx,chanstr in zip(range(numchannel), inputlist):
+    for chanindx,chanstr in zip(list(range(numchannel)), inputlist):
         try:
             chanval = patch.getfloat('input', chanstr)
         except:
@@ -95,7 +94,7 @@ while True:
             hi = patch.getfloat('compressor_expander', 'hi')
             if lo is None or hi is None:
                 if debug>1:
-                    print "cannot apply compressor/expander"
+                    print("cannot apply compressor/expander")
             else:
                 # apply the compressor/expander
                 chanval = EEGsynth.compress(chanval, lo, hi)
@@ -109,11 +108,11 @@ while True:
 
         value[chanindx] = chanval
 
-    for chanindx,chanstr in zip(range(numchannel), inputlist):
+    for chanindx,chanstr in zip(list(range(numchannel)), inputlist):
         for channel in range(numchannel):
             key = prefix +  "." + chanstr
             val = value[chanindx]
-            r.set(key, val)
+            patch.setvalue(key, val)
 
     elapsed = time.time()-start
     naptime = stepsize - elapsed

@@ -4,7 +4,7 @@ This hardware module receives control signals over Art-Net (i.e. UDP packets) ov
 
 Upon switching on, the RGB led turns yellow to indicate that setup is done. After that the led turns red to indicate that it is not connected to WiFi. It will try connect as client to the previously used WiFi network; if that succeeds, the led turns green and setup is ready. If that fails, the led remains red and the node creates a wireless access point (AP) with the name "Artnet". You can connect with your laptop or smartphone to that network to configure the WIFi client settings and provide the password of the network to which it should connect. After that it resets.
 
-Wherever there is activity on the web interface (configuration, monitoring), the led turns blue. During web interface activity, the DMX512 output is silenced. A smooth web interface and a smooth DMX signalling don't go together.
+Whenever there is activity on the web interface (configuration, monitoring), the led turns blue. During web interface activity, the DMX output is silenced. A smooth web interface and a smooth DMX signalling don't go together.
 
 This hardware works well with the *outputartnet* Python module.
 

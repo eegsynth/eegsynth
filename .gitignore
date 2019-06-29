@@ -1,6 +1,4 @@
 # Misc files
-patches/biochill/2018*
-patches/test
 bin/buffer
 bin/openbci2ft
 bin/jaga2ft
@@ -12,6 +10,7 @@ interface/node_modules
 *.log
 *.pyc
 *.edf
+*.wav
 *.tsv
 .DS_Store
 
@@ -54,3 +53,6 @@ interface/node_modules
 
 # Debug files
 *.dSYM/
+
+# PyCharm project
+.idea/*

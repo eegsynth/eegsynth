@@ -1,12 +1,7 @@
 # Sequencer Module
 
-The purpose of this module is to repeatedly play a pre-configured sequence of notes to the REDIS buffer. Using the synchronization module these notes can subsequently be sent to an external CV/Gate or MIDI device.
+This module implements a monophonic sequencer. It repeatedly plays a pre-configured sequence of notes to the Redis buffer. Using either the endorphines, outputcvgate or outputmidi module these notes can subsequently be sent to an external CV/Gate or MIDI device.
 
-## Requirements
+The sequencer supports up to 128 sequences of arbitrary length. You can use a MIDI channel (e.g. from the launchcontrol module) to select the active sequence.
 
-The REDIS buffer should be running.
-
-## Software Requirements
-
-Python 2.x
-Redis Python library
+This sequencer requires an external clock to trigger the steps of the sequence: you can use the generateclock module, or for example a combination of the heartrate module with the clockmultiplier/clockdivider module.

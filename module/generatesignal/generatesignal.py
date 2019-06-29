@@ -2,9 +2,9 @@
 
 # Generatesignal creates user-defined signals and writes these to the FieldTrip buffer
 #
-# This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import numpy as np
 import os
@@ -45,14 +45,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -66,26 +66,41 @@ try:
     ftc_host = patch.getstring('fieldtrip','hostname')
     ftc_port = patch.getint('fieldtrip','port')
     if debug>0:
-        print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ftc_host, ftc_port)
     if debug>0:
-        print "Connected to output FieldTrip buffer"
+        print("Connected to output FieldTrip buffer")
 except:
-    print "Error: cannot connect to output FieldTrip buffer"
+    print("Error: cannot connect to output FieldTrip buffer")
     exit()
 
-datatype  = FieldTrip.DATATYPE_FLOAT32
+datatype  = 'float32'
 nchannels = patch.getint('generate', 'nchannels')
 fsample   = patch.getfloat('generate', 'fsample')
 blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
 
-ft_output.putHeader(nchannels, fsample, datatype)
+if datatype == 'uint8':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)
+elif datatype == 'int8':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT8)
+elif datatype == 'uint16':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT16)
+elif datatype == 'int16':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT16)
+elif datatype == 'uint32':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT32)
+elif datatype == 'int32':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT32)
+elif datatype == 'float32':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT32)
+elif datatype == 'float64':
+    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT64)
 
 if debug > 1:
-    print "nchannels", nchannels
-    print "fsample", fsample
-    print "blocksize", blocksize
+    print("nchannels", nchannels)
+    print("fsample", fsample)
+    print("blocksize", blocksize)
 
 # the scale and offset are used to map Redis values to signal parameters
 scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
@@ -98,7 +113,7 @@ offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
 offset_offset     = patch.getfloat('offset', 'offset', default=0)
 offset_noise      = patch.getfloat('offset', 'noise', default=0)
 offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
-shape             = patch.getstring('signal', 'shape') # sin, square, triangle or sawtooth
+shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
 
 prev_frequency = -1
 prev_amplitude = -1
@@ -114,14 +129,36 @@ endsample = blocksize-1
 timevec  = np.arange(1, blocksize+1) / fsample
 phasevec = np.zeros(1)
 
-print "STARTING STREAM"
+print("STARTING STREAM")
 while True:
+
+    if patch.getint('signal', 'rewind', default=0):
+        if debug>0:
+            print("Rewind pressed, jumping back to start of signal")
+        # the sample number and phase should be 0 upon the start of the signal
+        sample = 0
+        phase = 0
+
+    if not patch.getint('signal', 'play', default=1):
+        if debug>0:
+            print("Stopped")
+        time.sleep(0.1);
+        # the sample number and phase should be 0 upon the start of the signal
+        sample = 0
+        phase = 0
+        continue
+
+    if patch.getint('signal', 'pause', default=0):
+        if debug>0:
+            print("Paused")
+        time.sleep(0.1);
+        continue
 
     # measure the time that it takes
     start = time.time();
 
     if debug>1:
-        print "Generating block", block, 'from', begsample, 'to', endsample
+        print("Generating block", block, 'from', begsample, 'to', endsample)
 
     frequency = patch.getfloat('signal', 'frequency', default=10)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.8)
@@ -136,19 +173,19 @@ while True:
     dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
     if frequency!=prev_frequency or debug>2:
-        print "frequency =", frequency
+        print("frequency =", frequency)
         prev_frequency = frequency
     if amplitude!=prev_amplitude or debug>2:
-        print "amplitude =", amplitude
+        print("amplitude =", amplitude)
         prev_amplitude = amplitude
     if offset!=prev_offset or debug>2:
-        print "offset    =", offset
+        print("offset    =", offset)
         prev_offset = offset
     if noise!=prev_noise or debug>2:
-        print "noise     =", noise
+        print("noise     =", noise)
         prev_noise = noise
     if dutycycle!=prev_dutycycle or debug>2:
-        print "dutycycle =", dutycycle
+        print("dutycycle =", dutycycle)
         prev_dutycycle = dutycycle
 
     # compute the phase of each sample in this block
@@ -161,13 +198,30 @@ while True:
         signal = sp.sawtooth(phasevec, 0.5) * amplitude + offset
     elif shape=='sawtooth':
         signal = sp.sawtooth(phasevec, 1) * amplitude + offset
+    elif shape=='dc':
+        signal = phasevec * 0. + offset
 
     dat_output = np.random.randn(blocksize, nchannels) * noise
     for chan in range(nchannels):
         dat_output[:,chan] += signal
 
     # write the data to the output buffer
-    ft_output.putData(dat_output.astype(np.float32))
+    if datatype == 'uint8':
+        ft_output.putData(dat_output.astype(np.uint8))
+    elif datatype == 'int8':
+        ft_output.putData(dat_output.astype(np.int8))
+    elif datatype == 'uint16':
+        ft_output.putData(dat_output.astype(np.uint16))
+    elif datatype == 'int16':
+        ft_output.putData(dat_output.astype(np.int16))
+    elif datatype == 'uint32':
+        ft_output.putData(dat_output.astype(np.uint32))
+    elif datatype == 'int32':
+        ft_output.putData(dat_output.astype(np.int32))
+    elif datatype == 'float32':
+        ft_output.putData(dat_output.astype(np.float32))
+    elif datatype == 'float64':
+        ft_output.putData(dat_output.astype(np.float64))
 
     begsample += blocksize
     endsample += blocksize
@@ -183,4 +237,4 @@ while True:
         time.sleep(naptime)
 
     if debug>0:
-        print "generated", blocksize, "samples in", (time.time()-start)*1000, "ms"
+        print("generated", blocksize, "samples in", (time.time()-start)*1000, "ms")

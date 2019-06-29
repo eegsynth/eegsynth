@@ -2,9 +2,9 @@
 
 # Endorphines interfaces with the Endorphines Cargo MIDI-to-CV device
 #
-# Endorphines is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
+# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017 EEGsynth project
+# Copyright (C) 2017-2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import ConfigParser  # this is version 2.x specific, on version 3.x it is called "configparser" and has a different API
+import configparser
 import argparse
 import mido
 import os
@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
+    print("Error: cannot connect to redis server")
     exit()
 
 # combine the patching from the configuration file and Redis
@@ -60,8 +60,22 @@ patch = EEGsynth.patch(config, r)
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
-outputport = EEGsynth.midiwrapper(config)
-outputport.open_output()
+# this is only for debugging, and check which MIDI devices are accessible
+print('------ OUTPUT ------')
+for port in mido.get_output_names():
+  print(port)
+print('-------------------------')
+
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
+
+try:
+    outputport  = mido.open_output(mididevice)
+    if debug>0:
+        print("Connected to MIDI output")
+except:
+    print("Error: cannot connect to MIDI output")
+    exit()
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -84,14 +98,14 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     if debug>0:
-                        print item
-                    if int(item['data'])>0:
+                        print(item)
+                    if int(float(item['data']))>0:
                         pitch = int(8191)
                     else:
                         pitch = int(0)
                     msg = mido.Message('pitchwheel', pitch=pitch, channel=self.midichannel)
                     if debug>1:
-                        print msg
+                        print(msg)
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -110,7 +124,7 @@ for channel in range(0, 16):
         this = TriggerThread(patch.getstring('gate', name), channel)
         gate.append(this)
         if debug>1:
-            print name, 'OK'
+            print(name, 'OK')
 
 # start the thread for each of the notes
 for thread in gate:
@@ -138,13 +152,13 @@ try:
             if val is None:
                 # the value is not present in Redis, skip it
                 if debug > 2:
-                    print name, 'not available'
+                    print(name, 'not available')
                 continue
 
             if port_val is None:
                 # the value is not present in Redis, skip it
                 if debug > 2:
-                    print name, 'not available'
+                    print(name, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -167,7 +181,7 @@ try:
                 val = EEGsynth.limit(val, lo=-8192, hi=8191)
                 val = int(val)
             else:
-                print 'No output mode (note or pitchbend) specified!'
+                print('No output mode (note or pitchbend) specified!')
                 break
 
             if val != previous_val[name] or not val: # it should be skipped when identical to the previous value
@@ -175,7 +189,7 @@ try:
                 previous_val[name] = val
 
                 if debug > 0:
-                    print name, val, port_val
+                    print(name, val, port_val)
 
                 # midi channels in the inifile are 1-16, in the code 0-15
                 midichannel = channel
@@ -186,7 +200,7 @@ try:
                     msg = mido.Message('note_on', note=val, velocity=127, time=0, channel=midichannel)
 
                 if debug > 1:
-                    print msg
+                    print(msg)
 
                 lock.acquire()
                 outputport.send(msg)
@@ -199,12 +213,12 @@ try:
                 previous_port_val[name] = port_val
 
                 if debug > 0:
-                    print name, val, port_val
+                    print(name, val, port_val)
 
                 # CC#5 sets portamento
                 msg = mido.Message('control_change', control=5, value=port_val, channel=midichannel)
                 if debug > 1:
-                    print msg
+                    print(msg)
 
                 lock.acquire()
                 outputport.send(msg)
@@ -214,7 +228,7 @@ try:
                 time.sleep(patch.getfloat('general', 'pulselength'))
 
 except KeyboardInterrupt:
-    print 'Closing threads'
+    print('Closing threads')
     for thread in gate:
         thread.stop()
     r.publish('ENDORPHINES_UNBLOCK', 1)
