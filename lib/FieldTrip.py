@@ -8,6 +8,7 @@ FieldTrip buffer (V1) client in pure Python
 import socket
 import struct
 import numpy
+import unicodedata
 
 VERSION = 1
 
@@ -340,7 +341,8 @@ class Client:
             serLabels = ''
             try:
                 for n in range(0, nChannels):
-                    serLabels += labels[n] + '\0'
+                    # serLabels += labels[n] + '\0'
+                    serLabels += unicodedata.normalize('NFKD', labels[n]).encode('ascii', 'ignore') + '\0'
             except:
                 raise ValueError('Channels names (labels), if given,'
                                  ' must be a list of N=numChannels strings')
