@@ -188,6 +188,8 @@ else:
     begsample = hdr_input.nSamples-window
     endsample = hdr_input.nSamples-1
 
+datscaling = 0
+
 print("STARTING COGITO STREAM")
 while True:
     start_time = time.time()
@@ -203,7 +205,17 @@ while True:
             print("Error: timeout while waiting for data")
             raise SystemExit
 
+
     dat_input = ft_input.getData([begsample, endsample])
+
+    if datscaling==0:
+        tmp = dat_input - dat_input.mean(axis=0)
+        datscaling = 1/np.sqrt(max(tmp.var(axis=0)))
+        print('datscaling', datscaling)
+
+    # scale the data to have approximately unit variance
+    # the scaling parameter is determined only once, and is the same for all channels
+    dat_input = dat_input * datscaling * 1000000
 
     if debug > 1:
         print('time waiting for data: ' + str((time.time() - start_time) * 1000))
