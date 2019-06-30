@@ -423,15 +423,19 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
     if highpass != None:
         highpass = highpass/nyquist
         if highpass < 0.001:
+            print('Warning: highpass is too low, disabling')
             highpass = None
         elif highpass > 0.999:
+            print('Warning: highpass is too high, disabling')
             highpass = None
 
     if lowpass != None:
         lowpass = lowpass/nyquist
         if lowpass < 0.001:
+            print('Warning: lowpass is too low, disabling')
             lowpass = None
         elif lowpass > 0.999:
+            print('Warning: lowpass is too low, disabling')
             lowpass = None
 
     if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
