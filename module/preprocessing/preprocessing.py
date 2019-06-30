@@ -124,8 +124,12 @@ window = patch.getfloat('processing', 'window')
 window = int(round(window*hdr_input.fSample))
 
 # Processing init
-downsample  = patch.getint('processing', 'downsample', default=None)
-smoothing   = patch.getfloat('processing', 'smoothing', default=None)
+downsample      = patch.getint('processing', 'downsample', default=None)
+differentiate   = patch.getint('processing', 'differentiate', default=0)
+integrate       = patch.getint('processing', 'integrate', default=0)
+rectify         = patch.getint('processing', 'rectify', default=0)
+downsample      = patch.getint('processing', 'downsample', default=None)
+smoothing       = patch.getfloat('processing', 'smoothing', default=None)
 try:
     reference = patch.getstring('processing','reference')
 except:
@@ -134,12 +138,16 @@ except:
 try:
     float(config.get('processing', 'highpassfilter'))
     float(config.get('processing', 'lowpassfilter'))
+    float(config.get('processing', 'notchfilter'))
     # the filter frequencies are specified as numbers
     default_scale = 1.
 except:
     # the filter frequencies are specified as Redis channels
     # scale them to the Nyquist frequency
     default_scale = hdr_input.fSample/2
+
+if debug>0:
+    print('default scale for filter settings is %.0f' % (default_scale))
 
 scale_lowpass       = patch.getfloat('scale', 'lowpassfilter', default=default_scale)
 scale_highpass      = patch.getfloat('scale', 'highpassfilter', default=default_scale)
@@ -160,6 +168,10 @@ else:
 
 # initialize the state for the smoothing
 previous = np.zeros((1, hdr_input.nChannels))
+
+# initialize the state for differentiate/integrate
+differentiate_zi = np.zeros((1, hdr_input.nChannels))
+integrate_zi     = np.zeros((1, hdr_input.nChannels))
 
 # jump to the end of the stream
 if hdr_input.nSamples-1<window:
@@ -241,6 +253,18 @@ while True:
         dat_output, nzi = EEGsynth.online_filter(nb, na, dat_output, axis=0, zi=nzi)
         if debug>1:
             print("notched     ", window, "samples in", (time.time()-start)*1000, "ms")
+
+    # Differentiate
+    if differentiate:
+        dat_output, d_zi = EEGsynth.online_filter([1, -1], 1, dat_output, axis=0, zi=differentiate_zi)
+
+    # Integrate
+    if integrate:
+        dat_output, i_zi = EEGsynth.online_filter(1, [1, -1], dat_output, axis=0, zi=integrate_zi)
+
+    # Rectifying
+    if rectify:
+        dat_output = np.rectify(dat_output)
 
     # Downsampling
     if not(downsample is None):
