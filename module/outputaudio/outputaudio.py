@@ -185,14 +185,17 @@ def callback(in_data, frame_count, time_info, status):
 
     with lock:
         lenstack = len(stack)
-        if endsample > (window - 1):
+        if endsample > (window - 1) and lenstack>1:
             # the selection passes the boundary, concatenate the first two blocks
             dat = np.append(stack[0], stack[1], axis=0)
-        else:
+        elif lenstack>0:
             # the selection can be made in the first block
             dat = stack[0]
-    # select the samples that will be written to the audio card
-    dat = dat[selection]
+    try:
+        # select the samples that will be written to the audio card
+        dat = dat[selection]
+    except:
+        dat = np.zeros((frame_count,1), dtype=float)
 
     if debug > 1:
         print("inputrate", int(inputrate))
