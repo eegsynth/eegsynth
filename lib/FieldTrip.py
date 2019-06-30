@@ -339,10 +339,11 @@ class Client:
 
         if not(labels is None):
             serLabels = ''
+            for n in range(0, nChannels):
+                # ensure that labels are ascii strings, not unicode
+                serLabels += labels[n].encode('ascii', 'ignore') + '\0'
             try:
-                for n in range(0, nChannels):
-                    # serLabels += labels[n] + '\0'
-                    serLabels += unicodedata.normalize('NFKD', labels[n]).encode('ascii', 'ignore') + '\0'
+                pass
             except:
                 raise ValueError('Channels names (labels), if given,'
                                  ' must be a list of N=numChannels strings')
