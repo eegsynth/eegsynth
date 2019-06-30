@@ -259,6 +259,8 @@ try:
             dat = dat * scaling
         elif scaling_method == 'divide':
             dat = dat / scaling
+        elif scaling_method == 'db':
+            dat = dat * np.power(10, scaling/20)
 
         with lock:
             stack.append(dat)
