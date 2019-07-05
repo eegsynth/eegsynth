@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Eyeblink detects eyeblinks
+# This module detects whether a signal exceeds a specified threshold
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -19,9 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from nilearn import signal
 import configparser
 import argparse
+import math
 import numpy as np
 import os
 import redis
@@ -31,14 +31,15 @@ import time
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
-elif sys.argv[0]!='':
+elif sys.argv[0] != '':
     basis = sys.argv[0]
 else:
     basis = './'
 installed_folder = os.path.split(basis)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
+import EEGsynth
 import FieldTrip
 
 parser = argparse.ArgumentParser()
@@ -49,7 +50,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print("Error: cannot connect to redis server")
@@ -57,22 +58,21 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip','timeout')
+timeout = patch.getfloat('fieldtrip', 'timeout')
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
+    ftc_host = patch.getstring('fieldtrip', 'hostname')
+    ftc_port = patch.getint('fieldtrip', 'port')
+    if debug > 0:
         print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ftc = FieldTrip.Client()
     ftc.connect(ftc_host, ftc_port)
-    if debug>0:
+    if debug > 0:
         print("Connected to FieldTrip buffer")
 except:
     print("Error: cannot connect to FieldTrip buffer")
@@ -81,129 +81,59 @@ except:
 hdr_input = None
 start = time.time()
 while hdr_input is None:
-    if debug>0:
+    if debug > 0:
         print("Waiting for data to arrive...")
-    if (time.time()-start)>timeout:
+    if (time.time() - start) > timeout:
         print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.2)
 
-if debug>0:
+if debug > 0:
     print("Data arrived")
-if debug>1:
+if debug > 1:
     print(hdr_input)
     print(hdr_input.labels)
 
-class TriggerThread(threading.Thread):
-    def __init__(self, r, config):
-        threading.Thread.__init__(self)
-        self.r = r
-        self.config = config
-        self.running = True
-        lock.acquire()
-        self.time = 0
-        self.last = 0
-        lock.release()
-    def stop(self):
-        self.running = False
-    def run(self):
-        pubsub = self.r.pubsub()
-        channel = self.patch.getstring('processing','calibrate')
-        pubsub.subscribe('EYEBLINK_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(channel)
-        while self.running:
-            for item in pubsub.listen():
-                if not self.running or not item['type'] == 'message':
-                    break
-                print(item['channel'], ":", item['data'])
-                lock.acquire()
-                self.last = self.time
-                lock.release()
+prefix = patch.getstring('output', 'prefix')
+window = patch.getfloat('processing', 'window')     # in seconds
+window = round(window * hdr_input.fSample)          # in samples
 
-try:
-    # start the background thread
-    lock = threading.Lock()
-    trigger = TriggerThread(r, config)
-    trigger.start()
+channels = patch.getint('input', 'channels', multiple=True)
+channels = [chan - 1 for chan in channels] # since python using indexing from 0 instead of 1
 
-    channel = patch.getint('input','channel')-1                         # one-offset in the ini file, zero-offset in the code
-    window  = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
+print('channels', channels)
 
-    minval = None
-    maxval = None
+begsample = -1
+endsample = -1
 
-    t = 0
+previous = False
 
-    begsample = -1
-    endsample = -1
+while True:
+    time.sleep(patch.getfloat('general', 'delay'))
 
-    while True:
-        time.sleep(patch.getfloat('processing','window')/10)
-        t += 1
+    hdr_input = ftc.getHeader()
+    if (hdr_input.nSamples - 1) < endsample:
+        print("Error: buffer reset detected")
+        raise SystemExit
 
-        lock.acquire()
-        if trigger.last == trigger.time:
-            minval = None
-            maxval = None
-        trigger.time = t
-        lock.release()
+    endsample = hdr_input.nSamples - 1
+    if endsample < window:
+        continue
 
-        hdr_input = ftc.getHeader()
-        if (hdr_input.nSamples-1)<endsample:
-            print("Error: buffer reset detected")
-            raise SystemExit
-        endsample = hdr_input.nSamples - 1
-        if endsample<window:
-            continue
+    begsample = endsample - window + 1
 
-        begsample = endsample - window + 1
-        D = ftc.getData([begsample, endsample])
-        D = D[:,channel]
+    D = ftc.getData([begsample, endsample])
 
-        try:
-            low_pass = patch.getint('processing', 'low_pass')
-        except:
-            low_pass = None
+    threshold = patch.getfloat('processing', 'threshold')
 
-        try:
-            high_pass = patch.getint('processing', 'high_pass')
-        except:
-            high_pass = None
-
-        try:
-            order = patch.getint('general', 'order')
-        except:
-            order = None
-
-        # FIXME the following has not been tested yet
-        # D = signal.butterworth(D, hdr_input.fSample, low_pass=low_pass, high_pass=high_pass, order=order)
-
-        if minval is None:
-            minval = np.min(D)
-
-        if maxval is None:
-            maxval = np.max(D)
-
-        minval = min(minval,np.min(D))
-        maxval = max(maxval,np.max(D))
-
-        spread = np.max(D) - np.min(D)
-        if spread > patch.getfloat('processing','threshold')*(maxval-minval):
-            val = 1
-        else:
-            val = 0
-
-        print(('spread ' + str(spread) +
-              '\t  max_spread : ' + str(maxval-minval) +
-              '\t  output ' + str(val)))
-
-        key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
-        r.publish(key,val)
-
-except (KeyboardInterrupt, SystemExit):
-    print("Closing threads")
-    trigger.stop()
-    r.publish('EYEBLINK_UNBLOCK', 1)
-    trigger.join()
-    sys.exit()
+    for channel in channels:
+        timeseries = D[:,channel]
+        if np.any(timeseries>threshold):
+            if not previous:
+                key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
+                val = np.max(timeseries)
+                patch.setvalue(key, float(val), debug=debug)
+                previous = True
+            else:
+                previous = False
