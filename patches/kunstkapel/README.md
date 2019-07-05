@@ -12,3 +12,7 @@ The patch consists of the following modules
 - historysignal
 - outputaudio
 - plotsignal and plotspectral (running on another macbook)
+
+## Schematic representation of the patch
+
+![flowchart](patch.png)
