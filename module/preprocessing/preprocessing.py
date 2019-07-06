@@ -264,7 +264,7 @@ while True:
 
     # Rectifying
     if rectify:
-        dat_output = np.rectify(dat_output)
+        dat_output = np.absolute(dat_output)
 
     # Downsampling
     if not(downsample is None):
