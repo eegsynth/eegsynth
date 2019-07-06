@@ -66,12 +66,12 @@ debug = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout')
 
 try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
+    ft_input_host = patch.getstring('fieldtrip', 'hostname')
+    ft_input_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ft_input_host, ft_input_port))
+    ft_input = FieldTrip.Client()
+    ft_input.connect(ft_input_host, ft_input_port)
     if debug > 0:
         print("Connected to FieldTrip buffer")
 except:
@@ -86,7 +86,7 @@ while hdr_input is None:
     if (time.time() - start) > timeout:
         print("Error: timeout while waiting for data")
         raise SystemExit
-    hdr_input = ftc.getHeader()
+    hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 
 if debug > 0:
@@ -95,45 +95,74 @@ if debug > 1:
     print(hdr_input)
     print(hdr_input.labels)
 
-prefix = patch.getstring('output', 'prefix')
-window = patch.getfloat('processing', 'window')     # in seconds
-window = round(window * hdr_input.fSample)          # in samples
+rectify = patch.getint('processing', 'rectify', default=0)
+invert  = patch.getint('processing', 'invert', default=0)
+prefix  = patch.getstring('output', 'prefix')
+window  = patch.getfloat('processing', 'window')     # in seconds
+window  = round(window * hdr_input.fSample)          # in samples
+
+scale_threshold   = patch.getfloat('scale', 'threshold', default=1)
+offset_threshold  = patch.getfloat('offset', 'threshold', default=0)
+scale_interval    = patch.getfloat('scale', 'interval', default=1)
+offset_interval   = patch.getfloat('offset', 'interval', default=0)
 
 channels = patch.getint('input', 'channels', multiple=True)
 channels = [chan - 1 for chan in channels] # since python using indexing from 0 instead of 1
 
 print('channels', channels)
 
-begsample = -1
-endsample = -1
+previous = [-np.Inf] * len(channels)
 
-previous = False
+# jump to the end of the stream
+if hdr_input.nSamples-1<window:
+    begsample = 0
+    endsample = window-1
+else:
+    begsample = hdr_input.nSamples-window
+    endsample = hdr_input.nSamples-1
 
+print("STARTING PROCESSING STREAM")
 while True:
-    time.sleep(patch.getfloat('general', 'delay'))
 
-    hdr_input = ftc.getHeader()
-    if (hdr_input.nSamples - 1) < endsample:
-        print("Error: buffer reset detected")
-        raise SystemExit
+    start = time.time()
+    while endsample>hdr_input.nSamples-1:
+        # wait until there is enough data
+        time.sleep(patch.getfloat('general', 'delay'))
+        hdr_input = ft_input.getHeader()
+        if (hdr_input.nSamples-1)<(endsample-window):
+            print("Error: buffer reset detected")
+            raise SystemExit
+        if (time.time()-start)>timeout:
+            print("Error: timeout while waiting for data")
+            raise SystemExit
 
-    endsample = hdr_input.nSamples - 1
-    if endsample < window:
-        continue
+    dat_input = ft_input.getData([begsample, endsample])
 
-    begsample = endsample - window + 1
+    if debug>1:
+        print("read from sample %d to %d" % (begsample, endsample))
 
-    D = ftc.getData([begsample, endsample])
+    # Rectify the data
+    if rectify:
+        dat_input = np.absolute(dat_input)
+
+    # Invert the data
+    if invert:
+        dat_input = -dat_input
 
     threshold = patch.getfloat('processing', 'threshold')
+    threshold = EEGsynth.rescale(threshold, slope=scale_threshold, offset=offset_threshold)
+    interval  = patch.getfloat('processing', 'interval', default=0)
+    interval  = EEGsynth.rescale(interval, slope=scale_interval, offset=offset_interval)
 
     for channel in channels:
-        timeseries = D[:,channel]
-        if np.any(timeseries>threshold):
-            if not previous:
-                key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
-                val = np.max(timeseries)
-                patch.setvalue(key, float(val), debug=debug)
-                previous = True
-            else:
-                previous = False
+        maxind = np.argmax(dat_input[:,channel])
+        maxval = dat_input[maxind,channel]
+        sample = maxind+begsample
+        if maxval>=threshold and (sample-previous[channel])>=(interval*hdr_input.fSample):
+            key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
+            patch.setvalue(key, float(maxval), debug=debug)
+            previous[channel] = sample
+
+    # increment the counters for the next loop
+    begsample += window
+    endsample += window
