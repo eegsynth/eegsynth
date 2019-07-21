@@ -85,7 +85,7 @@ class Window(QWidget):
                 key = '%s.%s' % (prefix, item[0])
                 val = float(patch.redis.get(key))
                 # sliders and dials have an internal value between 0 and 127
-                val = int(EEGsynth.rescale(val, slope=output_scale, offset=output_offset, reverse=True))
+                val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset, reverse=True)
                 # buttons have an internal value of 0, 1, 2, 3, 4
                 if item[1]=='slap':
                     val = int(1. * val / 127.)
@@ -234,8 +234,8 @@ class Window(QWidget):
         if target.type=='slider' or target.type=='dial':
             val = target.value()
         elif target.type=='text':
-            val = int(target.text())    # convert the string into an integer
-            target.setText('%d' % val)  # ensure that the displayed value is consistent
+            val = float(target.text())  # convert the string into a scalar
+            target.setText('%g' % val)  # ensure that the displayed value is consistent
         elif target.type=='slap':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1
