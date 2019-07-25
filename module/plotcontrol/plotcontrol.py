@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Plotcontrol plots the (history of) control values
+# Plotcontrol plots the time course of control values
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #

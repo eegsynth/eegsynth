@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-# Plotsignal plots the last segment of data from the FieldTrip buffer.
-# It also includes some user-defined filtering.
+# Plotsignal plots the signal from the FieldTrip buffer over time.
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
