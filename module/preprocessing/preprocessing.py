@@ -199,8 +199,8 @@ while True:
     # determine the start of the actual processing
     start = time.time()
 
-    dat_input  = ft_input.getData([begsample, endsample])
-    dat_output = dat_input.astype(np.float32)
+    dat_input  = ft_input.getData([begsample, endsample]).astype(np.float32)
+    dat_output = dat_input
 
     if debug>2:
         print("------------------------------------------------------------")

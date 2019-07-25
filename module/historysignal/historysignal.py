@@ -167,7 +167,7 @@ while True:
             print("reading samples", begsample, "to", endsample)
 
         # get the input data, sample vector and time vector
-        dat_input = ft_input.getData([begsample, endsample])
+        dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
         # shift the history and insert the most recent data
         history = np.roll(history, stepsize, axis=0)

@@ -241,7 +241,7 @@ while True:
             raise SystemExit
 
     # get the input data
-    dat_input = ft_input.getData([begsample, endsample])
+    dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
     dat_output = np.zeros((nOutput,hdr_output.nChannels))
 
     # construct a time vector for input and output

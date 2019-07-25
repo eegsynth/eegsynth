@@ -136,7 +136,7 @@ while True:
             print("Error: timeout while waiting for data")
             raise SystemExit
 
-    dat_input = ft_input.getData([begsample, endsample])
+    dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
     if debug>1:
         print("read from sample %d to %d" % (begsample, endsample))

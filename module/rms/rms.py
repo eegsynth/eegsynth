@@ -124,7 +124,7 @@ while True:
 
     begsample = endsample - window + 1
 
-    D = ftc.getData([begsample, endsample])
+    D = ftc.getData([begsample, endsample]).astype(np.double)
     D = D[:, chanindx]
 
     rms = [0.] * len(chanindx)

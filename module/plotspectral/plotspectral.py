@@ -234,7 +234,7 @@ def update():
     last_index = ft_input.getHeader().nSamples
     begsample  = (last_index - window)
     endsample  = (last_index - 1)
-    data = ft_input.getData([begsample, endsample])
+    data = ft_input.getData([begsample, endsample]).astype(np.double)
 
     if debug>0:
         print("reading from sample %d to %d" % (begsample, endsample))

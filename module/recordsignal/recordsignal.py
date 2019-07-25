@@ -215,7 +215,7 @@ while True:
         if ((endsample - startsample + 1) % synchronize) == 0:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, endsample - startsample + 1)
-        D = ftc.getData([begsample, endsample])
+        D = ftc.getData([begsample, endsample]).astype(np.double)
         D = np.asarray(D, dtype=np.float64)
         if debug > 0:
             print("Writing sample", begsample, "to", endsample, "as", np.shape(D))

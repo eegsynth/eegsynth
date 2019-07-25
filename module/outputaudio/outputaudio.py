@@ -252,7 +252,7 @@ try:
                 print("Error: timeout while waiting for data")
                 raise SystemExit
 
-        dat = ft_input.getData([begsample, endsample])
+        dat = ft_input.getData([begsample, endsample]).astype(np.double)
 
         # multiply the data with the scaling factor
         scaling = patch.getfloat('audio', 'scaling', default=1)

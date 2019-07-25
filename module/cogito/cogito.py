@@ -206,7 +206,7 @@ while True:
             raise SystemExit
 
 
-    dat_input = ft_input.getData([begsample, endsample])
+    dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
     if datscaling==0:
         tmp = dat_input - dat_input.mean(axis=0)

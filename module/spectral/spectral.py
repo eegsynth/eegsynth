@@ -148,7 +148,7 @@ while True:
         continue
 
     begsample = endsample-window+1
-    D = ftc.getData([begsample, endsample])
+    D = ftc.getData([begsample, endsample]).astype(np.double)
 
     # FIXME it should be possible to do this differently
     power = []

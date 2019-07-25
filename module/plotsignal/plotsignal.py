@@ -216,7 +216,7 @@ def update():
     if debug > 0:
         print("reading from sample %d to %d" % (begsample, endsample))
 
-    data = ft_input.getData([begsample, endsample])
+    data = ft_input.getData([begsample, endsample]).astype(np.double)
     data = np.copy(data).astype(np.float32)
 
 
