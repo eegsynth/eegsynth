@@ -252,7 +252,7 @@ def update():
             timeplot[ichan].setYRange(ylim[0], ylim[1])
         else:
             # adapt the vertical scale to the running mean of max
-            curvemax[ichan] = curvemax[ichan] * (1 - lrate) + lrate * max(abs(data[:, channr]))
+            curvemax[ichan] = (1 - lrate) * curvemax[ichan] + lrate * max(abs(data[:, channr]))
             timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
 
 # keyboard interrupt handling

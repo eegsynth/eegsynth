@@ -208,13 +208,13 @@ for ichan in range(numchannel):
     win.nextRow()
 
     # initialize as lists
-    specmin_curr.append(0)
-    specmax_curr.append(0)
-    specmin_hist.append(0)
-    specmax_hist.append(0)
-    fft_curr.append(0)
-    fft_prev.append(0)
-    fft_hist.append(0)
+    specmin_curr.append(0.)
+    specmax_curr.append(0.)
+    specmin_hist.append(0.)
+    specmax_hist.append(0.)
+    fft_curr.append(0.)
+    fft_prev.append(0.)
+    fft_hist.append(0.)
 
 # print frequency at lines
 freqplot_curr[0].addItem(text_redleft)
@@ -252,13 +252,13 @@ def update():
     for ichan in range(numchannel):
         channr = int(chanarray[ichan])
 
-        # estimate FFT at current moment, apply some temporal smoothing
-        fft_temp = abs(fft(data[:, channr]))
-        fft_curr[ichan] = fft_temp * lrate + fft_prev[ichan] * (1 - lrate)
+        # estimate the absolute FFT amplitude at the current moment, apply some temporal smoothing
+        fft_now = abs(fft(data[:, channr]))
+        fft_curr[ichan] = (1 - lrate) * fft_prev[ichan] + lrate * fft_now
         fft_prev[ichan] = fft_curr[ichan]
 
         # update FFT history with current estimate
-        history[ichan, :, numhistory - 1] = fft_temp
+        history[ichan, :, numhistory - 1] = fft_now
         fft_hist = np.nanmean(history, axis=2)
 
         # user-selected frequency band
@@ -270,10 +270,10 @@ def update():
         spect_hist[ichan].setData(freqaxis[freqrange], fft_hist[ichan][freqrange])
 
         # adapt the vertical scale to the running mean of min/max
-        specmax_curr[ichan] = float(specmax_curr[ichan]) * (1 - lrate) + lrate * max(fft_curr[ichan][freqrange])
-        specmin_curr[ichan] = float(specmin_curr[ichan]) * (1 - lrate) + lrate * min(fft_curr[ichan][freqrange])
-        specmax_hist[ichan] = float(specmax_hist[ichan]) * (1 - lrate) + lrate * max(fft_hist[ichan][freqrange])
-        specmin_hist[ichan] = float(specmin_hist[ichan]) * (1 - lrate) + lrate * min(fft_hist[ichan][freqrange])
+        specmax_curr[ichan] = (1 - lrate) * float(specmax_curr[ichan]) + lrate * max(fft_curr[ichan][freqrange])
+        specmin_curr[ichan] = (1 - lrate) * float(specmin_curr[ichan]) + lrate * min(fft_curr[ichan][freqrange])
+        specmax_hist[ichan] = (1 - lrate) * float(specmax_hist[ichan]) + lrate * max(fft_hist[ichan][freqrange])
+        specmin_hist[ichan] = (1 - lrate) * float(specmin_hist[ichan]) + lrate * min(fft_hist[ichan][freqrange])
 
         freqplot_curr[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_hist[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
