@@ -1,11 +1,12 @@
 #!/bin/bash
 
-DIR=`dirname "$0"`
-NAME=`basename "$0" .sh`
+export RTMIDI_API=MACOSX_CORE
+export DYLD_LIBRARY_PATH=/System/Library/Frameworks/ImageIO.framework/Versions/A/Resources
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 
-if [ $DIR == '.' ] ; then 
-  DIR=`pwd`
-fi
+MODULE=`basename $0 .sh`
 
-cd $HOME/eegsynth/module/$NAME
-exec ./$NAME.py -i $DIR/$NAME.ini
+EEGSYNTH=$HOME/eegsynth
+INIDIR=`dirname $0`
+
+$EEGSYNTH/module/$MODULE/$MODULE.py -i $INIDIR/$MODULE.ini
