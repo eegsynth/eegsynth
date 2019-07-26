@@ -87,7 +87,7 @@ while True:
 
     for key1,key2,key3 in zip(list1,list2,list3):
 
-        val = patch.getfloat('input', key1, multiple=True )
+        val = patch.getfloat('input', key1, multiple=True)
         if any(item is None for item in val):
             # the control value is not present in redis, skip it
             continue
