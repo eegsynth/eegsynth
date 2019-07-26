@@ -22,7 +22,10 @@ digraph {
   rms -> postprocessing;
   rms -> historycontrol;
 
-  postprocessing -> plotcontrol;
-  historycontrol -> postprocessing -> outputmidi;
+  historycontrol -> postprocessing -> slewlimiter;
+
+  slewlimiter -> vumeter;
+  slewlimiter -> plotcontrol;
+  slewlimiter -> outputmidi;
   threshold -> outputmidi;
 }
