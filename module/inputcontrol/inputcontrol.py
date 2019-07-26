@@ -98,7 +98,7 @@ class Window(QWidget):
                 elif item[1]=='toggle4':
                     val = int(4. * val / 127.)
                 if debug>0:
-                    print(key, val)
+                    print('%s = %g' % (key, val))
             except:
                 # set the default initial value to 0
                 val = 0

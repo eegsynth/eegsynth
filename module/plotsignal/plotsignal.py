@@ -155,7 +155,7 @@ window      = int(round(window * hdr_input.fSample))       # in samples
 clipsize    = patch.getfloat('arguments', 'clipsize')      # in seconds
 clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
 stepsize    = patch.getfloat('arguments', 'stepsize')      # in seconds
-lrate       = patch.getfloat('arguments', 'learning_rate')
+lrate       = patch.getfloat('arguments', 'learning_rate', default=1)
 
 try:
     ylim    = patch.getfloat('arguments', 'ylim', 'multiple', True)

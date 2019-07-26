@@ -93,23 +93,34 @@ if debug>0:
 while True:
     time.sleep(patch.getfloat('general', 'delay'))
 
+    if debug>1:
+        print('============================')
+
     actual_value = []
     for name in input_name:
-        actual_value.append(patch.getfloat('input', name))
+        val = patch.getfloat('input', name)
+        actual_value.append(val)
+        if debug>1:
+            print('%s = %f' % (name, val))
 
     for key,equation in zip(output_name, output_equation):
+        original = equation
         for name,value in zip(input_name, actual_value):
             if value is None and equation.count(name)>0:
                 # there are undefined variables in this equation
+                print('Undefined value: %s' % (name))
                 break
             else:
                 equation = equation.replace(name, str(value))
         else:
             # this section should not run if there are undefined variables in an equation
             try:
-                val = eval(equation)
                 if debug>1:
-                    print(key, '=', equation, '=', val)
+                    print('%s = %s = %f' % (key, equation, val))
+                val = eval(equation)
                 patch.setvalue(key, val)
+            except ZeroDivisionError:
+                # division by zero is not a serious error
+                patch.setvalue(key, np.NaN)
             except:
-                print('Error in evaluation')
+                print('Error in evaluation: %s = %s' % (key, original))

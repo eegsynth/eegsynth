@@ -59,7 +59,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print(key, "=", val)
+        print("%s = %g" % (key, val))
         show_change.previous[key] = val
         return True
     else:

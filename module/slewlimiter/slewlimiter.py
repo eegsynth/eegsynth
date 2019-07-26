@@ -66,7 +66,7 @@ input_name, input_variable = list(map(list, list(zip(*config.items('input')))))
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print(key, "=", val)
+        print("%s = %g" % (key, val))
         show_change.previous[key] = val
         return True
     else:
@@ -79,7 +79,7 @@ for name in input_name:
 
 while True:
     time.sleep(patch.getfloat('general', 'delay'))
-    lrate = patch.getfloat('processing', 'learning_rate')
+    lrate = patch.getfloat('processing', 'learning_rate', default=1)
 
     for name, variable in zip(input_name, input_variable):
         key = '%s.%s' % (prefix, variable)

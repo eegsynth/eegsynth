@@ -28,6 +28,7 @@ import redis
 import sys
 import time
 import signal
+import numpy as np
 
 if hasattr(sys, 'frozen'):
     basis = sys.executable
@@ -61,7 +62,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to selectively show parameters that have changed
 def show_change(key, val):
     if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print(key, "=", val)
+        print("%s = %g" % (key, val))
         show_change.previous[key] = val
         return True
     else:
@@ -81,7 +82,7 @@ input_name, input_variable = list(zip(*config.items('input')))
 
 if debug>0:
     for name,variable in zip(input_name, input_variable):
-        print(name,variable)
+        print("%s = %s" % (name, variable))
 
 class Window(QWidget):
     def __init__(self):
@@ -117,7 +118,7 @@ class Window(QWidget):
         for name in input_name:
             scale = patch.getfloat('scale', name, default=1)
             offset = patch.getfloat('offset', name, default=0)
-            val = patch.getfloat('input', name, default=0)
+            val = patch.getfloat('input', name, default=np.nan)
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
             if debug>0:
@@ -126,16 +127,17 @@ class Window(QWidget):
             threshold = patch.getfloat('threshold', name, default=1)
             threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)
 
-            if val<=threshold:
+            if val>=0 and val<=threshold:
                 qp.setBrush(green)
                 qp.setPen(green)
             else:
                 qp.setBrush(red)
                 qp.setPen(red)
 
-            val = EEGsynth.limit(val, 0, 1)
-            r = QRect(x, pady + (1-val)*bary, barx, val*bary)
-            qp.drawRect(r)
+            if not np.isnan(val):
+                val = EEGsynth.limit(val, 0, 1)
+                r = QRect(x, pady + (1-val)*bary, barx, val*bary)
+                qp.drawRect(r)
 
             r = QRect(x, pady, barx, bary)
             qp.setPen(white)

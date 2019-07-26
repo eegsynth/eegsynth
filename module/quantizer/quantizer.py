@@ -107,7 +107,7 @@ while True:
             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
             # look up the nearest index of the input_value vector
             if debug>0:
-                print(name, '=', val)
+                print('%s = %g' % (name, val))
             idx = find_nearest_idx(input_value, val)
             for qname, qvalue in zip(output_name, output_value):
                 key = '{}.{}'.format(name, qname)
@@ -118,7 +118,7 @@ while True:
                     # take the last value from the output list
                     val = qvalue[-1]
                 if debug>0:
-                    print(key, '=', val)
+                    print('%s = %g' % (key, val))
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                 patch.setvalue(key, val)

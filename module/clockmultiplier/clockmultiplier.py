@@ -126,12 +126,12 @@ class TriggerThread(threading.Thread):
 
 channels = patch.getstring('clock', 'channel', multiple=True)
 multipliers = patch.getint('clock', 'rate',  multiple=True)
-learning_rate = patch.getfloat('clock', 'learning_rate')
+lrate = patch.getfloat('clock', 'learning_rate', default=1)
 
 triggers = []
 for channel in channels:
     for multiplier in multipliers:
-        triggers.append(TriggerThread(channel, multiplier, learning_rate))
+        triggers.append(TriggerThread(channel, multiplier, lrate))
         print("x%d.%s" % (multiplier, channel))
 
 # start the thread for each of the triggers

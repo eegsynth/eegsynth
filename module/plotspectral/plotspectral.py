@@ -127,7 +127,7 @@ historysize = patch.getfloat('arguments', 'historysize')    # in seconds
 numhistory  = int(historysize / stepsize)                   # number of observation in history
 freqaxis    = fftfreq(window, 1. / hdr_input.fSample)
 history     = np.empty((numchannel, freqaxis.shape[0], numhistory)) * np.nan
-lrate       = patch.getfloat('arguments', 'learning_rate')
+lrate       = patch.getfloat('arguments', 'learning_rate', default=1)
 scale_red   = patch.getfloat('scale', 'red')
 scale_blue  = patch.getfloat('scale', 'blue')
 offset_red  = patch.getfloat('offset', 'red')

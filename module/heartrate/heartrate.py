@@ -98,7 +98,7 @@ if debug>1:
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 window    = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
 threshold = patch.getfloat('processing', 'threshold')
-lrate     = patch.getfloat('processing', 'learning_rate')
+lrate     = patch.getfloat('processing', 'learning_rate', default=1)
 debounce  = patch.getfloat('processing', 'debounce', default=0.3)             # minimum time between beats (s)
 key_beat  = patch.getstring('output', 'heartbeat')
 key_rate  = patch.getstring('output', 'heartrate')

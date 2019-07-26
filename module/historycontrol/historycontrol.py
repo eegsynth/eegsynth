@@ -150,7 +150,7 @@ while True:
                 val = historic[operation][channel]
                 patch.setvalue(key, val)
                 if debug>1:
-                    print(key + ':' + str(val))
+                    print('%s = %g' % (key, val))
 
         elapsed = time.time() - start
         naptime = stepsize - elapsed
