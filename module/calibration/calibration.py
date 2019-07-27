@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Postprocessing performs basic algorithms on redis data
+# Compressor and expander module changes the dynamic range
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
@@ -59,63 +59,65 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
-del config
+
+# this can be used to selectively show parameters that have changed
+def show_change(key, val):
+    if (key not in show_change.previous) or (show_change.previous[key]!=val):
+        print("%s = %g" % (key, val))
+        show_change.previous[key] = val
+        return True
+    else:
+        return False
+show_change.previous = {}
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
+delay = patch.getfloat('general', 'delay')                 # in seconds
 
-inputlist   = patch.getstring('input', 'channels', multiple=True)
-stepsize    = patch.getfloat('calibration', 'stepsize')                 # in seconds
-prefix      = patch.getstring('output', 'prefix')
-numchannel  = len(inputlist)
+prefix = patch.getstring('output', 'prefix')
 
-# this will contain the initial and calibrated values
-value = np.empty((numchannel)) * np.NAN
+# get the input options
+input_name, input_variable = list(zip(*config.items('input')))
+
+if debug>0:
+    for name,variable in zip(input_name, input_variable):
+        print("%s = %s" % (name, variable))
 
 while True:
-    # determine the start of the actual processing
-    start = time.time()
+    time.sleep(patch.getfloat('general', 'delay'))
 
-    # update with current data
-    for chanindx,chanstr in zip(list(range(numchannel)), inputlist):
-        try:
-            chanval = patch.getfloat('input', chanstr)
-        except:
-            # the channel is not configured in the ini file, skip it
+    if patch.getint('processing', 'enable'):
+        # the compressor/expander applies to all channels and must exist as float or redis key
+        scale = patch.getfloat('scale', 'lo', default=1.)
+        offset = patch.getfloat('offset', 'lo', default=0.)
+        lo = patch.getfloat('processing', 'lo')
+        lo = EEGsynth.rescale(lo, slope=scale, offset=offset)
+
+        scale = patch.getfloat('scale', 'hi', default=1.)
+        offset = patch.getfloat('offset', 'hi', default=0.)
+        hi = patch.getfloat('processing', 'hi')
+        hi = EEGsynth.rescale(hi, slope=scale, offset=offset)
+
+        show_change('lo', lo)
+        show_change('hi', hi)
+
+        if lo is None or hi is None:
+            if debug>1:
+                print("cannot apply compressor/expander")
             continue
 
-        if chanval==None:
-            # the value is not present in redis, skip it
-            continue
+        for name,variable in zip(input_name, input_variable):
+            scale = patch.getfloat('scale', name, default=1)
+            offset = patch.getfloat('offset', name, default=0)
+            val = patch.getfloat('input', name)
 
-        if patch.getint('compressor_expander', 'enable'):
-            # the compressor applies to all channels and must exist as float or redis key
-            lo = patch.getfloat('compressor_expander', 'lo')
-            hi = patch.getfloat('compressor_expander', 'hi')
-            if lo is None or hi is None:
-                if debug>1:
-                    print("cannot apply compressor/expander")
-            else:
-                # apply the compressor/expander
-                chanval = EEGsynth.compress(chanval, lo, hi)
+            if val==None:
+                # the value is not present in redis, skip it
+                continue
 
-        # the scale option is channel specific
-        scale = patch.getfloat('scale', chanstr, default=1)
-        # the offset option is channel specific
-        offset = patch.getfloat('offset', chanstr, default=0)
-        # apply the scale and offset
-        chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val = EEGsynth.compress(val, lo, hi)
 
-        value[chanindx] = chanval
-
-    for chanindx,chanstr in zip(list(range(numchannel)), inputlist):
-        for channel in range(numchannel):
-            key = prefix +  "." + chanstr
-            val = value[chanindx]
+            key = prefix +  "." + variable
             patch.setvalue(key, val)
-
-    elapsed = time.time()-start
-    naptime = stepsize - elapsed
-    if naptime>0:
-        # this approximates the desired update speed
-        time.sleep(naptime)
+            show_change(key, val)

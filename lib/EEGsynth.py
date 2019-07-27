@@ -324,7 +324,7 @@ def limit(xval, lo=0.0, hi=127.0):
             return xval
 
 ####################################################################
-def compress(xval, lo=63.5, hi=63.5, range=127.0):
+def compress(xval, lo=0.5, hi=0.5, range=1.0):
     if hasattr(xval, "__iter__"):
         return [compress(x, lo, hi, range) for x in xval]
     else:
@@ -335,21 +335,21 @@ def compress(xval, lo=63.5, hi=63.5, range=127.0):
 
         if lo>range/2:
           ax = 0.0
-          ay = lo-(range+1)/2
+          ay = lo-range/2
         else:
-          ax = (range+1)/2-lo
+          ax = range/2-lo
           ay = 0.0
 
         if hi<range/2:
-          bx = (range+1)
-          by = (range+1)/2+hi
+          bx = range
+          by = range/2+hi
         else:
-          bx = 1.5*(range+1)-hi
-          by = (range+1)
+          bx = 1.5*range-hi
+          by = range
 
         if (bx-ax)==0:
             # threshold the value halfway
-            yval = (xval>63.5)*range
+            yval = (xval>0.5)*range
         else:
             # map the value according to a linear transformation
             slope     = (by-ay)/(bx-ax)
