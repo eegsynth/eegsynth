@@ -29,20 +29,22 @@ import threading
 import wiringpi
 
 if hasattr(sys, 'frozen'):
-    basis = sys.executable
+    path = os.path.split(sys.executable)[0]
+    file = os.path.split(sys.executable)[-1]
 elif sys.argv[0] != '':
-    basis = sys.argv[0]
+    path = os.path.split(sys.argv[0])[0]
+    file = os.path.split(sys.argv[0])[-1]
 else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
+    path = os.path.abspath('')
+    file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder, '../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import EDF
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))

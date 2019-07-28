@@ -19,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from pyqtgraph.Qt import QtGui, QtCore
 import configparser
 import argparse
 import os
@@ -31,19 +30,21 @@ import signal
 import numpy as np
 
 if hasattr(sys, 'frozen'):
-    basis = sys.executable
+    path = os.path.split(sys.executable)[0]
+    file = os.path.split(sys.executable)[-1]
 elif sys.argv[0] != '':
-    basis = sys.argv[0]
+    path = os.path.split(sys.argv[0])[0]
+    file = os.path.split(sys.argv[0])[-1]
 else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
+    path = os.path.abspath('')
+    file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0,os.path.join(installed_folder, '../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i', '--inifile', default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help='optional name of the configuration file')
+parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))

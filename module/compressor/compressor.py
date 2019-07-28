@@ -19,32 +19,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
 import configparser
 import argparse
-import numpy as np
 import os
 import redis
 import sys
 import time
 
 if hasattr(sys, 'frozen'):
-    basis = sys.executable
-elif sys.argv[0]!='':
-    basis = sys.argv[0]
+    path = os.path.split(sys.executable)[0]
+    file = os.path.split(sys.executable)[-1]
+elif sys.argv[0] != '':
+    path = os.path.split(sys.argv[0])[0]
+    file = os.path.split(sys.argv[0])[-1]
 else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
+    path = os.path.abspath('')
+    file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0,os.path.join(path, '../../lib'))
 import EEGsynth
 
-# these function names can be used in the equation that gets parsed
-from EEGsynth import compress, limit, rescale
-
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))

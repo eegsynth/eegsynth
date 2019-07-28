@@ -29,15 +29,17 @@ import threading
 import time
 
 if hasattr(sys, 'frozen'):
-    basis = sys.executable
-elif sys.argv[0]!='':
-    basis = sys.argv[0]
+    path = os.path.split(sys.executable)[0]
+    file = os.path.split(sys.executable)[-1]
+elif sys.argv[0] != '':
+    path = os.path.split(sys.argv[0])[0]
+    file = os.path.split(sys.argv[0])[-1]
 else:
-    basis = './'
-installed_folder = os.path.split(basis)[0]
+    path = os.path.abspath('')
+    file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0,os.path.join(installed_folder,'../../lib'))
+sys.path.insert(0,os.path.join(path,'../../lib'))
 import EEGsynth
 
 # the list of MIDI commands is specific to the implementation for a full-scale keyboard
@@ -46,7 +48,7 @@ note_name = ['C0', 'Db0', 'D0', 'Eb0', 'E0', 'F0', 'Gb0', 'G0', 'Ab0', 'A0', 'Bb
 note_code = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder, os.path.splitext(os.path.basename(__file__))[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
