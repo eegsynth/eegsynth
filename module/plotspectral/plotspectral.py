@@ -81,9 +81,9 @@ def notch(f0, fs, Q=30):
     return b, a
 
 
-def notch_filter(data, f0, fs, Q=30):
+def notch_filter(dat, f0, fs, Q=30):
     b, a = notch(f0, fs, Q=Q)
-    y = lfilter(b, a, data)
+    y = lfilter(b, a, dat)
     return y
 
 
@@ -232,30 +232,30 @@ freqplot_hist[0].addItem(text_blueright_hist)
 def update():
     global specmax_curr, specmin_curr, specmax_hist, specmin_hist, fft_prev, fft_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
 
-    # get last data
+    # get last dat
     last_index = ft_input.getHeader().nSamples
     begsample  = (last_index - window)
     endsample  = (last_index - 1)
-    data = ft_input.getData([begsample, endsample]).astype(np.double)
+    dat = ft_input.getData([begsample, endsample]).astype(np.double)
 
     if debug>0:
         print("reading from sample %d to %d" % (begsample, endsample))
 
-    # demean and detrend data before filtering to reduce edge artefacts and center timecourse
-    data = detrend(data, axis=0)
+    # demean and detrend the data before filtering to reduce edge artefacts and center timecourse
+    dat = detrend(dat, axis=0)
 
-    # taper data
-    taper = np.hanning(len(data))
-    data = data * taper[:, np.newaxis]
+    # taper the data
+    taper = np.hanning(len(dat))
+    dat = dat * taper[:, np.newaxis]
 
-    # shift data to next sample
+    # shift the data  to next sample
     history = np.roll(history, 1, axis=2)
 
     for ichan in range(numchannel):
         channr = int(chanarray[ichan])
 
         # estimate the absolute FFT amplitude at the current moment, apply some temporal smoothing
-        fft_now = abs(fft(data[:, channr]))
+        fft_now = abs(fft(dat[:, channr]))
         fft_curr[ichan] = (1 - lrate) * fft_prev[ichan] + lrate * fft_now
         fft_prev[ichan] = fft_curr[ichan]
 
@@ -363,7 +363,7 @@ timer.timeout.connect(update)
 timer.setInterval(10)                     # timeout in milliseconds
 timer.start(int(round(stepsize * 1000)))  # in milliseconds
 
-# Wait until there is enough data
+# Wait until there is enough dat
 begsample = -1
 while begsample < 0:
     hdr_input = ft_input.getHeader()

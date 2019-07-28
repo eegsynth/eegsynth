@@ -152,7 +152,7 @@ while True:
         continue
 
     begsample = endsample-window+1
-    D = ftc.getData([begsample, endsample]).astype(np.double)
+    dat = ftc.getData([begsample, endsample]).astype(np.double)
 
     # FIXME it should be possible to do this differently
     power = []
@@ -160,20 +160,20 @@ while True:
         for band in bandname:
             power.append(0)
 
-    D = D[:, chanindx]
-    M = D.mean(0)
+    dat = dat[:, chanindx]
+    meandat = dat.mean(0)
 
     # FIXME use detrend just like plotspectral
     # FIXME multiply with taper in one go
 
     # subtract the channel mean and apply the taper to each sample
-    for chan in range(D.shape[1]):
-        for sample in range(D.shape[0]):
-            D[sample, chan] -= M[chan]
-            D[sample, chan] *= taper[sample]
+    for chan in range(dat.shape[1]):
+        for sample in range(dat.shape[0]):
+            dat[sample, chan] -= meandat[chan]
+            dat[sample, chan] *= taper[sample]
 
     # compute the FFT over the sample direction
-    F = np.fft.rfft(D, axis=0)
+    F = np.fft.rfft(dat, axis=0)
 
     i = 0
     for chan in range(F.shape[1]):

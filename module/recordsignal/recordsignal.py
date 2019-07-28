@@ -219,16 +219,15 @@ while True:
         if ((endsample - startsample + 1) % synchronize) == 0:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, endsample - startsample + 1)
-        D = ftc.getData([begsample, endsample]).astype(np.double)
-        D = np.asarray(D, dtype=np.float64)
+        dat = ftc.getData([begsample, endsample]).astype(np.float64)
         if debug > 0:
-            print("Writing sample", begsample, "to", endsample, "as", np.shape(D))
+            print("Writing sample", begsample, "to", endsample, "as", np.shape(dat))
         if fileformat == 'edf':
             # the scaling is done in the EDF writer
-            f.writeBlock(np.transpose(D))
+            f.writeBlock(np.transpose(dat))
         elif fileformat == 'wav':
-            for sample in range(len(D)):
-                x = D[sample, :]
+            for sample in range(len(dat)):
+                x = dat[sample, :]
                 # scale the floating point values between -1 and 1
                 y = x / ((physical_max - physical_min) / 2)
                 # scale the floating point values between MININT32 and MAXINT32

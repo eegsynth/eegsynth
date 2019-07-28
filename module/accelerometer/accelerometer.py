@@ -127,8 +127,8 @@ while True:
 
     # get the most recent data segment
     begsample = hdr_input.nSamples - int(window)
-    endsample  = hdr_input.nSamples-1
-    dat        = ftc.getData([begsample,endsample])
+    endsample = hdr_input.nSamples - 1
+    dat       = ftc.getData([begsample,endsample]).astype(double)
 
     # this is for debugging
     printval = []

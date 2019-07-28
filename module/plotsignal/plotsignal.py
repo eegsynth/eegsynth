@@ -95,21 +95,21 @@ def butter_highpass(highcut, fs, order=9):
     return b, a
 
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=9):
+def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
-    y = lfilter(b, a, data)
+    y = lfilter(b, a, dat)
     return y
 
 
-def butter_lowpass_filter(data, lowcut, fs, order=9):
+def butter_lowpass_filter(dat, lowcut, fs, order=9):
     b, a = butter_lowpass(lowcut, fs, order=order)
-    y = lfilter(b, a, data)
+    y = lfilter(b, a, dat)
     return y
 
 
-def butter_highpass_filter(data, highcut, fs, order=9):
+def butter_highpass_filter(dat, highcut, fs, order=9):
     b, a = butter_highpass(highcut, fs, order=order)
-    y = lfilter(b, a, data)
+    y = lfilter(b, a, dat)
     return y
 
 
@@ -209,7 +209,7 @@ for ichan in range(chan_nrs):
 def update():
     global curvemax, counter
 
-    # get the last available data
+    # get the last available dat
     last_index = ft_input.getHeader().nSamples
     begsample = (last_index - window)  # the clipsize will be removed from both sides after filtering
     endsample = (last_index - 1)
@@ -217,44 +217,42 @@ def update():
     if debug > 0:
         print("reading from sample %d to %d" % (begsample, endsample))
 
-    data = ft_input.getData([begsample, endsample]).astype(np.double)
-    data = np.copy(data).astype(np.float32)
+    dat = ft_input.getData([begsample, endsample]).astype(np.double)
 
-
-    # demean data before filtering to reduce edge artefacts and to center timecourse
+    # demean the data before filtering to reduce edge artefacts and to center timecourse
     if patch.getint('arguments', 'demean', default=0):
-        data = detrend(data, axis=0, type='constant')
+        dat = detrend(dat, axis=0, type='constant')
 
-    # detrend data before filtering to reduce edge artefacts and to center timecourse
+    # detrend the data before filtering to reduce edge artefacts and to center timecourse
     if patch.getint('arguments', 'detrend', default=0):
-        data = detrend(data, axis=0, type='linear')
+        dat = detrend(dat, axis=0, type='linear')
 
     # apply the user-defined filtering
     if not np.isnan(freqrange[0]) and not np.isnan(freqrange[1]):
-        data = butter_bandpass_filter(data.T, freqrange[0], freqrange[1], int(hdr_input.fSample), filtorder).T
+        dat = butter_bandpass_filter(dat.T, freqrange[0], freqrange[1], int(hdr_input.fSample), filtorder).T
     elif not np.isnan(freqrange[1]):
-        data = butter_lowpass_filter(data.T, freqrange[1], int(hdr_input.fSample), filtorder).T
+        dat = butter_lowpass_filter(dat.T, freqrange[1], int(hdr_input.fSample), filtorder).T
     elif not np.isnan(freqrange[0]):
-        data = butter_highpass_filter(data.T, freqrange[0], int(hdr_input.fSample), filtorder).T
+        dat = butter_highpass_filter(dat.T, freqrange[0], int(hdr_input.fSample), filtorder).T
 
     # remove the filter padding
     if clipsize > 0:
-        data = data[clipsize:-clipsize,:]
+        dat = dat[clipsize:-clipsize,:]
 
     for ichan in range(chan_nrs):
         channr = int(chanarray[ichan])
 
         # time axis
-        timeaxis = np.linspace(-(window-2*clipsize) / hdr_input.fSample, 0, len(data))
+        timeaxis = np.linspace(-(window-2*clipsize) / hdr_input.fSample, 0, len(dat))
 
         # update timecourses
-        curve[ichan].setData(timeaxis, data[:, channr])
+        curve[ichan].setData(timeaxis, dat[:, channr])
 
         if len(ylim)==2:
             timeplot[ichan].setYRange(ylim[0], ylim[1])
         else:
             # adapt the vertical scale to the running mean of max
-            curvemax[ichan] = (1 - lrate) * curvemax[ichan] + lrate * max(abs(data[:, channr]))
+            curvemax[ichan] = (1 - lrate) * curvemax[ichan] + lrate * max(abs(dat[:, channr]))
             timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
 
 # keyboard interrupt handling
@@ -270,7 +268,7 @@ timer.timeout.connect(update)
 timer.setInterval(10)                       # timeout in milliseconds
 timer.start(int(round(stepsize * 1000)))    # in milliseconds
 
-# Wait until there is enough data
+# Wait until there is enough dat
 begsample = -1
 while begsample < 0:
     hdr_input = ft_input.getHeader()

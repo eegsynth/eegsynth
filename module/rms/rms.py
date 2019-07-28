@@ -121,18 +121,20 @@ while True:
     if (hdr_input.nSamples - 1) < endsample:
         print("Error: buffer reset detected")
         raise SystemExit
-
-    endsample = hdr_input.nSamples - 1
-    if endsample < window:
+    if hdr_input.nSamples < window:
+        # there are not yet enough samples in the buffer
+        if debug>0:
+            print("Waiting for data...")
         continue
 
-    begsample = endsample - window + 1
-
-    D = ftc.getData([begsample, endsample]).astype(np.double)
-    D = D[:, chanindx]
+    # get the most recent data segment
+    begsample = hdr_input.nSamples - int(window)
+    endsample = hdr_input.nSamples - 1
+    dat = ftc.getData([begsample, endsample]).astype(np.double)
+    dat = dat[:, chanindx]
 
     rms = [0.] * len(chanindx)
-    for i, chanvec in enumerate(D.transpose()):
+    for i, chanvec in enumerate(dat.transpose()):
         for chanval in chanvec:
             rms[i] += chanval * chanval
         if rms[i]>0:
