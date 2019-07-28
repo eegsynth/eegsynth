@@ -19,7 +19,7 @@ We are developing for the Mini version, but expect that the same code will also 
 
 ## MIDI assignment
 
-The Launchpad has 8 rows with 8 buttons each, eight buttons (1-8) at the top, and eight buttons (A-H) on the right side. Here I will sketch the outline of the main control elements with the *default* MIDI codes. The MIDI codes can be probably be reassigned with a Novation Editor application (not confirmed).
+The Launchpad Mini has 8 rows with 8 buttons each, eight buttons (1-8) at the top, and eight buttons (A-H) on the right side. Here I will sketch the outline of the main control elements with the *default* MIDI codes. The MIDI codes can be probably be reassigned with a Novation Editor application (not confirmed).
 
 ```
 (104) (105) (106) (107) (108) (109) (110) (111)
@@ -33,3 +33,19 @@ The Launchpad has 8 rows with 8 buttons each, eight buttons (1-8) at the top, an
 [096] [097] [098] [099] [100] [101] [102] [103]    (104)
 [112] [113] [114] [115] [116] [117] [118] [119]    (120)
 ```
+
+The Launchpad Mk2 also has 8 rows with 8 buttons each, eight buttons (1-8) at the top, and eight buttons (A-H) on the right side. Launchpad MK2 has a colour palette of 128 colours, these are NOT all supported by this module.
+
+```
+(104) (105) (106) (107) (108) (109) (110) (111)
+
+[081] [082] [083] [084] [085] [086] [087] [088]    (089)
+[071] [072] [073] [074] [075] [076] [077] [078]    (079)
+[061] [062] [063] [064] [065] [066] [067] [068]    (069)
+[051] [052] [053] [054] [055] [056] [057] [058]    (059)
+[041] [042] [043] [044] [045] [046] [047] [048]    (049)
+[031] [032] [033] [034] [035] [036] [037] [038]    (039)
+[021] [022] [023] [024] [025] [026] [027] [028]    (029)
+[011] [012] [013] [014] [015] [016] [017] [018]    (019)
+```
+
