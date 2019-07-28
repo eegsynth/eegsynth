@@ -78,7 +78,7 @@ if debug>0:
     for name,variable in zip(input_name, input_variable):
         print("%s = %s" % (name, variable))
 
-class Window(QWidget):
+class Window(QtGui.QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
@@ -86,13 +86,13 @@ class Window(QWidget):
         self.setWindowTitle('EEGsynth vumeter')
 
     def paintEvent(self, e):
-        qp = QPainter()
+        qp = QtGui.QPainter()
         qp.begin(self)
 
-        green = QColor(10, 255, 10)
-        red = QColor(255, 10, 10)
-        black = QColor(0, 0, 0)
-        white = QColor(255, 255, 255)
+        green = QtGui.QColor(10, 255, 10)
+        red = QtGui.QColor(255, 10, 10)
+        black = QtGui.QColor(0, 0, 0)
+        white = QtGui.QColor(255, 255, 255)
 
         w = qp.window().width()
         h = qp.window().height()
@@ -130,12 +130,12 @@ class Window(QWidget):
 
             if not np.isnan(val):
                 val = EEGsynth.limit(val, 0, 1)
-                r = QRect(x, pady + (1-val)*bary, barx, val*bary)
+                r = QtCore.QRect(x, pady + (1-val)*bary, barx, val*bary)
                 qp.drawRect(r)
 
-            r = QRect(x, pady, barx, bary)
+            r = QtCore.QRect(x, pady, barx, bary)
             qp.setPen(white)
-            qp.drawText(r, Qt.AlignCenter | Qt.AlignBottom, name)
+            qp.drawText(r, QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, name)
 
             # update the position for the next bar
             x += 2*padx + barx
@@ -154,14 +154,14 @@ def sigint_handler(*args):
     QApplication.quit()
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QtGui.QApplication(sys.argv)
     signal.signal(signal.SIGINT, sigint_handler)
 
     ex = Window()
     ex.show()
 
     # Set timer for update
-    timer = QTimer()
+    timer = QtCore.QTimer()
     timer.timeout.connect(ex.update)
     timer.setInterval(10)            # timeout in milliseconds
     timer.start(int(delay * 1000))   # in milliseconds

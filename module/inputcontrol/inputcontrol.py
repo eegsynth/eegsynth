@@ -19,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from pyqtgraph.Qt import QtGui, QtCore
 import configparser
 import argparse
 import os
@@ -73,7 +72,7 @@ winy            = patch.getfloat('display', 'ypos')
 winwidth        = patch.getfloat('display', 'width')
 winheight       = patch.getfloat('display', 'height')
 
-class Window(QWidget):
+class Window(QtGui.QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
@@ -109,54 +108,54 @@ class Window(QWidget):
                 val = 0
 
             if item[1]=='label':
-                l = QLabel(item[0])
-                l.setAlignment(Qt.AlignHCenter)
+                l = QtGui.QLabel(item[0])
+                l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 panel.addWidget(l)
 
             elif item[1]=='text':
-                t = QLineEdit()
+                t = QtGui.QLineEdit()
                 t.name = item[0]
                 t.type = item[1]
                 t.setText("%d" % val)
-                t.setAlignment(Qt.AlignHCenter)
+                t.setAlignment(QtCore.Qt.AlignHCenter)
                 t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
                 t.editingFinished.connect(self.changevalue)
-                l = QLabel(t.name)
-                l.setAlignment(Qt.AlignHCenter)
+                l = QtGui.QLabel(t.name)
+                l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the slider
-                tl = QVBoxLayout()
+                tl = QtGui.QVBoxLayout()
                 tl.addWidget(t)
-                tl.setAlignment(t, Qt.AlignHCenter)
+                tl.setAlignment(t, QtCore.Qt.AlignHCenter)
                 tl.addWidget(l)
-                tl.setAlignment(l, Qt.AlignHCenter)
+                tl.setAlignment(l, QtCore.Qt.AlignHCenter)
                 panel.addLayout(tl)
 
             elif item[1]=='slider':
-                s = QSlider(Qt.Vertical)
+                s = QtGui.QSlider(QtCore.Qt.Vertical)
                 s.name = item[0]
                 s.type = item[1]
                 s.setMinimum(0)
                 s.setMaximum(127) # default is 100
                 s.setValue(val)
                 s.setTickInterval(1)
-                s.setTickPosition(QSlider.NoTicks)
+                s.setTickPosition(QtGui.QSlider.NoTicks)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
                 s.valueChanged.connect(self.changevalue)
-                l = QLabel(s.name)
-                l.setAlignment(Qt.AlignHCenter)
+                l = QtGui.QLabel(s.name)
+                l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the slider
-                sl = QVBoxLayout()
+                sl = QtGui.QVBoxLayout()
                 sl.addWidget(s)
-                sl.setAlignment(s, Qt.AlignHCenter)
+                sl.setAlignment(s, QtCore.Qt.AlignHCenter)
                 sl.addWidget(l)
-                sl.setAlignment(l, Qt.AlignHCenter)
+                sl.setAlignment(l, QtCore.Qt.AlignHCenter)
                 panel.addLayout(sl)
 
             elif item[1]=='dial':
-                s = QDial()
+                s = QtGui.QDial()
                 s.name = item[0]
                 s.type = item[1]
                 s.setMinimum(0)
@@ -164,19 +163,19 @@ class Window(QWidget):
                 s.setValue(val)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
                 s.valueChanged.connect(self.changevalue)
-                l = QLabel(s.name)
-                l.setAlignment(Qt.AlignHCenter)
+                l = QtGui.QLabel(s.name)
+                l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the dial
-                sl = QVBoxLayout()
+                sl = QtGui.QVBoxLayout()
                 sl.addWidget(s)
-                sl.setAlignment(s, Qt.AlignHCenter)
+                sl.setAlignment(s, QtCore.Qt.AlignHCenter)
                 sl.addWidget(l)
-                sl.setAlignment(l, Qt.AlignHCenter)
+                sl.setAlignment(l, QtCore.Qt.AlignHCenter)
                 panel.addLayout(sl)
 
             elif item[1] in ['push', 'slap', 'toggle1', 'toggle2', 'toggle3', 'toggle4']:
-                b = QPushButton(item[0])
+                b = QtGui.QPushButton(item[0])
                 b.name = item[0]
                 b.type = item[1]
                 b.value = val
@@ -191,9 +190,9 @@ class Window(QWidget):
 
     def drawmain(self):
         # the left contains the rows, the right the columns
-        leftlayout  = QVBoxLayout()
-        rightlayout = QHBoxLayout()
-        mainlayout  = QHBoxLayout()
+        leftlayout  = QtGui.QVBoxLayout()
+        rightlayout = QtGui.QHBoxLayout()
+        mainlayout  = QtGui.QHBoxLayout()
         mainlayout.addLayout(leftlayout)
         mainlayout.addLayout(rightlayout)
         self.setLayout(mainlayout)
@@ -202,14 +201,14 @@ class Window(QWidget):
         # this is only for backward compatibility
         section = 'slider'
         if config.has_section(section):
-            sectionlayout = QHBoxLayout()
+            sectionlayout = QtGui.QHBoxLayout()
             self.drawpanel(sectionlayout, config.items(section))
             leftlayout.addLayout(sectionlayout)
 
         for row in range(0,16):
             section = 'row%d' % (row+1)
             if config.has_section(section):
-                sectionlayout = QHBoxLayout()
+                sectionlayout = QtGui.QHBoxLayout()
                 self.drawpanel(sectionlayout, config.items(section))
                 leftlayout.addLayout(sectionlayout)
 
@@ -217,14 +216,14 @@ class Window(QWidget):
         # this is only for backward compatibility
         section = 'button'
         if config.has_section(section):
-            sectionlayout = QVBoxLayout()
+            sectionlayout = QtGui.QVBoxLayout()
             self.drawpanel(sectionlayout, config.items(section))
             rightlayout.addLayout(sectionlayout)
 
         for column in range(0,16):
             section = 'column%d' % (column+1)
             if config.has_section(section):
-                sectionlayout = QVBoxLayout()
+                sectionlayout = QtGui.QVBoxLayout()
                 self.drawpanel(sectionlayout, config.items(section))
                 rightlayout.addLayout(sectionlayout)
 
@@ -324,12 +323,12 @@ def sigint_handler(*args):
     QApplication.quit()
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QtGui.QApplication(sys.argv)
     signal.signal(signal.SIGINT, sigint_handler)
 
     # Let the interpreter run every 200 ms
     # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
-    timer = QTimer()
+    timer = QtCore.QTimer()
     timer.start(400)
     timer.timeout.connect(lambda: None)
 
