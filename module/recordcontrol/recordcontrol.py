@@ -86,8 +86,10 @@ recording = False
 adjust = 1
 
 while True:
+    monitor.loop()
+
     # measure the time to correct for the slip
-    now = time.time()
+    start = time.time()
 
     if recording and not patch.getint('recording', 'record'):
         if debug > 0:
@@ -203,7 +205,7 @@ while True:
 
         time.sleep(adjust * delay)
 
-        elapsed = time.time() - now
+        elapsed = time.time() - start
         # adjust the relative delay for the next iteration
         # the adjustment factor should only change a little per iteration
         adjust = 0.1 * delay / elapsed + 0.9 * adjust

@@ -124,10 +124,12 @@ else:
     begsample = hdr_input.nSamples-window
     endsample = hdr_input.nSamples-1
 
-print("STARTING PROCESSING STREAM")
 while True:
+    monitor.loop()
 
+    # determine when we start polling for available data
     start = time.time()
+
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(patch.getfloat('general', 'delay'))

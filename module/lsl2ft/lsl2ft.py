@@ -127,8 +127,9 @@ ft_output.putHeader(channel_count, nominal_srate, FieldTrip.DATATYPE_FLOAT32)
 count = 0
 start = -np.Inf
 
-print("STARTING STREAM")
 while True:
+    monitor.loop()
+
     chunk, timestamps = inlet.pull_chunk()
     if timestamps:
         dat = np.asarray(chunk, dtype=np.float32)

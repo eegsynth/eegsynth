@@ -92,8 +92,8 @@ if debug>0:
         print(name, '=', equation)
     print('============================')
 
-
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
     if debug>1:

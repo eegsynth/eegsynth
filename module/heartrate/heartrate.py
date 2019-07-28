@@ -115,6 +115,7 @@ begsample = -1
 endsample = -1
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general','delay'))
 
     hdr_input = ft_input.getHeader()

@@ -174,7 +174,7 @@ if debug > 0:
 try:
     while True:
         # measure the time to correct for the slip
-        now = time.time()
+        start = time.time()
 
         if debug > 1:
             print('loop')
@@ -211,7 +211,7 @@ try:
         sequencethread.setTranspose(transpose)
         sequencethread.setDuration(duration)
 
-        elapsed = time.time() - now
+        elapsed = time.time() - start
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime > 0:
             time.sleep(naptime)

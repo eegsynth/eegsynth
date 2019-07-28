@@ -127,6 +127,7 @@ history = np.empty((numhistory, numchannel)) * np.NAN
 historic = {}
 
 while True:
+    monitor.loop()
     # determine the start of the actual processing
     start = time.time()
 

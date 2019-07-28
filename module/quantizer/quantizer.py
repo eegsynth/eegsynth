@@ -94,6 +94,7 @@ def find_nearest_idx(array,value):
     return idx
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
     if debug>0:

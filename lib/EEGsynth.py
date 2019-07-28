@@ -2,6 +2,7 @@ import configparser
 import mido
 import os
 import sys
+import time
 import threading
 import numpy as np
 from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
@@ -35,7 +36,8 @@ class monitor():
     """
 
     def __init__(self):
-        self.previous = {}
+        self.previous_value = {}
+        self.loop_time = None
         print("""
 ##############################################################################
 # This software is part of the EEGsynth, see <http://www.eegsynth.org>.
@@ -59,10 +61,27 @@ class monitor():
 Press Ctrl-C to stop this module.
         """)
 
-    def update(self, key, val):
-        if (key not in self.previous) or (self.previous[key]!=val):
-            print("%s = %g" % (key, val))
-            self.previous[key] = val
+    def loop(self, debug=True):
+        now = time.time()
+        if self.loop_time is None:
+            if debug:
+                print("Starting loop...")
+            self.loop_time = now
+            self.loop_count = 0
+        else:
+            self.loop_count += 1
+        elapsed = now - self.loop_time
+        if elapsed>=1:
+            if debug:
+                print("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+            self.loop_time = now
+            self.loop_count = 0
+
+    def update(self, key, val, debug=True):
+        if (key not in self.previous_value) or (self.previous_value[key]!=val):
+            if debug:
+                print("%s = %g" % (key, val))
+            self.previous_value[key] = val
             return True
         else:
             return False

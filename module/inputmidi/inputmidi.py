@@ -85,6 +85,7 @@ scale  = patch.getfloat('output', 'scale', default=127)
 offset = patch.getfloat('output', 'offset', default=0)
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general','delay'))
 
     for msg in inputport.iter_pending():

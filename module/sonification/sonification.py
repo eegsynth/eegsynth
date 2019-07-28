@@ -210,18 +210,16 @@ for i in range(0,len(right)):
         lowpass = None
     right_b[i], right_a[i], right_zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, highpass, lowpass, f_order, dat_output)
 
-
 if debug>0:
     print("left audio channels", left)
     print("left audio frequencies", left_f)
     print("right audio channels", right)
     print("right audio frequencies", right_f)
 
-print("STARTING STREAM")
-
 while True:
-
+    monitor.loop()
     start = time.time()
+
     while endsample > hdr_input.nSamples-1:
         # wait until there is enough data
         time.sleep(patch.getfloat('general', 'delay'))

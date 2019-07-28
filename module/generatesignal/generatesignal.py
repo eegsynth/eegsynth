@@ -132,8 +132,8 @@ endsample = blocksize-1
 timevec  = np.arange(1, blocksize+1) / fsample
 phasevec = np.zeros(1)
 
-print("STARTING STREAM")
 while True:
+    monitor.loop()
 
     if patch.getint('signal', 'rewind', default=0):
         if debug>0:
@@ -157,7 +157,7 @@ while True:
         time.sleep(0.1);
         continue
 
-    # measure the time that it takes
+    # measure the time to correct for the slip
     start = time.time();
 
     if debug>1:

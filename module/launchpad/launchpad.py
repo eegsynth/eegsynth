@@ -189,6 +189,7 @@ offset_note    = patch.getfloat('offset', 'note', default=0)
 offset_control = patch.getfloat('offset', 'control', default=0)
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general','delay'))
 
     for msg in inputport.iter_pending():

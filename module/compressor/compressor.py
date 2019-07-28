@@ -77,6 +77,7 @@ if debug>0:
         print("%s = %s" % (name, variable))
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
     if patch.getint('processing', 'enable', default=1):

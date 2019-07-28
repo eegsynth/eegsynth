@@ -71,6 +71,7 @@ for name in input_name:
     previous_val[name] = None
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
     lrate = patch.getfloat('processing', 'learning_rate', default=1)
 

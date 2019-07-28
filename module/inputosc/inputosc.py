@@ -129,7 +129,6 @@ for addr in s.getOSCAddressSpace():
     print(addr)
 
 # start the server thread
-print("\nStarting module. Use ctrl-C to quit.")
 st = threading.Thread(target=s.serve_forever)
 st.start()
 

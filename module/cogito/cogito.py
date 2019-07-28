@@ -193,9 +193,11 @@ else:
 
 datscaling = 0
 
-print("STARTING COGITO STREAM")
 while True:
-    start_time = time.time()
+    monitor.loop()
+
+    # measure the time that it takes
+    start = time.time()
 
     while endsample>hdr_input.nSamples-1:
         # wait until there is enough data
@@ -204,10 +206,9 @@ while True:
         if (hdr_input.nSamples-1)<(endsample-window):
             print("Error: buffer reset detected")
             raise SystemExit
-        if (time.time()-start_time)>timeout:
+        if (time.time()-start)>timeout:
             print("Error: timeout while waiting for data")
             raise SystemExit
-
 
     dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
@@ -220,18 +221,12 @@ while True:
     # the scaling parameter is determined only once, and is the same for all channels
     dat_input = dat_input * datscaling * 1000000
 
-    if debug > 1:
-        print('time waiting for data: ' + str((time.time() - start_time) * 1000))
-
-    # determine the start of the actual processing
-    loop_time = time.time()
-
     # t = np.arange(sample_rate)
     # f = 440
     # signal = np.sin(t*f/sample_rate)*256
     # signal = np.zeros([sample_rate, 1])
 
-    # Add offset to avoid LP filter on sound card
+    # add offset to avoid LP filter on sound card
     tmp = [np.zeros(int(f_offset))]
 
     for ch in range(nInputs):
@@ -286,4 +281,4 @@ while True:
     endsample += window
 
     if debug > 0:
-	    print("processed", window, "samples in", (time.time()-loop_time)*1000, "ms")
+	    print("processed", window, "samples in", (time.time()-start)*1000, "ms")

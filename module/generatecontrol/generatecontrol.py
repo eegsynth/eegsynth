@@ -90,8 +90,8 @@ prev_dutycycle = -1
 sample = 0
 phase = 0
 
-print("STARTING STREAM")
 while True:
+    monitor.loop()
 
     if patch.getint('signal', 'rewind', default=0):
         if debug>0:
@@ -115,7 +115,7 @@ while True:
         time.sleep(0.1)
         continue
 
-    # measure the time that it takes
+    # measure the time to correct for the slip
     start = time.time()
 
     frequency = patch.getfloat('signal', 'frequency', default=0.2)

@@ -118,8 +118,8 @@ ft_output.putHeader(nchans, float(rate), FieldTrip.DATATYPE_INT16)
 startfeedback = time.time()
 countfeedback = 0
 
-print("STARTING STREAM")
 while True:
+    monitor.loop()
 
     # measure the time that it takes
     start = time.time()

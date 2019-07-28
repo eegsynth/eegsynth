@@ -200,7 +200,7 @@ previous_redis_play  = None
 try: # FIXME do we need this or can we catch errors before?
     while True:
         # measure the time to correct for the slip
-        now = time.time()
+        start = time.time()
 
         if debug>3:
             print('loop')
@@ -282,7 +282,7 @@ try: # FIXME do we need this or can we catch errors before?
         redisthread.setShift(shift)
         redisthread.setPpqn(ppqn)
 
-        elapsed = time.time() - now
+        elapsed = time.time() - start
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime>0:
             if debug>3:

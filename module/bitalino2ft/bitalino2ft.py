@@ -122,8 +122,8 @@ device.trigger(digitalOutput)
 startfeedback = time.time()
 countfeedback = 0
 
-print("STARTING STREAM")
 while True:
+    monitor.loop()
 
     # measure the time that it takes
     start = time.time();

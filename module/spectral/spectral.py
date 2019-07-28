@@ -124,6 +124,7 @@ begsample = -1
 endsample = -1
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
     band_items = config.items('band')

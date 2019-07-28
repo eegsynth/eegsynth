@@ -226,7 +226,7 @@ else:
     begsample = hdr_input.nSamples - window
     endsample = hdr_input.nSamples - 1
 
-print("STARTING STREAM")
+
 
 try:
     while True:

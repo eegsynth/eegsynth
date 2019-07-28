@@ -173,8 +173,8 @@ begsample = 0
 endsample = blocksize-1
 block     = 0
 
-print("STARTING STREAM")
 while True:
+    monitor.loop()
 
     if endsample>H.nSamples-1:
         if debug>0:
@@ -202,7 +202,7 @@ while True:
         time.sleep(0.1);
         continue
 
-    # measure the time that it takes
+    # measure the time to correct for the slip
     start = time.time()
 
     if debug>0:

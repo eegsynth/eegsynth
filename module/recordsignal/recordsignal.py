@@ -117,6 +117,8 @@ if debug > 1:
 recording = False
 
 while True:
+    monitor.loop()
+
     hdr_input = ftc.getHeader()
 
     if recording and hdr_input is None:

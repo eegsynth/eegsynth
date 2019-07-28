@@ -95,7 +95,9 @@ edge = 0
 previous = 'no'
 
 while True:
-    # measure the time that it takes
+    monitor.loop()
+
+    # measure the time to correct for the slip
     start = time.time()
 
     # these can change on the fly

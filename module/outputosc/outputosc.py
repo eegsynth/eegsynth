@@ -86,6 +86,7 @@ for i in range(len(list_input)):
             list3.append(list_output[j][1])
 
 while True:
+    monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
     for key1,key2,key3 in zip(list1,list2,list3):

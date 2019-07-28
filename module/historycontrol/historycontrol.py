@@ -87,7 +87,9 @@ history = np.empty((numchannel, numhistory)) * np.NAN
 historic = {}
 
 while True:
-    # determine the start of the actual processing
+    monitor.loop()
+
+    # measure the time to correct for the slip
     start = time.time()
 
     # update the enable status
