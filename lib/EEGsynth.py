@@ -80,7 +80,13 @@ Press Ctrl-C to stop this module.
     def update(self, key, val, debug=True):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
             if debug:
-                print("%s = %g" % (key, val))
+                if val is None:
+                    print("%s = None" % (key))
+                elif isinstance(val, basestring) or isinstance(val, str):
+                    # this should work both for Python 2 and 3
+                    print("%s = %s" % (key, val))
+                else:
+                    print("%s = %g" % (key, val))
             self.previous_value[key] = val
             return True
         else:

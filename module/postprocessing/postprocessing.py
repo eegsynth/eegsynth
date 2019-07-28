@@ -77,7 +77,9 @@ def sanitize(equation):
     equation = equation.replace('-', ' - ')
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
-    equation = equation.replace('  ', ' ')
+    equation = equation.replace('    ', ' ')
+    equation = equation.replace('   ', ' ')
+    equation = ' '.join(equation.split())
     return equation
 
 # make the equations robust against sub-string replacements
@@ -86,10 +88,10 @@ output_equation = [sanitize(equation) for equation in output_equation]
 if debug>0:
     print('===== input variables =====')
     for name,variable in zip(input_name, input_variable):
-        print(name, '=', variable)
+        monitor.update(name, variable)
     print('===== output equations =====')
     for name,equation in zip(output_name, output_equation):
-        print(name, '=', equation)
+        monitor.update(name, equation)
     print('============================')
 
 while True:
@@ -99,31 +101,28 @@ while True:
     if debug>1:
         print('============================')
 
-    actual_value = []
+    input_value = []
     for name in input_name:
         val = patch.getfloat('input', name)
-        actual_value.append(val)
-        if debug>1:
-            print('%s = %f' % (name, val))
+        input_value.append(val)
+        monitor.update(name, val, debug=(debug>1))
 
-    for key,equation in zip(output_name, output_equation):
-        original = equation
-        for name,value in zip(input_name, actual_value):
+    for key, equation in zip(output_name, output_equation):
+        # replace the variable names in the equation by the values
+        for name, value in zip(input_name, input_value):
             if value is None and equation.count(name)>0:
-                # there are undefined variables in this equation
                 print('Undefined value: %s' % (name))
-                break
             else:
                 equation = equation.replace(name, str(value))
-        else:
-            # this section should not run if there are undefined variables in an equation
-            try:
-                if debug>1:
-                    print('%s = %s = %f' % (key, equation, val))
-                val = eval(equation)
-                patch.setvalue(key, val)
-            except ZeroDivisionError:
-                # division by zero is not a serious error
-                patch.setvalue(key, np.NaN)
-            except:
-                print('Error in evaluation: %s = %s' % (key, original))
+
+        # try to evaluate the equation
+        try:
+            val = eval(equation)
+            if debug>1:
+                print('%s = %s = %g' % (key, equation, val))
+            patch.setvalue(key, val)
+        except ZeroDivisionError:
+            # division by zero is not a serious error
+            patch.setvalue(equation[0], np.NaN)
+        except:
+            print('Error in evaluation: %s = %s' % (key, equation))
