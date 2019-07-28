@@ -103,9 +103,8 @@ while True:
 
     input_value = []
     for name in input_name:
-        val = patch.getfloat('input', name)
+        val = patch.getfloat('input', name, debug=(debug>1))
         input_value.append(val)
-        monitor.update(name, val, debug=(debug>1))
 
     for key, equation in zip(output_name, output_equation):
         # replace the variable names in the equation by the values

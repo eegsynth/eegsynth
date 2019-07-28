@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import threading
-import numpy as np
+import math
 from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 try:
@@ -14,6 +14,18 @@ try:
 except:
     # this means that midiosc is not supported as midi backend
     print("Warning: pyOSC not found")
+
+###################################################################################################
+def printkeyval(key, val):
+    if val is None:
+        print("%s = None" % (key))
+    elif isinstance(val, list):
+        print("%s = %s" % (key, str(val)))
+    elif isinstance(val, basestring) or isinstance(val, str):
+        # this should work both for Python 2 and 3
+        print("%s = %s" % (key, val))
+    else:
+        print("%s = %g" % (key, val))
 
 ###################################################################################################
 def trimquotes(option):
@@ -79,14 +91,16 @@ Press Ctrl-C to stop this module.
 
     def update(self, key, val, debug=True):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
+            try:
+                # the comparison returns false in case both are nan
+                a = math.isnan(self.previous_value[key])
+                b = math.isnan(val)
+                if (a and b):
+                    debug = False
+            except:
+                pass
             if debug:
-                if val is None:
-                    print("%s = None" % (key))
-                elif isinstance(val, basestring) or isinstance(val, str):
-                    # this should work both for Python 2 and 3
-                    print("%s = %s" % (key, val))
-                else:
-                    print("%s = %g" % (key, val))
+                printkeyval(key, val)
             self.previous_value[key] = val
             return True
         else:
@@ -196,7 +210,7 @@ class patch():
         self.redis  = r
 
     ####################################################################
-    def getfloat(self, section, item, multiple=False, default=None):
+    def getfloat(self, section, item, multiple=False, default=None, debug=False):
         if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
@@ -238,24 +252,29 @@ class patch():
         else:
             # the configuration file does not contain the item
             if multiple == True and default == None:
-                return []
+                val = []
             elif multiple == True and default != None:
-                return [float(x) for x in default]
+                val = [float(x) for x in default]
             elif multiple == False and default == None:
-                return None
+                val = None
             elif multiple == False and default != None:
-                return float(default)
+                val = float(default)
+
+        if debug:
+            printkeyval(item, val)
 
         if multiple:
             # return it as list
             return val
         else:
             # return a single value
-            return val[0]
-
+            if isinstance(val, list):
+                return val[0]
+            else:
+                return val
 
     ####################################################################
-    def getint(self, section, item, multiple=False, default=None):
+    def getint(self, section, item, multiple=False, default=None, debug=False):
         if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
@@ -297,46 +316,58 @@ class patch():
         else:
             # the configuration file does not contain the item
             if multiple == True and default == None:
-                return []
+                val = []
             elif multiple == True and default != None:
-                return [int(x) for x in default]
+                val = [int(x) for x in default]
             elif multiple == False and default == None:
-                return None
+                val = None
             elif multiple == False and default != None:
-                return int(default)
+                val = int(default)
+
+        if debug:
+            printkeyval(item, val)
 
         if multiple:
             # return it as list
             return val
         else:
             # return a single value
-            return val[0]
+            if isinstance(val, list):
+                return val[0]
+            else:
+                return val
 
     ####################################################################
-    def getstring(self, section, item, multiple=False):
+    def getstring(self, section, item, multiple=False, debug=False):
         # get all items from the ini file, there might be one or multiple
-        items = self.config.get(section, item)
+        val = self.config.get(section, item)
 
         if multiple:
             # convert the items to a list
-            if items.find(",") > -1:
+            if val.find(",") > -1:
                 separator = ","
-            elif items.find("-") > -1:
+            elif val.find("-") > -1:
                 separator = "-"
-            elif items.find("\t") > -1:
+            elif val.find("\t") > -1:
                 separator = "\t"
             else:
                 separator = " "
 
-            items = squeeze(separator, items)  # remove double separators
-            items = items.split(separator)     # split on the separator
+            val = squeeze(separator, val)  # remove double separators
+            val = val.split(separator)     # split on the separator
 
+        if debug:
+            printkeyval(item, val)
+
+        if multiple:
             # return it as list
-            return items
-
+            return val
         else:
             # return a single value
-            return items
+            if isinstance(val, list):
+                return val[0]
+            else:
+                return val
 
     ####################################################################
     def hasitem(self, section, item):
@@ -344,7 +375,7 @@ class patch():
         return self.config.has_option(section, item)
 
     ####################################################################
-    def setvalue(self, item, val, debug=0, duration=0):
+    def setvalue(self, item, val, debug=False, duration=0):
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
         if debug:

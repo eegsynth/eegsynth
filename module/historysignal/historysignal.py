@@ -137,7 +137,7 @@ while True:
 
     if enable and prev_enable:
         if debug > 0:
-            print("Updating")
+            print("Updating the history")
     elif enable and not prev_enable:
         if debug > 0:
             print("Enabling the updating")
@@ -147,7 +147,7 @@ while True:
             endsample = hdr_input.nSamples-1
     elif not enable and not prev_enable:
         if debug > 0:
-            print("Not updating")
+            print("Not updating the history")
     elif not enable and prev_enable:
         if debug > 0:
             print("Disabling the updating")
