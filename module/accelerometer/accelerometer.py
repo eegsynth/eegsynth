@@ -89,7 +89,7 @@ while hdr_input is None:
         print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ftc.getHeader()
-    time.sleep(0.2)
+    time.sleep(0.1)
 
 if debug>0:
     print("Data arrived")

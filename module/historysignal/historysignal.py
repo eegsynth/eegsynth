@@ -88,7 +88,7 @@ while hdr_input is None:
         print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ft_input.getHeader()
-    time.sleep(0.2)
+    time.sleep(0.1)
 
 if debug > 1:
     print("input nsample", hdr_input.nSamples)
