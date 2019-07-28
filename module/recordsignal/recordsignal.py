@@ -2,7 +2,7 @@
 
 # This module records data from a FieldTrip buffer to an EDF or WAV file
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2019 EEGsynth project
 #
@@ -44,10 +44,10 @@ import EEGsynth
 import FieldTrip
 import EDF
 
-MININT16 = -0xffff/2 - 1 
-MAXINT16 =  0xffff/2 - 1 
-MININT32 = -0xffffffff/2 - 1 
-MAXINT32 =  0xffffffff/2 - 1 
+MININT16 = -0xffff/2 - 1
+MAXINT16 =  0xffff/2 - 1
+MININT32 = -0xffffffff/2 - 1
+MAXINT32 =  0xffffffff/2 - 1
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(installed_folder,
@@ -67,6 +67,9 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 del config
+
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')

@@ -29,6 +29,45 @@ def trimquotes(option):
     return option
 
 ###################################################################################################
+class monitor():
+    """Class to monitor control values and print them to screen when they have changed. It also
+    prints a boilerplate license upon startup.
+    """
+
+    def __init__(self):
+        self.previous = {}
+        print("""
+##############################################################################
+# This software is part of the EEGsynth, see <http://www.eegsynth.org>.
+#
+# Copyright (C) 2017-2019 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##############################################################################
+
+Press Ctrl-C to stop this module.
+        """)
+
+    def update(self, key, val):
+        if (key not in self.previous) or (self.previous[key]!=val):
+            print("%s = %g" % (key, val))
+            self.previous[key] = val
+            return True
+        else:
+            return False
+
+###################################################################################################
 class midiwrapper():
     """Class to provide a generalized interface to MIDI interfaces on the local computer
     or to MIDI interfaces that are accessed on another computer over the network
@@ -284,7 +323,7 @@ class patch():
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
         if debug:
-            print(item, '=', val)
+            print("%s = %g" % (item, val))
         if duration > 0:
             # switch off after a certain amount of time
             threading.Timer(duration, self.setvalue, args=[item, 0.]).start()

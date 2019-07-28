@@ -3,7 +3,7 @@
 # Preprocessing performs basic signal processing to data in a FieldTrip buffer,
 # and puts this in a second FieldTrip buffer for further processing.
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2019 EEGsynth project
 #
@@ -61,21 +61,14 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
 timeout = patch.getfloat('input_fieldtrip', 'timeout')
-
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
 
 try:
     ftc_host = patch.getstring('input_fieldtrip','hostname')
@@ -218,9 +211,9 @@ while True:
         filterorder = EEGsynth.rescale(filterorder, slope=scale_filterorder, offset=offset_filterorder)
 
     change = False
-    change = show_change('highpassfilter',  highpassfilter) or change
-    change = show_change('lowpassfilter',   lowpassfilter)  or change
-    change = show_change('filterorder',     filterorder)    or change
+    change = monitor.update('highpassfilter',  highpassfilter) or change
+    change = monitor.update('lowpassfilter',   lowpassfilter)  or change
+    change = monitor.update('filterorder',     filterorder)    or change
     if change:
         # update the filter parameters
         filterorder = int(filterorder)                     # ensure it is an integer
@@ -242,8 +235,8 @@ while True:
         notchquality = EEGsynth.rescale(notchquality, slope=scale_notchquality, offset=offset_notchquality)
 
     change = False
-    change = show_change('notchfilter',  notchfilter)  or change
-    change = show_change('notchquality', notchquality) or change
+    change = monitor.update('notchfilter',  notchfilter)  or change
+    change = monitor.update('notchquality', notchquality) or change
     if change:
         # update the filter parameters
         nb, na, nzi = EEGsynth.initialize_online_notchfilter(hdr_input.fSample, notchfilter, notchquality, dat_output, axis=0)

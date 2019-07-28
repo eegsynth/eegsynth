@@ -2,7 +2,7 @@
 
 # Compressor and expander module changes the dynamic range
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2019 EEGsynth project
 #
@@ -60,15 +60,8 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
@@ -86,7 +79,7 @@ if debug>0:
 while True:
     time.sleep(patch.getfloat('general', 'delay'))
 
-    if patch.getint('processing', 'enable'):
+    if patch.getint('processing', 'enable', default=1):
         # the compressor/expander applies to all channels and must exist as float or redis key
         scale = patch.getfloat('scale', 'lo', default=1.)
         offset = patch.getfloat('offset', 'lo', default=0.)
@@ -98,8 +91,8 @@ while True:
         hi = patch.getfloat('processing', 'hi')
         hi = EEGsynth.rescale(hi, slope=scale, offset=offset)
 
-        show_change('lo', lo)
-        show_change('hi', hi)
+        monitor.update('lo', lo)
+        monitor.update('hi', hi)
 
         if lo is None or hi is None:
             if debug>1:
@@ -120,4 +113,4 @@ while True:
 
             key = prefix +  "." + variable
             patch.setvalue(key, val)
-            show_change(key, val)
+            monitor.update(key, val)

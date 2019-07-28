@@ -2,7 +2,7 @@
 
 # Slew limiter for control channels
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2019 EEGsynth project
 #
@@ -56,22 +56,15 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 prefix = patch.getstring('output', 'prefix')
 
 # get the list of input variables
 input_name, input_variable = list(map(list, list(zip(*config.items('input')))))
-
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
 
 previous_val = {}
 for name in input_name:
@@ -94,6 +87,6 @@ while True:
             previous_val[name] = val
         val = (1 - lrate) * previous_val[name] + lrate * val
         if debug>0:
-            show_change(key, val)
+            monitor.update(key, val)
         patch.setvalue(key, val)
         previous_val[name] = val

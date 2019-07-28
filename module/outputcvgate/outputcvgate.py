@@ -2,7 +2,7 @@
 
 # This module outputs Redis data to the Arduino-based CV/Gate output device
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2018 EEGsynth project
 #
@@ -58,6 +58,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 del config
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
@@ -75,16 +78,6 @@ except:
 
 # this is to prevent two triggers from being activated at the same time
 lock = threading.Lock()
-
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
 
 
 def SetGate(gate, val):
@@ -175,7 +168,7 @@ try:
             chanval = int(chanval)
 
             if debug > 0:
-                show_change(chanstr, chanval)
+                monitor.update(chanstr, chanval)
 
             lock.acquire()
             s.write('*c%dv%04d#' % (chanindx, chanval))
@@ -200,7 +193,7 @@ try:
             chanval = int(chanval > 0)
 
             if debug > 0:
-                show_change(chanstr, chanval)
+                monitor.update(chanstr, chanval)
 
             lock.acquire()
             s.write('*g%dv%d#' % (chanindx, chanval))

@@ -2,7 +2,7 @@
 
 # This module acts as a VU meter for control signals.
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2019 EEGsynth project
 #
@@ -59,15 +59,8 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
 
 # this determines how much debugging information gets printed
 debug           = patch.getint('general', 'debug')
@@ -122,7 +115,7 @@ class Window(QWidget):
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
             if debug>0:
-                show_change(name, val)
+                monitor.update(name, val)
 
             threshold = patch.getfloat('threshold', name, default=1)
             threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2018-2019 EEGsynth project
 #
@@ -56,15 +56,8 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
 
 debug       = patch.getint('general', 'debug')                 # this determines how much debugging information gets printed
 timeout     = patch.getfloat('input_fieldtrip', 'timeout')     # this is the timeout for the FieldTrip buffer
@@ -284,9 +277,9 @@ while True:
         filterorder = EEGsynth.rescale(filterorder, slope=scale_filterorder, offset=offset_filterorder)
 
     change = False
-    change = show_change('highpassfilter',  highpassfilter) or change
-    change = show_change('lowpassfilter',   lowpassfilter)  or change
-    change = show_change('filterorder',     filterorder)    or change
+    change = monitor.update('highpassfilter',  highpassfilter) or change
+    change = monitor.update('lowpassfilter',   lowpassfilter)  or change
+    change = monitor.update('filterorder',     filterorder)    or change
     if change:
         # update the filter parameters
         filterorder = int(filterorder)                     # ensure it is an integer

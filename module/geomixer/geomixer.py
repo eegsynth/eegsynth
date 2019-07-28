@@ -2,7 +2,7 @@
 
 # This module maps a single control signal onto multiple bilinear mixed signals
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2018-2019 EEGsynth project
 #
@@ -61,15 +61,8 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
@@ -110,8 +103,8 @@ while True:
     switch_time = EEGsynth.rescale(switch_time, slope=scale_time, offset=offset_time)
     switch_precision = patch.getfloat('switch', 'precision', default=0.1)
     switch_precision = EEGsynth.rescale(switch_precision, slope=scale_precision, offset=offset_precision)
-    show_change('time', switch_time)
-    show_change('precision', switch_precision)
+    monitor.update('time', switch_time)
+    monitor.update('precision', switch_precision)
 
     # get the input value and scale between 0 and 1
     input = patch.getfloat('input', 'channel', default=np.NaN)

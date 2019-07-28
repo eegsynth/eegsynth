@@ -2,7 +2,7 @@
 
 # This module implements a basic monophonic sequencer
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2018 EEGsynth project
 #
@@ -59,6 +59,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 del config
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
@@ -75,15 +78,6 @@ offset_duration  = patch.getfloat('offset', 'duration',  default=0.)
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
 
 class SequenceThread(threading.Thread):
     def __init__(self, redischannel, key):
@@ -168,14 +162,14 @@ sequencethread = SequenceThread(clock, key)
 sequencethread.start()
 
 if debug > 0:
-    show_change('scale_active',     scale_active)
-    show_change('scale_transpose',  scale_transpose)
-    show_change('scale_note',       scale_note)
-    show_change('scale_duration',   scale_duration)
-    show_change('offset_active',    offset_active)
-    show_change('offset_transpose', offset_transpose)
-    show_change('offset_note',      offset_note)
-    show_change('offset_duration',  offset_duration)
+    monitor.update('scale_active',     scale_active)
+    monitor.update('scale_transpose',  scale_transpose)
+    monitor.update('scale_note',       scale_note)
+    monitor.update('scale_duration',   scale_duration)
+    monitor.update('offset_active',    offset_active)
+    monitor.update('offset_transpose', offset_transpose)
+    monitor.update('offset_note',      offset_note)
+    monitor.update('offset_duration',  offset_duration)
 
 try:
     while True:
@@ -208,10 +202,10 @@ try:
 
         if debug > 0:
             # show the parameters whose value has changed
-            show_change("active",    active)
-            show_change("sequence",  sequence)
-            show_change("transpose", transpose)
-            show_change("duration",  duration)
+            monitor.update("active",    active)
+            monitor.update("sequence",  sequence)
+            monitor.update("transpose", transpose)
+            monitor.update("duration",  duration)
 
         sequencethread.setSequence(sequence)
         sequencethread.setTranspose(transpose)

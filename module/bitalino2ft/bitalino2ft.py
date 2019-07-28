@@ -60,6 +60,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 del config
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general','debug')
 

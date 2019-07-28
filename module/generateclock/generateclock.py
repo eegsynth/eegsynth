@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2018 EEGsynth project
 #
@@ -57,6 +57,9 @@ except redis.ConnectionError:
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 
@@ -67,17 +70,6 @@ scale_shift  = patch.getfloat('scale', 'shift')
 offset_shift = patch.getfloat('offset', 'shift')
 scale_ppqn   = patch.getfloat('scale', 'ppqn')
 offset_ppqn  = patch.getfloat('offset', 'ppqn')
-
-
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
 
 
 def find_nearest_value(list, value):
@@ -278,12 +270,12 @@ try: # FIXME do we need this or can we catch errors before?
 
         if debug>0:
             # show the parameters whose value has changed
-            show_change("redis_play",    redis_play)
-            show_change("midi_play",     midi_play)
-            show_change("midi_start",    midi_start)
-            show_change("rate",          rate)
-            show_change("shift",         shift)
-            show_change("ppqn",          ppqn)
+            monitor.update("redis_play",    redis_play)
+            monitor.update("midi_play",     midi_play)
+            monitor.update("midi_start",    midi_start)
+            monitor.update("rate",          rate)
+            monitor.update("shift",         shift)
+            monitor.update("ppqn",          ppqn)
 
         # update the clock and redis
         clockthread.setRate(rate)

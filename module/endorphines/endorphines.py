@@ -2,7 +2,7 @@
 
 # Endorphines interfaces with the Endorphines Cargo MIDI-to-CV device
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2019 EEGsynth project
 #
@@ -56,6 +56,9 @@ except redis.ConnectionError:
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
+
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')

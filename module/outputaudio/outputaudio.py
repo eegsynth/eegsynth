@@ -2,7 +2,7 @@
 
 # Outputaudio reads data from a FieldTrip buffer and writes it to an audio device
 #
-# This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2018-2019 EEGsynth project
 #
@@ -60,6 +60,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 del config
 
+# this can be used to show parameters that have changed
+monitor = EEGsynth.monitor()
+
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout', 30)
@@ -105,16 +108,6 @@ scaling = patch.getfloat('audio', 'scaling')
 scaling_method = patch.getstring('audio', 'scaling_method')
 scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
 offset_scaling = patch.getfloat('offset', 'scaling', default=0)
-
-# this can be used to selectively show parameters that have changed
-def show_change(key, val):
-    if (key not in show_change.previous) or (show_change.previous[key]!=val):
-        print("%s = %g" % (key, val))
-        show_change.previous[key] = val
-        return True
-    else:
-        return False
-show_change.previous = {}
 
 if nchans > hdr_input.nChannels:
     print("Error: not enough channels available for output")
@@ -257,7 +250,7 @@ try:
         # multiply the data with the scaling factor
         scaling = patch.getfloat('audio', 'scaling', default=1)
         scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
-        show_change("scaling", scaling)
+        monitor.update("scaling", scaling)
         if scaling_method == 'multiply':
             dat = dat * scaling
         elif scaling_method == 'divide':
