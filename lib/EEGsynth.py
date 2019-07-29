@@ -17,11 +17,15 @@ except:
 
 ###################################################################################################
 def printkeyval(key, val):
+    try:
+        basestring
+    except:
+        basestring = str
     if val is None:
         print("%s = None" % (key))
     elif isinstance(val, list):
         print("%s = %s" % (key, str(val)))
-    elif isinstance(val, basestring) or isinstance(val, str):
+    elif isinstance(val, basestring):
         # this should work both for Python 2 and 3
         print("%s = %s" % (key, val))
     else:

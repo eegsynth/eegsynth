@@ -287,7 +287,7 @@ class EDFReader():
             if meas_info['n_records']==-1:
                 # this happens if the n_records is not updated at the end of recording
                 tot_samps = (os.path.getsize(self.fname)-meas_info['data_offset'])/meas_info['data_size']
-                meas_info['n_records'] = tot_samps/sum(n_samps)
+                meas_info['n_records'] = int(tot_samps/sum(n_samps))
 
         self.calibrate = (chan_info['physical_max'] - chan_info['physical_min'])/(chan_info['digital_max'] - chan_info['digital_min']);
         self.offset    =  chan_info['physical_min'] - self.calibrate * chan_info['digital_min'];
