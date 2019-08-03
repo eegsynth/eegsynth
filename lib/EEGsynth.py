@@ -15,20 +15,33 @@ except:
     # this means that midiosc is not supported as midi backend
     print("Warning: pyOSC not found")
 
+
+try:
+    # Python 2 has the basestring object
+    basestring
+except:
+    # Python 3 does not distinguish between str and unicode
+    basestring = str
+
 ###################################################################################################
 def printkeyval(key, val):
     try:
-        basestring
+        # this works in Python 2 but fails in Python 3
+        isstring = isinstance(val, basestring)
     except:
-        basestring = str
+        try:
+            # this works in Python 3
+            isstring = isinstance(val, str)
+        except:
+            isstring = False
     if val is None:
         print("%s = None" % (key))
     elif isinstance(val, list):
         print("%s = %s" % (key, str(val)))
-    elif isinstance(val, basestring):
-        # this should work both for Python 2 and 3
+    elif isstring:
         print("%s = %s" % (key, val))
     else:
+        print(key, val, type(val))
         print("%s = %g" % (key, val))
 
 ###################################################################################################
