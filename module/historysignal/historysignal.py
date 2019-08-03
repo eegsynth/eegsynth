@@ -52,8 +52,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print("Error: cannot connect to redis server")
-    exit()
+    raise RuntimeError("cannot connect to Redis server")
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
@@ -80,8 +79,7 @@ try:
     if debug > 0:
         print("Connected to input FieldTrip buffer")
 except:
-    print("Error: cannot connect to input FieldTrip buffer")
-    exit()
+    raise RuntimeError("cannot connect to input FieldTrip buffer")
 
 hdr_input = None
 start = time.time()

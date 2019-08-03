@@ -52,8 +52,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print("Error: cannot connect to redis server")
-    exit()
+    raise RuntimeError("cannot connect to Redis server")
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
@@ -88,8 +87,7 @@ try:
     if debug > 0:
         print("Connected to serial port")
 except:
-    print("Error: cannot connect to serial port")
-    exit()
+    raise RuntimeError("cannot connect to serial port")
 
 # See http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
 # See https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf

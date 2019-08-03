@@ -54,8 +54,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print("Error: cannot connect to redis server")
-    exit()
+    raise RuntimeError("cannot connect to Redis server")
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
@@ -94,8 +93,7 @@ try:
     if debug>0:
         print("Connected to output FieldTrip buffer")
 except:
-    print("Error: cannot connect to output FieldTrip buffer")
-    exit()
+    raise RuntimeError("cannot connect to output FieldTrip buffer")
 
 if datatype == 'uint8':
     ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)

@@ -54,8 +54,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print("Error: cannot connect to redis server")
-    exit()
+    raise RuntimeError("cannot connect to Redis server")
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
@@ -80,8 +79,7 @@ try:
         print("Started OSC server")
 except:
     print("Unexpected error:", sys.exc_info()[0])
-    print("Error: cannot start OSC server")
-    exit()
+    raise RuntimeError("cannot start OSC server")
 
 # define a message-handler function that the server will call upon incoming messages
 def forward_handler(addr, tags, data, source):
