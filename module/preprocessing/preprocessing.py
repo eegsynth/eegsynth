@@ -122,10 +122,7 @@ integrate       = patch.getint('processing', 'integrate', default=0)
 rectify         = patch.getint('processing', 'rectify', default=0)
 downsample      = patch.getint('processing', 'downsample', default=None)
 smoothing       = patch.getfloat('processing', 'smoothing', default=None)
-try:
-    reference = patch.getstring('processing','reference')
-except:
-    reference = 'none'
+reference       = patch.getstring('processing','reference')
 
 try:
     float(config.get('processing', 'highpassfilter'))

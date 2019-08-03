@@ -15,22 +15,14 @@ except:
     # this means that midiosc is not supported as midi backend
     print("Warning: pyOSC not found")
 
-
-try:
-    # Python 2 has the basestring object
-    basestring
-except:
-    # Python 3 does not distinguish between str and unicode
-    basestring = str
-
 ###################################################################################################
 def printkeyval(key, val):
     try:
-        # this works in Python 2 but fails in Python 3
+        # this works in Python 2, but fails in Python 3
         isstring = isinstance(val, basestring)
     except:
         try:
-            # this works in Python 3
+            # this works in Python 3, but fails for unicode strings in Python 2
             isstring = isinstance(val, str)
         except:
             isstring = False
@@ -153,8 +145,8 @@ class midiwrapper():
                 self.outputport  = mido.open_output(self.config.get('midi', 'device'))
                 print("Connected to MIDI output")
             except:
-                print("Error: cannot connect to MIDI output")
-                raise RuntimeError("Error: cannot connect to MIDI output")
+                raise RuntimeError("cannot connect to MIDI output")
+                raise RuntimeError("cannot connect to MIDI output")
 
         elif self.backend == 'midiosc':
             try:
@@ -355,23 +347,30 @@ class patch():
                 return val
 
     ####################################################################
-    def getstring(self, section, item, multiple=False, debug=False):
+    def getstring(self, section, item, default=None, multiple=False, debug=False):
         # get all items from the ini file, there might be one or multiple
-        val = self.config.get(section, item)
+        try:
+            val = self.config.get(section, item)
+        except:
+            val = default
 
         if multiple:
-            # convert the items to a list
-            if val.find(",") > -1:
-                separator = ","
-            elif val.find("-") > -1:
-                separator = "-"
-            elif val.find("\t") > -1:
-                separator = "\t"
+            if val==None or len(val)==0:
+                # convert it to an empty list
+                val = []
             else:
-                separator = " "
+                # convert the string with items to a list
+                if val.find(",") > -1:
+                    separator = ","
+                elif val.find("-") > -1:
+                    separator = "-"
+                elif val.find("\t") > -1:
+                    separator = "\t"
+                else:
+                    separator = " "
 
-            val = squeeze(separator, val)  # remove double separators
-            val = val.split(separator)     # split on the separator
+                val = squeeze(separator, val)  # remove double separators
+                val = val.split(separator)     # split on the separator
 
         if debug:
             printkeyval(item, val)

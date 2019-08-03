@@ -62,13 +62,14 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug = patch.getint('general','debug')
+debug    = patch.getint('general','debug')
+filename = patch.getstring('playback', 'file')
 
 if debug>0:
-    print("Reading data from", patch.getstring('playback', 'file'))
+    print("Reading data from", filename)
 
 f = EDF.EDFReader()
-f.open(patch.getstring('playback', 'file'))
+f.open(filename)
 
 if debug>1:
     print("NSignals", f.getNSignals())

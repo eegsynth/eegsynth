@@ -71,16 +71,14 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug = patch.getint('general', 'debug')
+debug       = patch.getint('general', 'debug')
+timeout     = patch.getfloat('fieldtrip', 'timeout')
+filename    = patch.getstring('recording', 'file')
+fileformat  = patch.getstring('recording', 'format')
 
-# this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip', 'timeout')
-
-try:
-    fileformat = patch.getstring('recording', 'format')
-except:
-    fname = patch.getstring('recording', 'file')
-    name, ext = os.path.splitext(fname)
+if fileformat is None:
+    # determine the file format from the file name
+    name, ext = os.path.splitext(filename)
     fileformat = ext[1:]
 
 try:
@@ -141,8 +139,7 @@ while True:
     if not recording and patch.getint('recording', 'record'):
         recording = True
         # open a new file
-        fname = patch.getstring('recording', 'file')
-        name, ext = os.path.splitext(fname)
+        name, ext = os.path.splitext(filename)
         if len(ext) == 0:
             ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext

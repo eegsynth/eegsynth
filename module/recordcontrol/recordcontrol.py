@@ -69,16 +69,14 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug = patch.getint('general', 'debug')
+debug       = patch.getint('general', 'debug')
+delay       = patch.getfloat('general', 'delay')
+filename    = patch.getstring('recording', 'file')
+fileformat  = patch.getstring('recording', 'format')
 
-# this determines frequency at which the control values are sampled
-delay = patch.getfloat('general', 'delay')
-
-try:
-    fileformat = patch.getstring('recording', 'format')
-except:
-    fname = patch.getstring('recording', 'file')
-    name, ext = os.path.splitext(fname)
+if fileformat is None:
+    # determine the file format from the file name
+    name, ext = os.path.splitext(filename)
     fileformat = ext[1:]
 
 filenumber = 0
@@ -106,8 +104,7 @@ while True:
     if not recording and patch.getint('recording', 'record'):
         recording = True
         # open a new file
-        fname = patch.getstring('recording', 'file')
-        name, ext = os.path.splitext(fname)
+        name, ext = os.path.splitext(filename)
         if len(ext) == 0:
             ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext

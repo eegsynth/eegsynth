@@ -63,17 +63,19 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug = patch.getint('general', 'debug')
+debug   = patch.getint('general', 'debug')
+clock   = patch.getstring('sequence', 'clock') # the clock signal for the sequence
+prefix  = patch.getstring('output', 'prefix')
 
 # these scale and offset parameters are used to map between Redis and internal values
-scale_active     = patch.getfloat('scale', 'active',     default=127.)
-scale_transpose  = patch.getfloat('scale', 'transpose',  default=127.)
-scale_note       = patch.getfloat('scale', 'note',       default=1.)
-scale_duration   = patch.getfloat('scale', 'duration',   default=1.)
-offset_active    = patch.getfloat('offset', 'active',    default=0.)
-offset_transpose = patch.getfloat('offset', 'transpose', default=0.)
-offset_note      = patch.getfloat('offset', 'note',      default=0.)
-offset_duration  = patch.getfloat('offset', 'duration',  default=0.)
+scale_active     = patch.getfloat('scale', 'active',     default=127)
+scale_transpose  = patch.getfloat('scale', 'transpose',  default=127)
+scale_note       = patch.getfloat('scale', 'note',       default=1)
+scale_duration   = patch.getfloat('scale', 'duration',   default=1)
+offset_active    = patch.getfloat('offset', 'active',    default=0)
+offset_transpose = patch.getfloat('offset', 'transpose', default=0)
+offset_note      = patch.getfloat('offset', 'note',      default=0)
+offset_duration  = patch.getfloat('offset', 'duration',  default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -151,11 +153,8 @@ class SequenceThread(threading.Thread):
                         self.step = (self.step + 1) % len(self.sequence)
 
 
-# this is the clock signal for the sequence
-clock = patch.getstring('sequence', 'clock')
-
 # the notes will be sent to Redis using this key
-key = "{}.note".format(patch.getstring('output', 'prefix'))
+key = "{}.note".format(prefix)
 
 # create and start the thread for the output
 sequencethread = SequenceThread(clock, key)
@@ -184,11 +183,9 @@ try:
         active = EEGsynth.rescale(active, slope=scale_active, offset=offset_active)
         active = int(active)
 
-        # get the corresponding sequence as a single string
-        try:
-            sequence = patch.getstring('sequence', "sequence%03d" % active, multiple=True)
-        except:
-            sequence = []
+        # get the corresponding sequence as a list
+        sequence = "sequence%03d" % (active)
+        sequence = patch.getstring('sequence', sequence, multiple=True)
 
         transpose = patch.getfloat('sequence', 'transpose', default=0.)
         transpose = EEGsynth.rescale(transpose, slope=scale_transpose, offset=offset_transpose)

@@ -68,6 +68,7 @@ debug        = patch.getint('general','debug')
 delay        = patch.getfloat('general','delay')
 input_scale  = patch.getfloat('input', 'scale', default=None)
 input_offset = patch.getfloat('input', 'offset', default=None)
+filename     = patch.getstring('recording', 'file')
 fileformat   = 'tsv'
 
 # start with a temporary file which is immediately closed
@@ -145,8 +146,7 @@ try:
         if not recording and patch.getint('recording', 'record'):
             recording = True
             # open a new file
-            fname = patch.getstring('recording', 'file')
-            name, ext = os.path.splitext(fname)
+            name, ext = os.path.splitext(filename)
             if len(ext) == 0:
                 ext = '.' + fileformat
             fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext

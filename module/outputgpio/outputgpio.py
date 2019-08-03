@@ -158,10 +158,7 @@ for gpio, channel in config.items('control'):
 trigger = []
 for gpio, channel in config.items('trigger'):
     wiringpi.pinMode(pin[gpio], 1)
-    try:
-        duration = patch.getstring('duration', gpio)
-    except:
-        duration = None
+    duration = patch.getstring('duration', gpio)
     trigger.append(TriggerThread(channel, gpio, duration))
     print("trigger", channel, gpio)
 

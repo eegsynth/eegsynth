@@ -65,7 +65,17 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug = patch.getint('general','debug')
+debug       = patch.getint('general','debug')
+filename    = patch.getstring('playback', 'file')
+fileformat  = patch.getstring('playback', 'format')
+
+if fileformat is None:
+    # determine the file format from the file name
+    name, ext = os.path.splitext(filename)
+    fileformat = ext[1:]
+
+if debug>0:
+    print("Reading data from", filename)
 
 try:
     ftc_host = patch.getstring('fieldtrip','hostname')
@@ -79,16 +89,6 @@ try:
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
 
-try:
-    fileformat = patch.getstring('playback', 'format')
-except:
-    fname = patch.getstring('playback', 'file')
-    name, ext = os.path.splitext(fname)
-    fileformat = ext[1:]
-
-if debug>0:
-    print("Reading data from", patch.getstring('playback', 'file'))
-
 H = FieldTrip.Header()
 
 MININT8  = -np.power(2,7)
@@ -100,7 +100,7 @@ MAXINT32 =  np.power(2,31)-1
 
 if fileformat=='edf':
     f = EDF.EDFReader()
-    f.open(patch.getstring('playback', 'file'))
+    f.open(filename)
     for chanindx in range(f.getNSignals()):
         if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
             raise AssertionError('unequal SignalFreqs')
@@ -129,7 +129,7 @@ elif fileformat=='wav':
         physical_max = patch.getfloat('playback', 'physical_max')
     except:
         physical_max =  1
-    f = wave.open(patch.getstring('playback', 'file'), 'r')
+    f = wave.open(filename, 'r')
     resolution = f.getsampwidth() # 1, 2 or 4
     # 8-bit samples are stored as unsigned bytes, ranging from 0 to 255.
     # 16-bit samples are stored as signed integers in 2's-complement.
