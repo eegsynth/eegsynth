@@ -118,7 +118,7 @@ except:
     exit()
 
 # channel 1-16 in the ini file should be mapped to 0-15
-if midichannel not is None:
+if not midichannel is None:
     midichannel-=1
 monitor.update('midichannel', midichannel)
 
