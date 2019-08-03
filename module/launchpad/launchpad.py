@@ -69,6 +69,7 @@ toggle3     = patch.getint('button', 'toggle3', multiple=True)    # on1-on2-on3-
 toggle4     = patch.getint('button', 'toggle4', multiple=True)    # on1-on2-on3-on4-off button
 slap        = patch.getint('button', 'slap',    multiple=True)    # slap button
 midichannel = patch.getint('midi', 'channel', default=None)
+model       = patch.getstring('midi', 'model', default='mk1')
 
 # the scale and offset are used to map MIDI values to Redis values
 scale_note     = patch.getfloat('scale', 'note', default=1./127)
@@ -119,15 +120,27 @@ if not midichannel is None:
     midichannel-=1
 monitor.update('midichannel', midichannel)
 
+print(model)
+
 # these are the MIDI values for the LED color
-Off         = 12
-Red_Low     = 13
-Red_Full    = 15
-Amber_Low   = 29
-Amber_Full  = 63
-Yellow_Full = 62
-Green_Low   = 28
-Green_Full  = 60
+if model == 'mk1':
+    # the MK1 has a limited set of colors
+    Off         = 12
+    Red_Low     = 13
+    Red_Full    = 15
+    Amber_Low   = 29
+    Amber_Full  = 63
+    Yellow_Full = 62
+    Green_Low   = 28
+    Green_Full  = 60
+elif model == 'mk2':
+    # the MK2 has a palette of 128 colors, here we try to mimic the limited set of colors from the MK1
+    # the "low" colors are not defined, as they are not used further down
+    Off         = 0
+    Red_Full    = 72
+    Amber_Full  = 124
+    Yellow_Full = 16
+    Green_Full  = 22
 
 def ledcolor(note,color):
     if not midichannel is None:
@@ -184,6 +197,7 @@ while True:
             try:
                 # specify the MIDI channel on the basis of the first incoming message
                 midichannel = int(msg.channel)
+                monitor.update('midichannel', midichannel)
             except:
                 pass
 

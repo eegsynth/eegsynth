@@ -70,6 +70,7 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general','debug')
 mididevice = patch.getstring('midi', 'device')
 mididevice = EEGsynth.trimquotes(mididevice)
+midichannel = patch.getint('midi', 'channel', default=None)
 
 # the input scale and offset are used to map Redis values to MIDI values
 input_scale  = patch.getfloat('input', 'scale', default=127)
@@ -109,13 +110,10 @@ try:
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
-try:
-    # channel 1-16 in the ini file should be mapped to 0-15
-    midichannel = patch.getint('midi', 'channel')-1
-except:
-    # this happens if it is not specified in the ini file
-    # it will be determined on the basis of the first incoming message
-    midichannel = None
+# channel 1-16 in the ini file should be mapped to 0-15
+if not midichannel is None:
+    midichannel-=1
+monitor.update('midichannel', midichannel)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
@@ -238,6 +236,7 @@ try:
                 try:
                     # specify the MIDI channel on the basis of the first incoming message
                     midichannel = int(msg.channel)
+                    monitor.update('midichannel', midichannel)
                 except:
                     pass
 
