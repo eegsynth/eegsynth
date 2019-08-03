@@ -63,11 +63,17 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+# get the options from the configuration file
+debug     = patch.getint('general','debug')
+timeout   = patch.getfloat('fieldtrip','timeout')
+channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
+window    = patch.getfloat('processing','window')
+threshold = patch.getfloat('processing', 'threshold')
+lrate     = patch.getfloat('processing', 'learning_rate', default=1)
+debounce  = patch.getfloat('processing', 'debounce', default=0.3)             # minimum time between beats (s)
+key_beat  = patch.getstring('output', 'heartbeat')
+key_rate  = patch.getstring('output', 'heartrate')
 
-# this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip','timeout')
 
 try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
@@ -81,6 +87,7 @@ try:
 except:
     print("Error: cannot connect to input FieldTrip buffer")
     exit()
+
 
 hdr_input = None
 start = time.time()
@@ -99,13 +106,7 @@ if debug>1:
     print(hdr_input)
     print(hdr_input.labels)
 
-channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
-window    = round(patch.getfloat('processing','window') * hdr_input.fSample)  # in samples
-threshold = patch.getfloat('processing', 'threshold')
-lrate     = patch.getfloat('processing', 'learning_rate', default=1)
-debounce  = patch.getfloat('processing', 'debounce', default=0.3)             # minimum time between beats (s)
-key_beat  = patch.getstring('output', 'heartbeat')
-key_rate  = patch.getstring('output', 'heartrate')
+window = round(window * hdr_input.fSample)  # in samples
 
 curvemin  = np.nan;
 curvemean = np.nan;

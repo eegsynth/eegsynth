@@ -84,10 +84,11 @@ pin = {
     "gpio29": 29,
 }
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general', 'debug')
 delay = patch.getfloat('general', 'delay')
-# values between 0 and 1 are nice for the duration
+
+# values between 0 and 1 work well for the duration
 scale_duration = patch.getfloat('scale', 'duration', default=1)
 offset_duration = patch.getfloat('offset', 'duration', default=0)
 

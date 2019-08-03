@@ -64,10 +64,8 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
-
-# this is the timeout for the FieldTrip buffer
+# get the options from the configuration file
+debug   = patch.getint('general', 'debug')
 timeout = patch.getfloat('input_fieldtrip','timeout')
 
 try:
@@ -165,11 +163,10 @@ profileMin          = patch.getfloat('cogito', 'profileMin')
 profileMax          = patch.getfloat('cogito', 'profileMax')
 profileCorrection   = np.loadtxt('Dwingeloo-Transmitter-Profile.txt')
 profileCorrection   = (1. - profileCorrection)*(profileMax-profileMin) + profileMin
-window              = int(round(window*hdr_input.fSample))
 
-# FIXME these are in Hz, but should be mapped to frequency bins
-f_min = int(f_min)
-f_max = int(f_max)
+f_min = int(f_min/window)
+f_max = int(f_max/window)
+window = int(round(window*hdr_input.fSample)) # expressed in samples
 
 ft_output.putHeader(nOutputs, sample_rate, hdr_input.dataType, labels=output_channel)
 

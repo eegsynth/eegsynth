@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Postprocessing performs basic algorithms on Redis data
 #
@@ -65,7 +65,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general', 'debug')
 
 # get the input and output options
@@ -90,6 +90,7 @@ output_equation = [sanitize(equation) for equation in output_equation]
 if debug>0:
     print('===== input variables =====')
     for name,variable in zip(input_name, input_variable):
+        print(name, variable)
         monitor.update(name, variable)
     print('===== output equations =====')
     for name,equation in zip(output_name, output_equation):

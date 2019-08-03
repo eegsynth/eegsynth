@@ -62,17 +62,16 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+mididevice  = patch.getstring('midi', 'device')
+mididevice  = EEGsynth.trimquotes(mididevice)
 
-# this is only for debugging, and check which MIDI devices are accessible
+# this is only for debugging, check which MIDI devices are accessible
 print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)
 print('-------------------------')
-
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
 
 try:
     outputport  = mido.open_output(mididevice)

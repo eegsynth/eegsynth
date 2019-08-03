@@ -67,10 +67,27 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general','debug')
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
 
-# this is only for debugging
+# the input scale and offset are used to map Redis values to MIDI values
+input_scale  = patch.getfloat('input', 'scale', default=127)
+input_offset = patch.getfloat('input', 'offset', default=0)
+
+scale_velocity  = patch.getfloat('scale', 'velocity', default=127)
+scale_pitch     = patch.getfloat('scale', 'pitch', default=127)
+scale_duration  = patch.getfloat('scale', 'duration', default=2.0)
+offset_velocity = patch.getfloat('offset', 'velocity', default=0)
+offset_pitch    = patch.getfloat('offset', 'pitch', default=0)
+offset_duration = patch.getfloat('offset', 'duration', default=0)
+
+# the output scale and offset are used to map MIDI values to Redis values
+output_scale  = patch.getfloat('output', 'scale', default=1./127)
+output_offset = patch.getfloat('output', 'offset', default=0)
+
+# this is only for debugging, check which MIDI devices are accessible
 print('------ INPUT ------')
 for port in mido.get_input_names():
   print(port)
@@ -78,9 +95,6 @@ print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)
 print('-------------------------')
-
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
 
 try:
     inputport  = mido.open_input(mididevice)
@@ -105,21 +119,6 @@ except:
     # this happens if it is not specified in the ini file
     # it will be determined on the basis of the first incoming message
     midichannel = None
-
-# the input scale and offset are used to map Redis values to MIDI values
-input_scale  = patch.getfloat('input', 'scale', default=127)
-input_offset = patch.getfloat('input', 'offset', default=0)
-
-scale_velocity  = patch.getfloat('scale', 'velocity', default=127)
-scale_pitch     = patch.getfloat('scale', 'pitch', default=127)
-scale_duration  = patch.getfloat('scale', 'duration', default=2.0)
-offset_velocity = patch.getfloat('offset', 'velocity', default=0)
-offset_pitch    = patch.getfloat('offset', 'pitch', default=0)
-offset_duration = patch.getfloat('offset', 'duration', default=0)
-
-# the output scale and offset are used to map MIDI values to Redis values
-output_scale  = patch.getfloat('output', 'scale', default=0.00787401574803149606)
-output_offset = patch.getfloat('output', 'offset', default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()

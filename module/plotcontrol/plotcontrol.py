@@ -68,26 +68,27 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general', 'debug')
-
-input_name, input_variable = list(zip(*config.items('input')))
-
-# count total nr. of curves to be drawm
-curve_nrs = 0
-for i in range(len(input_name)):
-    temp = input_variable[i].split(",")
-    for ii in range(len(temp)):
-        curve_nrs += 1
-
-ylim_name, ylim_value = list(zip(*config.items('ylim')))
 delay       = patch.getfloat('general', 'delay')
-historysize = int(patch.getfloat('general', 'window') / delay)
+historysize = patch.getfloat('general', 'window') # in seconds
 secwindow   = patch.getfloat('general', 'window')
 winx        = patch.getfloat('display', 'xpos')
 winy        = patch.getfloat('display', 'ypos')
 winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
+
+historysize = int(historysize/delay) # in steps
+
+input_name, input_variable = list(zip(*config.items('input')))
+ylim_name, ylim_value = list(zip(*config.items('ylim')))
+
+# count total number of curves to be drawm
+curve_nrs = 0
+for i in range(len(input_name)):
+    temp = input_variable[i].split(",")
+    for ii in range(len(temp)):
+        curve_nrs += 1
 
 # initialize graphical window
 app = QtGui.QApplication([])

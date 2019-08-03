@@ -62,15 +62,17 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug           = patch.getint('general', 'debug')
 prefix          = patch.getstring('output', 'prefix')
-output_scale    = patch.getfloat('output', 'scale', default=1./127)
-output_offset   = patch.getfloat('output', 'offset', default=0.)
 winx            = patch.getfloat('display', 'xpos')
 winy            = patch.getfloat('display', 'ypos')
 winwidth        = patch.getfloat('display', 'width')
 winheight       = patch.getfloat('display', 'height')
+
+# the scale and offset are used to map internal values to Redis values
+output_scale    = patch.getfloat('output', 'scale', default=1./127) # internal values are from 0 to 127
+output_offset   = patch.getfloat('output', 'offset', default=0.)    # internal values are from 0 to 127
 
 class Window(QtGui.QWidget):
     def __init__(self):

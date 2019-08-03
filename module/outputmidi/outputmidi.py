@@ -62,9 +62,19 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
-monophonic = patch.getint('general', 'monophonic', default=1)
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+monophonic  = patch.getint('general', 'monophonic', default=1)
+midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
+mididevice  = patch.getstring('midi', 'device')
+mididevice  = EEGsynth.trimquotes(mididevice)
+# values between 0 and 1 work well for the note duration
+scale_duration  = patch.getfloat('scale', 'duration', default=1)
+offset_duration = patch.getfloat('offset', 'duration', default=0)
+# values around 64 work well for the note velocity
+scale_velocity  = patch.getfloat('scale', 'velocity', default=1)
+offset_velocity = patch.getfloat('offset', 'velocity', default=0)
+
 
 # this is only for debugging, and to check which MIDI devices are accessible
 print('------ INPUT ------')
@@ -75,10 +85,6 @@ for port in mido.get_output_names():
   print(port)
 print('-------------------------')
 
-midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
-
 try:
     outputport  = mido.open_output(mididevice)
     if debug>0:
@@ -86,13 +92,6 @@ try:
 except:
     print("Error: cannot connect to MIDI output")
     exit()
-
-# values between 0 and 1 are quite nice for the note duration
-scale_duration  = patch.getfloat('scale', 'duration', default=1)
-offset_duration = patch.getfloat('offset', 'duration', default=0)
-# values around 64 are nice for the note velocity
-scale_velocity    = patch.getfloat('scale', 'velocity', default=1)
-offset_velocity   = patch.getfloat('offset', 'velocity', default=0)
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()

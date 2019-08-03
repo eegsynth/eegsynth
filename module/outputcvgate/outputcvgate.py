@@ -62,10 +62,9 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general', 'debug')
-
-# values between 0 and 1 are quite nice for the duration
+# values between 0 and 1 work well for the duration
 duration_scale = patch.getfloat('duration', 'scale', default=1)
 duration_offset = patch.getfloat('duration', 'offset', default=0)
 

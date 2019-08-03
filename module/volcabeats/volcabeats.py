@@ -62,7 +62,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general','debug')
 
 # the list of MIDI commands is the only aspect that is specific to the Volca Beats
@@ -72,7 +72,7 @@ control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 
 note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
 note_code = [36, 38, 43, 50, 42, 46, 39]
 
-# this is only for debugging, and check which MIDI devices are accessible
+# this is only for debugging, check which MIDI devices are accessible
 print('------ OUTPUT ------')
 for port in mido.get_output_names():
   print(port)

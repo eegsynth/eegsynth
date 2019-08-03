@@ -64,9 +64,17 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+# get the options from the configuration file
+debug   = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout', 30)
+device  = patch.getint('audio', 'device')
+window  = patch.getfloat('audio', 'window', default=1)   # in seconds
+
+# these are for multiplying/attenuating the signal
+scaling_method = patch.getstring('audio', 'scaling_method')
+scaling        = patch.getfloat('audio', 'scaling')
+scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
+offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
 try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
@@ -98,17 +106,9 @@ if debug > 1:
     print(hdr_input)
     print(hdr_input.labels)
 
-device = patch.getint('audio', 'device')
-window = patch.getfloat('audio', 'window', default=1)   # in seconds
-window = int(window * hdr_input.fSample)                # in samples
-nchans = hdr_input.nChannels                            # for the input and output
-rate   = int(hdr_input.fSample)                         # for the input and output
-
-# these are for multiplying/attenuating the signal
-scaling = patch.getfloat('audio', 'scaling')
-scaling_method = patch.getstring('audio', 'scaling_method')
-scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
-offset_scaling = patch.getfloat('offset', 'scaling', default=0)
+window  = int(window * hdr_input.fSample)                # in samples
+nchans  = hdr_input.nChannels                            # for the input and output
+rate    = int(hdr_input.fSample)                         # for the input and output
 
 if nchans > hdr_input.nChannels:
     print("Error: not enough channels available for output")

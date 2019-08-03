@@ -40,7 +40,7 @@ else:
     file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 
@@ -52,7 +52,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print("Error: cannot connect to redis server")
@@ -64,28 +64,18 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
-
-try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug>0:
-        print("Connected to output FieldTrip buffer")
-except:
-    print("Error: cannot connect to output FieldTrip buffer")
-    exit()
-
-device    = patch.getstring('bitalino', 'device')
-fsample   = patch.getfloat('bitalino', 'fsample', default=1000)
-blocksize = patch.getint('bitalino', 'blocksize', default=10)
-channels  = patch.getint('bitalino', 'channels', multiple=True) # these should be one-offset
-nchans    = len(channels)
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+device      = patch.getstring('bitalino', 'device')
+fsample     = patch.getfloat('bitalino', 'fsample', default=1000)
+blocksize   = patch.getint('bitalino', 'blocksize', default=10)
+channels    = patch.getint('bitalino', 'channels', multiple=True)  # these should be one-offset
 batterythreshold = patch.getint('bitalino', 'batterythreshold', default=30)
+
+# switch from one-offset to zero-offset
+nchans = len(channels)
+for i in range(nchans):
+    channels[i] -= 1
 
 if debug > 0:
     print("fsample", fsample)
@@ -93,11 +83,20 @@ if debug > 0:
     print("nchans", nchans)
     print("blocksize", blocksize)
 
-# switch from one-offset to zero-offset
-for i in range(nchans):
-    channels[i]-=1;
+try:
+    ftc_host = patch.getstring('fieldtrip', 'hostname')
+    ftc_port = patch.getint('fieldtrip', 'port')
+    if debug > 0:
+        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
+    ft_output = FieldTrip.Client()
+    ft_output.connect(ftc_host, ftc_port)
+    if debug > 0:
+        print("Connected to output FieldTrip buffer")
+except:
+    print("Error: cannot connect to output FieldTrip buffer")
+    exit()
 
-datatype  = FieldTrip.DATATYPE_FLOAT32
+datatype = FieldTrip.DATATYPE_FLOAT32
 ft_output.putHeader(nchans, float(fsample), datatype)
 
 try:
@@ -117,7 +116,7 @@ device.battery(batterythreshold)
 device.start(fsample, channels)
 
 # Turn BITalino led on
-digitalOutput = [1,1]
+digitalOutput = [1, 1]
 device.trigger(digitalOutput)
 
 startfeedback = time.time()
@@ -127,23 +126,23 @@ while True:
     monitor.loop()
 
     # measure the time that it takes
-    start = time.time();
+    start = time.time()
 
     # read the selected channels from the bitalino
     dat = device.read(blocksize)
     # it starts with 5 extra channels, the first is the sample number (running from 0 to 15), the next 4 seem to be binary
-    dat = dat[:,5:]
+    dat = dat[:, 5:]
     # write the data to the output buffer
     ft_output.putData(dat.astype(np.float32))
 
     countfeedback += blocksize
 
-    if debug>1:
-        print("streamed", blocksize, "samples in", (time.time()-start)*1000, "ms")
-    elif debug>0 and countfeedback>=fsample:
+    if debug > 1:
+        print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
+    elif debug > 0 and countfeedback >= fsample:
         # this gets printed approximately once per second
-        print("streamed", countfeedback, "samples in", (time.time()-startfeedback)*1000, "ms")
-        startfeedback = time.time();
+        print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        startfeedback = time.time()
         countfeedback = 0
 
 # Stop acquisition

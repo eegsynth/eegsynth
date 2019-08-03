@@ -63,8 +63,12 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+device      = patch.getint('audio', 'device')
+rate        = patch.getint('audio', 'rate', default=44100)
+blocksize   = patch.getint('audio', 'blocksize', default=1024)
+nchans      = patch.getint('audio', 'nchans', default=2)
 
 try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
@@ -78,11 +82,6 @@ try:
 except:
     print("Error: cannot connect to output FieldTrip buffer")
     exit()
-
-device      = patch.getint('audio', 'device')
-rate        = patch.getint('audio', 'rate', default=44100)
-blocksize   = patch.getint('audio', 'blocksize', default=1024)
-nchans      = patch.getint('audio', 'nchans', default=2)
 
 if debug > 0:
     print("rate", rate)

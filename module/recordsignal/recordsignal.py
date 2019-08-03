@@ -71,7 +71,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer

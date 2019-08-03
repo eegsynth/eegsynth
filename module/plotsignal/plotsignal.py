@@ -68,7 +68,7 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
+# get the options from the configuration file
 debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
@@ -155,11 +155,12 @@ winy        = patch.getfloat('display', 'ypos')
 winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
 window      = patch.getfloat('arguments', 'window')        # in seconds
-window      = int(round(window * hdr_input.fSample))       # in samples
 clipsize    = patch.getfloat('arguments', 'clipsize')      # in seconds
-clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
 stepsize    = patch.getfloat('arguments', 'stepsize')      # in seconds
 lrate       = patch.getfloat('arguments', 'learning_rate', default=1)
+
+window      = int(round(window * hdr_input.fSample))       # in samples
+clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
 
 try:
     ylim    = patch.getfloat('arguments', 'ylim', 'multiple', True)

@@ -63,11 +63,16 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
-
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
 osc_address = patch.getstring('osc', 'address', default=socket.gethostbyname(socket.gethostname()))
 osc_port    = patch.getint('osc', 'port')
+prefix      = patch.getstring('output', 'prefix')
+delay       = patch.getfloat('general', 'delay', default=0.05)
+
+# the scale and offset are used to map OSC values to Redis values
+output_scale    = patch.getfloat('output', 'scale', default=1)
+output_offset   = patch.getfloat('output', 'offset', default=0)
 
 try:
     s = OSC.OSCServer((osc_address, osc_port))
@@ -78,21 +83,11 @@ except:
     print("Error: cannot start OSC server")
     exit()
 
-# the scale and offset are used to map OSC values to Redis values
-scale = patch.getfloat('output', 'scale', default=1)
-offset = patch.getfloat('output', 'offset', default=0)
-# the results will be written to redis as "osc.1.faderA" etc.
-prefix = patch.getstring('output', 'prefix')
-
-# the scale, offset and prefix are updated every N seconds
-update = patch.getfloat('general', 'update', default=1)
-
-
 # define a message-handler function that the server will call upon incoming messages
 def forward_handler(addr, tags, data, source):
     global prefix
-    global scake
-    global offset
+    global output_scale
+    global output_offset
 
     if debug > 1:
         print("---")
@@ -108,7 +103,7 @@ def forward_handler(addr, tags, data, source):
     if tags == 'f' or tags == 'i':
         # it is a single scalar value
         key = prefix + addr.replace('/', '.')
-        val = EEGsynth.rescale(data[0], slope=scale, offset=offset)
+        val = EEGsynth.rescale(data[0], slope=output_scale, offset=output_offset)
         patch.setvalue(key, val)
 
     else:
@@ -116,7 +111,7 @@ def forward_handler(addr, tags, data, source):
             # it is a list, send it as multiple scalar control values
             # append the index to the key, this starts with 1
             key = prefix + addr.replace('/', '.') + '.%i' % (i+1)
-            val = EEGsynth.rescale(data[i], slope=scale, offset=offset)
+            val = EEGsynth.rescale(data[i], slope=output_scale, offset=output_offset)
             patch.setvalue(key, val)
 
 
@@ -136,12 +131,10 @@ st.start()
 # keep looping while incoming OSC messages are being handled
 try:
     while True:
-        time.sleep(update)
+        time.sleep(delay)
         # the scale and offset are used to map OSC values to Redis values
-        scale = patch.getfloat('output', 'scale', default=1)
-        offset = patch.getfloat('output', 'offset', default=0)
-        # the results will be written to redis as "osc.1.faderA" etc.
-        prefix = patch.getstring('output', 'prefix')
+        output_scale    = patch.getfloat('output', 'scale', default=1)
+        output_offset   = patch.getfloat('output', 'offset', default=0)
 
 except KeyboardInterrupt:
     print("\nClosing module.")

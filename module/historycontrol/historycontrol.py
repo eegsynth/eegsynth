@@ -60,8 +60,22 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+inputlist   = patch.getstring('input', 'channels', multiple=True)
+enable      = patch.getint('history', 'enable', default=1)
+stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
+window      = patch.getfloat('history', 'window')                   # in seconds
+
+numchannel  = len(inputlist)
+numhistory  = int(round(window/stepsize))
+
+# this will contain the full list of historic values
+history = np.empty((numchannel, numhistory)) * np.NAN
+
+# this will contain the statistics of the historic values
+historic = {}
+
 
 # see https://en.wikipedia.org/wiki/Median_absolute_deviation
 def mad(arr, axis=None):
@@ -71,18 +85,6 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-inputlist   = patch.getstring('input', 'channels', multiple=True)
-enable      = patch.getint('history', 'enable', default=1)
-stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
-window      = patch.getfloat('history', 'window')                   # in seconds
-numchannel  = len(inputlist)
-numhistory  = int(round(window/stepsize))
-
-# this will contain the full list of historic values
-history = np.empty((numchannel, numhistory)) * np.NAN
-
-# this will contain the statistics of the historic values
-historic = {}
 
 while True:
     monitor.loop()

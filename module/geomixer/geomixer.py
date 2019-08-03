@@ -64,11 +64,11 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
-delay = patch.getfloat('general', 'delay')
-number = patch.getint('switch', 'number', default=3)
-prefix = patch.getstring('output', 'prefix')
+# get the options from the configuration file
+debug   = patch.getint('general', 'debug')
+delay   = patch.getfloat('general', 'delay')
+number  = patch.getint('switch', 'number', default=3)
+prefix  = patch.getstring('output', 'prefix')
 
 # the scale and offset are used to map the Redis values to internal values
 scale_input      = patch.getfloat('scale', 'input', default=1.)

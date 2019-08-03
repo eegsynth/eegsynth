@@ -38,7 +38,7 @@ else:
     file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 
@@ -50,7 +50,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
     print("Error: cannot connect to redis server")
@@ -62,20 +62,18 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
-
-# this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip','timeout')
+# get the options from the configuration file
+debug   = patch.getint('general', 'debug')
+timeout = patch.getfloat('fieldtrip', 'timeout')
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
+    ftc_host = patch.getstring('fieldtrip', 'hostname')
+    ftc_port = patch.getint('fieldtrip', 'port')
+    if debug > 0:
         print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
     ftc = FieldTrip.Client()
     ftc.connect(ftc_host, ftc_port)
-    if debug>0:
+    if debug > 0:
         print("Connected to FieldTrip buffer")
 except:
     print("Error: cannot connect to FieldTrip buffer")
@@ -84,22 +82,23 @@ except:
 hdr_input = None
 start = time.time()
 while hdr_input is None:
-    if debug>0:
+    if debug > 0:
         print("Waiting for data to arrive...")
-    if (time.time()-start)>timeout:
+    if (time.time() - start) > timeout:
         print("Error: timeout while waiting for data")
         raise SystemExit
     hdr_input = ftc.getHeader()
     time.sleep(0.1)
 
-if debug>0:
+if debug > 0:
     print("Data arrived")
-if debug>1:
+if debug > 1:
     print(hdr_input)
     print(hdr_input.labels)
 
 # get the processing arameters
-window = int(patch.getfloat('processing','window') * hdr_input.fSample) # expressed in samples
+window = patch.getfloat('processing', 'window')
+window = int(window * hdr_input.fSample)  # expressed in samples
 
 channel_items = config.items('input')
 channel_name = []
@@ -107,41 +106,41 @@ channel_indx = []
 for item in channel_items:
     # channel numbers are one-offset in the ini file, zero-offset in the code
     channel_name.append(item[0])                           # the channel name
-    channel_indx.append(patch.getint('input', item[0])-1)  # the channel number
+    channel_indx.append(patch.getint('input', item[0]) - 1)  # the channel number
 
 begsample = -1
 endsample = -1
 
 while True:
     monitor.loop()
-    time.sleep(patch.getfloat('general','delay'))
+    time.sleep(patch.getfloat('general', 'delay'))
 
     hdr_input = ftc.getHeader()
-    if (hdr_input.nSamples-1)<endsample:
+    if (hdr_input.nSamples - 1) < endsample:
         print("Error: buffer reset detected")
         raise SystemExit
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
-        if debug>0:
+        if debug > 0:
             print("Waiting for data...")
         continue
 
     # get the most recent data segment
     begsample = hdr_input.nSamples - int(window)
     endsample = hdr_input.nSamples - 1
-    dat       = ftc.getData([begsample,endsample]).astype(double)
+    dat = ftc.getData([begsample, endsample]).astype(double)
 
     # this is for debugging
     printval = []
 
-    for channame,chanindx in zip(channel_name, channel_indx):
+    for channame, chanindx in zip(channel_name, channel_indx):
         # compute the mean over the window
         key = patch.getstring('output', 'prefix') + '.' + channame
-        val = np.mean(dat[:,chanindx])
+        val = np.mean(dat[:, chanindx])
         patch.setvalue(key, val)
 
         # this is for debugging
         printval.append(val)
 
-    if debug>1:
+    if debug > 1:
         print(printval)

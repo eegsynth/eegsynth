@@ -61,9 +61,14 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
-timeout = patch.getfloat('fieldtrip', 'timeout')
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+timeout     = patch.getfloat('fieldtrip', 'timeout')
+inputlist   = patch.getint('input', 'channels', multiple=True)
+prefix      = patch.getstring('output', 'prefix')
+enable      = patch.getint('history', 'enable', default=1)
+stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
+window      = patch.getfloat('history', 'window')                   # in seconds
 
 try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
@@ -93,22 +98,16 @@ if debug > 1:
     print("input nsample", hdr_input.nSamples)
     print("input nchan", hdr_input.nChannels)
 
-inputlist   = patch.getint('input', 'channels', multiple=True)
-prefix      = patch.getstring('output', 'prefix')
-enable      = patch.getint('history', 'enable', default=1)
-stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
-window      = patch.getfloat('history', 'window')                   # in seconds
 stepsize    = int(round(hdr_input.fSample*stepsize))                # in samples
 numhistory  = int(round(hdr_input.fSample*window))                  # in samples
 numchannel  = len(inputlist)
 
-# jump to the end of the stream
-if hdr_input.nSamples-1<stepsize:
-    begsample = 0
-    endsample = stepsize-1
-else:
-    begsample = hdr_input.nSamples-stepsize
-    endsample = hdr_input.nSamples-1
+# this will contain the full list of historic values
+history = np.empty((numhistory, numchannel)) * np.NAN
+
+# this will contain the statistics of the historic values
+historic = {}
+
 
 # see https://en.wikipedia.org/wiki/Median_absolute_deviation
 def mad(arr, axis=None):
@@ -118,11 +117,14 @@ def mad(arr, axis=None):
         val = np.nanmedian(np.abs(arr - np.nanmedian(arr)))
     return val
 
-# this will contain the full list of historic values
-history = np.empty((numhistory, numchannel)) * np.NAN
 
-# this will contain the statistics of the historic values
-historic = {}
+# jump to the end of the stream
+if hdr_input.nSamples-1<stepsize:
+    begsample = 0
+    endsample = stepsize-1
+else:
+    begsample = hdr_input.nSamples-stepsize
+    endsample = hdr_input.nSamples-1
 
 while True:
     monitor.loop()

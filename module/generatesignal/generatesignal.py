@@ -63,8 +63,26 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+# get the options from the configuration file
+debug             = patch.getint('general','debug')
+nchannels         = patch.getint('generate', 'nchannels')
+fsample           = patch.getfloat('generate', 'fsample')
+shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
+
+# the scale and offset are used to map the Redis values to internal values
+scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
+scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
+scale_offset      = patch.getfloat('scale', 'offset', default=1)
+scale_noise       = patch.getfloat('scale', 'noise', default=1)
+scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
+offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
+offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
+offset_offset     = patch.getfloat('offset', 'offset', default=0)
+offset_noise      = patch.getfloat('offset', 'noise', default=0)
+offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
+
+blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
+datatype  = 'float32'
 
 try:
     ftc_host = patch.getstring('fieldtrip','hostname')
@@ -78,11 +96,6 @@ try:
 except:
     print("Error: cannot connect to output FieldTrip buffer")
     exit()
-
-datatype  = 'float32'
-nchannels = patch.getint('generate', 'nchannels')
-fsample   = patch.getfloat('generate', 'fsample')
-blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
 
 if datatype == 'uint8':
     ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)
@@ -105,19 +118,6 @@ if debug > 1:
     print("nchannels", nchannels)
     print("fsample", fsample)
     print("blocksize", blocksize)
-
-# the scale and offset are used to map Redis values to signal parameters
-scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
-scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
-scale_offset      = patch.getfloat('scale', 'offset', default=1)
-scale_noise       = patch.getfloat('scale', 'noise', default=1)
-scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
-offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
-offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
-offset_offset     = patch.getfloat('offset', 'offset', default=0)
-offset_noise      = patch.getfloat('offset', 'noise', default=0)
-offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
-shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
 
 prev_frequency = -1
 prev_amplitude = -1

@@ -61,7 +61,8 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-debug       = patch.getint('general', 'debug')                 # this determines how much debugging information gets printed
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
 timeout     = patch.getfloat('input_fieldtrip', 'timeout')     # this is the timeout for the FieldTrip buffer
 sample_rate = patch.getfloat('sonification', 'sample_rate')
 f_shift     = patch.getstring('sonification', 'f_shift')

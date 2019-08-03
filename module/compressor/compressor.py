@@ -60,11 +60,10 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
-delay = patch.getfloat('general', 'delay')                 # in seconds
-
-prefix = patch.getstring('output', 'prefix')
+# get the options from the configuration file
+debug   = patch.getint('general','debug')
+delay   = patch.getfloat('general', 'delay')
+prefix  = patch.getstring('output', 'prefix')
 
 # get the input options
 input_name, input_variable = list(zip(*config.items('input')))

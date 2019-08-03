@@ -61,20 +61,24 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+push        = patch.getint('button', 'push',    multiple=True)      # push-release button
+toggle1     = patch.getint('button', 'toggle1', multiple=True)      # on-off button
+toggle2     = patch.getint('button', 'toggle2', multiple=True)      # on1-on2-off button
+toggle3     = patch.getint('button', 'toggle3', multiple=True)      # on1-on2-on3-off button
+toggle4     = patch.getint('button', 'toggle4', multiple=True)      # on1-on2-on3-on4-off button
+slap        = patch.getint('button', 'slap',    multiple=True)      # slap button
+midichannel = patch.getint('midi', 'channel', default=None)
 
-# this is only for debugging, and check which MIDI devices are accessible
-print('------ INPUT ------')
-for port in mido.get_input_names():
-  print(port)
-print('------ OUTPUT ------')
-for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
+# the scale and offset are used to map MIDI values to Redis values
+scale_note     = patch.getfloat('scale', 'note', default=1./127)
+scale_control  = patch.getfloat('scale', 'control', default=1./127)
+offset_note    = patch.getfloat('offset', 'note', default=0)
+offset_control = patch.getfloat('offset', 'control', default=0)
 
 # on windows the input and output are different, on unix they are the same
-# use "input/output" when specified, or otherwise use "device" for both
+# use "input/output" when specified, otherwise use "device" for both
 try:
     mididevice_input = patch.getstring('midi', 'input')
     mididevice_input = EEGsynth.trimquotes(mididevice_input)
@@ -88,12 +92,14 @@ except:
     mididevice_output = patch.getstring('midi', 'device') # fallback
     mididevice_output = EEGsynth.trimquotes(mididevice_output)
 
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
-
-print(mididevice_input)
-print(mididevice_output)
-print(mididevice)
+# this is only for debugging, check which MIDI devices are accessible
+print('------ INPUT ------')
+for port in mido.get_input_names():
+  print(port)
+print('------ OUTPUT ------')
+for port in mido.get_output_names():
+  print(port)
+print('-------------------------')
 
 try:
     inputport = mido.open_input(mididevice_input)
@@ -111,26 +117,10 @@ except:
     print("Error: cannot connect to MIDI output")
     exit()
 
-try:
-    # channel 1-16 in the ini file should be mapped to 0-15
-    midichannel = patch.getint('midi', 'channel')-1
-except:
-    # this happens if it is not specified in the ini file
-    # it will be determined on the basis of the first incoming message
-    midichannel = None
-
-print("midichannel = ", midichannel)
-
-push    = patch.getint('button', 'push',    multiple=True)      # push-release button
-toggle1 = patch.getint('button', 'toggle1', multiple=True)      # on-off button
-toggle2 = patch.getint('button', 'toggle2', multiple=True)      # on1-on2-off button
-toggle3 = patch.getint('button', 'toggle3', multiple=True)      # on1-on2-on3-off button
-toggle4 = patch.getint('button', 'toggle4', multiple=True)      # on1-on2-on3-on4-off button
-slap    = patch.getint('button', 'slap',    multiple=True)      # slap button
-
-# concatenate all buttons
-note_list = push + toggle1 + toggle2 + toggle3 + toggle4 + slap
-status_list = [0] * len(note_list)
+# channel 1-16 in the ini file should be mapped to 0-15
+if midichannel not is None:
+    midichannel-=1
+monitor.update('midichannel', midichannel)
 
 # these are the MIDI values for the LED color
 Off         = 12
@@ -145,6 +135,10 @@ Green_Full  = 60
 def ledcolor(note, color):
     if not midichannel is None:
     	outputport.send(mido.Message('note_on', note=int(note), velocity=color, channel=midichannel))
+
+# concatenate all buttons
+note_list = push + toggle1 + toggle2 + toggle3 + toggle4 + slap
+status_list = [0] * len(note_list)
 
 # ensure that all buttons and published messages start in the Off state
 for note in note_list:
@@ -184,21 +178,16 @@ state5change = {0:1, 1:0}
 state5color  = {0:Off, 1:Amber_Full}
 state5value  = {0:None, 1:127}  # don't send message on button release
 
-# it is preferred to use floating point control values between 0 and 1 in Redis
-scale_note     = patch.getfloat('scale', 'note', default=0.00787401574803149606)
-scale_control  = patch.getfloat('scale', 'control', default=0.00787401574803149606)
-offset_note    = patch.getfloat('offset', 'note', default=0)
-offset_control = patch.getfloat('offset', 'control', default=0)
-
 while True:
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
     for msg in inputport.iter_pending():
         if midichannel is None:
+            # specify the MIDI channel on the basis of the first incoming message
             try:
-                # specify the MIDI channel on the basis of the first incoming message
                 midichannel = int(msg.channel)
+                monitor.update('midichannel', midichannel)
             except:
                 pass
 

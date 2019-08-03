@@ -60,11 +60,14 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general', 'debug')
+# get the options from the configuration file
+debug       = patch.getint('general', 'debug')
+channels    = patch.getstring('clock', 'channel', multiple=True)
+dividers    = patch.getint('clock', 'rate',  multiple=True)
 
 # keep track of the number of received triggers
 count = 0
+
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, rate):
@@ -95,9 +98,6 @@ class TriggerThread(threading.Thread):
                     if (self.count % self.rate) == 0:
                         val = item['data']
                         patch.setvalue(self.key, val)
-
-channels = patch.getstring('clock', 'channel', multiple=True)
-dividers = patch.getint('clock', 'rate',  multiple=True)
 
 triggers = []
 for channel in channels:

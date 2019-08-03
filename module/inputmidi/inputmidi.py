@@ -61,17 +61,20 @@ patch = EEGsynth.patch(config, r)
 # this can be used to show parameters that have changed
 monitor = EEGsynth.monitor()
 
-# this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+# get the options from the configuration file
+debug      = patch.getint('general','debug')
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
 
-# this is only for debugging
+# the scale and offset are used to map MIDI values to Redis values
+output_scale    = patch.getfloat('output', 'scale', default=1./127) # MIDI values are from 0 to 127
+output_offset   = patch.getfloat('output', 'offset', default=0.)    # MIDI values are from 0 to 127
+
+# this is only for debugging, check which MIDI devices are accessible
 print('------ INPUT ------')
 for port in mido.get_input_names():
   print(port)
 print('-------------------------')
-
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
 
 try:
     inputport  = mido.open_input(mididevice)
@@ -80,10 +83,6 @@ try:
 except:
     print("Error: cannot connect to MIDI input")
     exit()
-
-# the scale and offset are used to map MIDI values to Redis values
-scale  = patch.getfloat('output', 'scale', default=127)
-offset = patch.getfloat('output', 'offset', default=0)
 
 while True:
     monitor.loop()
@@ -99,7 +98,7 @@ while True:
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = msg.value
             # map the MIDI values to Redis values between 0 and 1
-            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
             patch.setvalue(key, val, debug=debug)
 
         elif hasattr(msg, "note"):
