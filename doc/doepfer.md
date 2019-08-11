@@ -1,8 +1,8 @@
 # Doepfer MIDI to CV/Gate interfaces
 
-Doepfer has a number of very similar MIDI to CV/Gate interfaces. The [MCV4](http://www.doepfer.de/mcv4.htm) is a stand-alone box. The [A-190-2](http://www.doepfer.de/a1902.htm) is the modular version of the MCV4. The [A-190-3](http://www.doepfer.de/a1903.htm) is similar to the A-190-2, but has an additional USB interface and a different behavior of the LED. The A-190-3 is the modular version of the [Dark Link](http://www.doepfer.de/Dark_Link_e.htm), which is the MIDI interface of the [Dark Energy](http://www.doepfer.de/Dark_Energy_II_e.htm). All of these interfaces are controlled in the same way and have the same core functionality.
+Doepfer has a number of very similar MIDI to CV/Gate interfaces. The [MCV4](http://www.doepfer.de/mcv4.htm) is a stand-alone box. The [A-190-2](http://www.doepfer.de/a1902.htm) is the modular version of the MCV4. The [A-190-3](http://www.doepfer.de/a1903.htm) is similar to the A-190-2, but has an additional USB interface and a different behavior of the LED. The A-190-3 is the modular version of the [Dark Link](http://www.doepfer.de/Dark_Link_e.htm), which is the MIDI interface of the [Dark Energy](http://www.doepfer.de/Dark_Energy_II_e.htm). All of these interfaces are controlled in nearly the same way and have the same core functionality.
 
-## Output channels (from top to bottom)
+## Output channels for the A-190-3 (from top to bottom)
 
 ### Gate
 
@@ -32,22 +32,39 @@ This is controlled by MIDI control change messages, free assignable controller i
 
 ## Programming the MIDI interface
 
-It is required that you program the interface for CV1. Press the "Learn" button until the LED starts to blink. The first note that you send will determine the MIDI channel to which CV1 will respond, and also the lowest pitch that corresponds to 0V. Hence you should send the lowest note of the range that you will be using. With the command-line [sendmidi](https://github.com/gbevin/SendMIDI) application you could do:
+It is required that you program the interface for CV1. Press the "Learn" button until the LED starts to blink. The first note that you send will determine the MIDI channel to which CV1 will respond, and the lowest MIDI pitch corresponding to 0V. Hence you should send the lowest note of the range that you will be using. With the command-line [sendmidi](https://github.com/gbevin/SendMIDI) application you could do:
 
 ```
-sendmidi dev 'USB MIDI Dark Energy' ch 0 on 12 64
+sendmidi dev 'USB MIDI Dark Energy' ch 1 on 12 64
 ```
 
-For CV4 it is required that you learn the interface to which control signal it should respond.
+It is also required that you learn the interface to which MIDI control signal it should respond for CV4. You can do:
 
-## Outputmidi configuration
+```
+sendmidi dev 'USB MIDI Dark Energy' ch 1 cc 1 64
+```
 
-The following configuration works well for [outputmidi](../module/outputmidi). Here it is combined with 4 sliders in the [inputcontrol](../module/inputcontrol) graphical interface.
+## Outputmidi configuration for A-190-3
+
+The following configuration works well for [outputmidi](../module/outputmidi) in combination with the A-190-3. Here it is combined with 4 sliders in the [inputcontrol](../module/inputcontrol) graphical interface.
 
 ```
 [trigger]
 note=gui.cv1          ; the MIDI channel and the lowest note must be learned
 pitchwheel=gui.cv2
-control007=gui.cv3    ; this must be 007
-control010=gui.cv4    ; this must be learned
+control007=gui.cv3    ; this must be control #7
+control001=gui.cv4    ; this must be learned
+```
+
+## Outputmidi configuration for MCV4
+
+The following configuration works well for [outputmidi](../module/outputmidi) in combination with the MCV4. Here it is combined with 5 sliders in the [inputcontrol](../module/inputcontrol) graphical interface. The `cv1mod` slider allows for small adjustments to the CV1 voltage.
+
+```
+[trigger]
+note=gui.cv1          ; the MIDI channel and the lowest note must be learned
+pitchwheel=gui.cv1mod
+aftertouch=gui.cv2
+control007=gui.cv3    ; this must be control #7
+control001=gui.cv4    ; this can be learned, the default is modulation, i.e. control #1
 ```
