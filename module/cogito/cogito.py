@@ -210,7 +210,9 @@ while True:
 
     if datscaling==0:
         tmp = dat_input - dat_input.mean(axis=0)
-        datscaling = 1/np.sqrt(max(tmp.var(axis=0)))
+        tmpvar = max(tmp.var(axis=0))
+        if tmpvar>0:
+            datscaling = 1/np.sqrt(tmpvar)
         print('datscaling', datscaling)
 
     # scale the data to have approximately unit variance
