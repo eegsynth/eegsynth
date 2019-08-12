@@ -65,7 +65,7 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug   = patch.getint('general', 'debug')
-timeout = patch.getfloat('fieldtrip', 'timeout', 30)
+timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
 device  = patch.getint('audio', 'device')
 window  = patch.getfloat('audio', 'window', default=1)   # in seconds
 
@@ -201,7 +201,12 @@ def callback(in_data, frame_count, time_info, status):
         with lock:
             stack = stack[indx:]
 
-    buf = np.getbuffer(dat)
+    try:
+        # this is for Python 2
+        buf = np.getbuffer(dat)
+    except:
+        # this is for Python 3
+        buf = dat.tobytes()
     outputblock += 1
 
     return buf, pyaudio.paContinue
