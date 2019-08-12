@@ -5,6 +5,7 @@ import sys
 import time
 import threading
 import math
+import numpy as np
 from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 try:
