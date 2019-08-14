@@ -129,7 +129,7 @@ while True:
     # process the last window
     begsample = hdr_input.nSamples - int(window)
     endsample = hdr_input.nSamples - 1
-    dat       = ft_input.getData([begsample,endsample]).asdata(double)
+    dat       = ft_input.getData([begsample,endsample])
     dat       = dat[:,channel]
 
     if np.isnan(curvemin):

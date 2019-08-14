@@ -24,11 +24,11 @@ class View(QMainWindow):
     #################################################################
     # define GUI layout and connect input widgets to external slots #
     #################################################################
-    def __init__(self, model, controller):
+    def __init__(self, model, controller, patch):
         super().__init__()
-
         self._model = model
         self._controller = controller
+        self._patch = patch
         
         # switch to using white background and black foreground
         pg.setConfigOption('background', 'w')
