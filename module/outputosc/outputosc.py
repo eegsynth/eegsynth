@@ -64,7 +64,7 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general','debug')
 
 try:
-    s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port')) # check if 'localhost' works or if we need to change by the IP
+    s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
     if debug>0:
         print("Connected to OSC server")
 except:
@@ -106,4 +106,4 @@ while True:
         if debug>1:
             print('OSC message', key3, '=', val)
 
-        s.send_message(key3,val) # sends value as an OSC message
+        s.send_message(key3,val)
