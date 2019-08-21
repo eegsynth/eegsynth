@@ -128,7 +128,7 @@ sudo pip install Redis
 sudo pip install mido
 sudo pip install python-rtmidi --pre
 sudo pip install pyserial
-sudo pip install pyosc
+sudo pip install python-osc
 sudo pip install numpy
 sudo pip install nilearn
 sudo pip install sklearn
