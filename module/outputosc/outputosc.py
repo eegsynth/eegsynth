@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import configparser
-import OSC          # see https://trac.v2.nl/wiki/pyOSC
+from pythonosc import udp_client
 import argparse
 import os
 import redis
@@ -64,8 +64,7 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general','debug')
 
 try:
-    s = OSC.OSCClient()
-    s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
+    s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port')) # check if 'localhost' works or if we need to change by the IP
     if debug>0:
         print("Connected to OSC server")
 except:
@@ -107,6 +106,4 @@ while True:
         if debug>1:
             print('OSC message', key3, '=', val)
 
-        msg = OSC.OSCMessage(key3)
-        msg.append(val)
-        s.send(msg)
+        s.send_message(key3,val) # sends value as an OSC message
