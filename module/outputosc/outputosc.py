@@ -20,12 +20,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import configparser
-import OSC          # see https://trac.v2.nl/wiki/pyOSC
 import argparse
 import os
 import redis
 import sys
 import time
+
+if sys.version_info < (3,6):
+    import OSC
+else:
+    from pythonosc import udp_client
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -63,9 +67,13 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug = patch.getint('general','debug')
 
+
 try:
-    s = OSC.OSCClient()
-    s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
+    if sys.version_info < (3,6):
+        s = OSC.OSCClient()
+        s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
+    else:
+        s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
     if debug>0:
         print("Connected to OSC server")
 except:
@@ -107,6 +115,9 @@ while True:
         if debug>1:
             print('OSC message', key3, '=', val)
 
-        msg = OSC.OSCMessage(key3)
-        msg.append(val)
-        s.send(msg)
+        if sys.version_info < (3,6):
+            msg = OSC.OSCMessage(key3)
+            msg.append(val)
+            s.send(msg)
+        else:
+            s.send_message(key3,val)

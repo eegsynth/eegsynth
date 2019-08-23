@@ -116,7 +116,7 @@ pip install Redis
 pip install mido
 pip install python-rtmidi
 pip install pyserial
-pip install pyosc
+pip install python-osc
 pip install numpy
 pip install nilearn
 pip install sklearn
