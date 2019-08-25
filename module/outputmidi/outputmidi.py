@@ -22,6 +22,7 @@
 import configparser
 import argparse
 import mido
+from fuzzywuzzy import process
 import os
 import redis
 import sys
@@ -67,6 +68,8 @@ monophonic  = patch.getint('general', 'monophonic', default=1)
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice  = patch.getstring('midi', 'device')
 mididevice  = EEGsynth.trimquotes(mididevice)
+mididevice  = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
+
 # values between 0 and 1 work well for the note duration
 scale_duration  = patch.getfloat('scale', 'duration', default=1)
 offset_duration = patch.getfloat('offset', 'duration', default=0)
@@ -74,18 +77,17 @@ offset_duration = patch.getfloat('offset', 'duration', default=0)
 scale_velocity  = patch.getfloat('scale', 'velocity', default=1)
 offset_velocity = patch.getfloat('offset', 'velocity', default=0)
 
-
 # this is only for debugging, and to check which MIDI devices are accessible
 print('------ INPUT ------')
 for port in mido.get_input_names():
-  print(port)
+    print(port)
 print('------ OUTPUT ------')
 for port in mido.get_output_names():
-  print(port)
+    print(port)
 print('-------------------------')
 
 try:
-    outputport  = mido.open_output(mididevice)
+    outputport = mido.open_output(mididevice)
     if debug>0:
         print("Connected to MIDI output")
 except:

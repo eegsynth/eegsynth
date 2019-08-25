@@ -22,6 +22,7 @@
 import configparser
 import argparse
 import mido
+from fuzzywuzzy import process
 import os
 import redis
 import sys
@@ -68,9 +69,11 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug = patch.getint('general','debug')
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
 midichannel = patch.getint('midi', 'channel', default=None)
+mididevice  = patch.getstring('midi', 'device')
+mididevice  = EEGsynth.trimquotes(mididevice)
+mididevice  = process.extractOne(mididevice, mido.get_input_names())[0] # select the closest match
+
 
 # the input scale and offset are used to map Redis values to MIDI values
 input_scale  = patch.getfloat('input', 'scale', default=127)
@@ -97,14 +100,14 @@ for port in mido.get_output_names():
 print('-------------------------')
 
 try:
-    inputport  = mido.open_input(mididevice)
+    inputport = mido.open_input(mididevice)
     if debug>0:
         print("Connected to MIDI input")
 except:
     raise RuntimeError("cannot connect to MIDI input")
 
 try:
-    outputport  = mido.open_output(mididevice)
+    outputport = mido.open_output(mididevice)
     if debug>0:
         print("Connected to MIDI output")
 except:

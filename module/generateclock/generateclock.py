@@ -21,6 +21,7 @@ import configparser
 import argparse
 import math
 import mido
+from fuzzywuzzy import process
 import numpy as np
 import os
 import redis
@@ -223,8 +224,9 @@ try: # FIXME do we need this or can we catch errors before?
         if midi_play and midiport == None:
             mididevice = patch.getstring('midi', 'device')
             mididevice = EEGsynth.trimquotes(mididevice)
+            mididevice = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
             try:
-                outputport  = mido.open_output(mididevice)
+                outputport = mido.open_output(mididevice)
                 if debug>0:
                     print("Connected to MIDI output")
             except:
