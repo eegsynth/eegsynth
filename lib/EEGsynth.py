@@ -9,15 +9,12 @@ from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotc
 
 ###################################################################################################
 def printkeyval(key, val):
-    try:
+    if sys.version_info < (3,0):
         # this works in Python 2, but fails in Python 3
         isstring = isinstance(val, basestring)
-    except:
-        try:
-            # this works in Python 3, but fails for unicode strings in Python 2
-            isstring = isinstance(val, str)
-        except:
-            isstring = False
+    else:
+        # this works in Python 3, but fails for unicode strings in Python 2
+        isstring = isinstance(val, str)
     if val is None:
         print("%s = None" % (key))
     elif isinstance(val, list):
@@ -25,7 +22,6 @@ def printkeyval(key, val):
     elif isstring:
         print("%s = %s" % (key, val))
     else:
-        print(key, val, type(val))
         print("%s = %g" % (key, val))
 
 ###################################################################################################

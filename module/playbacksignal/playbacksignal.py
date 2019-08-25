@@ -91,12 +91,12 @@ except:
 
 H = FieldTrip.Header()
 
-MININT8  = -np.power(2,7)
-MAXINT8  =  np.power(2,7)-1
-MININT16 = -np.power(2,15)
-MAXINT16 =  np.power(2,15)-1
-MININT32 = -np.power(2,31)
-MAXINT32 =  np.power(2,31)-1
+MININT8  = -np.power(2.,7)
+MAXINT8  =  np.power(2.,7)-1
+MININT16 = -np.power(2.,15)
+MAXINT16 =  np.power(2.,15)-1
+MININT32 = -np.power(2.,31)
+MAXINT32 =  np.power(2.,31)-1
 
 if fileformat=='edf':
     f = EDF.EDFReader()

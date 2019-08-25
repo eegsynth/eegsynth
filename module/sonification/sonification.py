@@ -294,9 +294,11 @@ while True:
     scaling = patch.getfloat('signal', 'scaling', default=1)
     scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset =offset_scaling)
     if scaling_method == 'multiply':
-        dat_output *= scaling
+        dat_output *=  scaling
     elif scaling_method == 'divide':
         dat_output /= scaling
+    elif scaling_method == 'db':
+        dat_output *= np.power(10, scaling/20)
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))

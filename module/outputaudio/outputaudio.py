@@ -68,6 +68,7 @@ debug   = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
 device  = patch.getint('audio', 'device')
 window  = patch.getfloat('audio', 'window', default=1)   # in seconds
+lrate   = patch.getfloat('clock', 'learning_rate', default=0.05)
 
 # these are for multiplying/attenuating the signal
 scaling_method = patch.getstring('audio', 'scaling_method')
@@ -143,7 +144,6 @@ stretch = 1.
 inputrate = rate
 outputrate = rate
 
-lrate = 0.1
 inputblock = 0
 outputblock = 0
 
@@ -156,11 +156,11 @@ def callback(in_data, frame_count, time_info, status):
     now = time.time()
     duration = now - prevoutput
     prevoutput = now
-    if outputblock > 5:
+    if outputblock > 5 and duration > 0:
         old = outputrate
         new = frame_count / duration
         if old/new > 0.1 or old/new < 10:
-            inputrate = (1 - lrate) * old + lrate * new
+            outputrate = (1 - lrate) * old + lrate * new
 
     # estimate the required stretch between input and output rate
     old = stretch
@@ -188,12 +188,6 @@ def callback(in_data, frame_count, time_info, status):
         dat = dat[selection]
     except:
         dat = np.zeros((frame_count,1), dtype=float)
-
-    if debug > 1:
-        print("inputrate", int(inputrate))
-        print("outputrate", int(outputrate))
-        print("stretch", stretch)
-        print("len(stack)", lenstack)
 
     if endsample > window:
         # it is time to remove data from the stack, keep exactly two blocks
@@ -230,10 +224,9 @@ else:
     begsample = hdr_input.nSamples - window
     endsample = hdr_input.nSamples - 1
 
-
-
 try:
     while True:
+        monitor.loop()
 
         # measure the time that it takes
         start = time.time()
@@ -249,26 +242,31 @@ try:
                 print("Error: timeout while waiting for data")
                 raise SystemExit
 
-        dat = ft_input.getData([begsample, endsample]).astype(np.double)
+        # the output audio is float32, hence this should be as well
+        dat = ft_input.getData([begsample, endsample]).astype(np.single)
 
         # multiply the data with the scaling factor
         scaling = patch.getfloat('audio', 'scaling', default=1)
         scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
         monitor.update("scaling", scaling)
         if scaling_method == 'multiply':
-            dat = dat * scaling
+            dat *= scaling
         elif scaling_method == 'divide':
-            dat = dat / scaling
+            dat /= scaling
         elif scaling_method == 'db':
-            dat = dat * np.power(10, scaling/20)
+            dat *= np.power(10, scaling/20)
 
         with lock:
             stack.append(dat)
 
+        if len(stack) > 2:
+            # there is enough data to start the output stream
+            stream.start_stream()
+
         now = time.time()
         duration = now - previnput
         previnput = now
-        if inputblock > 3:
+        if inputblock > 3 and duration > 0:
             old = inputrate
             new = window / duration
             if old/new > 0.1 or old/new < 10:
@@ -277,9 +275,13 @@ try:
         if debug > 0:
             print("read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration)
 
-        if len(stack) > 2:
-            # there is enough data to start the output stream
-            stream.start_stream()
+        monitor.update("inputrate", int(inputrate), debug > 1)
+        monitor.update("outputrate", int(outputrate), debug > 1)
+        monitor.update("stretch", stretch, debug > 1)
+        monitor.update("len(stack)", len(stack), debug > 1)
+
+        if np.min(dat)<-1 or np.max(dat)>1:
+            print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
 
         begsample += window
         endsample += window

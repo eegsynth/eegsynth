@@ -44,10 +44,10 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import EDF
 
-MININT16 = -np.power(2, 15)
-MAXINT16 = np.power(2, 15) - 1
-MININT32 = -np.power(2, 31)
-MAXINT32 = np.power(2, 31) - 1
+MININT16 = -np.power(2., 15)
+MAXINT16 =  np.power(2., 15) - 1
+MININT32 = -np.power(2., 31)
+MAXINT32 =  np.power(2., 31) - 1
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
