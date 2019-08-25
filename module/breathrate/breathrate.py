@@ -27,7 +27,7 @@ import os
 import redis
 import sys
 import time
-import numppy as np
+import numpy as np
 from scipy.signal import argrelextrema, peak_prominences
 
 if hasattr(sys, 'frozen'):
@@ -72,7 +72,7 @@ timeout = patch.getfloat('fieldtrip', 'timeout')
 channel = patch.getint('input', 'channel') - 1                                 
 key_rate = patch.getstring('output', 'breathrate')
 window = patch.getint('processing', 'window')
-stride = patch.getint('general', 'delay')
+stride = patch.getfloat('general', 'delay')
 promweight = patch.getfloat('processing', 'promweight')
 
 try:
@@ -143,9 +143,11 @@ while True:
     
     # identify peaks
     peaks = argrelextrema(dat, np.greater)[0]
+    print(peaks)
     
     # if no peak was detected jump to the next block 
     if peaks.size < 1:
+        print('found no peaks')
         continue
     
     # index of peak relative to block and absolute to recording
@@ -154,18 +156,23 @@ while True:
     
     # if no new peak was detected jump to next block
     if peak - lastpeak == 0:
+        print('no new peaks')
         continue
     
     # if current peak occurs too close to last peak jump to next block
     rate = (60 / ((peak - lastpeak) / sfreq))
+    print(rate, 2 * avgrate)
     if rate > 2 * avgrate:
+        print('invalid rate')
         continue
     
     # determine the prominence of each peak
     prom = peak_prominences(dat, [peakidx])[0]
+    print(prom, avgprom * promweight)
     # if current peak prominence is too small, jump to next block; larger
     # promweight is more conservative (throws out more peaks)      
     if prom < avgprom * promweight:
+        print('invalid prominence')
         continue
     
     # publish rate
