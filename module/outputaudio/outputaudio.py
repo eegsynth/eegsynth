@@ -250,11 +250,11 @@ try:
         scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
         monitor.update("scaling", scaling)
         if scaling_method == 'multiply':
-            dat = dat * scaling
+            dat *= scaling
         elif scaling_method == 'divide':
-            dat = dat / scaling
+            dat /= scaling
         elif scaling_method == 'db':
-            dat = dat * np.power(10, scaling/20)
+            dat *= np.power(10, scaling/20)
 
         with lock:
             stack.append(dat)
