@@ -26,7 +26,6 @@ import os
 import redis
 import sys
 import time
-import threading
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

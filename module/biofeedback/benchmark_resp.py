@@ -9,7 +9,7 @@ import wfdb
 from wfdb import processing
 import matplotlib.pyplot as plt
 import numpy as np
-from resp_online import extrema_signal
+from resp_online_dev import extrema_signal
 
 records = wfdb.get_record_list('bidmc', records='all')
 sensitivity1 = []
@@ -36,11 +36,11 @@ for record in records:
 #    algopeaks, _, _, _ = extrema_signal(resp, sfreq)
     algopeaks = extrema_signal(resp, sfreq)
 
-#    plt.figure()
-#    plt.plot(resp)
-#    plt.scatter(manupeaks1, resp[manupeaks1], c='m')
-#    plt.scatter(manupeaks2, resp[manupeaks2], c='b')
-#    plt.scatter(algopeaks, resp[algopeaks], c='g', marker='X', s=150)
+    plt.figure()
+    plt.plot(resp)
+    plt.scatter(manupeaks1, resp[manupeaks1], c='m')
+    plt.scatter(manupeaks2, resp[manupeaks2], c='b')
+    plt.scatter(algopeaks, resp[algopeaks], c='g', marker='X', s=150)
 
     # perform benchmarking against each annotator seperately; an
     # algorythmically annotated peaks is scored as true positives if it is

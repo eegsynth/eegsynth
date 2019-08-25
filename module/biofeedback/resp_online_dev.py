@@ -40,7 +40,6 @@ def extrema_signal(signal, sfreq, enable_plot=False):
   
     # enforce numpy and vector-form
     signal = np.ravel(signal)
-    sfreq = 1000
 
     # set free parameters
     window_size = int(np.ceil(3 * sfreq))
@@ -54,6 +53,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     avgprom = 0
     lastpeak = 0
     validblocks = 0
+    allpeaks = []
     
     # initiate plot
     if enable_plot is True:
@@ -128,6 +128,8 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         # the valid blocks (blocks on which peak made it past both thresholds)
         validblocks += 1
         
+        allpeaks.append(peak)
+        
         # plot average parameters and peaks that made it past the prominence
         # threshold
         if enable_plot is True:
@@ -137,4 +139,6 @@ def extrema_signal(signal, sfreq, enable_plot=False):
             ax2.plot(block_sec, np.ones(window_size) * avgprom, c='g')
             
         block += 1
+    
+    return allpeaks
         
