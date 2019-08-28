@@ -92,7 +92,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         peak = block_idcs[peakidx]
             
         # if no new peak was detected jump to next block
-        if peak - lastpeak == 0:
+        if peak <= lastpeak:
             block += 1
             continue
         
