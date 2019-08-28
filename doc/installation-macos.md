@@ -116,13 +116,16 @@ pip install Redis
 pip install mido
 pip install python-rtmidi
 pip install pyserial
-pip install python-osc
+pip install python-osc # for python >= 3.6
+pip install OSC        # for python <= 3.5
 pip install numpy
 pip install nilearn
 pip install sklearn
-pip install pyqtgraph
 pip install scipy
+pip install pyqtgraph
 pip install matplotlib
+pip install bitalino
+pip install fuzzywuzzy[speedup]
 ```
 
 The graphical user interfaces of plotsignal and plotcontrol are generated using Qt4. This requires the bindings between Python and Qt to be installed using brew as follows

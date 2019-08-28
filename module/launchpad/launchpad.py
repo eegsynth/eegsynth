@@ -22,6 +22,7 @@
 import configparser
 import argparse
 import mido
+from fuzzywuzzy import process
 import os
 import redis
 import sys
@@ -100,6 +101,9 @@ try:
 except:
     mididevice_output = patch.getstring('midi', 'device') # fallback
     mididevice_output = EEGsynth.trimquotes(mididevice_output)
+
+mididevice_input  = process.extractOne(mididevice_input, mido.get_input_names())[0] # select the closest match
+mididevice_output = process.extractOne(mididevice_output, mido.get_output_names())[0] # select the closest match
 
 try:
     inputport = mido.open_input(mididevice_input)

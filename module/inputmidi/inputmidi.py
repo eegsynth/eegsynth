@@ -22,6 +22,7 @@
 import configparser
 import argparse
 import mido
+from fuzzywuzzy import process
 import os
 import redis
 import sys
@@ -76,7 +77,7 @@ for port in mido.get_input_names():
 print('-------------------------')
 
 try:
-    inputport  = mido.open_input(mididevice)
+    inputport = mido.open_input(mididevice)
     if debug>0:
         print("Connected to MIDI input")
 except:
