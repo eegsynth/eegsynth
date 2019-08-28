@@ -22,6 +22,7 @@
 import configparser
 import argparse
 import mido
+from fuzzywuzzy import process
 import os
 import redis
 import sys
@@ -62,9 +63,10 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-mididevice  = patch.getstring('midi', 'device')
-mididevice  = EEGsynth.trimquotes(mididevice)
+debug      = patch.getint('general', 'debug')
+mididevice = patch.getstring('midi', 'device')
+mididevice = EEGsynth.trimquotes(mididevice)
+mididevice = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
 
 # this is only for debugging, check which MIDI devices are accessible
 print('------ OUTPUT ------')
@@ -73,7 +75,7 @@ for port in mido.get_output_names():
 print('-------------------------')
 
 try:
-    outputport  = mido.open_output(mididevice)
+    outputport = mido.open_output(mididevice)
     if debug>0:
         print("Connected to MIDI output")
 except:

@@ -123,13 +123,9 @@ chanarray = [chan - 1 for chan in chanarray] # since python starts counting at 0
 
 numchannel  = len(chanarray)
 window      = patch.getfloat('arguments', 'window')         # in seconds
-window      = int(round(window * hdr_input.fSample))        # in samples
 stepsize    = patch.getfloat('arguments', 'stepsize')       # in seconds
 historysize = patch.getfloat('arguments', 'historysize')    # in seconds
-numhistory  = int(historysize / stepsize)                   # number of observation in history
-freqaxis    = fftfreq(window, 1. / hdr_input.fSample)
-history     = np.empty((numchannel, freqaxis.shape[0], numhistory)) * np.nan
-lrate       = patch.getfloat('arguments', 'learning_rate', default=1)
+lrate       = patch.getfloat('arguments', 'learning_rate', default=0.2)
 scale_red   = patch.getfloat('scale', 'red')
 scale_blue  = patch.getfloat('scale', 'blue')
 offset_red  = patch.getfloat('offset', 'red')
@@ -139,6 +135,11 @@ winy        = patch.getfloat('display', 'ypos')
 winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
 prefix      = patch.getstring('output', 'prefix')
+
+window      = int(round(window * hdr_input.fSample))        # in samples
+numhistory  = int(historysize / stepsize)                   # number of observations in the history
+freqaxis    = fftfreq(window, 1. / hdr_input.fSample)
+history     = np.empty((numchannel, freqaxis.shape[0], numhistory)) * np.nan
 
 # ideally it should be possible to change these on the fly
 showred     = patch.getint('input', 'showred', default=1)
@@ -177,7 +178,6 @@ redright_hist   = []
 blueleft_hist   = []
 blueright_hist  = []
 fft_curr        = []
-fft_prev        = []
 fft_hist        = []
 specmax_curr    = []
 specmin_curr    = []
@@ -210,13 +210,12 @@ for ichan in range(numchannel):
     win.nextRow()
 
     # initialize as lists
-    specmin_curr.append(0.)
-    specmax_curr.append(0.)
-    specmin_hist.append(0.)
-    specmax_hist.append(0.)
-    fft_curr.append(0.)
-    fft_prev.append(0.)
-    fft_hist.append(0.)
+    specmin_curr.append(None)
+    specmax_curr.append(None)
+    specmin_hist.append(None)
+    specmax_hist.append(None)
+    fft_curr.append(None)
+    fft_hist.append(None)
 
 # print frequency at lines
 freqplot_curr[0].addItem(text_redleft)
@@ -230,7 +229,7 @@ freqplot_hist[0].addItem(text_blueright_hist)
 
 
 def update():
-    global specmax_curr, specmin_curr, specmax_hist, specmin_hist, fft_prev, fft_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
+    global specmax_curr, specmin_curr, specmax_hist, specmin_hist, fft_hist, redfreq, redwidth, bluefreq, bluewidth, counter, history
 
     # get last dat
     last_index = ft_input.getHeader().nSamples
@@ -254,35 +253,39 @@ def update():
     for ichan in range(numchannel):
         channr = int(chanarray[ichan])
 
-        # estimate the absolute FFT amplitude at the current moment, apply some temporal smoothing
-        fft_now = abs(fft(dat[:, channr]))
-        fft_curr[ichan] = (1 - lrate) * fft_prev[ichan] + lrate * fft_now
-        fft_prev[ichan] = fft_curr[ichan]
+        # estimate the absolute FFT amplitude at the current moment
+        fft_curr[ichan] = abs(fft(dat[:, channr]))
 
-        # update FFT history with current estimate
-        history[ichan, :, numhistory - 1] = fft_now
+        # update FFT history with the current estimate
+        history[ichan, :, numhistory - 1] = fft_curr[ichan]
         fft_hist = np.nanmean(history, axis=2)
 
         # user-selected frequency band
         arguments_freqrange = patch.getfloat('arguments', 'freqrange', multiple=True)
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
-        # update panels
-        spect_curr[ichan].setData(freqaxis[freqrange], fft_curr[ichan][freqrange])
-        spect_hist[ichan].setData(freqaxis[freqrange], fft_hist[ichan][freqrange])
-
-        # adapt the vertical scale to the running mean of min/max
-        specmax_curr[ichan] = (1 - lrate) * float(specmax_curr[ichan]) + lrate * max(fft_curr[ichan][freqrange])
-        specmin_curr[ichan] = (1 - lrate) * float(specmin_curr[ichan]) + lrate * min(fft_curr[ichan][freqrange])
-        specmax_hist[ichan] = (1 - lrate) * float(specmax_hist[ichan]) + lrate * max(fft_hist[ichan][freqrange])
-        specmin_hist[ichan] = (1 - lrate) * float(specmin_hist[ichan]) + lrate * min(fft_hist[ichan][freqrange])
+        # adapt the vertical scale to the running mean of the min/max
+        if specmax_curr[ichan]==None:
+            specmax_curr[ichan] = max(fft_curr[ichan][freqrange])
+            specmin_curr[ichan] = min(fft_curr[ichan][freqrange])
+            specmax_hist[ichan] = max(fft_hist[ichan][freqrange])
+            specmin_hist[ichan] = min(fft_hist[ichan][freqrange])
+        else:
+            specmax_curr[ichan] = (1 - lrate) * float(specmax_curr[ichan]) + lrate * max(fft_curr[ichan][freqrange])
+            specmin_curr[ichan] = (1 - lrate) * float(specmin_curr[ichan]) + lrate * min(fft_curr[ichan][freqrange])
+            specmax_hist[ichan] = (1 - lrate) * float(specmax_hist[ichan]) + lrate * max(fft_hist[ichan][freqrange])
+            specmin_hist[ichan] = (1 - lrate) * float(specmin_hist[ichan]) + lrate * min(fft_hist[ichan][freqrange])
 
         freqplot_curr[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_hist[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_curr[ichan].setYRange(specmin_curr[ichan], specmax_curr[ichan])
         freqplot_hist[ichan].setYRange(specmin_hist[ichan], specmax_hist[ichan])
 
-        # update plotted lines
+        # update the spectra
+        spect_curr[ichan].setData(freqaxis[freqrange], fft_curr[ichan][freqrange])
+        spect_hist[ichan].setData(freqaxis[freqrange], fft_hist[ichan][freqrange])
+
+        # update the plotted lines
         redfreq   = patch.getfloat('input', 'redfreq', default=10. / arguments_freqrange[1])
         redfreq   = EEGsynth.rescale(redfreq, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
         redwidth  = patch.getfloat('input', 'redwidth', default=1. / arguments_freqrange[1])
