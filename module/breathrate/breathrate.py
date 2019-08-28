@@ -74,6 +74,7 @@ key_rate = patch.getstring('output', 'breathrate')
 window = patch.getint('processing', 'window')
 stride = patch.getfloat('general', 'delay')
 promweight = patch.getfloat('processing', 'promweight')
+lrate = patch.getfloat('processing', 'lrate')
 
 try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
@@ -114,7 +115,7 @@ window = round(window * sfreq)
 avgrate = 15
 avgprom = 0
 lastpeak = 0
-validblocks = 0
+blocks = 0
 begsample = -1
 endsample = -1
 
@@ -143,46 +144,44 @@ while True:
     
     # identify peaks
     peaks = argrelextrema(dat, np.greater)[0]
-    print(peaks)
+#    print(peaks)
     
     # if no peak was detected jump to the next block 
     if peaks.size < 1:
-        print('found no peaks')
+        print('no peaks')
         continue
     
-    # index of peak relative to block and absolute to recording
+    # index of last detected peak relative to block and absolute to recording
     peakidx = peaks[-1]
     peak = block_idcs[peakidx]
     
     # if no new peak was detected jump to next block
-    if peak - lastpeak == 0:
+    if peak <= lastpeak:
         print('no new peaks')
         continue
     
-    # if current peak occurs too close to last peak jump to next block
+    # get parameters
     rate = (60 / ((peak - lastpeak) / sfreq))
-    print(rate, 2 * avgrate)
-    if rate > 2 * avgrate:
-        print('invalid rate')
-        continue
-    
-    # determine the prominence of each peak
     prom = peak_prominences(dat, [peakidx])[0]
-    print(prom, avgprom * promweight)
-    # if current peak prominence is too small, jump to next block; larger
-    # promweight is more conservative (throws out more peaks)      
-    if prom < avgprom * promweight:
-        print('invalid prominence')
-        continue
     
-    # publish rate
-    patch.setvalue(key_rate, rate, debug=debug)
     
-    # update average parameters
-    avgprom = (avgprom + (prom - avgprom) / (validblocks + 1))
-    avgrate = (avgrate + (rate - avgrate) / (validblocks + 1))
-    lastpeak = peak
-    # for the real-time averages it is important to keep a counter of only
-    # the valid blocks (blocks on which peak made it past both thresholds)
-    validblocks += 1
+#    print(rate, avgrate)
+#    print(prom, avgprom)
+    
+    
+    if (rate < 30) & (prom > promweight * avgprom):
+
+#        # update average parameters
+#        avgprom = (avgprom + (prom - avgprom) / (blocks + 1))
+#        avgrate = (avgrate + (rate - avgrate) / (blocks + 1))
+#        blocks += 1
+
+        avgprom  = (1 - lrate) * avgprom  + lrate * prom
+
+        # publish rate
+        patch.setvalue(key_rate, rate, debug=debug)
+        lastpeak = peak
+
+    
+    
     
