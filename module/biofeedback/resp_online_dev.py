@@ -30,9 +30,13 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     
     the algorithm can be run as a real-time simulation like so
     (enable_plot=True for visual introspection):
+    
+    from resp_online_dev import extrema_signal
+    import numpy as np
+
     path = 
     channel = 
-    sfreq
+    sfreq =
     data = np.loadtxt(path)[channel]
     extrema_signal(data, sfreq, enable_plot=True)
 
@@ -49,10 +53,10 @@ def extrema_signal(signal, sfreq, enable_plot=False):
 
     # initiate variables
     block = 0  
-    avgrate = 15
-    avgprom = 0
+    avgprom_all = np.nan
+    avgprom_lrate = np.nan
     lastpeak = 0
-    validblocks = 0
+    lrate = 0.2
     allpeaks = []
     
     # initiate plot
@@ -103,40 +107,32 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         
         # if current peak occurs too close to last peak jump to next block
         rate = (60 / ((peak - lastpeak) / sfreq))
-        if rate > 2 * avgrate:
-            block += 1
-            continue
-        
-        # plot peaks that made it past the rate threshold
-        if enable_plot is True:
-            ax1.scatter(block_sec[peakidx], x[peakidx], c='g', marker='X', 
-                        s=200)
-        
         # determine the prominence of each peak
         prom = peak_prominences(x, [peakidx])[0]
-        # if current peak prominence is too small, jump to next block; larger
-        # promweight is more conservative (throws out more peaks)      
-        if prom < avgprom * promweight:
-            block += 1
-            continue
         
-        # update average parameters
-        avgprom = (avgprom + (prom - avgprom) / (validblocks + 1))
-        avgrate = (avgrate + (rate - avgrate) / (validblocks + 1))
-        lastpeak = peak
-        # for the real-time averages it is important to keep a counter of only
-        # the valid blocks (blocks on which peak made it past both thresholds)
-        validblocks += 1
+        # initiate averages
+        if np.isnan(avgprom_all):
+            avgprom_all = prom
+            avgprom_lrate = prom
         
-        allpeaks.append(peak)
+        avgprom_all = (avgprom_all + (prom - avgprom_all) / (block + 1))
+        avgprom_lrate  = (1 - lrate) * avgprom_lrate  + lrate * prom
         
-        # plot average parameters and peaks that made it past the prominence
-        # threshold
         if enable_plot is True:
-            ax1.scatter(block_sec[peakidx], x[peakidx], c='m', marker='X', 
-                        s=200)
-            ax2.plot(block_sec, np.ones(window_size) * avgrate, c='b')
-            ax2.plot(block_sec, np.ones(window_size) * avgprom, c='g')
+        
+            ax2.plot(block_sec, np.ones(window_size) * avgprom_lrate, c='b')
+            ax2.plot(block_sec, np.ones(window_size) * avgprom_all, c='g')
+               
+        if (rate < 30) & (prom > promweight * avgprom_all):
+
+            allpeaks.append(peak)
+            lastpeak = peak
+        
+            # plot average parameters and peaks that made it past the prominence
+            # threshold
+            if enable_plot is True:
+                ax1.scatter(block_sec[peakidx], x[peakidx], c='m', marker='X', 
+                            s=200)
             
         block += 1
     
