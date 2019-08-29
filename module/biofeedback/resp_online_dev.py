@@ -49,18 +49,19 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     window_size = int(np.ceil(3 * sfreq))
     # amount of samples to shift the window on each iteration
     stride = np.ceil(0.5 * sfreq)
-    promweight = 0.4
+    promweight = 1#promweight
 
     # initiate variables
     block = 0  
-    avgprom_all = np.nan
+#    avgprom = np.nan
     avgprom_lrate = np.nan
     lastpeak = 0
-    lrate = 0.2
+    lrate = 0.1
     allpeaks = []
     
     # initiate plot
     if enable_plot is True:
+        plt.figure()
         ax1 = plt.subplot(211)
         ax2 = plt.subplot(212, sharex=ax1)
     
@@ -105,31 +106,30 @@ def extrema_signal(signal, sfreq, enable_plot=False):
             ax1.scatter(block_sec[peakidx], x[peakidx], c='y', marker='P',
                         s=200)
         
-        # if current peak occurs too close to last peak jump to next block
+        # determine rate and prominence
         rate = (60 / ((peak - lastpeak) / sfreq))
-        # determine the prominence of each peak
         prom = peak_prominences(x, [peakidx])[0]
         
-        # initiate averages
-        if np.isnan(avgprom_all):
-            avgprom_all = prom
+        # initiate averages on first block
+        if np.isnan(avgprom_lrate):
+#            avgprom = prom
             avgprom_lrate = prom
         
-        avgprom_all = (avgprom_all + (prom - avgprom_all) / (block + 1))
+        # update averages
+#        avgprom = (avgprom + (prom - avgprom) / (block + 1))
         avgprom_lrate  = (1 - lrate) * avgprom_lrate  + lrate * prom
         
         if enable_plot is True:
-        
             ax2.plot(block_sec, np.ones(window_size) * avgprom_lrate, c='b')
-            ax2.plot(block_sec, np.ones(window_size) * avgprom_all, c='g')
+#            ax2.plot(block_sec, np.ones(window_size) * avgprom, c='g')
                
-        if (rate < 30) & (prom > promweight * avgprom_all):
+        # evaluate peak validity
+        if (rate <= 30) & (prom > promweight * avgprom_lrate):
 
             allpeaks.append(peak)
             lastpeak = peak
         
-            # plot average parameters and peaks that made it past the prominence
-            # threshold
+            # plot peaks that made it past the thresholds
             if enable_plot is True:
                 ax1.scatter(block_sec[peakidx], x[peakidx], c='m', marker='X', 
                             s=200)
