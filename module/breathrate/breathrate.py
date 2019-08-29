@@ -112,10 +112,9 @@ window = round(window * sfreq)
 # initiate variables
 # note that avgrate is hardcoded for now, does it make sense to make it
 # configurable?
-avgrate = 15
-avgprom = 0
+avgprom = np.nan
 lastpeak = 0
-blocks = 0
+#blocks = 0
 begsample = -1
 endsample = -1
 
@@ -148,7 +147,8 @@ while True:
     
     # if no peak was detected jump to the next block 
     if peaks.size < 1:
-        print('no peaks')
+#        print('no peaks')
+#        blocks += 1
         continue
     
     # index of last detected peak relative to block and absolute to recording
@@ -157,31 +157,26 @@ while True:
     
     # if no new peak was detected jump to next block
     if peak <= lastpeak:
-        print('no new peaks')
+#        print('no new peaks')
+#        blocks += 1
         continue
     
     # get parameters
     rate = (60 / ((peak - lastpeak) / sfreq))
     prom = peak_prominences(dat, [peakidx])[0]
     
+    # initiate prom on first block
+    if np.isnan(avgprom):
+        avgprom = prom
     
-#    print(rate, avgrate)
-#    print(prom, avgprom)
+    avgprom  = (1 - lrate) * avgprom  + lrate * prom
+#    avgprom = (avgprom + (prom - avgprom) / (blocks + 1))
+    print(prom, avgprom)
     
-    
-    if (rate < 30) & (prom > promweight * avgprom):
-
-#        # update average parameters
-#        avgprom = (avgprom + (prom - avgprom) / (blocks + 1))
-#        avgrate = (avgrate + (rate - avgrate) / (blocks + 1))
-#        blocks += 1
-
-        avgprom  = (1 - lrate) * avgprom  + lrate * prom
+    if (rate < 40) & (prom > promweight * avgprom):
 
         # publish rate
         patch.setvalue(key_rate, rate, debug=debug)
         lastpeak = peak
-
-    
-    
-    
+        
+#    blocks += 1   
