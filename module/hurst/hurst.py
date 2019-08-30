@@ -29,6 +29,7 @@ import redis
 import sys
 import threading
 import time
+from neurokit.signal import complexity
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -123,6 +124,8 @@ if debug>2:
 begsample = -1
 endsample = -1
 
+metric_list = ['svd', 'higuchi', 'hurst'] # must be in the same order as complexity() outputs
+
 while True:
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
@@ -155,12 +158,6 @@ while True:
     dat = ftc.getData([begsample, endsample]).astype(np.double)
     # ^ SOME OF THE MAGIC HAPPENS HERE
 
-    # FIXME it should be possible to do this differently
-    power = []
-    for chan in channame:
-        for band in bandname:
-            power.append(0)
-
     dat = dat[:, chanindx]
     meandat = dat.mean(0)
 
@@ -174,15 +171,15 @@ while True:
             dat[sample, chan] *= taper[sample]
 
     dat_avg = np.average(dat, axis=1)
+
     # compute the FFT over the sample direction
-    from neurokit.signal import complexity
-    import time
-    cp = complexity(dat_avg, sampling_rate=250, shannon=False, sampen=False, multiscale=False, spectral=False, svd=False, correlation=False, higushi=False, petrosian=False, fisher=False, hurst=True, dfa=False, lyap_r=False, lyap_e=False)
-    print(cp)
 
-    metric_name = list(cp.keys())[0]
-    print(metric_name)
+    cp = complexity(dat_avg, sampling_rate=hdr_input.fSample, shannon=False, sampen=False, multiscale=False, spectral=False, svd=True, correlation=False, higushi=True, petrosian=False, fisher=False, hurst=True, dfa=False, lyap_r=False, lyap_e=False)
+    metric_name = list(cp.keys())
+    if debug > 0:
+        print(cp)
+        print(metric_name)
 
-
-    key = "%s" % (prefix)
-    patch.setvalue(key, cp[metric_name])
+    for i, metric in enumerate(metric_name):
+        key = "%s" % (metric_list[i])
+        patch.setvalue(key, cp[metric])

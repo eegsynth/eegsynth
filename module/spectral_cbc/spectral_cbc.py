@@ -29,6 +29,7 @@ import redis
 import sys
 import threading
 import time
+import scipy
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -111,6 +112,7 @@ if debug>0:
     print(channame, chanindx)
 
 prefix      = patch.getstring('output', 'prefix')
+prefix_peaks      = patch.getstring('output', 'prefix_peaks')
 window      = patch.getfloat('processing','window')  # in seconds
 window      = int(round(window * hdr_input.fSample)) # in samples
 taper       = np.hanning(window)
@@ -122,6 +124,9 @@ if debug>2:
 
 begsample = -1
 endsample = -1
+
+prefix_peaks = 'peaks'
+
 
 while True:
     monitor.loop()
@@ -178,13 +183,23 @@ while True:
     F = np.average(F, axis=1)
 
     i = 0
+    peaks = []
     for lo,hi in zip(bandlo,bandhi):
         power[i] = 0
         count = 0
+        band_bins = []
+        ii = []
         for sample in range(len(frequency)):
             if frequency[sample]>=lo and frequency[sample]<=hi:
                 power[i] += abs(F[sample]*F[sample])
+                band_bins.append(abs(F[sample]*F[sample]))
+                ii.append(sample)
                 count    += 1
+        try:
+            band_peak = np.argmax(scipy.signal.detrend(band_bins))
+        except:
+            continue
+        peaks.append(frequency[ii[band_peak]])
         if count>0:
             power[i] /= count
         i+=1
@@ -196,5 +211,7 @@ while True:
 
     for band in bandname:
         key = "%s.%s" % (prefix, band)
+        key_peaks = "%s.%s" % (prefix_peaks, band)
         patch.setvalue(key, power[i])
+        patch.setvalue(key_peaks, peaks[i])
         i+=1
