@@ -1,0 +1,15 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+playback -> buffer1972;
+    gtec2ft -> buffer1972;
+    launchcontrol -> generatesignal -> buffer1972;
+    launchcontrol -> recordsignal_edf;
+    launchcontrol -> recordsignal_wav;
+    buffer1972 -> preprocessing -> buffer1973;
+    buffer1973 -> cogito -> buffer1974;
+    buffer1974 -> outputaudio;
+    buffer1972 -> recordsignal_edf;
+    buffer1974 -> recordsignal_wav;
+}
