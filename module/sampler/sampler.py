@@ -32,8 +32,6 @@ import time
 import pyaudio
 import threading
 
-CHUNK_SIZE = 1024
-
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
@@ -106,8 +104,27 @@ if len(dat.shape)<2:
 else:
     channels = dat.shape[1]
 
-# open audio stream
-stream = p.open(format=pyaudio.paFloat32, channels=channels, rate=rate, output=True)
+stack = np.zeros((0,channels), dtype=np.float32)
+
+def callback(in_data, frame_count, time_info, status):
+    global stack, channels
+
+    with lock:
+        if stack.shape[0] > frame_count:
+            # select the samples for audio output and drop them from the stack
+            dat   = stack[0:frame_count,:]
+            stack = stack[frame_count:,:]
+        else:
+            dat = np.zeros((frame_count,channels), dtype=np.float32)
+
+    try:
+        # this is for Python 2
+        buf = np.getbuffer(dat)
+    except:
+        # this is for Python 3
+        buf = dat.tobytes()
+
+    return buf, pyaudio.paContinue
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, sample):
@@ -118,6 +135,7 @@ class TriggerThread(threading.Thread):
     def stop(self):
         self.running = False
     def run(self):
+        global stack
         pubsub = r.pubsub()
         pubsub.subscribe('SAMPLER_UNBLOCK') # this message unblocks the Redis listen command
         pubsub.subscribe(self.redischannel) # this message triggers the event
@@ -126,38 +144,32 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'].decode('utf-8') == self.redischannel:
+                    # read the audio file
+                    rate, dat = wavfile.read(self.sample)
+                    print("playing %s for up to %d ms" % (self.sample, 1000*dat.shape[0]/rate))
+
+                    # scale 8, 16 and 32 bit PCM to float, with values between -1.0 and +1.0
+                    if dat.dtype == np.uint8:
+                        dat = (dat.astype(np.float32) - 127.) / 255.
+                    elif dat.dtype == np.int16:
+                        dat = dat.astype(np.float32) / 32767.
+                    elif dat.dtype == np.int32:
+                        dat = dat.astype(np.float32) / 2147483647.
+
+                    # apply the user-specified scaling
+                    if scaling_method == 'multiply':
+                        dat *= scaling
+                    elif scaling_method == 'divide':
+                        dat /= scaling
+                    elif scaling_method == 'db':
+                        dat *= np.power(10., scaling/20.)
+
+                    if np.min(dat)<-1 or np.max(dat)>1:
+                        print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
+
                     with lock:
-                        # read the audio file
-                        rate, dat = wavfile.read(self.sample)
-                        print("playing %s for %d ms" % (self.sample, 1000*dat.shape[0]/rate))
-
-                        # scale 8, 16 and 32 bit PCM to float, with values between -1.0 and +1.0
-                        if dat.dtype == np.int16:
-                            dat = dat.astype(np.float32) / 32767.
-                        if dat.dtype == np.int32:
-                            dat = dat.astype(np.float32) / 2147483647.
-                        elif dat.dtype == np.uint8:
-                            dat = (dat.astype(np.float32) - 127.) / 255.
-
-                        # apply the user-specifies scaling
-                        if scaling_method == 'multiply':
-                            dat *= scaling
-                        elif scaling_method == 'divide':
-                            dat /= scaling
-                        elif scaling_method == 'db':
-                            dat *= np.power(10., scaling/20.)
-
-                        if np.min(dat)<-1 or np.max(dat)>1:
-                            print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
-
-                        try:
-                            # this is for Python 2
-                            buf = np.getbuffer(dat)
-                        except:
-                            # this is for Python 3
-                            buf = dat.tobytes()
-                        stream.write(buf)
-                        print('done')
+                        # replace the current playback stack
+                        stack = np.atleast_2d(dat).transpose()
 
 
 # create the background threads that deal with the triggers
@@ -168,6 +180,17 @@ for channel, sample in zip(input_channel, input_sample):
 
 for thread in trigger:
     thread.start()
+
+# open audio stream
+stream = p.open(format=pyaudio.paFloat32,
+                channels=channels,
+                rate=rate,
+                output=True,
+                output_device_index=device,
+                stream_callback=callback)
+
+# start the output stream
+stream.start_stream()
 
 try:
     while True:
