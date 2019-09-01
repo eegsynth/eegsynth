@@ -144,6 +144,14 @@ class TriggerThread(threading.Thread):
                                     else:
                                         equation = equation.replace(name, str(value))
 
+                                # also replace the variable name for the trigger by its value
+                                name  = self.trigger
+                                value = float(item['data'])
+                                if value is None and equation.count(name)>0:
+                                    print('Undefined value: %s' % (name))
+                                else:
+                                    equation = equation.replace(name, str(value))
+
                                 # try to evaluate each equation
                                 try:
                                     val = eval(equation)
@@ -159,7 +167,6 @@ class TriggerThread(threading.Thread):
                             key = '%s.%s' % (prefix, item['channel'])
                             val = item['data']
                             patch.setvalue(key, val)
-
 
 # create the background threads that deal with the triggers
 trigger = []
