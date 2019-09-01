@@ -6,7 +6,7 @@ Although the primary use of the EEGsynth is to perform real-time analysis and to
 
 - The [recordcontrol module](../module/recordcontrol) reads the control signals for selected channels from the Redis buffer and writes it to an EDF file, or to a WAV audio file. This module will also send a synchronization message to Redis at regular timepoints, with the current sample number in the file as the value.
 
-- The [recordtrigger module](../module/recordtrigger) subscribes to specific pubsub channels in Redis and writes a TSV file. Each row of the TSV file has the event name, event value and the timestamp of the event (as date and time according to the clock). By default, this module will also write the synchronization messages that are created by the [recordsignal module](../module/recordsignal) and [recordcontrol module](../module/recordcontrol). This allows to post-hoc synchronize the physiological and control signal to each other and to other events.
+- The [recordtrigger module](../module/recordtrigger) subscribes to specific pub/sub channels in Redis and writes a TSV file. Each row of the TSV file has the event name, event value and the timestamp of the event (as date and time according to the clock). By default, this module will also write the synchronization messages that are created by the [recordsignal module](../module/recordsignal) and [recordcontrol module](../module/recordcontrol). This allows to post-hoc synchronize the physiological and control signal to each other and to other events.
 
 ## Playing recorded signals back
 
