@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Postprocessing performs basic algorithms on Redis data
 #
@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
+from numpy.random import rand, randn
 import configparser
 import argparse
 import numpy as np
@@ -67,21 +68,27 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
 
-# get the input and output options
-input_name, input_variable = list(zip(*config.items('input')))
-output_name, output_equation = list(zip(*config.items('output')))
 
 def sanitize(equation):
+    equation.replace(' ', '')
     equation = equation.replace('(', '( ')
     equation = equation.replace(')', ' )')
     equation = equation.replace('+', ' + ')
     equation = equation.replace('-', ' - ')
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
-    equation = equation.replace('    ', ' ')
-    equation = equation.replace('   ', ' ')
     equation = ' '.join(equation.split())
     return equation
+
+# assign the initial values
+for item in config.items('initial'):
+    val = patch.getfloat('initial', item[0])
+    patch.setvalue(item[0], val, debug=(debug>0))
+    monitor.update(item[0], val)
+
+# get the input and output options
+input_name, input_variable = list(zip(*config.items('input')))
+output_name, output_equation = list(zip(*config.items('output')))
 
 # make the equations robust against sub-string replacements
 output_equation = [sanitize(equation) for equation in output_equation]
@@ -89,7 +96,6 @@ output_equation = [sanitize(equation) for equation in output_equation]
 if debug>0:
     print('===== input variables =====')
     for name,variable in zip(input_name, input_variable):
-        print(name, variable)
         monitor.update(name, variable)
     print('===== output equations =====')
     for name,equation in zip(output_name, output_equation):
