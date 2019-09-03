@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std
+from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
 from numpy.random import rand, randn
 import configparser
 import argparse
@@ -77,6 +77,7 @@ def sanitize(equation):
     equation = equation.replace('-', ' - ')
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
+    equation = equation.replace(',', ' , ')
     equation = ' '.join(equation.split())
     return equation
 
