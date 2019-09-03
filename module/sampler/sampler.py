@@ -24,7 +24,6 @@ import argparse
 import numpy as np
 import scipy.io
 from scipy.io import wavfile
-from copy import copy
 import os
 import redis
 import sys
@@ -73,6 +72,7 @@ scaling_method  = patch.getstring('audio', 'scaling_method')
 scaling         = patch.getfloat('audio', 'scaling')
 scale_scaling   = patch.getfloat('scale', 'scaling', default=1)
 offset_scaling  = patch.getfloat('offset', 'scaling', default=0)
+prefix          = patch.getstring('prefix', 'synchronize')
 
 p = pyaudio.PyAudio()
 
@@ -95,9 +95,10 @@ print('------------------------------------------------------------------')
 lock = threading.Lock()
 
 input_channel, input_sample = list(zip(*config.items('input')))
+input_sample = [x.split(',') for x in input_sample]
 
 # open first file to determine the format
-rate, dat = wavfile.read(input_sample[0])
+rate, dat = wavfile.read(input_sample[0][0])
 
 if len(dat.shape)<2:
     channels = 1
@@ -106,16 +107,28 @@ else:
 
 stack = np.zeros((0,channels), dtype=np.float32)
 
+# these serve to remember the channel that triggered the sample
+current_channel = None
+current_value = 0
+
 def callback(in_data, frame_count, time_info, status):
-    global stack, channels
+    global debug, stack, channels, prefix, current_channel, current_value
 
     with lock:
-        if stack.shape[0] > frame_count:
-            # select the samples for audio output and drop them from the stack
-            dat   = stack[0:frame_count,:]
-            stack = stack[frame_count:,:]
-        else:
-            dat = np.zeros((frame_count,channels), dtype=np.float32)
+        begsample = 0
+        endsample = min(frame_count, stack.shape[0])
+        dat = stack[begsample:endsample,:]
+        # add zero-padding if required
+        pad = np.zeros((frame_count-endsample,channels), dtype=np.float32)
+        dat = np.concatenate((dat,pad), axis=0)
+        # remove the current samples from the stack
+        stack = stack[endsample:,:]
+
+    if stack.shape[0]==0 and current_channel!=None:
+        # send a trigger to indicate that the sample finished playing
+        patch.setvalue("%s.%s" % (prefix, current_channel), current_value, debug=debug>1)
+        current_channel = None
+        current_value = 0
 
     try:
         # this is for Python 2
@@ -135,7 +148,7 @@ class TriggerThread(threading.Thread):
     def stop(self):
         self.running = False
     def run(self):
-        global stack
+        global stack, current_channel, current_value
         pubsub = r.pubsub()
         pubsub.subscribe('SAMPLER_UNBLOCK') # this message unblocks the Redis listen command
         pubsub.subscribe(self.redischannel) # this message triggers the event
@@ -144,32 +157,56 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'].decode('utf-8') == self.redischannel:
-                    # read the audio file
-                    rate, dat = wavfile.read(self.sample)
-                    print("playing %s for up to %d ms" % (self.sample, 1000*dat.shape[0]/rate))
+                    # if value=0, the previous sample is stopped
+                    # if value=N, the Nth sample is played
+                    val = float(item['data'])
+                    scale = patch.getfloat('scale', self.redischannel, default=1)
+                    offset = patch.getfloat('offset', self.redischannel, default=0)
+                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
+                    val = int(val)
 
-                    # scale 8, 16 and 32 bit PCM to float, with values between -1.0 and +1.0
-                    if dat.dtype == np.uint8:
-                        dat = (dat.astype(np.float32) - 127.) / 255.
-                    elif dat.dtype == np.int16:
-                        dat = dat.astype(np.float32) / 32767.
-                    elif dat.dtype == np.int32:
-                        dat = dat.astype(np.float32) / 2147483647.
+                    if val == 0:
+                        if current_channel == self.redischannel:
+                            with lock:
+                                stack = np.zeros((0,channels), dtype=np.float32)
+                                current_channel = None
+                                current_value = val
 
-                    # apply the user-specified scaling
-                    if scaling_method == 'multiply':
-                        dat *= scaling
-                    elif scaling_method == 'divide':
-                        dat /= scaling
-                    elif scaling_method == 'db':
-                        dat *= np.power(10., scaling/20.)
+                    elif len(self.sample)>=val:
+                        filename = self.sample[val-1]
+                        try:
+                            # read the audio file
+                            rate, dat = wavfile.read(filename)
+                            if debug>0:
+                                print("playing %s for up to %d ms" % (filename, 1000*dat.shape[0]/rate))
+                        except:
+                            print("cannot load %s" % filename)
+                            continue
 
-                    if np.min(dat)<-1 or np.max(dat)>1:
-                        print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
+                        # scale 8, 16 and 32 bit PCM to float, with values between -1.0 and +1.0
+                        if dat.dtype == np.uint8:
+                            dat = (dat.astype(np.float32) - 127.) / 255.
+                        elif dat.dtype == np.int16:
+                            dat = dat.astype(np.float32) / 32767.
+                        elif dat.dtype == np.int32:
+                            dat = dat.astype(np.float32) / 2147483647.
 
-                    with lock:
-                        # replace the current playback stack
-                        stack = np.atleast_2d(dat).transpose()
+                        # apply the user-specified scaling
+                        if scaling_method == 'multiply':
+                            dat *= scaling
+                        elif scaling_method == 'divide':
+                            dat /= scaling
+                        elif scaling_method == 'db':
+                            dat *= np.power(10., scaling/20.)
+
+                        if np.min(dat)<-1 or np.max(dat)>1:
+                            print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
+
+                        with lock:
+                            # replace the current playback stack
+                            stack = np.atleast_2d(dat).transpose()
+                            current_channel = self.redischannel
+                            current_value = val
 
 
 # create the background threads that deal with the triggers
