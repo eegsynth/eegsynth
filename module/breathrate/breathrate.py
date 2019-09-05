@@ -171,10 +171,10 @@ while True:
     
     avgprom  = (1 - lrate) * avgprom  + lrate * prom
 #    avgprom = (avgprom + (prom - avgprom) / (blocks + 1))
-    print(prom, avgprom)
     
-    if (rate < 40) & (prom > promweight * avgprom):
+    if (rate < 60) & (prom > promweight * avgprom):
 
+        print('BREATH DETECTED')
         # publish rate
         patch.setvalue(key_rate, rate, debug=debug)
         lastpeak = peak

@@ -8,7 +8,7 @@ This is a temporary script file.
 import numpy as np
 import matplotlib.pyplot as plt
 from filters import butter_lowpass_filter
-from scipy.signal import argrelextrema, peak_prominences
+from scipy.signal import peak_prominences, find_peaks
 
 
 def extrema_signal(signal, sfreq, enable_plot=False):
@@ -49,14 +49,14 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     window_size = int(np.ceil(3 * sfreq))
     # amount of samples to shift the window on each iteration
     stride = np.ceil(0.5 * sfreq)
-    promweight = 1#promweight
+    promweight = 0.5#promweight
 
     # initiate variables
     block = 0  
 #    avgprom = np.nan
     avgprom_lrate = np.nan
     lastpeak = 0
-    lrate = 0.1
+    lrate = 0.5
     allpeaks = []
     
     # initiate plot
@@ -67,9 +67,10 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     
     # simulate online filtering (later done by preprocessing module); filter
     # out fluctuations that occur faster than 0.5 Hz (breathing rate faster
-    # than 30)
-    signal = butter_lowpass_filter(signal, 0.5, sfreq)
-    
+    # than 30); remember to comment this out when the signal is already
+    # filtered
+#    signal = butter_lowpass_filter(signal, 0.5, sfreq)
+        
     # start real-time simulation
     while block * stride + window_size <= len(signal):
         block_idcs = np.arange(block * stride,
@@ -79,13 +80,13 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         block_sec = block_idcs / sfreq
         
         x = signal[block_idcs]
-        
+                
         # plot signal
         if enable_plot is True:
             ax1.plot(block_sec, x, c='r')
-        
+
         # identify peaks
-        peaks = argrelextrema(x, np.greater)[0]
+        peaks = find_peaks(x)[0]
         
         # if no peak was detected jump to the next block 
         if peaks.size < 1:
@@ -124,7 +125,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
 #            ax2.plot(block_sec, np.ones(window_size) * avgprom, c='g')
                
         # evaluate peak validity
-        if (rate <= 30) & (prom > promweight * avgprom_lrate):
+        if (rate <= 60) & (prom > promweight * avgprom_lrate):
 
             allpeaks.append(peak)
             lastpeak = peak
