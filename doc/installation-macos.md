@@ -126,6 +126,7 @@ pip install pyqtgraph
 pip install matplotlib
 pip install bitalino
 pip install fuzzywuzzy[speedup]
+pip install neurokit
 ```
 
 The graphical user interfaces of plotsignal and plotcontrol are generated using Qt4. This requires the bindings between Python and Qt to be installed using brew as follows
