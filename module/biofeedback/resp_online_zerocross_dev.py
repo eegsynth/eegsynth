@@ -39,7 +39,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     dcs = np.nan
     mics = np.int(np.rint((micsfact * 60/maxbr) * sfreq))
     mdcs = np.int(np.rint((mdcsfact * 60/maxbr) * sfreq))
-    lowtafact = 0.5
+    lowtafact = 0.25
     typta = np.nan
     lastrisex = 0
     lastfallx = 0
@@ -56,7 +56,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         block_idcs = np.arange(block * stride,
                                block * stride + window_size,
                                dtype = int)
-        
+
         dat = signal[block_idcs]
         # plot signal
         if enable_plot is True:
@@ -90,6 +90,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                 if np.min(dat[:risex]) < currentmin:
                     currentmin = np.min(dat[:risex])
                     currentmin_idx = block_idcs[np.argmin(dat[:risex])]
+                # declare the current minimum a valid trough
                 troughs.append(currentmin_idx)
                 # update current maximum
                 currentmax = np.max(dat[risex:])
@@ -99,9 +100,8 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                 
                 if enable_plot is True:
                     ax1.axvline(risex_idx, ymin=-250, ymax=250, c='g')
-                block += 1
-            else:
-                block += 1
+
+            block += 1
             
                 
         elif state == 'wfc':
@@ -128,7 +128,26 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                 if np.max(dat[:fallx]) > currentmax:
                     currentmax = np.max(dat[:fallx])
                     currentmax_idx = block_idcs[np.argmax(dat[:fallx])]
-                peaks.append(currentmax_idx)
+                # apply a threshold to the tidal amplitude; tidal amplitude
+                # is defined as vertical distance of through to peak
+                currentta = currentmax - currentmin
+                if np.isnan(typta):
+                    typta = currentta
+                typta = (typta + (currentta - typta) / (block + 1))
+                lowta = typta * lowtafact
+                if enable_plot is True:
+                    ax2.plot(block_idcs, np.ones(window_size) * currentta, c='g')
+                    ax2.plot(block_idcs, np.ones(window_size) * typta, c='y')
+                    ax2.plot(block_idcs, np.ones(window_size) * lowta, c='r')
+                if currentta > lowta:
+                    #declare the current maximum a valid peak
+                    peaks.append(currentmax_idx)
+                elif currentta < lowta:
+                    # always delete the trough of the current tidal amplitude
+                    # pair if the tidal amplitude doesn't make it past the
+                    # threshold, otherwise consecutive troughs can occur, i.e.,
+                    # alternation of troughs and peaks is broken
+                    del troughs[-1]
                 # update current minimum
                 currentmin = np.min(dat[fallx:])
                 currentmin_idx = block_idcs[np.argmin(dat[fallx:])]
@@ -137,9 +156,8 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                 
                 if enable_plot is True:
                     ax1.axvline(fallx_idx, ymin=-250, ymax=250, c='m')
-                block += 1
-            else:
-                block += 1  
+                    
+            block += 1  
             
                 
         
