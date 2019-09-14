@@ -107,53 +107,51 @@ def UpdateVelocity():
 
 def UpdateDuration():
     global duration_note
-    duration_note = patch.getfloat('duration', 'note', default=0.100)
-    duration_note = EEGsynth.rescale(duration_note, slope=scale_duration, offset=offset_duration)
-    # some minimal time is needed for the duration
-    duration_note = EEGsynth.limit(duration_note, 0.05, float('Inf'))
+    duration_note = patch.getfloat('duration', 'note', default=None)
+    if duration_note != None:
+        duration_note = EEGsynth.rescale(duration_note, slope=scale_duration, offset=offset_duration)
+        # some minimal time is needed for the duration
+        duration_note = EEGsynth.limit(duration_note, 0.05, float('Inf'))
 
 # call them once at the start
 UpdateVelocity()
 UpdateDuration()
 
-def SetNoteOn(note):
+def SetNoteOn(note, velocity):
     global previous_note
     if monophonic and previous_note != None:
-        SetNoteOff(previous_note)
-    if debug>1:
-        print('SetNoteOn', note)
+        SetNoteOff(previous_note, 0)
+    if debug>0:
+        print('SetNoteOn', note, velocity)
     # construct the MIDI message
     if midichannel is None:
-        msg = mido.Message('note_on', note=note, velocity=velocity_note)
+        msg = mido.Message('note_on', note=note, velocity=velocity)
     else:
-        msg = mido.Message('note_on', note=note, velocity=velocity_note, channel=midichannel)
+        msg = mido.Message('note_on', note=note, velocity=velocity, channel=midichannel)
     # send the MIDI message
-    lock.acquire()
     previous_note = note
     outputport.send(msg)
-    lock.release()
     # schedule a timer to switch it off after the specified duration
-    t = threading.Timer(duration_note, SetNoteOff, args=[note])
-    t.start()
+    if duration_note != None:
+        t = threading.Timer(duration_note, SetNoteOff, args=[note, 0])
+        t.start()
 
 
-def SetNoteOff(note):
+def SetNoteOff(note, velocity):
     global previous_note
     if monophonic and previous_note != note:
         # do not switch off notes other than the previous one
         return
-    if debug>1:
-        print('SetNoteOff', note)
+    if debug>0:
+        print('SetNoteOff', note, velocity)
     # construct the MIDI message
     if midichannel is None:
-        msg = mido.Message('note_off', note=note, velocity=velocity_note)
+        msg = mido.Message('note_off', note=note, velocity=velocity)
     else:
-        msg = mido.Message('note_off', note=note, velocity=velocity_note, channel=midichannel)
+        msg = mido.Message('note_off', note=note, velocity=velocity, channel=midichannel)
     # send the MIDI message
-    lock.acquire()
     previous_note = None
     outputport.send(msg)
-    lock.release()
 
 
 # send the MIDI message, different messages have slightly different parameters
@@ -169,13 +167,17 @@ def sendMidi(name, code, val):
         val = EEGsynth.limit(val, 0, 127)
         val = int(val)
 
+    if name == 'note':
+        # note_on and note_off messages are dealt with in another function
+        SetNoteOn(val, velocity_note)
+        return
+    elif name.startswith('note'):
+        # note_on and note_off messages are dealt with in another function
+        SetNoteOn(code, val)
+        return
+
     if debug>0:
         print(name, code, val)
-
-    if name.startswith('note'):
-        # note_on and note_off messages are dealt with in another function
-        SetNoteOn(val)
-        return
 
     if name.startswith('control'):
         if midichannel is None:
@@ -207,9 +209,7 @@ def sendMidi(name, code, val):
     elif name == 'reset':
         msg = mido.Message('reset')
     # send the MIDI message
-    lock.acquire()
     outputport.send(msg)
-    lock.release()
 
 
 class TriggerThread(threading.Thread):
@@ -238,7 +238,8 @@ class TriggerThread(threading.Thread):
                     scale = patch.getfloat('scale', self.name, default=127)
                     offset = patch.getfloat('offset', self.name, default=0)
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
-                    sendMidi(self.name, self.code, val)
+                    with lock:
+                        sendMidi(self.name, self.code, val)
 
 
 trigger_name = []
@@ -288,6 +289,7 @@ for name in control_name:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         UpdateVelocity()
@@ -306,7 +308,8 @@ try:
             scale = patch.getfloat('scale', name, default=127)
             offset = patch.getfloat('offset', name, default=0)
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
-            sendMidi(name, code, val)
+            with lock:
+                sendMidi(name, code, val)
 
 
 except KeyboardInterrupt:
