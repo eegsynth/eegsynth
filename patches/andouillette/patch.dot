@@ -7,15 +7,14 @@ digraph {
 
   inputcontrol -> historycontrol;
   inputcontrol -> playbacksignal;
-#  inputcontrol -> slewlimiter;
+  inputcontrol -> slewlimiter;
 
   buffer1973 -> plotsignal;
   buffer1973 -> plotspectral;
   buffer1973 -> spectral;
-
-  audio2ft -> buffer1974;
   buffer1974 -> threshold;
-  buffer1974 -> rms;
+
+  audio2ft -> buffer1974 -> rms;
 
   spectral -> postprocessing;
   spectral -> historycontrol;
@@ -29,5 +28,5 @@ digraph {
   slewlimiter -> plotcontrol;
   slewlimiter -> outputmidi_avmixer;
   slewlimiter -> outputmidi_doepfer;
-  quantizer -> outputmidi_doepfer;
+  postprocessing -> quantizer -> outputmidi_doepfer;
 }
