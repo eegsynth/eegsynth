@@ -29,5 +29,5 @@ digraph {
   slewlimiter -> plotcontrol;
   slewlimiter -> outputmidi_avmixer;
   slewlimiter -> outputmidi_doepfer;
-  threshold -> outputmidi_doepfer;
+  quantizer -> outputmidi_doepfer;
 }

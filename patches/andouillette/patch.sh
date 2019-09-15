@@ -21,6 +21,7 @@ echo Waiting for a few seconds ...
 sleep 5
 
 $PATCHDIR/terminal.scpt $PATCHDIR/geomixer.sh
+$PATCHDIR/terminal.scpt $PATCHDIR/quantizer.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/historycontrol.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/historysignal.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/postprocessing.sh
