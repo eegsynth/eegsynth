@@ -69,9 +69,21 @@ monitor = EEGsynth.monitor()
 debug           = patch.getint('general', 'debug')
 device          = patch.getint('audio', 'device')
 scaling_method  = patch.getstring('audio', 'scaling_method')
-scaling         = patch.getfloat('audio', 'scaling')
+scaling         = patch.getfloat('audio', 'scaling', default=1)
+speed           = patch.getfloat('audio', 'scaling', default=1)
+onset           = patch.getfloat('audio', 'scaling', default=0)
+offset          = patch.getfloat('audio', 'scaling', default=1)
+taper           = patch.getfloat('audio', 'taper', default=0)
 scale_scaling   = patch.getfloat('scale', 'scaling', default=1)
+scale_speed     = patch.getfloat('scale', 'speed', default=1)
+scale_onset     = patch.getfloat('scale', 'onset', default=1)
+scale_offset    = patch.getfloat('scale', 'offset', default=1)
+scale_taper     = patch.getfloat('scale', 'taper', default=1)
 offset_scaling  = patch.getfloat('offset', 'scaling', default=0)
+offset_speed    = patch.getfloat('offset', 'speed', default=0)  # the default is from 0.5x to 1.5x
+offset_onset    = patch.getfloat('offset', 'onset', default=0)
+offset_offset   = patch.getfloat('offset', 'offset', default=0)
+offset_taper    = patch.getfloat('offset', 'taper', default=0)
 prefix          = patch.getstring('prefix', 'synchronize')
 
 p = pyaudio.PyAudio()
@@ -160,9 +172,9 @@ class TriggerThread(threading.Thread):
                     # if value=0, the previous sample is stopped
                     # if value=N, the Nth sample is played
                     val = float(item['data'])
-                    scale = patch.getfloat('scale', self.redischannel, default=1)
-                    offset = patch.getfloat('offset', self.redischannel, default=0)
-                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
+                    scale_data = patch.getfloat('scale', self.redischannel, default=1)
+                    offset_data = patch.getfloat('offset', self.redischannel, default=0)
+                    val = EEGsynth.rescale(val, slope=scale_data, offset=offset_data)
                     val = int(val)
 
                     if val == 0:
@@ -177,11 +189,30 @@ class TriggerThread(threading.Thread):
                         try:
                             # read the audio file
                             rate, dat = wavfile.read(filename)
+                            # trim to the onset/offset and adjust the speed
+                            begsample = round(dat.shape[0]*onset)
+                            endsample = round(dat.shape[0]*offset)
+                            count = round((endsample-begsample)/speed)
+                            selection = np.linspace(begsample, endsample-1, count).astype(np.int32)
+                            dat = dat[selection]
                             if debug>0:
                                 print("playing %s for up to %d ms" % (filename, 1000*dat.shape[0]/rate))
                         except:
                             print("cannot load %s" % filename)
                             continue
+
+                        # deal with empty files or selections
+                        if dat.shape[0]==0:
+                            if len(dat.shape)==2:
+                                dat = np.zeros((1, dat.shape[1]))
+                            else:
+                                dat = np.zeros((1))
+
+                        # taper the rising and falling flank
+                        if taper>0:
+                            n = np.floor(dat.shape[0]*taper/2).astype(int)
+                            tap = np.concatenate((np.linspace(0,1,n), np.ones(dat.shape[0]-2*n), np.linspace(1,0,n)))
+                            dat = np.multiply(dat, tap).astype(dat.dtype)
 
                         # scale 8, 16 and 32 bit PCM to float, with values between -1.0 and +1.0
                         if dat.dtype == np.uint8:
@@ -234,10 +265,26 @@ try:
         monitor.loop()
         time.sleep(patch.getfloat('general','delay'))
 
-        # update the scaling factor
+        # update the parameters
         scaling = patch.getfloat('audio', 'scaling', default=1)
         scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
         monitor.update("scaling", scaling)
+
+        speed = patch.getfloat('audio', 'speed', default=1)
+        speed = EEGsynth.rescale(speed, slope=scale_speed, offset=offset_speed)
+        monitor.update("speed", speed)
+
+        onset = patch.getfloat('audio', 'onset', default=0)
+        onset = EEGsynth.rescale(onset, slope=scale_onset, offset=offset_onset)
+        monitor.update("onset", onset)
+
+        offset = patch.getfloat('audio', 'offset', default=1)
+        offset = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
+        monitor.update("offset", offset)
+
+        taper = patch.getfloat('audio', 'taper', default=0)
+        taper = EEGsynth.rescale(taper, slope=scale_taper, offset=offset_taper)
+        monitor.update("taper", taper)
 
 except (SystemExit, KeyboardInterrupt):
     stream.stop_stream()
