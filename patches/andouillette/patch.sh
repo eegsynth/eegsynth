@@ -6,12 +6,12 @@ $PATCHDIR/terminal.scpt $PATCHDIR/buffer.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/redis.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/audio2ft.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/inputcontrol.sh
-$PATCHDIR/terminal.scpt $PATCHDIR/playbacksignal.sh
+$PATCHDIR/terminal.scpt $PATCHDIR/lsl2ft.sh
+#$PATCHDIR/terminal.scpt $PATCHDIR/playbacksignal.sh
 
 echo Waiting for a few seconds ...
 sleep 10
 
-#$PATCHDIR/terminal.scpt $PATCHDIR/lsl2ft.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/preprocessing.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/spectral.sh
 $PATCHDIR/terminal.scpt $PATCHDIR/threshold.sh
