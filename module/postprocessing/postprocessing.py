@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-from numpy.random import rand, randn
+from numpy import random
 import configparser
 import argparse
 import numpy as np
@@ -68,6 +68,13 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
 
+def rand(x):
+    # the input variable is ignored
+    return np.asscalar(random.rand(1))
+
+def randn(x):
+    # the input variable is ignored
+    return np.asscalar(random.randn(1))
 
 def sanitize(equation):
     equation.replace(' ', '')
@@ -78,6 +85,8 @@ def sanitize(equation):
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
     equation = equation.replace(',', ' , ')
+    equation = equation.replace('>', ' > ')
+    equation = equation.replace('<', ' < ')
     equation = ' '.join(equation.split())
     return equation
 
