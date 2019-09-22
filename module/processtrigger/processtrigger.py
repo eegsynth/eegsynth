@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-from numpy.random import rand, randn
+from numpy import random
 import configparser
 import argparse
 import numpy as np
@@ -70,6 +70,14 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general', 'debug')
 prefix = patch.getstring('output', 'prefix')
 
+def rand(x):
+    # the input variable is ignored
+    return np.asscalar(random.rand(1))
+
+def randn(x):
+    # the input variable is ignored
+    return np.asscalar(random.randn(1))
+
 def sanitize(equation):
     equation.replace(' ', '')
     equation = equation.replace('(', '( ')
@@ -79,6 +87,8 @@ def sanitize(equation):
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
     equation = equation.replace(',', ' , ')
+    equation = equation.replace('>', ' > ')
+    equation = equation.replace('<', ' < ')
     equation = ' '.join(equation.split())
     return equation
 
@@ -154,11 +164,12 @@ class TriggerThread(threading.Thread):
                                     equation = equation.replace(name, str(value))
 
                                 # try to evaluate each equation
+                                val = eval(equation)
+                                if debug>1:
+                                    print('%s = %s = %g' % (key, equation, val))
+                                patch.setvalue(key, val)
                                 try:
-                                    val = eval(equation)
-                                    if debug>1:
-                                        print('%s = %s = %g' % (key, equation, val))
-                                    patch.setvalue(key, val)
+                                    pass
                                 except ZeroDivisionError:
                                     # division by zero is not a serious error
                                     patch.setvalue(equation[0], np.NaN)
@@ -166,7 +177,7 @@ class TriggerThread(threading.Thread):
                                     print('Error in evaluation: %s = %s' % (key, equation))
                             # send a copy of the original trigger with the given prefix
                             key = '%s.%s' % (prefix, item['channel'])
-                            val = item['data']
+                            val = float(item['data'])
                             patch.setvalue(key, val)
 
 # create the background threads that deal with the triggers

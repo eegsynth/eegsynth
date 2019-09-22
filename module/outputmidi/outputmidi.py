@@ -121,8 +121,6 @@ def SetNoteOn(note, velocity):
     global previous_note
     if monophonic and previous_note != None:
         SetNoteOff(previous_note, 0)
-    if debug>0:
-        print('SetNoteOn', note, velocity)
     # construct the MIDI message
     if midichannel is None:
         msg = mido.Message('note_on', note=note, velocity=velocity)
@@ -142,8 +140,6 @@ def SetNoteOff(note, velocity):
     if monophonic and previous_note != note:
         # do not switch off notes other than the previous one
         return
-    if debug>0:
-        print('SetNoteOff', note, velocity)
     # construct the MIDI message
     if midichannel is None:
         msg = mido.Message('note_off', note=note, velocity=velocity)
@@ -233,7 +229,7 @@ class TriggerThread(threading.Thread):
                     if debug>1:
                         print(item['channel'], '=', item['data'])
                     # map the Redis values to MIDI values
-                    val = item['data']
+                    val = float(item['data'])
                     # the scale and offset options are channel specific and can be changed on the fly
                     scale = patch.getfloat('scale', self.name, default=127)
                     offset = patch.getfloat('offset', self.name, default=0)

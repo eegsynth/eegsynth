@@ -97,13 +97,14 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     # the trigger value should be saved
-                    val = item['data']
                     if input_scale!=None or input_offset!=None:
                         try:
                             # convert it to a number and apply the scaling and the offset
+                            val = float(item['data'])
                             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                         except ValueError:
                             # keep it as a string
+                            val = item['data']
                             if debug>0:
                                 print(("cannot apply scaling, writing %s as string" % (self.redischannel)))
                     if not f.closed:

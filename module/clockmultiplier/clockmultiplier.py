@@ -119,7 +119,7 @@ class TriggerThread(threading.Thread):
                         self.interval = (1 - self.lrate) * self.interval + self.lrate * (now - self.previous)
                         self.previous = now
 
-                    val = item['data']
+                    val = float(item['data'])
 
                     # send the first one immediately
                     patch.setvalue(self.key, val)

@@ -95,7 +95,7 @@ class TriggerThread(threading.Thread):
                     count += 1          # this is for the total count
                     self.count += 1     # this is for local use
                     if (self.count % self.rate) == 0:
-                        val = item['data']
+                        val = float(item['data'])
                         patch.setvalue(self.key, val)
 
 triggers = []

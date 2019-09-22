@@ -148,7 +148,7 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.onset:
                     # the trigger may contain a value that should be mapped to MIDI
-                    val = item['data']
+                    val = float(item['data'])
                     val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
