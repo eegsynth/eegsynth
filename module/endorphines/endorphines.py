@@ -220,7 +220,8 @@ try:
                     print(name, val, port_val)
 
                 # CC#5 sets portamento
-                msg = mido.Message('control_change', control=5, value=port_val, channel=midichannel)
+                msg = mido.Message('control_change', control=5, value=int(port_val), channel=midichannel)
+
                 if debug > 1:
                     print(msg)
 
