@@ -129,7 +129,7 @@ class TriggerThread(threading.Thread):
                     scale = patch.getfloat('scale', self.gpio, default=100)
                     offset = patch.getfloat('offset', self.gpio, default=0)
                     # switch to the PWM value specified in the event
-                    val = item['data']
+                    val = float(item['data'])
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
                     val = int(val)
                     SetGPIO(self.gpio, val)
