@@ -1,31 +1,20 @@
 import configparser
-import mido
 import os
 import sys
 import time
 import threading
 import math
+import numpy as np
 from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
-
-try:
-    # see https://trac.v2.nl/wiki/pyOSC
-    # this one is a bit difficult to install on Raspbian
-    import OSC
-except:
-    # this means that midiosc is not supported as midi backend
-    print("Warning: pyOSC not found")
 
 ###################################################################################################
 def printkeyval(key, val):
-    try:
+    if sys.version_info < (3,0):
         # this works in Python 2, but fails in Python 3
         isstring = isinstance(val, basestring)
-    except:
-        try:
-            # this works in Python 3, but fails for unicode strings in Python 2
-            isstring = isinstance(val, str)
-        except:
-            isstring = False
+    else:
+        # this works in Python 3, but fails for unicode strings in Python 2
+        isstring = isinstance(val, str)
     if val is None:
         print("%s = None" % (key))
     elif isinstance(val, list):
@@ -33,7 +22,6 @@ def printkeyval(key, val):
     elif isstring:
         print("%s = %s" % (key, val))
     else:
-        print(key, val, type(val))
         print("%s = %g" % (key, val))
 
 ###################################################################################################
@@ -114,88 +102,6 @@ Press Ctrl-C to stop this module.
             return True
         else:
             return False
-
-###################################################################################################
-class midiwrapper():
-    """Class to provide a generalized interface to MIDI interfaces on the local computer
-    or to MIDI interfaces that are accessed on another computer over the network
-    using the midiosc application. It only supports sending, not receiving.
-    """
-
-    def __init__(self, config):
-        self.config = config
-        self.outputport = None
-        try:
-            self.backend = config.get('midi', 'backend')
-        except configparser.NoOptionError:
-            self.backend = 'mido'
-        try:
-            self.debug = config.getint('general', 'debug')
-        except configparser.NoOptionError:
-            self.debug = 0
-
-    def open_output(self):
-        if self.backend == 'mido':
-            if self.debug>0:
-                print('------ OUTPUT ------')
-                for port in mido.get_output_names():
-                  print(port)
-                print('-------------------------')
-            try:
-                self.outputport  = mido.open_output(self.config.get('midi', 'device'))
-                print("Connected to MIDI output")
-            except:
-                raise RuntimeError("cannot connect to MIDI output")
-                raise RuntimeError("cannot connect to MIDI output")
-
-        elif self.backend == 'midiosc':
-            try:
-                self.outputport = OSC.OSCClient()
-                self.outputport.connect((self.config.get('midi','hostname'), self.config.getint('midi','port')))
-                print("Connected to OSC server")
-            except:
-                print("Error: cannot connect to OSC server")
-                raise RuntimeErrror("cannot connect to OSC server")
-
-        else:
-            print('Error: unsupported backend: ' + self.backend)
-            raise RuntimeError('unsupported backend: ' + self.backend)
-
-    def send(self, mido_msg):
-        if self.backend == 'mido':
-            # send the message as is
-            self.outputport.send(mido_msg)
-        elif self.backend == 'midiosc':
-            # convert the message to an OSC message that "midiosc" understands
-            device_name  = self.config.get('midi', 'device').replace(' ', '_')
-            midi_channel = str(self.config.get('midi', 'channel'))
-            osc_address  = "/midi/" + device_name + "/" + str(mido_msg.channel)
-            osc_msg = OSC.OSCMessage(osc_address)
-            if mido_msg.type == 'control_change':
-                osc_msg.append('controller_change')
-                osc_msg.append(mido_msg.control)
-                osc_msg.append(mido_msg.value)
-            elif mido_msg.type == 'note_on':
-                osc_msg.append('note_on')
-                osc_msg.append(mido_msg.note)
-                osc_msg.append(mido_msg.velocity)
-            elif mido_msg.type == 'note_off':
-                osc_msg.append('note_off')
-                osc_msg.append(mido_msg.note)
-                osc_msg.append(mido_msg.velocity)
-            elif mido_msg.type == 'clock':
-                osc_msg.append('timing_tick')
-            elif mido_msg.type == 'pitchwheel':
-                osc_msg.append('pitch_bend')
-                osc_msg.append(mido_msg.pitch)
-            else:
-                raise RuntimeError('unsupported message type')
-            # send the OSC message, the receiving "midiosc" application will convert it back to MIDI
-            self.outputport.send(osc_msg)
-        else:
-            print('Error: unsupported backend: ' + self.backend)
-            raise RuntimeError('unsupported backend: ' + self.backend)
-
 
 ###################################################################################################
 class patch():

@@ -22,6 +22,7 @@
 import configparser
 import argparse
 import mido
+from fuzzywuzzy import process
 import os
 import redis
 import sys
@@ -49,7 +50,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -90,6 +91,9 @@ try:
 except:
     mididevice_output = patch.getstring('midi', 'device') # fallback
     mididevice_output = EEGsynth.trimquotes(mididevice_output)
+
+mididevice_input  = process.extractOne(mididevice_input, mido.get_input_names())[0] # select the closest match
+mididevice_output = process.extractOne(mididevice_output, mido.get_output_names())[0] # select the closest match
 
 # this is only for debugging, check which MIDI devices are accessible
 print('------ INPUT ------')

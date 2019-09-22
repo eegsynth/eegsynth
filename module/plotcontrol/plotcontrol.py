@@ -56,7 +56,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -110,16 +110,12 @@ for iplot in range(len(input_name)):
     inputplot[iplot].setLabel('bottom', text = 'Time (s)')
     inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
-    try:
-        index = ylim_name.index(input_name[iplot])
-        temp = ylim_value[index].split(",")
-        inputplot[iplot].setRange(yRange=(int(temp[0]), int(temp[1])))
-        print("Setting Ylim according to user input")
-    except:
+    ylim = patch.getfloat('ylim', input_name[iplot], multiple=True, default=None)
+    if ylim==None:
         print("No Ylim giving, will let it flow")
-
-    # if input_name == ylim_name
-    # if any(input_name in s for s in ylim_name):
+    else:
+        print("Setting Ylim according to specified range")
+        inputplot[iplot].setYRange(ylim[0], ylim[1])
 
     temp = input_variable[iplot].split(",")
     for icurve in range(len(temp)):
@@ -128,14 +124,14 @@ for iplot in range(len(input_name)):
     win.nextRow()
 
 def update():
+    global inputhistory
 
-   # shift data to next sample
-   # FIXME use np.roll instead of allocating new memory over and over again
-   inputhistory[:, :-1] = inputhistory[:, 1:]
+    # shift all historic data with one sample
+    inputhistory = np.roll(inputhistory, -1, axis=1)
 
-   # update with current data
-   counter = 0
-   for iplot in range(len(input_name)):
+    # update with current data
+    counter = 0
+    for iplot in range(len(input_name)):
 
        input_variable_list = input_variable[iplot].split(",")
 

@@ -52,7 +52,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -155,7 +155,7 @@ f_min               = patch.getfloat('cogito', 'f_min')
 f_max               = patch.getfloat('cogito', 'f_max')
 f_offset            = patch.getfloat('cogito', 'f_offset')
 scaling             = patch.getfloat('cogito', 'scaling')
-polyorder           = patch.getint('cogito', 'polyorder',None)
+polyorder           = patch.getint('cogito', 'polyorder', default=None)
 profileMin          = patch.getfloat('cogito', 'profileMin')
 profileMax          = patch.getfloat('cogito', 'profileMax')
 profileCorrection   = np.loadtxt('Dwingeloo-Transmitter-Profile.txt')
@@ -187,7 +187,8 @@ else:
     begsample = hdr_input.nSamples-window
     endsample = hdr_input.nSamples-1
 
-datscaling = 0
+inputscaling = 0
+outputscaling = 0
 
 while True:
     monitor.loop()
@@ -208,14 +209,16 @@ while True:
 
     dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
-    if datscaling==0:
+    if inputscaling==0:
         tmp = dat_input - dat_input.mean(axis=0)
-        datscaling = 1/np.sqrt(max(tmp.var(axis=0)))
-        print('datscaling', datscaling)
+        tmpvar = max(tmp.var(axis=0))
+        if tmpvar>0:
+            inputscaling = 1/np.sqrt(tmpvar)
+        print('inputscaling', inputscaling)
 
     # scale the data to have approximately unit variance
     # the scaling parameter is determined only once, and is the same for all channels
-    dat_input = dat_input * datscaling * 1000000
+    dat_input = dat_input * inputscaling
 
     # t = np.arange(sample_rate)
     # f = 440
@@ -263,6 +266,17 @@ while True:
 
     if debug > 1:
         print('time to inverse FFT: ' + str((time.time() - signal_time) * 1000))
+
+    if outputscaling==0:
+        tmp = dat_output - dat_output.mean(axis=0)
+        tmpvar = max(tmp.var(axis=0))
+        if tmpvar>0:
+            outputscaling = 1/np.sqrt(tmpvar)
+        print('outputscaling', outputscaling)
+
+    # scale the data to have approximately unit variance
+    # the scaling parameter is determined only once
+    dat_output = dat_output * outputscaling
 
     write_time = time.time()
 

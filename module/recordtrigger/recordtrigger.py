@@ -52,7 +52,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -97,13 +97,14 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     # the trigger value should be saved
-                    val = item['data']
                     if input_scale!=None or input_offset!=None:
                         try:
                             # convert it to a number and apply the scaling and the offset
+                            val = float(item['data'])
                             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                         except ValueError:
                             # keep it as a string
+                            val = item['data']
                             if debug>0:
                                 print(("cannot apply scaling, writing %s as string" % (self.redischannel)))
                     if not f.closed:

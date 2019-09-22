@@ -59,7 +59,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -229,7 +229,7 @@ while True:
                 # scale the floating point values between MININT32 and MAXINT32
                 y = y * ((float(MAXINT32) - float(MININT32)) / 2)
                 # convert them to packed binary data
-                z = "".join((wave.struct.pack('i', item) for item in y))
-                f.writeframesraw(z)
+                z = [int(item) for item in y]
+                f.writeframesraw(wave.struct.pack('i'*len(z), *z))
         begsample += blocksize
         endsample += blocksize

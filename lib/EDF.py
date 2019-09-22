@@ -12,10 +12,12 @@ def padtrim(buf, num):
     num -= len(buf)
     if num>=0:
         # pad the input to the specified length
-        return str(buf) + ' ' * num
+        retval = str(buf) + ' ' * num
     else:
         # trim the input to the specified length
-        return buf[0:num]
+        retval = buf[0:num]
+    # convert output from char to bytes
+    return retval.encode()
 
 ####################################################################################################
 # the EDF header is represented as a tuple of (meas_info, chan_info)
@@ -72,6 +74,8 @@ class EDFWriter():
         chan_info = header[1]
         meas_size = 256
         chan_size = 256 * meas_info['nchan']
+        # note that the file is opened in binary mode, but the initial header is largely text
+        # the padtrim function also converts the text to bytes
         with open(self.fname, 'wb') as fid:
             assert(fid.tell() == 0)
 
@@ -101,7 +105,7 @@ class EDFWriter():
             fid.write(padtrim('{:0>2d}.{:0>2d}.{:0>2d}'.format(meas_info['day'], meas_info['month'], meas_info['year']), 8))
             fid.write(padtrim('{:0>2d}.{:0>2d}.{:0>2d}'.format(meas_info['hour'], meas_info['minute'], meas_info['second']), 8))
             fid.write(padtrim(str(meas_size + chan_size), 8))
-            fid.write(' ' * 44)
+            fid.write(' '.encode() * 44)
             fid.write(padtrim(str(-1), 8))  # the final n_records should be inserted on byte 236
             fid.write(padtrim(str(meas_info['record_length']), 8))
             fid.write(padtrim(str(meas_info['nchan']), 4))
@@ -125,11 +129,11 @@ class EDFWriter():
             for i in range(meas_info['nchan']):
                 fid.write(padtrim(str(chan_info['digital_max'][i]), 8))
             for i in range(meas_info['nchan']):
-                fid.write(' ' * 80) # prefiltering
+                fid.write(' '.encode() * 80) # prefiltering
             for i in range(meas_info['nchan']):
                 fid.write(padtrim(str(chan_info['n_samps'][i]), 8))
             for i in range(meas_info['nchan']):
-                fid.write(' ' * 32) # reserved
+                fid.write(' '.encode() * 32) # reserved
             meas_info['data_offset'] = fid.tell()
 
         self.meas_info = meas_info

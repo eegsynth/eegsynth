@@ -21,6 +21,7 @@ import configparser
 import argparse
 import math
 import mido
+from fuzzywuzzy import process
 import numpy as np
 import os
 import redis
@@ -50,7 +51,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -152,14 +153,14 @@ class RedisThread(threading.Thread):
         if ppqn != self.ppqn:
             with lock:
                 self.ppqn = ppqn
-                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
+                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24).astype(int)
                 if debug>0:
                     print("redis select =", self.clock)
     def setShift(self, shift):
         if shift != self.shift:
             with lock:
                 self.shift = shift
-                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
+                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24).astype(int)
                 if debug>0:
                     print("redis select =", self.clock)
     def setEnabled(self, enabled):
@@ -223,8 +224,9 @@ try: # FIXME do we need this or can we catch errors before?
         if midi_play and midiport == None:
             mididevice = patch.getstring('midi', 'device')
             mididevice = EEGsynth.trimquotes(mididevice)
+            mididevice = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
             try:
-                outputport  = mido.open_output(mididevice)
+                outputport = mido.open_output(mididevice)
                 if debug>0:
                     print("Connected to MIDI output")
             except:

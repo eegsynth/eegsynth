@@ -128,11 +128,16 @@ sudo pip install Redis
 sudo pip install mido
 sudo pip install python-rtmidi --pre
 sudo pip install pyserial
-sudo pip install pyosc
+sudo pip install python-osc # for python >= 3.6
+sudo pip install OSC        # for python <= 3.5
 sudo pip install numpy
 sudo pip install nilearn
 sudo pip install sklearn
+sudo pip install scipy
+sudo pip install pyqtgraph
+sudo pip install matplotlib
 sudo pip install bitalino
+sudo pip install fuzzywuzzy[speedup]
 ```
 
 Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.

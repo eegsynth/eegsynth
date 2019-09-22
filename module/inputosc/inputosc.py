@@ -20,7 +20,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import configparser
-import OSC          # see https://trac.v2.nl/wiki/pyOSC
 import argparse
 import os
 import redis
@@ -28,6 +27,12 @@ import socket
 import sys
 import threading
 import time
+
+if sys.version_info < (3,6):
+    import OSC
+else:
+    from pythonosc import dispatcher
+    from pythonosc import osc_server
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -51,7 +56,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -67,22 +72,13 @@ debug       = patch.getint('general', 'debug')
 osc_address = patch.getstring('osc', 'address', default=socket.gethostbyname(socket.gethostname()))
 osc_port    = patch.getint('osc', 'port')
 prefix      = patch.getstring('output', 'prefix')
-delay       = patch.getfloat('general', 'delay', default=0.05)
 
 # the scale and offset are used to map OSC values to Redis values
 output_scale    = patch.getfloat('output', 'scale', default=1)
 output_offset   = patch.getfloat('output', 'offset', default=0)
 
-try:
-    s = OSC.OSCServer((osc_address, osc_port))
-    if debug > 0:
-        print("Started OSC server")
-except:
-    print("Unexpected error:", sys.exc_info()[0])
-    raise RuntimeError("cannot start OSC server")
-
-# define a message-handler function that the server will call upon incoming messages
-def forward_handler(addr, tags, data, source):
+# the server will call the message handler function upon incoming messages
+def python2_message_handler(addr, tags, data, source):
     global prefix
     global output_scale
     global output_offset
@@ -112,25 +108,55 @@ def forward_handler(addr, tags, data, source):
             val = EEGsynth.rescale(data[i], slope=output_scale, offset=output_offset)
             patch.setvalue(key, val)
 
+# the server will call the message handler function upon incoming messages
+def python3_message_handler(addr, data):
+    global prefix
+    global output_scale
+    global output_offset
 
-s.noCallback_handler = forward_handler
-s.addDefaultHandlers()
-# s.addMsgHandler("/1/faderA", test_handler)
+    if debug > 1:
+        print("addr   %s" % addr)
+        print("data   %s" % data)
 
-# just checking which handlers we have added
-print("Registered Callback functions are :")
-for addr in s.getOSCAddressSpace():
-    print(addr)
+    # assume that it is a single scalar value
+    key = prefix + addr.replace('/', '.')
+    val = EEGsynth.rescale(data, slope=output_scale, offset=output_offset)
+    patch.setvalue(key, val)
 
-# start the server thread
-st = threading.Thread(target=s.serve_forever)
-st.start()
+
+try:
+    if sys.version_info < (3,6):
+        s = OSC.OSCServer((osc_address, osc_port))
+        s.noCallback_handler = python2_message_handler
+        # s.addMsgHandler("/1/faderA", test_handler)
+        s.addDefaultHandlers()
+        # just checking which handlers we have added
+        print("Registered Callback functions are :")
+        for addr in s.getOSCAddressSpace():
+            print(addr)
+        # start the server thread
+        st = threading.Thread(target=s.serve_forever)
+        st.start()
+    else:
+        dispatcher = dispatcher.Dispatcher()
+        # dispatcher.map("/1/faderA", test_handler)
+        dispatcher.set_default_handler(python3_message_handler)
+        server = osc_server.ThreadingOSCUDPServer((osc_address, osc_port), dispatcher)
+        print("Serving on {}".format(server.server_address))
+        # the following is blocking
+        server.serve_forever()
+    if debug > 0:
+        print("Started OSC server")
+except:
+    raise RuntimeError("cannot start OSC server")
 
 # keep looping while incoming OSC messages are being handled
+# the code will never get here when using pythonosc with Python3, since that is blocking
 try:
     while True:
-        time.sleep(delay)
-        # the scale and offset are used to map OSC values to Redis values
+        monitor.loop()
+        time.sleep(patch.getfloat('general','delay'))
+        # update the scale and offset
         output_scale    = patch.getfloat('output', 'scale', default=1)
         output_offset   = patch.getfloat('output', 'offset', default=0)
 

@@ -49,7 +49,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -294,9 +294,11 @@ while True:
     scaling = patch.getfloat('signal', 'scaling', default=1)
     scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset =offset_scaling)
     if scaling_method == 'multiply':
-        dat_output *= scaling
+        dat_output *=  scaling
     elif scaling_method == 'divide':
         dat_output /= scaling
+    elif scaling_method == 'db':
+        dat_output *= np.power(10, scaling/20)
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
