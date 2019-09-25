@@ -28,7 +28,6 @@ import redis
 import sys
 import time
 import numpy as np
-from scipy.signal import argrelextrema, peak_prominences
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -71,9 +70,8 @@ debug = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout')
 channel = patch.getint('input', 'channel') - 1                                 
 key_rate = patch.getstring('output', 'breathrate')
-window = patch.getint('processing', 'window')
+window = patch.getfloat('processing', 'window')
 stride = patch.getfloat('general', 'delay')
-promweight = patch.getfloat('processing', 'promweight')
 lrate = patch.getfloat('processing', 'lrate')
 
 try:
@@ -107,16 +105,27 @@ if debug>1:
     print(hdr_input.labels)
     
 sfreq = hdr_input.fSample
-window = round(window * sfreq)
+window = int(np.rint(window * sfreq))
 
 # initiate variables
-# note that avgrate is hardcoded for now, does it make sense to make it
-# configurable?
-avgprom = np.nan
-lastpeak = 0
-#blocks = 0
+state = 'wrc'
+maxbr = 100
+micsfact = 0.5
+mdcsfact = 0.1
+ics = np.nan
+dcs = np.nan
+mics = np.int(np.rint((micsfact * 60/maxbr) * sfreq))
+mdcs = np.int(np.rint((mdcsfact * 60/maxbr) * sfreq))
+lowtafact = 0.1#0.25
+typta = np.nan
+lastrisex = 0
+lastfallx = 0
+lastpeak = np.nan
+currentmin = np.inf
+currentmax = -np.inf
 begsample = -1
 endsample = -1
+block = 0
 
 while True:
     # window shift implicitely controlled with temporal delay; to
@@ -141,42 +150,93 @@ while True:
     dat = ft_input.getData([begsample, endsample])
     dat = dat[:, channel]
     
-    # identify peaks
-    peaks = argrelextrema(dat, np.greater)[0]
-#    print(peaks)
+    # find zero-crossings
+    greater = dat > 0
+    smaller = dat <= 0
     
-    # if no peak was detected jump to the next block 
-    if peaks.size < 1:
-#        print('no peaks')
-#        blocks += 1
-        continue
+    if state == 'wrc':
     
-    # index of last detected peak relative to block and absolute to recording
-    peakidx = peaks[-1]
-    peak = block_idcs[peakidx]
-    
-    # if no new peak was detected jump to next block
-    if peak <= lastpeak:
-#        print('no new peaks')
-#        blocks += 1
-        continue
-    
-    # get parameters
-    rate = (60 / ((peak - lastpeak) / sfreq))
-    prom = peak_prominences(dat, [peakidx])[0]
-    
-    # initiate prom on first block
-    if np.isnan(avgprom):
-        avgprom = prom
-    
-    avgprom  = (1 - lrate) * avgprom  + lrate * prom
-#    avgprom = (avgprom + (prom - avgprom) / (blocks + 1))
-    
-    if (rate < 60) & (prom > promweight * avgprom):
-
-        print('BREATH DETECTED')
-        # publish rate
-        patch.setvalue(key_rate, rate, debug=debug)
-        lastpeak = peak
+        # search for rising crossing
+        risex = np.where(np.bitwise_and(greater[1:], smaller[:-1]))[0]
         
-#    blocks += 1   
+        if risex.size == 0:
+            # update current minimum
+            if np.min(dat) < currentmin:
+                currentmin = np.min(dat)
+                # -1 is neccessary in case argmin is last index (otherwise
+                # index is out of bound)
+                currentmin_idx = block_idcs[np.argmin(dat) - 1] 
+            block += 1
+            continue
+        
+        risex = risex[-1]
+        risex_idx = block_idcs[risex]
+        ics = risex_idx - lastrisex
+        dcs = risex_idx - lastfallx
+        if np.logical_and(ics > mics, dcs > mdcs):
+
+            lastrisex = risex_idx
+            # update current minimum
+            if np.min(dat[:risex]) < currentmin:
+                currentmin = np.min(dat[:risex])
+                currentmin_idx = block_idcs[np.argmin(dat[:risex])]
+            # update current maximum
+            currentmax = np.max(dat[risex:])
+            currentmax_idx = block_idcs[np.argmax(dat[risex:])]
+            # switch state
+            state = 'wfc'
+          
+        block += 1
+        
+        
+    elif state == 'wfc':
+    
+        # search for falling crossing
+        fallx = np.where(np.bitwise_and(smaller[1:], greater[:-1]))[0]
+            
+        if fallx.size == 0:
+            # update current maximum
+            if np.max(dat) > currentmax:
+                currentmax = np.max(dat)
+                currentmax_idx = block_idcs[np.argmax(dat) - 1]
+            block += 1
+            continue
+            
+        fallx = fallx[-1]
+        fallx_idx = block_idcs[fallx]
+        ics = fallx_idx - lastfallx
+        dcs = fallx_idx - lastrisex
+        if np.logical_and(ics > mics, dcs > mdcs):
+        
+            lastfallx = fallx_idx
+            # update current maximum
+            if np.max(dat[:fallx]) > currentmax:
+                currentmax = np.max(dat[:fallx])
+                currentmax_idx = block_idcs[np.argmax(dat[:fallx])]
+            # apply a threshold to the tidal amplitude; tidal amplitude
+            # is defined as vertical distance of through to peak
+            currentta = currentmax - currentmin
+            if np.isnan(typta):
+                typta = currentta
+            typta = (typta + (currentta - typta) / (block + 1))
+            lowta = typta * lowtafact
+            if currentta > lowta:
+                #declare the current maximum a valid peak
+                peak = currentmax_idx
+                if np.isnan(lastpeak):
+                    lastpeak = peak
+                    block += 1
+                    continue
+                rate = (60 / ((peak - lastpeak) / sfreq))
+                print('BREATH DETECTED')
+                # publish rate
+                patch.setvalue(key_rate, rate, debug=debug)
+                lastpeak = peak
+            # update current minimum
+            currentmin = np.min(dat[fallx:])
+            currentmin_idx = block_idcs[np.argmin(dat[fallx:])]
+            # switch state
+            state = 'wrc'
+                
+        block += 1  
+   
