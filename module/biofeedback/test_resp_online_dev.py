@@ -16,30 +16,30 @@ from resp_online_zerocross_dev import extrema_signal
 
 # EDF files ###################################################################
 
-## need to be in eegsynth/lib for this import
-#sys.path.insert(0, '/home/pi/eegsynth/lib')
-#import EDF
+# need to be in eegsynth/lib for this import
+sys.path.insert(0, '/home/pi/eegsynth/lib')
+import EDF
+
+path = '/home/pi/eegsynth/patches/biofeedback/recordsignal.edf'
+reader = EDF.EDFReader()
+reader.open(path)
+# only one channel has been recorded
+signal = reader.readSignal(0)
+
+
+
+## text files ##################################################################
 #
-#path = '/home/pi/eegsynth/patches/biofeedback/recordsignal.edf'
-#reader = EDF.EDFReader()
-#reader.open(path)
-## only one channel has been recorded
-#signal = reader.readSignal(0)
-
-
-
-# text files ##################################################################
-
-path = r'C:\Users\JohnDoe\surfdrive\Beta\data\RESP\Bitalino\opensignals_201805284661_2019-04-29_12-01-47.txt'
-channel = -1
-sfreq = 10
-signal = np.loadtxt(path)[:, channel]
+#path = r'C:\Users\JohnDoe\surfdrive\Beta\data\RESP\Bitalino\opensignals_201805284661_2019-04-29_12-01-47.txt'
+#channel = -1
+#signal = np.loadtxt(path)[:, channel]
 
 # real-time simulation of continuous filtering
+sfreq = 1000
 nyq = 0.5 * sfreq
-low = 0.05 / nyq
-high = 0.5 / nyq
-b, a = butter(2, [low, high], btype='band')
+lowpass = 0.5 / nyq
+highpass = 0.05 / nyq
+b, a = butter(2, [highpass, lowpass], btype='band')
 zi = lfilter_zi(b, a)
 window_size = int(np.ceil(0.1 * sfreq))
 signal_filt = []
