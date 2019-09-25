@@ -69,7 +69,7 @@ del config
 debug = patch.getint('general', 'debug')
 timeout = patch.getfloat('fieldtrip', 'timeout')
 channel = patch.getint('input', 'channel') - 1                                 
-key_rate = patch.getstring('output', 'breathrate')
+key_rate = patch.getstring('output', 'key')
 window = patch.getfloat('processing', 'window')
 stride = patch.getfloat('general', 'delay')
 lrate = patch.getfloat('processing', 'lrate')
@@ -116,7 +116,7 @@ ics = np.nan
 dcs = np.nan
 mics = np.int(np.rint((micsfact * 60/maxbr) * sfreq))
 mdcs = np.int(np.rint((mdcsfact * 60/maxbr) * sfreq))
-lowtafact = 0.1#0.25
+lowtafact = 0.25
 typta = np.nan
 lastrisex = 0
 lastfallx = 0
@@ -206,7 +206,7 @@ while True:
         fallx_idx = block_idcs[fallx]
         ics = fallx_idx - lastfallx
         dcs = fallx_idx - lastrisex
-        if np.logical_and(ics > mics, dcs > mdcs):
+        if np.logical_and(ics > mics, dcs > mdcs): 
         
             lastfallx = fallx_idx
             # update current maximum

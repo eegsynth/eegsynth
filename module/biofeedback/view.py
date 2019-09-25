@@ -8,7 +8,6 @@ Created on Mon Jun 10 02:17:55 2019
 
 from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget,
                              QVBoxLayout)
-from PyQt5.QtCore import Qt
 from PIL import Image
 import pyqtgraph as pg
 import numpy as np
@@ -46,18 +45,12 @@ class View(QMainWindow):
         self.fig.setMouseEnabled(False, False)
         self.fig.addItem(self.img)
         self.view.setCentralWidget(self.fig) 
-
-#        # make window fullscreen and transparent
-#        self.setWindowFlags(Qt.FramelessWindowHint)
-#        self.setAttribute(Qt.WA_NoSystemBackground, True)
-#        self.setAttribute(Qt.WA_TranslucentBackground, True)
-#        self.showFullScreen()
         
         # set up GUI control elements     
         self.startBtn = QPushButton('start')
-        self.startBtn.clicked.connect(self._controller.start_plotting)
+        self.startBtn.clicked.connect(self._controller.start_model)
         self.stopBtn = QPushButton('stop')
-        self.stopBtn.clicked.connect(self._controller.stop_plotting)       
+        self.stopBtn.clicked.connect(self._controller.stop_model)       
 
         # set up the central widget containing the image and control elements
         self.centwidget = QWidget()
@@ -70,7 +63,7 @@ class View(QMainWindow):
         ##############################################
         # connect image to external signals #
         ##############################################
-        self._controller.scaling_update.connect(self.update_figure)
+        self._controller.feedback.connect(self.update_figure)
         
     ###########
     # methods # 
@@ -85,5 +78,4 @@ class View(QMainWindow):
         self.fig.addItem(self.img)
         # scale ViewBox
         self.fig.scaleBy(scaling)
-
-
+        
