@@ -4,4 +4,4 @@ This module receives and sends MIDI commands from/to a keyboard such as a digita
 
 The MIDI commands received from the piano corresponding to keys that are pressed are translated into a single control value representing the pitch. The force with which the key is pressed is send as trigger for each of the keys. Both the control value and the trigger are send to the Redis buffer. You can filter on key press and release events.
 
-The MIDI commands that should be send to the keyboard correspond to pubsub messages from the Redis buffer.
+The MIDI commands that should be send to the keyboard correspond to pub/sub messages from the Redis buffer.

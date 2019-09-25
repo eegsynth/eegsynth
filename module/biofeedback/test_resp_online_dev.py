@@ -17,7 +17,7 @@ path = '/home/pi/eegsynth/patches/biofeedback/recordsignal.edf'
 reader = EDF.EDFReader()
 reader.open(path)
 # only one channel has been recorded
-signal = reader.readSignal(0)
+signal = reader.readSignal(0)#[:1000*70]
 
 extrema_signal(signal, 1000, enable_plot=True)
 

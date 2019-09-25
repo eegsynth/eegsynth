@@ -355,6 +355,6 @@ except (KeyboardInterrupt, RuntimeError) as e:
 
 ### ADVANCED: Using publish/subscribe
 
-For examples on pubsub, take a look at the [keyboard module](../module/keyboard) and [launchcontrol module](../module/launchcontrol).
+For examples on pub/sub, take a look at the [keyboard module](../module/keyboard) and [launchcontrol module](../module/launchcontrol).
 
 _Continue reading: [ini files](inifile.md)_

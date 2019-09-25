@@ -8,7 +8,7 @@ Furthermore, there are three videos (A, B and C) that fade into each other. The 
 
 ## Schematic representation of the patch
 
-The following visualizes the relation between the modules. The `redis` module is not displayed explicitly but is omnipresent, since most communication between modules goes over Redis.
+The following visualizes the relation between the modules. The `redis` module is not displayed explicitly, but is omnipresent since most communication between modules goes over Redis.
 
 ![flowchart](patch.png)
 

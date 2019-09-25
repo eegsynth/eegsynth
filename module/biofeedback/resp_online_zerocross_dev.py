@@ -20,8 +20,6 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         ax1 = plt.subplot(211)
         ax2 = plt.subplot(212, sharex=ax1)
     
-    
-
     # set free parameters
     # the shorter the window size, the more accurate the placement of extrema,
     # window sizes longer than 200 msec lead to displaced / missed extrema
@@ -49,7 +47,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     currentmax = -np.inf
 
     # the incoming data must be continuously demeaned, without edge artifacts
-    signal -= np.mean(signal)
+    signal = detrend(signal, type='constant')
     
     # start real-time simulation
     while block * stride + window_size <= len(signal):
@@ -158,8 +156,6 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                     ax1.axvline(fallx_idx, ymin=-250, ymax=250, c='m')
                     
             block += 1  
-            
-                
         
     ax1.axhline(0)
     ax1.scatter(troughs, signal[troughs], c='r', marker='v', s=150)

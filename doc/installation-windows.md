@@ -1,3 +1,17 @@
 # Installation instructions for Windows
 
-Since we don't have a Windows setup to develop and test it on, we cannot installation instructions. We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in the Linux and/or macOS installation instruction for the dependencies that you need to install.
+Since we don't have a Windows setup to develop and test it on, we cannot provide detailled installation instructions. We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in the Linux and/or macOS installation instruction for the dependencies that you need to install.
+
+## Using Anaconda
+
+When using [Anaconda](https://www.anaconda.com), this is more or less how to get started with the installation.
+
+```
+conda create -n eegsynth python=3.7 anaconda
+conda activate eegsynth
+conda install redis-server
+conda install redis-py
+conda install python numpy scipy
+pip install mido
+```
+
