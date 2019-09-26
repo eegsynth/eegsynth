@@ -1,4 +1,4 @@
-#!/usr/bin/env
+#!/usr/bin/env python
 
 # Generatecontrol creates user-defined signals and writes these to Redis
 #

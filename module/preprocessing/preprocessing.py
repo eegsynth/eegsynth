@@ -280,7 +280,8 @@ while True:
         if debug>1:
             print("rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms")
     elif reference == 'average':
-        dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
+#        dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
+        dat_output -= np.nanmean(dat_output)
         if debug>1:
             print("rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms")
 
