@@ -117,7 +117,8 @@ dcs = np.nan
 mics = np.int(np.rint((micsfact * 60/maxbr) * sfreq))
 mdcs = np.int(np.rint((mdcsfact * 60/maxbr) * sfreq))
 lowtafact = 0.25
-typta = np.nan
+meanta = 0
+stdta = 0
 lastrisex = 0
 lastfallx = 0
 lastpeak = np.nan
@@ -125,7 +126,7 @@ currentmin = np.inf
 currentmax = -np.inf
 begsample = -1
 endsample = -1
-block = 0
+n = 0
 
 while True:
     # window shift implicitely controlled with temporal delay; to
@@ -166,7 +167,6 @@ while True:
                 # -1 is neccessary in case argmin is last index (otherwise
                 # index is out of bound)
                 currentmin_idx = block_idcs[np.argmin(dat) - 1] 
-            block += 1
             continue
         
         risex = risex[-1]
@@ -185,8 +185,6 @@ while True:
             currentmax_idx = block_idcs[np.argmax(dat[risex:])]
             # switch state
             state = 'wfc'
-          
-        block += 1
         
         
     elif state == 'wfc':
@@ -199,7 +197,6 @@ while True:
             if np.max(dat) > currentmax:
                 currentmax = np.max(dat)
                 currentmax_idx = block_idcs[np.argmax(dat) - 1]
-            block += 1
             continue
             
         fallx = fallx[-1]
@@ -216,16 +213,26 @@ while True:
             # apply a threshold to the tidal amplitude; tidal amplitude
             # is defined as vertical distance of through to peak
             currentta = currentmax - currentmin
-            if np.isnan(typta):
-                typta = currentta
-            typta = (typta + (currentta - typta) / (block + 1))
+            # assume normal distribution over tidal amplitude values as well as
+            # stationarity of the signal, estimate the 80th percentile based
+            # on mean and standard deviation
+            
+            # get real-time estimates of mean and std
+            n += 1
+            lastmeanta = meanta
+            meanta = (meanta + (currentta - meanta) / (n))
+            stdta = np.sqrt(stdta + (currentta - meanta) * (currentta - lastmeanta))
+            # define typical tidal amplitude as 84th percentile
+            typta = meanta + stdta
+            # and apply the threshold weight to the typical amplitude
             lowta = typta * lowtafact
+            print(lowta, currentta)
+
             if currentta > lowta:
                 #declare the current maximum a valid peak
                 peak = currentmax_idx
                 if np.isnan(lastpeak):
                     lastpeak = peak
-                    block += 1
                     continue
                 rate = (60 / ((peak - lastpeak) / sfreq))
                 print('BREATH DETECTED')
@@ -237,6 +244,4 @@ while True:
             currentmin_idx = block_idcs[np.argmin(dat[fallx:])]
             # switch state
             state = 'wrc'
-                
-        block += 1  
-   
+                   
