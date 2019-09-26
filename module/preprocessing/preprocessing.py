@@ -216,7 +216,11 @@ while True:
         # update the filter parameters
         filterorder = int(filterorder)                     # ensure it is an integer
         filterorder = filterorder + (filterorder%2 ==0)    # ensure it is odd
-        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
+        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample,
+                                                     highpassfilter,
+                                                     lowpassfilter,
+                                                     filterorder, dat_output,
+                                                     axis=0, kind='iir')
 
     if not(highpassfilter is None) or not(lowpassfilter is None):
         # apply the filter to the data

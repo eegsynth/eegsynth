@@ -71,7 +71,7 @@ del config
 class Application(QApplication):
     def __init__(self, sys_argv):
         super(Application, self).__init__(sys_argv)
-        self._model = Model(patch)
+        self._model = Model(patch, r)
         self._controller = Controller(self._model, patch)
         self._view = View(self._model, self._controller, patch)
         self._view.show()

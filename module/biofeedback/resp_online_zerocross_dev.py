@@ -8,8 +8,6 @@ Created on Thu Sep  5 14:06:43 2019
 
 import numpy as np
 import matplotlib.pyplot as plt
-from filters import butter_lowpass_filter
-from scipy.signal import detrend
 
 
 def extrema_signal(signal, sfreq, enable_plot=False):
@@ -20,12 +18,11 @@ def extrema_signal(signal, sfreq, enable_plot=False):
         ax1 = plt.subplot(211)
         ax2 = plt.subplot(212, sharex=ax1)
     
-    
 
     # set free parameters
-    # the shorter the window size, the more accurate the placement of extrema,
-    # window sizes longer than 200 msec lead to displaced / missed extrema
-    window_size = int(np.ceil(0.2 * sfreq))
+    # the moreoften the window is shifted, the more accurate the placement of
+    # extrema
+    window_size = int(np.ceil(0.3 * sfreq))
     # amount of samples to shift the window on each iteration
     stride = np.ceil(0.1 * sfreq)
     
@@ -39,7 +36,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     dcs = np.nan
     mics = np.int(np.rint((micsfact * 60/maxbr) * sfreq))
     mdcs = np.int(np.rint((mdcsfact * 60/maxbr) * sfreq))
-    lowtafact = 0.25
+    lowtafact = 0.1#0.25
     typta = np.nan
     lastrisex = 0
     lastfallx = 0
@@ -47,9 +44,6 @@ def extrema_signal(signal, sfreq, enable_plot=False):
     peaks = []
     currentmin = np.inf
     currentmax = -np.inf
-
-    # the incoming data must be continuously demeaned, without edge artifacts
-    signal -= np.mean(signal)
     
     # start real-time simulation
     while block * stride + window_size <= len(signal):
@@ -58,6 +52,7 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                                dtype = int)
 
         dat = signal[block_idcs]
+                
         # plot signal
         if enable_plot is True:
             ax1.plot(block_idcs, dat, c='b')
@@ -158,8 +153,6 @@ def extrema_signal(signal, sfreq, enable_plot=False):
                     ax1.axvline(fallx_idx, ymin=-250, ymax=250, c='m')
                     
             block += 1  
-            
-                
         
     ax1.axhline(0)
     ax1.scatter(troughs, signal[troughs], c='r', marker='v', s=150)
