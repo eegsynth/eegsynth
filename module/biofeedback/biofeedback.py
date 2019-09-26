@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Generatecontrol creates user-defined signals and writes these to Redis
 #
@@ -57,7 +57,8 @@ config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis','hostname'),
-                          port=config.getint('redis','port'), db=0)
+                          port=config.getint('redis','port'), db=0,
+                          decode_responses=True)
     r.client_list()
 except redis.ConnectionError:
     print('Error: cannot connect to redis server')

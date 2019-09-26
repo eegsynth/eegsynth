@@ -18,10 +18,6 @@ class Model(QThread):
         self.patch = patch
         self.redis = r
         self.channel = self.patch.getstring('input', 'channel')
-        print(self.channel)
-        self.running = True
-        
-    def stop(self):
         self.running = False
 
     def run(self):
@@ -33,9 +29,8 @@ class Model(QThread):
                 if not self.running:
                     print('breaking')
                     break
-                print(item["channel"], item['channel'] == self.channel)
                 if item['channel'] == str(self.channel):
                     # emit new data
-                    print(item['data'])
-                    self.fresh_data.emit(item['data'])
+                    print(float(item['data']))
+                    self.fresh_data.emit(float(item['data']))
                     

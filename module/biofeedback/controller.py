@@ -19,9 +19,9 @@ class Controller(QObject):
     
     def __init__(self, model, patch):
         super().__init__()
+        self._patch = patch
         self._model = model
         self._model.fresh_data.connect(self.feedback_scaling)
-        self._patch = patch
         
         # specify minimal occlusion (min scaling) and maximal occlusion (max
         # scaling)
@@ -32,10 +32,12 @@ class Controller(QObject):
         self.max_input = self._patch.getint('input', 'max')
        
     def start_model(self):
+        # start is an QThread method
+        self._model.running = True
         self._model.start()
-    
+
     def stop_model(self):
-        self._model.stop()
+        self._model.running = False
     
     def feedback_scaling(self, data):
         # use affine transformation to map range of input values to range of
