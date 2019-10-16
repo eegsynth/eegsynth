@@ -226,7 +226,6 @@ while True:
             typta = meanta + stdta
             # and apply the threshold weight to the typical amplitude
             lowta = typta * lowtafact
-            print(lowta, currentta)
 
             if currentta > lowta:
                 #declare the current maximum a valid peak
