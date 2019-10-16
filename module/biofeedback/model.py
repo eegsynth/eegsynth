@@ -11,7 +11,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 class Model(QThread):
     
-    fresh_data = pyqtSignal(object)
+    freshinput = pyqtSignal(object)
 
     def __init__(self, patch, r):
         super(Model, self).__init__()
@@ -32,5 +32,5 @@ class Model(QThread):
                 if item['channel'] == str(self.channel):
                     # emit new data
                     print(float(item['data']))
-                    self.fresh_data.emit(float(item['data']))
+                    self.freshinput.emit(float(item['data']))
                     
