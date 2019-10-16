@@ -63,7 +63,7 @@ class View(QMainWindow):
         ##############################################
         # connect image to external signals #
         ##############################################
-        self._controller.feedback.connect(self.update_figure)
+        self._controller.freshfeedback.connect(self.update_figure)
         
     ###########
     # methods # 

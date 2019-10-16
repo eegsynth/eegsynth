@@ -27,12 +27,12 @@ class Controller(QObject):
         # specify minimal occlusion (min scaling) and maximal occlusion (max
         # scaling)
         self.minfeedback = self._patch.getfloat('feedback', 'minfeedback')
-        self.maxfeedback = self._patch.getfloat('feedback', 'maxffeedback')
+        self.maxfeedback = self._patch.getfloat('feedback', 'maxfeedback')
         
-        self.mininput= self._patch.getint('input', 'min')
-        self.maxinput = self._patch.getint('input', 'max')
+        self.mininput= self._patch.getfloat('input', 'min')
+        self.maxinput = self._patch.getfloat('input', 'max')
         
-        self.target = self._patch.getstring('feedback', 'target')
+        self.target = self._patch.getfloat('feedback', 'target')
         
         self.lasttime = None
         self.lastinput = None
@@ -54,7 +54,7 @@ class Controller(QObject):
         currenttime = time.time()
         
         if self.lasttime is None:
-            self.lasttime = currenttime
+            self.lasttime = currenttime - 1
         if self.lastinput is None:
             self.lastinput = currentinput
         
@@ -65,13 +65,13 @@ class Controller(QObject):
         
         dtarget = currentinput - self.target
         
-        if derivative > 0 and dtarget > 0:
+        if dtarget > 0: #and derivative > 0:
             # use affine transformation to map range of input values to range
             # of output values
             feedback = ((currentinput - self.mininput) *
-                        ((self.maxscaling - self.minscaling) /
+                        ((self.maxfeedback - self.minfeedback) /
                          (self.maxinput - self.mininput)) +
-                         self.minscaling) ** 2
+                         self.minfeedback) ** 2
         else:
             feedback = self.minfeedback
             
