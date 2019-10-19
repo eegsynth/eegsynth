@@ -99,7 +99,10 @@ for item in config.items('initial'):
     monitor.update(item[0], val)
 
 # get the input variables
-input_name, input_variable = list(zip(*config.items('input')))
+if len(config.items('input')):
+    input_name, input_variable = list(zip(*config.items('input')))
+else:
+    input_name, input_variable = ([], [])
 
 # get the output equations for each trigger
 output_name = {}
