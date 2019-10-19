@@ -84,7 +84,8 @@ offset_speed    = patch.getfloat('offset', 'speed', default=0)  # the default is
 offset_onset    = patch.getfloat('offset', 'onset', default=0)
 offset_offset   = patch.getfloat('offset', 'offset', default=0)
 offset_taper    = patch.getfloat('offset', 'taper', default=0)
-prefix          = patch.getstring('prefix', 'synchronize')
+started         = patch.getstring('prefix', 'started', default='started')
+finished        = patch.getstring('prefix', 'finished', default='finished')
 
 p = pyaudio.PyAudio()
 
@@ -138,7 +139,7 @@ def callback(in_data, frame_count, time_info, status):
 
     if stack.shape[0]==0 and current_channel!=None:
         # send a trigger to indicate that the sample finished playing
-        patch.setvalue("%s.%s" % (prefix, current_channel), current_value, debug=debug>1)
+        patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug>1)
         current_channel = None
         current_value = 0
 
@@ -192,6 +193,7 @@ class TriggerThread(threading.Thread):
                             # trim to the onset/offset and adjust the speed
                             begsample = round(dat.shape[0]*onset)
                             endsample = round(dat.shape[0]*offset)
+                            endsample = max(begsample, endsample)
                             count = round((endsample-begsample)/speed)
                             selection = np.linspace(begsample, endsample-1, count).astype(np.int32)
                             dat = dat[selection]
@@ -238,6 +240,8 @@ class TriggerThread(threading.Thread):
                             stack = np.atleast_2d(dat).transpose()
                             current_channel = self.redischannel
                             current_value = val
+                            # send a trigger to indicate that the sample started playing
+                            patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug>1)
 
 
 # create the background threads that deal with the triggers

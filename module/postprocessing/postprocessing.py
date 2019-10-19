@@ -97,8 +97,14 @@ for item in config.items('initial'):
     monitor.update(item[0], val)
 
 # get the input and output options
-input_name, input_variable = list(zip(*config.items('input')))
-output_name, output_equation = list(zip(*config.items('output')))
+if len(config.items('input')):
+    input_name, input_variable = list(zip(*config.items('input')))
+else:
+    input_name, input_variable = ([], [])
+if len(config.items('output')):
+    output_name, output_equation = list(zip(*config.items('output')))
+else:
+    output_name, output_equation = ([], [])
 
 # make the equations robust against sub-string replacements
 output_equation = [sanitize(equation) for equation in output_equation]
