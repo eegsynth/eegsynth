@@ -255,7 +255,7 @@ while True:
 
     # Integrate
     if integrate:
-        dat_output, i_zi = EEGsynth.online_filter(1, [1, -1], dat_output, axis=0, zi=integrate_zi)
+        dat_output, i_zi = EEGsynth.online_filter(1, [1, -1], dat_output, axis=-1, zi=integrate_zi)
 
     # Rectifying
     if rectify:

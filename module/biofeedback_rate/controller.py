@@ -36,8 +36,8 @@ class Controller(QObject):
         # start is an QThread method
         self._model.running = True
         self._model.start()
-        self.lasttime = None
-        self.lastinput = None
+#        self.lasttime = None
+#        self.lastinput = None
 
     def stop_model(self):
         self._model.running = False
@@ -49,8 +49,8 @@ class Controller(QObject):
 #        
 #        if self.lasttime is None:
 #            self.lasttime = currenttime - 1
-        if self.lastinput is None:
-            self.lastinput = currentinput
+#        if self.lastinput is None:
+#            self.lastinput = currentinput
         
 #        
 #        dt = currenttime - self.lasttime
@@ -73,7 +73,7 @@ class Controller(QObject):
                          self.minfeedback) ** 2
             
 #        self.lasttime = currenttime
-        self.lastinput = currentinput
+#        self.lastinput = currentinput
         
         self.freshfeedback.emit(feedback)
         # publish feedback

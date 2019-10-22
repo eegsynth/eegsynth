@@ -432,7 +432,7 @@ def initialize_online_notchfilter(fsample, fnotch, quality, x, axis=-1):
 
 ####################################################################
 def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1,
-                             kind='iir'):
+                             kind='fir'):
     # boxcar, triang, blackman, hamming, hann, bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann
     filtwin = 'nuttall'
     nyquist = fsample / 2.
