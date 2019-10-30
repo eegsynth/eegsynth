@@ -138,28 +138,33 @@ while True:
     dat = dat[:, channel]
     
     # find inhalation and exhalation in first derivative of the signal
-    firstdiff = np.ediff1d(dat)
-    inhale = firstdiff > 0
+    inhale = dat > 10
+    exhale = dat < -10
 
     if sum(inhale) >= criterion:
+         patch.setvalue("feedback", 0.8)
+         print("inhalation")
+    elif sum(exhale) >= criterion:
+         patch.setvalue("feedback", 0)
+         print("exhalation")
         
-        # get real time estimate of mean and standard deviation of inhalation
-        # slope 
-        currentslope = np.max(firstdiff)
-        n += 1
-        lastmeanslope = meanslope
-        meanslope = (meanslope + (currentslope - meanslope) / n)
-        stdslope = np.sqrt(stdslope + (currentslope - meanslope) * (currentslope - lastmeanslope))
-        # define threshold
-        threshold = 1.5 * meanslope
+#        # get real time estimate of mean and standard deviation of inhalation
+#        # slope 
+#        currentslope = np.max(dat)
+#        n += 1
+#        lastmeanslope = meanslope
+#        meanslope = (meanslope + (currentslope - meanslope) / n)
+#        stdslope = np.sqrt(stdslope + (currentslope - meanslope) * (currentslope - lastmeanslope))
+#        # define threshold
+#        threshold = 1.5 * meanslope
 #        print(currentslope, threshold)
-        if currentslope >= threshold:
-            patch.setvalue("feedback", 0.8, debug=debug)
-            print("inhale detected")
-    
-    else:
-        patch.setvalue("feedback", 0, debug=debug)
-        print("exhale detected")
+#        if currentslope >= threshold:
+#            patch.setvalue("feedback", 0.8, debug=debug)
+#            print("inhale detected")
+#    
+#    else:
+#        patch.setvalue("feedback", 0, debug=debug)
+#        print("exhale detected")
         
     
         

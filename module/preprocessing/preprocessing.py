@@ -220,7 +220,7 @@ while True:
                                                      highpassfilter,
                                                      lowpassfilter,
                                                      filterorder, dat_output,
-                                                     axis=0, kind='iir')
+                                                     axis=0, kind='fir')
 
     if not(highpassfilter is None) or not(lowpassfilter is None):
         # apply the filter to the data
@@ -251,11 +251,11 @@ while True:
 
     # Differentiate
     if differentiate:
-        dat_output, d_zi = EEGsynth.online_filter([1, -1], 1, dat_output, axis=0, zi=differentiate_zi)
+        dat_output, d_zi = EEGsynth.online_filter([1, -1], [1], dat_output, axis=0, zi=differentiate_zi)
 
     # Integrate
     if integrate:
-        dat_output, i_zi = EEGsynth.online_filter(1, [1, -1], dat_output, axis=-1, zi=integrate_zi)
+        dat_output, i_zi = EEGsynth.online_filter([1], [1, -1], dat_output, axis=-1, zi=integrate_zi)
 
     # Rectifying
     if rectify:

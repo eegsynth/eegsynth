@@ -475,7 +475,7 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1,
         a = np.ones(1)
     elif not(highpass is None) and not(lowpass is None):
         print('using bandpass filter', [highpass, lowpass, order])
-        if kind == 'fir':
+        if kind == 'fir': 
             b = firwin(order, cutoff = [highpass, lowpass], window = filtwin,
                        pass_zero = False)
             a = np.ones(1)
