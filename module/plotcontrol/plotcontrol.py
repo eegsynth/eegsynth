@@ -104,22 +104,26 @@ inputplot    = []
 inputcurve   = []
 
 # Create panels for each channel
-for iplot in range(len(input_name)):
+# for iplot in range(len(input_name)):
 
-    inputplot.append(win.addPlot(title="%s" % (input_name[iplot])))
+for iplot, name in enumerate(input_name):
+
+    inputplot.append(win.addPlot(title="%s" % name))
     inputplot[iplot].setLabel('bottom', text = 'Time (s)')
     inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
-    ylim = patch.getfloat('ylim', input_name[iplot], multiple=True, default=None)
-    if ylim==None:
-        print("No Ylim giving, will let it flow")
+    ylim = patch.getfloat('ylim', name, multiple=True, default=None)
+    print ylim
+    if ylim==[] or ylim==None:
+        print("Ylim empty, will let it flow")
     else:
         print("Setting Ylim according to specified range")
         inputplot[iplot].setYRange(ylim[0], ylim[1])
 
     temp = input_variable[iplot].split(",")
     for icurve in range(len(temp)):
-        inputcurve.append(inputplot[iplot].plot(pen='w'))
+        linecolor = patch.getstring('linecolor', name, multiple=True, default='w')
+        inputcurve.append(inputplot[iplot].plot(pen=linecolor[icurve]))
 
     win.nextRow()
 
