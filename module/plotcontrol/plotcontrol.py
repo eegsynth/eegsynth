@@ -104,6 +104,8 @@ inputplot    = []
 inputcurve   = []
 
 # Create panels for each channel
+# for iplot in range(len(input_name)):
+
 for iplot, name in enumerate(input_name):
 
     inputplot.append(win.addPlot(title="%s" % name))
