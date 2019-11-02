@@ -14,3 +14,8 @@ name=`basename $file .aif`
 sox $file -b 16 $name.wav channels 1 norm
 done
 ```
+
+## Related software
+
+[ReSlice](https://itunes.apple.com/us/app/reslice/id1187609531?mt=8) from [VirSyn](http://www.virsyn.de/) can slice and play audio samples using MIDI or touch interface.
+ 

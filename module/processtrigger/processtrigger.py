@@ -99,7 +99,10 @@ for item in config.items('initial'):
     monitor.update(item[0], val)
 
 # get the input variables
-input_name, input_variable = list(zip(*config.items('input')))
+if len(config.items('input')):
+    input_name, input_variable = list(zip(*config.items('input')))
+else:
+    input_name, input_variable = ([], [])
 
 # get the output equations for each trigger
 output_name = {}
@@ -140,6 +143,7 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel'] == self.redischannel:
                         with lock:
+                            print('----- %s ----- ' % (self.redischannel))
                             input_value = []
                             for name in input_name:
                                 # get the values of the input variables
@@ -147,7 +151,11 @@ class TriggerThread(threading.Thread):
                                 monitor.update(name, val)
                                 input_value.append(val)
 
+                            if patch.getint('conditional', self.trigger, default=1)==0:
+                                continue
+
                             for key, equation in zip(output_name[self.trigger], output_equation[self.trigger]):
+
                                 # replace the variable names in the equation by the values
                                 for name, value in zip(input_name, input_value):
                                     if value is None and equation.count(name)>0:

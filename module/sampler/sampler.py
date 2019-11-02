@@ -84,7 +84,8 @@ offset_speed    = patch.getfloat('offset', 'speed', default=0)  # the default is
 offset_onset    = patch.getfloat('offset', 'onset', default=0)
 offset_offset   = patch.getfloat('offset', 'offset', default=0)
 offset_taper    = patch.getfloat('offset', 'taper', default=0)
-prefix          = patch.getstring('prefix', 'synchronize')
+started         = patch.getstring('prefix', 'started', default='started')
+finished        = patch.getstring('prefix', 'finished', default='finished')
 
 p = pyaudio.PyAudio()
 
@@ -112,7 +113,7 @@ input_sample = [x.split(',') for x in input_sample]
 # open first file to determine the format
 rate, dat = wavfile.read(input_sample[0][0])
 
-if len(dat.shape)<2:
+if len(dat.shape)==1:
     channels = 1
 else:
     channels = dat.shape[1]
@@ -129,16 +130,16 @@ def callback(in_data, frame_count, time_info, status):
     with lock:
         begsample = 0
         endsample = min(frame_count, stack.shape[0])
-        dat = stack[begsample:endsample,:]
+        dat = stack[begsample:endsample]
         # add zero-padding if required
         pad = np.zeros((frame_count-endsample,channels), dtype=np.float32)
         dat = np.concatenate((dat,pad), axis=0)
         # remove the current samples from the stack
-        stack = stack[endsample:,:]
+        stack = stack[endsample:]
 
     if stack.shape[0]==0 and current_channel!=None:
         # send a trigger to indicate that the sample finished playing
-        patch.setvalue("%s.%s" % (prefix, current_channel), current_value, debug=debug>1)
+        patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug>1)
         current_channel = None
         current_value = 0
 
@@ -189,9 +190,12 @@ class TriggerThread(threading.Thread):
                         try:
                             # read the audio file
                             rate, dat = wavfile.read(filename)
+                            # ensure it is a two-dimensional array with samples*channels
+                            dat = np.reshape(dat, (dat.shape[0], channels))
                             # trim to the onset/offset and adjust the speed
                             begsample = round(dat.shape[0]*onset)
                             endsample = round(dat.shape[0]*offset)
+                            endsample = max(begsample, endsample)
                             count = round((endsample-begsample)/speed)
                             selection = np.linspace(begsample, endsample-1, count).astype(np.int32)
                             dat = dat[selection]
@@ -203,16 +207,7 @@ class TriggerThread(threading.Thread):
 
                         # deal with empty files or selections
                         if dat.shape[0]==0:
-                            if len(dat.shape)==2:
-                                dat = np.zeros((1, dat.shape[1]))
-                            else:
-                                dat = np.zeros((1))
-
-                        # taper the rising and falling flank
-                        if taper>0:
-                            n = np.floor(dat.shape[0]*taper/2).astype(int)
-                            tap = np.concatenate((np.linspace(0,1,n), np.ones(dat.shape[0]-2*n), np.linspace(1,0,n)))
-                            dat = np.multiply(dat, tap).astype(dat.dtype)
+                            dat = np.zeros((1, channels))
 
                         # scale 8, 16 and 32 bit PCM to float, with values between -1.0 and +1.0
                         if dat.dtype == np.uint8:
@@ -221,6 +216,13 @@ class TriggerThread(threading.Thread):
                             dat = dat.astype(np.float32) / 32767.
                         elif dat.dtype == np.int32:
                             dat = dat.astype(np.float32) / 2147483647.
+
+                        # taper the rising and falling flank
+                        if taper>0:
+                            n = np.floor(dat.shape[0]*taper/2).astype(int)
+                            tap = np.concatenate((np.linspace(0,1,n), np.ones(dat.shape[0]-2*n), np.linspace(1,0,n))).astype(dat.dtype)
+                            for i in range(channels):
+                                dat[:,i] = np.multiply(dat[:,i], tap)
 
                         # apply the user-specified scaling
                         if scaling_method == 'multiply':
@@ -235,9 +237,11 @@ class TriggerThread(threading.Thread):
 
                         with lock:
                             # replace the current playback stack
-                            stack = np.atleast_2d(dat).transpose()
+                            stack = dat
                             current_channel = self.redischannel
                             current_value = val
+                            # send a trigger to indicate that the sample started playing
+                            patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug>1)
 
 
 # create the background threads that deal with the triggers
