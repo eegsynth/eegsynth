@@ -118,8 +118,8 @@ endsample = -1
 while True:
 
     window = patch.getfloat('processing', 'window') * \
-             patch.getfloat('processing', 'scale') + \
-             patch.getfloat('processing', 'offset')  # in seconds
+             patch.getfloat('scale', 'window') + \
+             patch.getfloat('offset', 'window')  # in seconds
 
     if debug > 1:
         print('window = ', window, 'seconds')
