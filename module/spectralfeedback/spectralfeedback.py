@@ -26,9 +26,12 @@ import os
 import redis
 import sys
 import time
+import signal
 from scipy.signal import decimate, detrend
-from spectrum import arburg, arma2psd
-from pyqtgraph.Qt import QtGui
+#from spectrum import arburg, arma2psd
+from pyqtgraph.Qt import QtGui, QtCore
+from numpy.fft import rfft, rfftfreq
+
 
 
 if hasattr(sys, 'frozen'):
@@ -73,7 +76,7 @@ timeout = patch.getfloat('fieldtrip', 'timeout')
 channel = patch.getint('input', 'channel') - 1
 key_rate = patch.getstring('output', 'key')
 stride = patch.getfloat('general', 'delay')
-downsampsfreq = patch.getint("processing", "downsamplingsfreq")
+sfreq_downsamp = patch.getint("processing", "downsamplesfreq")
 t = patch.getint("processing", "window")
 
 try:
@@ -107,43 +110,29 @@ if debug>1:
     print(hdr_input.labels)
 
 sfreq = hdr_input.fSample
+downsampfact = int(sfreq / sfreq_downsamp)
 window = int(np.rint(t * sfreq))
-downsampfact = sfreq / downsampsfreq
-freqs = np.fft.rfftfreq(window, 1 / sfreq)
-
-begsample = -1
-endsample = -1
+window_downsamp = int(np.rint(t * sfreq_downsamp))
+freqs = rfftfreq(window_downsamp, 1 / sfreq_downsamp)
+freqres = 1 / t
 
 # initialize graphical window
 app = QtGui.QApplication([])
-win = pg.GraphicsWindow(title="EEGsynth plotspectral")
-spectrum = win.addPlot(title="AR Spectrum")
-spectrum.setLabel('left', text='Power')
-spectrum.setLabel('bottom', text='Frequency (Hz)')
-# start plotting
-QtGui.QApplication.instance().exec_()
+win = pg.GraphicsWindow(title="Breathing Frequency")
+psdplot = win.addPlot(title="PSD")
+psdcurve =  psdplot.plot()
+psdplot.setLabel('left', text='Power (a.u.)')
+psdplot.setLabel('bottom', text='Frequency (Hz)')
+pg.setConfigOptions(antialias=True)
 
-while True:
 
-    # window shift implicitely controlled with temporal delay; to
-    # be able to change this "on the fly" read out stride from the patch
-    # inside the loop if desired
-    time.sleep(stride)
-
-    hdr_input = ft_input.getHeader()
-    if (hdr_input.nSamples - 1) < endsample:
-        print('error: buffer reset detected')
-        raise SystemExit
-    if hdr_input.nSamples < window:
-        # there are not yet enough samples in the buffer
-        if debug > 0:
-            print('waiting for data...')
-        continue
-
-    # grab the next window
-    begsample = hdr_input.nSamples - window
-    endsample = hdr_input.nSamples - 1
-    dat = ft_input.getData([begsample, endsample])
+def update():
+    
+    # grab the next window from the buffer
+    last_idx = ft_input.getHeader().nSamples
+    begsample = last_idx - window
+    endsample = last_idx - 1
+    dat = ft_input.getData([begsample, endsample]).astype(np.double)
     dat = dat[:, channel]
 
     # downsample signal, using scipy.signal.decimate (important to use fir not iir)
@@ -151,16 +140,46 @@ while True:
 
     # detrend and taper the signal
     dat = detrend(dat)
-    dat *= np.hanning(window)
+    dat *= np.hanning(window_downsamp)
 
-    # compute AR coefficients
-    AR, rho, _ = arburg(dat, order=16)
-    # use coefficients to compute spectral estimate
-    pburg = arma2psd(AR, rho=rho, NFFT=window)
-    # select only positive frequencies
-    pburg = np.flip(pburg[t:])
+#    # compute AR coefficients
+#    AR, rho, _ = arburg(dat, order=16)
+#    # use coefficients to compute spectral estimate
+#    psd = arma2psd(AR, rho=rho, NFFT=window)
+#    # select only positive frequencies
+#    psd = np.flip(psd[t:])
 
+    psd = abs(rfft(dat))
     # update the spectrum
-    spectrum.setData(freqs, pburg)
+    psdcurve.setData(freqs, psd)
+    
+    # limits are hardcoded for now, get them from ini file eventually
+    target = 0.1
+    lowlim = target - 2 * freqres
+    uplim = target + 2 * freqres
+    rewardrange = np.logical_and(freqs >= lowlim, freqs <= uplim)
+    rewardpsd = np.trapz(psd[rewardrange])
+    totalpsd = np.trapz(psd)
+    rewardratio = rewardpsd / (totalpsd - rewardpsd)
+    print(rewardratio)
 
-    pg.QtGui.QApplication.processEvents()
+# keyboard interrupt handling
+def sigint_handler(*args):
+    QtGui.QApplication.quit()
+
+
+signal.signal(signal.SIGINT, sigint_handler)
+
+# set timer for update
+timer = QtCore.QTimer()
+timer.timeout.connect(update)
+timer.start(stride * 1000)  # in milliseconds
+
+# Wait until there is enough dat
+begsample = -1
+while begsample < 0:
+    hdr_input = ft_input.getHeader()
+    begsample = int(hdr_input.nSamples - window)
+
+# Start
+QtGui.QApplication.instance().exec_()
