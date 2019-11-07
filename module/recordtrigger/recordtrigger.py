@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This module records Redis messages (i.e. triggers) to a TSV file
 #
@@ -48,7 +48,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
 args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+config = configparser.RawConfigParser()
+config.optionxform = str # this makes the parsing case-sensitive, otherwise everything is converted to low caps
 config.read(args.inifile)
 
 try:
@@ -94,10 +95,12 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 timestamp = datetime.datetime.now().isoformat()
                 if not self.running or not item['type'] == 'message':
+                    print(item["type"])
                     break
-                if item['channel']==self.redischannel:
+                print(item)
+                if item['channel'].decode("UTF-8")==self.redischannel:
                     # the trigger value should be saved
-                    val = item['data']
+                    val = item['data'].decode("UTF-8")
                     if input_scale!=None or input_offset!=None:
                         try:
                             # convert it to a number and apply the scaling and the offset
