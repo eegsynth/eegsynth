@@ -28,10 +28,10 @@ import sys
 import time
 import signal
 from scipy.signal import decimate, detrend
+from scipy.interpolate import interp1d
 #from spectrum import arburg, arma2psd
 from pyqtgraph.Qt import QtGui, QtCore
 from numpy.fft import rfft, rfftfreq
-
 
 
 if hasattr(sys, 'frozen'):
@@ -116,13 +116,29 @@ window_downsamp = int(np.rint(t * sfreq_downsamp))
 freqs = rfftfreq(window_downsamp, 1 / sfreq_downsamp)
 freqres = 1 / t
 
+# limits are hardcoded for now, get them from ini file eventually
+interpres = 0.01
+# target, lowlim, and uplim must be multiples of interpres
+target = 0.1
+lowlim = 0.06
+uplim = 0.14
+freqsintp = np.arange(0, 1, interpres)
+
+
+
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="Breathing Frequency")
 psdplot = win.addPlot(title="PSD")
-psdcurve =  psdplot.plot()
+psdcurve = psdplot.plot()
 psdplot.setLabel('left', text='Power (a.u.)')
 psdplot.setLabel('bottom', text='Frequency (Hz)')
+
+brush = QtGui.QBrush(QtGui.QColor(0, 255, 0, 50))
+rewardregion = pg.LinearRegionItem(bounds=[lowlim, uplim], movable=False,
+                                   brush=brush)
+psdplot.addItem(rewardregion)
+
 pg.setConfigOptions(antialias=True)
 
 
@@ -153,15 +169,17 @@ def update():
     # update the spectrum
     psdcurve.setData(freqs, psd)
     
-    # limits are hardcoded for now, get them from ini file eventually
-    target = 0.1
-    lowlim = target - 2 * freqres
-    uplim = target + 2 * freqres
-    rewardrange = np.logical_and(freqs >= lowlim, freqs <= uplim)
-    rewardpsd = np.trapz(psd[rewardrange])
-    totalpsd = np.trapz(psd)
+    # interpolate psd at desired frequency resolution in order to be able to 
+    # set feedback thresholds at intervals smaller than the original frequency
+    # resolution
+    f = interp1d(freqs, psd)
+    psdintp = f(freqsintp)
+    rewardrange = np.logical_and(freqsintp >= lowlim, freqsintp <= uplim)
+    rewardpsd = np.sum(psdintp[rewardrange])
+    totalpsd = np.sum(psdintp)
     rewardratio = rewardpsd / (totalpsd - rewardpsd)
     print(rewardratio)
+    
 
 # keyboard interrupt handling
 def sigint_handler(*args):
