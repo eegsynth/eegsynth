@@ -182,12 +182,12 @@ def update():
     # increase rewardrange and/or decrease totalrange to make it easier to
     # achieve positive feedback, i.e., rewardratio >= 1
     rewardratio = rewardpsd / (totalpsd - rewardpsd)
-    # feedback needs to be 1 - rewardratio since 1 corresponds to worst, i.e.,
-    # poorest visibility
+    # 1 corresponds to best visibility, 0 to the poorest, Feedback value
+    # must be send as float
     if rewardratio > 1:
         rewardratio = 1
-    patch.setvalue("feedback", 1 - rewardratio)
-    print(rewardratio)
+    patch.setvalue("Feedback", float(rewardratio))
+    print(float(rewardratio))
     
 
 # keyboard interrupt handling
