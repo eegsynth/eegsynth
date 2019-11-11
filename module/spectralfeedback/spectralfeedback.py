@@ -115,27 +115,30 @@ window = int(np.rint(t * sfreq))
 window_downsamp = int(np.rint(t * sfreq_downsamp))
 freqs = rfftfreq(window_downsamp, 1 / sfreq_downsamp)
 freqres = 1 / t
+interpres = 0.025
+freqsintp = np.arange(freqs[0], freqs[-1], interpres)
 
 # limits are hardcoded for now, get them from ini file eventually
-interpres = 0.01
-# target, lowlim, and uplim must be multiples of interpres
+# limits must be multiples of interpres
 target = 0.1
-lowlim = 0.06
-uplim = 0.14
-freqsintp = np.arange(0, 1, interpres)
-
-
+lowreward = 0.06
+upreward = 0.14
+lowtotal = 0
+uptotal = 0.6
+rewardrange = np.logical_and(freqsintp >= lowreward, freqsintp <= upreward)
+totalrange = np.logical_and(freqsintp >= lowtotal, freqsintp <= uptotal)
 
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="Breathing Frequency")
 psdplot = win.addPlot(title="PSD")
 psdcurve = psdplot.plot()
+psdcurve.setData(freqsintp, np.zeros(np.size(freqsintp)))
 psdplot.setLabel('left', text='Power (a.u.)')
 psdplot.setLabel('bottom', text='Frequency (Hz)')
 
 brush = QtGui.QBrush(QtGui.QColor(0, 255, 0, 50))
-rewardregion = pg.LinearRegionItem(bounds=[lowlim, uplim], movable=False,
+rewardregion = pg.LinearRegionItem(bounds=[lowreward, upreward], movable=False,
                                    brush=brush)
 psdplot.addItem(rewardregion)
 
@@ -166,18 +169,24 @@ def update():
 #    psd = np.flip(psd[t:])
 
     psd = abs(rfft(dat))
-    # update the spectrum
-    psdcurve.setData(freqs, psd)
     
     # interpolate psd at desired frequency resolution in order to be able to 
     # set feedback thresholds at intervals smaller than the original frequency
     # resolution
     f = interp1d(freqs, psd)
     psdintp = f(freqsintp)
-    rewardrange = np.logical_and(freqsintp >= lowlim, freqsintp <= uplim)
+    # update the spectrum
+    psdcurve.setData(freqsintp, psdintp)
     rewardpsd = np.sum(psdintp[rewardrange])
-    totalpsd = np.sum(psdintp)
+    totalpsd = np.sum(psdintp[totalrange])
+    # increase rewardrange and/or decrease totalrange to make it easier to
+    # achieve positive feedback, i.e., rewardratio >= 1
     rewardratio = rewardpsd / (totalpsd - rewardpsd)
+    # feedback needs to be 1 - rewardratio since 1 corresponds to worst, i.e.,
+    # poorest visibility
+    if rewardratio > 1:
+        rewardratio = 1
+    patch.setvalue("feedback", 1 - rewardratio)
     print(rewardratio)
     
 
