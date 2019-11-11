@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-from numpy.random import rand, randn
+from numpy import random
 import configparser
 import argparse
 import numpy as np
@@ -55,7 +55,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -70,6 +70,14 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general', 'debug')
 prefix = patch.getstring('output', 'prefix')
 
+def rand(x):
+    # the input variable is ignored
+    return np.asscalar(random.rand(1))
+
+def randn(x):
+    # the input variable is ignored
+    return np.asscalar(random.randn(1))
+
 def sanitize(equation):
     equation.replace(' ', '')
     equation = equation.replace('(', '( ')
@@ -79,6 +87,8 @@ def sanitize(equation):
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
     equation = equation.replace(',', ' , ')
+    equation = equation.replace('>', ' > ')
+    equation = equation.replace('<', ' < ')
     equation = ' '.join(equation.split())
     return equation
 
@@ -89,7 +99,10 @@ for item in config.items('initial'):
     monitor.update(item[0], val)
 
 # get the input variables
-input_name, input_variable = list(zip(*config.items('input')))
+if len(config.items('input')):
+    input_name, input_variable = list(zip(*config.items('input')))
+else:
+    input_name, input_variable = ([], [])
 
 # get the output equations for each trigger
 output_name = {}
@@ -128,8 +141,9 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                if item['channel']==self.redischannel:
+                if item['channel'] == self.redischannel:
                         with lock:
+                            print('----- %s ----- ' % (self.redischannel))
                             input_value = []
                             for name in input_name:
                                 # get the values of the input variables
@@ -137,7 +151,11 @@ class TriggerThread(threading.Thread):
                                 monitor.update(name, val)
                                 input_value.append(val)
 
+                            if patch.getint('conditional', self.trigger, default=1)==0:
+                                continue
+
                             for key, equation in zip(output_name[self.trigger], output_equation[self.trigger]):
+
                                 # replace the variable names in the equation by the values
                                 for name, value in zip(input_name, input_value):
                                     if value is None and equation.count(name)>0:
@@ -154,11 +172,12 @@ class TriggerThread(threading.Thread):
                                     equation = equation.replace(name, str(value))
 
                                 # try to evaluate each equation
+                                val = eval(equation)
+                                if debug>1:
+                                    print('%s = %s = %g' % (key, equation, val))
+                                patch.setvalue(key, val)
                                 try:
-                                    val = eval(equation)
-                                    if debug>1:
-                                        print('%s = %s = %g' % (key, equation, val))
-                                    patch.setvalue(key, val)
+                                    pass
                                 except ZeroDivisionError:
                                     # division by zero is not a serious error
                                     patch.setvalue(equation[0], np.NaN)
@@ -166,7 +185,7 @@ class TriggerThread(threading.Thread):
                                     print('Error in evaluation: %s = %s' % (key, equation))
                             # send a copy of the original trigger with the given prefix
                             key = '%s.%s' % (prefix, item['channel'])
-                            val = item['data']
+                            val = float(item['data'])
                             patch.setvalue(key, val)
 
 # create the background threads that deal with the triggers

@@ -48,7 +48,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -95,7 +95,7 @@ class TriggerThread(threading.Thread):
                     count += 1          # this is for the total count
                     self.count += 1     # this is for local use
                     if (self.count % self.rate) == 0:
-                        val = item['data']
+                        val = float(item['data'])
                         patch.setvalue(self.key, val)
 
 triggers = []

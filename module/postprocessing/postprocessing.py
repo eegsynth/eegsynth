@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-from numpy.random import rand, randn
+from numpy import random
 import configparser
 import argparse
 import numpy as np
@@ -54,7 +54,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -68,6 +68,13 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
 
+def rand(x):
+    # the input variable is ignored
+    return np.asscalar(random.rand(1))
+
+def randn(x):
+    # the input variable is ignored
+    return np.asscalar(random.randn(1))
 
 def sanitize(equation):
     equation.replace(' ', '')
@@ -78,6 +85,8 @@ def sanitize(equation):
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
     equation = equation.replace(',', ' , ')
+    equation = equation.replace('>', ' > ')
+    equation = equation.replace('<', ' < ')
     equation = ' '.join(equation.split())
     return equation
 
@@ -88,8 +97,14 @@ for item in config.items('initial'):
     monitor.update(item[0], val)
 
 # get the input and output options
-input_name, input_variable = list(zip(*config.items('input')))
-output_name, output_equation = list(zip(*config.items('output')))
+if len(config.items('input')):
+    input_name, input_variable = list(zip(*config.items('input')))
+else:
+    input_name, input_variable = ([], [])
+if len(config.items('output')):
+    output_name, output_equation = list(zip(*config.items('output')))
+else:
+    output_name, output_equation = ([], [])
 
 # make the equations robust against sub-string replacements
 output_equation = [sanitize(equation) for equation in output_equation]

@@ -1,0 +1,12 @@
+redis.sh
+buffer.sh
+inputcontrol.sh
+lsl2ft.sh
+preprocessing.sh
+playbacksignal.sh
+plotsignal.sh
+plotspectral.sh
+spectral.sh
+historycontrol.sh
+postprocessing.sh
+plotcontrol.sh
