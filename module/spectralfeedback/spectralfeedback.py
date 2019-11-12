@@ -124,14 +124,15 @@ target = 0.1
 lowreward = 0.06
 upreward = 0.14
 lowtotal = 0
-uptotal = 0.6
+uptotal = 0.5
 rewardrange = np.logical_and(freqsintp >= lowreward, freqsintp <= upreward)
 totalrange = np.logical_and(freqsintp >= lowtotal, freqsintp <= uptotal)
 
 # initialize graphical window
 app = QtGui.QApplication([])
 win = pg.GraphicsWindow(title="Breathing Frequency")
-psdplot = win.addPlot(title="PSD")
+psdplot = win.addPlot(title="PSD", row=0, col=0, rowspan=4, colspan=6)
+fdbkvalue = win.addLabel(row=0, col=6)
 psdcurve = psdplot.plot()
 psdcurve.setData(freqsintp, np.zeros(np.size(freqsintp)))
 psdplot.setLabel('left', text='Power (a.u.)')
@@ -187,6 +188,7 @@ def update():
     if rewardratio > 1:
         rewardratio = 1
     patch.setvalue("Feedback", float(rewardratio))
+    fdbkvalue.setText(str(np.around(rewardratio, decimals=2)), size='50pt')
     print(float(rewardratio))
     
 
