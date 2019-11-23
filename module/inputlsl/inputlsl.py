@@ -26,7 +26,6 @@ import redis
 import sys
 import time
 import pylsl as lsl
-import numpy as np
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -115,7 +114,7 @@ while True:
             try:
                 val = float(sample[0])
             except ValueError:
-                val = np.NaN
+                val = float('nan')
             # the scale and offset options can be changed on the fly
             scale = patch.getfloat('lsl', 'scale', default=1./127)
             offset = patch.getfloat('lsl', 'offset', default=0.)
