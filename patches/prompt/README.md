@@ -45,5 +45,5 @@ To have the services started automatically, you would do
 
 To start the service even when the user is not logged in, you would do
 
-    loginctl enable-linger username
+    sudo loginctl enable-linger <username>
 
