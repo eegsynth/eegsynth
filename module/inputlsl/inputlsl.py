@@ -63,37 +63,44 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug           = patch.getint('general', 'debug')
 delay           = patch.getfloat('general', 'delay')
+timeout         = patch.getfloat('lsl', 'timeout')
 lsl_name        = patch.getstring('lsl', 'name')
 lsl_type        = patch.getstring('lsl', 'type')
 lsl_format      = patch.getstring('lsl', 'format')
 output_prefix   = patch.getstring('output', 'prefix')
 
-# first resolve a Marker stream on the lab network
 print("looking for an LSL stream...")
-streams = lsl.resolve_streams()
+start = time.time()
 selected = []
+while len(selected)<1:
+    if (time.time() - start) > timeout:
+        print("Error: timeout while waiting for LSL stream")
+        raise SystemExit
 
-for stream in streams:
-    inlet           = lsl.StreamInlet(stream)
-    name            = inlet.info().name()
-    type            = inlet.info().type()
-    source_id       = inlet.info().source_id()
-    # determine whether this stream should be further processed
-    match = True
-    if len(lsl_name):
-        match = match and lsl_name==name
-    if len(lsl_type):
-        match = match and lsl_type==type
-    if match:
-        # select this stream for further processing
-        selected.append(stream)
-        print('-------- STREAM(*) ------')
-    else:
-        print('-------- STREAM ---------')
-    if debug>0:
-        print("name", name)
-        print("type", type)
-print('-------------------------')
+    # find the desired stream on the lab network
+    streams = lsl.resolve_streams()
+    for stream in streams:
+        inlet           = lsl.StreamInlet(stream)
+        name            = inlet.info().name()
+        type            = inlet.info().type()
+        source_id       = inlet.info().source_id()
+        # determine whether this stream should be further processed
+        match = True
+        if len(lsl_name):
+            match = match and lsl_name==name
+        if len(lsl_type):
+            match = match and lsl_type==type
+        if match:
+            # select this stream for further processing
+            selected.append(stream)
+            print('-------- STREAM(*) ------')
+        else:
+            print('-------- STREAM ---------')
+        if debug>0:
+            print("name", name)
+            print("type", type)
+    print('-------------------------')
+
 # create a new inlet from the first (and hopefully only) selected stream
 inlet = lsl.StreamInlet(selected[0])
 
