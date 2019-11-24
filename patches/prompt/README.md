@@ -4,8 +4,8 @@ This patch synchronizes the experimental setup for the PROMPT project. Participa
 
 The patch includes
 - `inputlsl` module that receives the LSL start, stop and sync messages
-- `outputgpio` module for the TTL triggers
 - `sampler` module to play the audio beeps
+- `outputgpio` module for the TTL triggers
 
 The start, stop and sync LSL messages are generated from an experimental control PC running MATLAB, Psychtoolbox and liblsl-Matlab.
 
