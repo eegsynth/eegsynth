@@ -17,9 +17,9 @@ The built-in audio of the Raspberry Pi 3B has a default sample rate of 48000 Hz.
 
 To start it automatically, you can create the files
 
-- $HOME/.config/systemd/user/eegsynth-inputlsl.service
-- $HOME/.config/systemd/user/eegsynth-sampler.service
-- $HOME/.config/systemd/user/eegsynth-outputgpio.service
+- `$HOME/.config/systemd/user/eegsynth-inputlsl.service`
+- `$HOME/.config/systemd/user/eegsynth-sampler.service`
+- `$HOME/.config/systemd/user/eegsynth-outputgpio.service`
 
 Each of these should contain something like this 
 
