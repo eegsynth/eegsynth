@@ -21,7 +21,7 @@ To start it automatically, you can create the files
 - `$HOME/.config/systemd/user/eegsynth-sampler.service`
 - `$HOME/.config/systemd/user/eegsynth-outputgpio.service`
 
-Each of these should contain something like this 
+Each of these should contain something like this
 
 ```
 [Unit]
@@ -47,3 +47,4 @@ To start the service even when the user is not logged in, you would do
 
     sudo loginctl enable-linger <username>
 
+The use of systemd for user services is explained [here](https://www.shellhacks.com/systemd-service-file-example/) and [here](https://wiki.archlinux.org/index.php/Systemd/User).
