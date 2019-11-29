@@ -118,7 +118,10 @@ frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 svd         = [True if patch.getint('metrics', 'svd') == 1 else False]
 higuchi     = [True if patch.getint('metrics', 'higuchi') == 1 else False]
 hurst       = [True if patch.getint('metrics', 'hurst') == 1 else False]
-
+#list_prefixes = config.items('output')
+#prefixes = []
+#for i in range(len(list_prefixes)):
+#    prefixes.append(list_prefixes[i][1])
 
 if debug>2:
     print('taper     = ', taper)
@@ -185,12 +188,13 @@ while True:
     metric_names = list(cp[0].keys())
 
     if debug > 0:
-        print(cp)
-        print(metric_names)
+        #print(cp)
+        #print(metric_names)
 
     for chan in chanindx:
         for i, metric in enumerate(computed_metrics):
             ch_name = channame[chan]
-            key = "complexity.%s.%s" % (ch_name, metric)
+            key = "{}.{}".format(ch_name, metric)
+            print(key)
             comp_val = cp[chan][metric_names[i]]
             patch.setvalue(key, comp_val)
