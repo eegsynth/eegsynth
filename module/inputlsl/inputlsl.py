@@ -63,7 +63,7 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug           = patch.getint('general', 'debug')
 delay           = patch.getfloat('general', 'delay')
-timeout         = patch.getfloat('lsl', 'timeout')
+timeout         = patch.getfloat('lsl', 'timeout', default=30)
 lsl_name        = patch.getstring('lsl', 'name')
 lsl_type        = patch.getstring('lsl', 'type')
 lsl_format      = patch.getstring('lsl', 'format')

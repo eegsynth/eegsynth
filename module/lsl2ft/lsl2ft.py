@@ -65,7 +65,7 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug    = patch.getint('general', 'debug')
 delay    = patch.getfloat('general', 'delay')
-timeout  = patch.getfloat('lsl', 'timeout')
+timeout  = patch.getfloat('lsl', 'timeout', default=30)
 lsl_name = patch.getstring('lsl', 'name')
 lsl_type = patch.getstring('lsl', 'type')
 
@@ -84,7 +84,7 @@ except:
 print("looking for an LSL stream...")
 start = time.time()
 selected = []
-while len(selected)<1: 
+while len(selected)<1:
     if (time.time() - start) > timeout:
         print("Error: timeout while waiting for LSL stream")
         raise SystemExit
