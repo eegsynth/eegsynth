@@ -53,7 +53,7 @@ config.optionxform = str # this makes the parsing case-sensitive, otherwise ever
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -100,13 +100,18 @@ class TriggerThread(threading.Thread):
                 print(item)
                 if item['channel'].decode("UTF-8")==self.redischannel:
                     # the trigger value should be saved
+<<<<<<< HEAD
                     val = item['data'].decode("UTF-8")
+=======
+>>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
                     if input_scale!=None or input_offset!=None:
                         try:
                             # convert it to a number and apply the scaling and the offset
+                            val = float(item['data'])
                             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
                         except ValueError:
                             # keep it as a string
+                            val = item['data']
                             if debug>0:
                                 print(("cannot apply scaling, writing %s as string" % (self.redischannel)))
                     if not f.closed:

@@ -50,7 +50,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -102,6 +102,9 @@ class Window(QtGui.QWidget):
                     val = int(3. * val / 127.)
                 elif item[1]=='toggle4':
                     val = int(4. * val / 127.)
+                elif item[1]=='text':
+                    # text has an internal value identical to the external value
+                    val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                 if debug>0:
                     print('%s = %g' % (key, val))
             except:
@@ -118,7 +121,7 @@ class Window(QtGui.QWidget):
                 t = QtGui.QLineEdit()
                 t.name = item[0]
                 t.type = item[1]
-                t.setText("%d" % val)
+                t.setText("%g" % val)
                 t.setAlignment(QtCore.Qt.AlignHCenter)
                 t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
                 t.editingFinished.connect(self.changevalue)
@@ -263,7 +266,9 @@ class Window(QtGui.QWidget):
         self.setcolor(target)
         if send:
             key = '%s.%s' % (prefix, target.name)
-            val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
+            if target.type!='text':
+                # text has an internal value identical to the external value
+                val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
             patch.setvalue(key, val, debug=debug)
 
     def setcolor(self, target):

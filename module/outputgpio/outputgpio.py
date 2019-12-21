@@ -51,7 +51,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -129,7 +129,7 @@ class TriggerThread(threading.Thread):
                     scale = patch.getfloat('scale', self.gpio, default=100)
                     offset = patch.getfloat('offset', self.gpio, default=0)
                     # switch to the PWM value specified in the event
-                    val = item['data']
+                    val = float(item['data'])
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
                     val = int(val)
                     SetGPIO(self.gpio, val)

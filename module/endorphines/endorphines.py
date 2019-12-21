@@ -51,7 +51,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -220,7 +220,8 @@ try:
                     print(name, val, port_val)
 
                 # CC#5 sets portamento
-                msg = mido.Message('control_change', control=5, value=port_val, channel=midichannel)
+                msg = mido.Message('control_change', control=5, value=int(port_val), channel=midichannel)
+
                 if debug > 1:
                     print(msg)
 

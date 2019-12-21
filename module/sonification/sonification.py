@@ -49,7 +49,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -62,7 +62,7 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
-timeout     = patch.getfloat('input_fieldtrip', 'timeout')     # this is the timeout for the FieldTrip buffer
+timeout     = patch.getfloat('input_fieldtrip', 'timeout', default=30)
 sample_rate = patch.getfloat('sonification', 'sample_rate')
 f_shift     = patch.getstring('sonification', 'f_shift')
 f_offset    = patch.getfloat('sonification', 'f_offset')

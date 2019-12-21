@@ -138,6 +138,7 @@ sudo pip install pyqtgraph
 sudo pip install matplotlib
 sudo pip install bitalino
 sudo pip install fuzzywuzzy[speedup]
+sudo pip install wiringpi  # only for raspberry pi
 ```
 
 Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.

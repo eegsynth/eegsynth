@@ -59,7 +59,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -72,7 +72,7 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
-timeout     = patch.getfloat('fieldtrip', 'timeout')
+timeout     = patch.getfloat('fieldtrip', 'timeout', default=30)
 filename    = patch.getstring('recording', 'file')
 fileformat  = patch.getstring('recording', 'format')
 

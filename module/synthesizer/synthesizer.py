@@ -52,7 +52,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -99,9 +99,8 @@ lock = threading.Lock()
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, r):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.r = r
         self.running = True
         lock.acquire()
         self.time = 0
@@ -112,23 +111,23 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = self.r.pubsub()
+        pubsub = r.pubsub()
         pubsub.subscribe('SYNTHESIZER_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(patch.getstring('control', 'adsr_gate'))
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                print(item['channel'], "=", item['data'])
+                if debug>1:
+                    print(item['channel'], "=", item['data'])
                 lock.acquire()
                 self.last = self.time
                 lock.release()
 
 
 class ControlThread(threading.Thread):
-    def __init__(self, r):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.r = r
         self.running = True
         lock.acquire()
         self.vco_pitch = 0
@@ -235,11 +234,11 @@ class ControlThread(threading.Thread):
 
 
 # start the background thread that deals with control value changes
-control = ControlThread(r)
+control = ControlThread()
 control.start()
 
 # start the background thread that deals with triggers
-trigger = TriggerThread(r)
+trigger = TriggerThread()
 trigger.start()
 
 block = 0

@@ -51,7 +51,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -65,6 +65,7 @@ monitor = EEGsynth.monitor()
 # get the options from the configuration file
 debug    = patch.getint('general', 'debug')
 delay    = patch.getfloat('general', 'delay')
+timeout  = patch.getfloat('lsl', 'timeout', default=30)
 lsl_name = patch.getstring('lsl', 'name')
 lsl_type = patch.getstring('lsl', 'type')
 
@@ -80,44 +81,50 @@ try:
 except:
     raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-# first resolve an EEG stream on the lab network
 print("looking for an LSL stream...")
-streams = lsl.resolve_streams()
+start = time.time()
 selected = []
+while len(selected)<1:
+    if (time.time() - start) > timeout:
+        print("Error: timeout while waiting for LSL stream")
+        raise SystemExit
 
-for stream in streams:
-    inlet           = lsl.StreamInlet(stream)
-    name            = inlet.info().name()
-    type            = inlet.info().type()
-    channel_count   = inlet.info().channel_count()
-    nominal_srate   = inlet.info().nominal_srate()
-    channel_format  = inlet.info().channel_format()
-    source_id       = inlet.info().source_id()
-    # determine whether this stream should be further processed
-    match = True
-    if len(lsl_name):
-        match = match and lsl_name==name
-    if len(lsl_type):
-        match = match and lsl_type==type
-    if match:
-        # select this stream for further processing
-        selected.append(stream)
-        print('-------- STREAM(*) ------')
-    else:
-        print('-------- STREAM ---------')
-    if debug>0:
-        print("name", name)
-        print("type", type)
-        print("channel_count", channel_count)
-        print("nominal_srate", nominal_srate)
-        print("channel_format", channel_format)
-        print("source_id", source_id)
+    # find the desired stream on the lab network
+    streams = lsl.resolve_streams()
+    for stream in streams:
+        inlet           = lsl.StreamInlet(stream)
+        name            = inlet.info().name()
+        type            = inlet.info().type()
+        source_id       = inlet.info().source_id()
+        # determine whether this stream should be further processed
+        match = True
+        if len(lsl_name):
+            match = match and lsl_name==name
+        if len(lsl_type):
+            match = match and lsl_type==type
+        if match:
+            # select this stream for further processing
+            selected.append(stream)
+            print('-------- STREAM(*) ------')
+        else:
+            print('-------- STREAM ---------')
+        if debug>0:
+            print("name", name)
+            print("type", type)
     print('-------------------------')
 
-# create a new inlet from the first (and probably only) selected stream
+# create a new inlet from the first (and hopefully only) selected stream
 inlet = lsl.StreamInlet(selected[0])
-channel_count = inlet.info().channel_count()
-nominal_srate = inlet.info().nominal_srate()
+
+# give some feedback
+lsl_name = inlet.info().name()
+lsl_type = inlet.info().type()
+lsl_id   = inlet.info().source_id()
+print('connected to LSL stream %s (type = %s, id = %s)' % (lsl_name, lsl_type, lsl_id))
+
+channel_count   = inlet.info().channel_count()
+channel_format  = inlet.info().channel_format()
+nominal_srate   = inlet.info().nominal_srate()
 
 ft_output.putHeader(channel_count, nominal_srate, FieldTrip.DATATYPE_FLOAT32)
 
