@@ -154,6 +154,7 @@ The plotsignal and plotcontrol modules are using pyqtgraph, which uses Qt4. This
 
 ```
 sudo apt-get install python-pyqtgraph
+sudo apt-get install python3-pyqt5 (for Python 3)
 ```
 
 ### Install audio
