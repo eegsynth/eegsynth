@@ -112,16 +112,16 @@ sudo apt-get install libjack-dev
 For Python packages we are using pip as the package manager. To install pip, use the following
 
 ```
-sudo apt-get install python-pip
+sudo apt-get install python-pip (replace with pip3 for Python 3)
 ```
 
 To make sure it is up to date, you should do
 
 ```
-sudo pip install --upgrade pip
+sudo pip install --upgrade pip (replace with pip3 for Python 3)
 ```
 
-Subsequently you can install the Python modules
+Subsequently you can install the Python modules (replace with pip3 for Python 3)
 
 ```
 sudo pip install Redis
@@ -139,6 +139,7 @@ sudo pip install matplotlib
 sudo pip install bitalino
 sudo pip install fuzzywuzzy[speedup]
 sudo pip install wiringpi  # only for raspberry pi
+sudo pip install configparser
 ```
 
 Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.
