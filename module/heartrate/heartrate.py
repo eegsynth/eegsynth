@@ -64,7 +64,7 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug     = patch.getint('general','debug')
-timeout   = patch.getfloat('fieldtrip','timeout')
+timeout   = patch.getfloat('fieldtrip','timeout', default=30)
 channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
 window    = patch.getfloat('processing','window')
 threshold = patch.getfloat('processing', 'threshold')

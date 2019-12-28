@@ -186,9 +186,30 @@ class TriggerThread(threading.Thread):
                                 current_value = val
 
                     elif len(self.sample)>=val:
+                        # update the parameters
+                        scaling = patch.getfloat('audio', 'scaling', default=1)
+                        scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
+                        monitor.update("scaling", scaling)
+
+                        speed = patch.getfloat('audio', 'speed', default=1)
+                        speed = EEGsynth.rescale(speed, slope=scale_speed, offset=offset_speed)
+                        monitor.update("speed", speed)
+
+                        onset = patch.getfloat('audio', 'onset', default=0)
+                        onset = EEGsynth.rescale(onset, slope=scale_onset, offset=offset_onset)
+                        monitor.update("onset", onset)
+
+                        offset = patch.getfloat('audio', 'offset', default=1)
+                        offset = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
+                        monitor.update("offset", offset)
+
+                        taper = patch.getfloat('audio', 'taper', default=0)
+                        taper = EEGsynth.rescale(taper, slope=scale_taper, offset=offset_taper)
+                        monitor.update("taper", taper)
+
+                        # read the audio file
                         filename = self.sample[val-1]
                         try:
-                            # read the audio file
                             rate, dat = wavfile.read(filename)
                             # ensure it is a two-dimensional array with samples*channels
                             dat = np.reshape(dat, (dat.shape[0], channels))
@@ -269,26 +290,6 @@ try:
         monitor.loop()
         time.sleep(patch.getfloat('general','delay'))
 
-        # update the parameters
-        scaling = patch.getfloat('audio', 'scaling', default=1)
-        scaling = EEGsynth.rescale(scaling, slope=scale_scaling, offset=offset_scaling)
-        monitor.update("scaling", scaling)
-
-        speed = patch.getfloat('audio', 'speed', default=1)
-        speed = EEGsynth.rescale(speed, slope=scale_speed, offset=offset_speed)
-        monitor.update("speed", speed)
-
-        onset = patch.getfloat('audio', 'onset', default=0)
-        onset = EEGsynth.rescale(onset, slope=scale_onset, offset=offset_onset)
-        monitor.update("onset", onset)
-
-        offset = patch.getfloat('audio', 'offset', default=1)
-        offset = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
-        monitor.update("offset", offset)
-
-        taper = patch.getfloat('audio', 'taper', default=0)
-        taper = EEGsynth.rescale(taper, slope=scale_taper, offset=offset_taper)
-        monitor.update("taper", taper)
 
 except (SystemExit, KeyboardInterrupt):
     stream.stop_stream()

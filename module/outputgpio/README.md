@@ -1,4 +1,4 @@
-# Output GPIO module
+# OutputGPIO module
 
 This module transforms control signals and messages from Redis to the GPIO
 pins of a Raspberry Pi.

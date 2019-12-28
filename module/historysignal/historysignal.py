@@ -62,7 +62,7 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
-timeout     = patch.getfloat('fieldtrip', 'timeout')
+timeout     = patch.getfloat('fieldtrip', 'timeout', default=30)
 inputlist   = patch.getint('input', 'channels', multiple=True)
 prefix      = patch.getstring('output', 'prefix')
 enable      = patch.getint('history', 'enable', default=1)

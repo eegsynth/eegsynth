@@ -72,7 +72,7 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip', 'timeout')
+timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
 
 
 def notch(f0, fs, Q=30):

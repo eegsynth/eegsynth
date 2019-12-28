@@ -69,7 +69,7 @@ monitor = EEGsynth.monitor()
 debug = patch.getint('general', 'debug')
 
 # this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('input_fieldtrip', 'timeout')
+timeout = patch.getfloat('input_fieldtrip', 'timeout', default=30)
 
 try:
     ftc_host = patch.getstring('input_fieldtrip','hostname')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Lsl2ft reads data from an LSL stream and writes it to a FieldTrip buffer
+# This module translates LSL string markers to Redis control values and and events.
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
@@ -21,7 +21,6 @@
 
 import configparser
 import argparse
-import numpy as np
 import os
 import redis
 import sys
@@ -39,9 +38,8 @@ else:
     file = os.path.split(path)[-1] + '.py'
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path, '../../lib'))
+sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
-import FieldTrip
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
@@ -63,23 +61,13 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug    = patch.getint('general', 'debug')
-delay    = patch.getfloat('general', 'delay')
-timeout  = patch.getfloat('lsl', 'timeout', default=30)
-lsl_name = patch.getstring('lsl', 'name')
-lsl_type = patch.getstring('lsl', 'type')
-
-try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to output FieldTrip buffer")
+debug           = patch.getint('general', 'debug')
+delay           = patch.getfloat('general', 'delay')
+timeout         = patch.getfloat('lsl', 'timeout', default=30)
+lsl_name        = patch.getstring('lsl', 'name')
+lsl_type        = patch.getstring('lsl', 'type')
+lsl_format      = patch.getstring('lsl', 'format')
+output_prefix   = patch.getstring('output', 'prefix')
 
 print("looking for an LSL stream...")
 start = time.time()
@@ -122,24 +110,28 @@ lsl_type = inlet.info().type()
 lsl_id   = inlet.info().source_id()
 print('connected to LSL stream %s (type = %s, id = %s)' % (lsl_name, lsl_type, lsl_id))
 
-channel_count   = inlet.info().channel_count()
-channel_format  = inlet.info().channel_format()
-nominal_srate   = inlet.info().nominal_srate()
-
-ft_output.putHeader(channel_count, nominal_srate, FieldTrip.DATATYPE_FLOAT32)
-
-# this is used for feedback
-count = 0
-start = -np.Inf
-
 while True:
     monitor.loop()
 
-    chunk, timestamps = inlet.pull_chunk()
-    if timestamps:
-        dat = np.asarray(chunk, dtype=np.float32)
-        count += dat.shape[0]
-        ft_output.putData(dat)
-        if debug>0 and (time.time()-start)>delay:
-            print("processed %d samples" % count)
-            start = time.time()
+    sample, timestamp = inlet.pull_sample(timeout=delay)
+    if not sample==None:
+
+        if lsl_format=='value':
+            # interpret the LSL marker string as a numerical value
+            try:
+                val = float(sample[0])
+            except ValueError:
+                val = float('nan')
+            # the scale and offset options can be changed on the fly
+            scale = patch.getfloat('lsl', 'scale', default=1./127)
+            offset = patch.getfloat('lsl', 'offset', default=0.)
+            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            name = '%s.%s.%s' % (output_prefix, lsl_name, lsl_type)
+        else:
+            # use the marker string as the name, and use an arbitrary value
+            name = '%s.%s.%s.%s' % (output_prefix, lsl_name, lsl_type, sample[0])
+            val = 1.
+
+        # send the Redis message
+        print(name, '=', val)
+        patch.setvalue(name, val)
