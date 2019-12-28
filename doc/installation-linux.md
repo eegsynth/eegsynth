@@ -138,6 +138,7 @@ sudo pip install pyqtgraph
 sudo pip install matplotlib
 sudo pip install bitalino
 sudo pip install fuzzywuzzy[speedup]
+sudo pip install neurokit
 sudo pip install wiringpi  # only for raspberry pi
 sudo pip install configparser
 ```
