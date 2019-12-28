@@ -111,19 +111,30 @@ if debug>0:
     print(channame, chanindx)
 
 prefix      = patch.getstring('output', 'prefix')
-window      = patch.getfloat('processing','window')  # in seconds
-window      = int(round(window * hdr_input.fSample)) # in samples
-taper       = np.hanning(window)
-frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
-
-if debug>2:
-    print('taper     = ', taper)
-    print('frequency = ', frequency)
 
 begsample = -1
 endsample = -1
 
 while True:
+
+    window = patch.getfloat('processing', 'window') * \
+             patch.getfloat('scale', 'window') + \
+             patch.getfloat('offset', 'window')  # in seconds
+
+    if debug > 1:
+        print('window = ', window, 'seconds')
+
+    window = int(round(window * hdr_input.fSample))  # in samples
+    taper = np.hanning(window)
+    frequency = np.fft.rfftfreq(window, 1.0 / hdr_input.fSample)
+
+    if debug > 1:
+        print('window = ', window, 'samples')
+
+    if debug > 2:
+        print('taper     = ', taper)
+        print('frequency = ', frequency)
+
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
