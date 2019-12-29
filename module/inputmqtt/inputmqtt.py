@@ -88,21 +88,29 @@ def on_connect(client, userdata, flags, rc):
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     if not msg.topic.startswith('$SYS'):
-        key = msg.topic.replace('/', '.')
-        if len(prefix):
-            key = "%s.%s" % (prefix, key)
-        # assume that it is a single scalar value
-        val = EEGsynth.rescale(float(msg.payload), slope=output_scale, offset=output_offset)
-        monitor.update(key, val, debug>0)
-        patch.setvalue(key, val)
+        try:
+            key = msg.topic.replace('/', '.').lower()
+            if len(prefix):
+                # add the prefix
+                key = "%s.%s" % (prefix, key)
+            # assume that it is a single scalar value
+            val = EEGsynth.rescale(float(msg.payload), slope=output_scale, offset=output_offset)
+            monitor.update(key, val, debug>0)
+            patch.setvalue(key, val)
+        except:
+            pass
 
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("MQTT disconnected")
 
 client.on_connect = on_connect
 client.on_message = on_message
+client.on_disconnect = on_disconnect
 
 input_channels = patch.getstring('input', 'channels', default='#', multiple=True)
 for channel in input_channels:
-    print(channel)
+    print('subscribed to ' + channel)
     client.subscribe(channel)
 
 client.loop_start()

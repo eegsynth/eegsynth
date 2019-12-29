@@ -143,10 +143,15 @@ def on_connect(client, userdata, flags, rc):
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     if not msg.topic.startswith('$SYS'):
-        print(msg.topic + " " + str(msg.payload))
+        print("MQTT received " + msg.topic + " " + str(msg.payload))
+
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("MQTT disconnected")
 
 client.on_connect = on_connect
 client.on_message = on_message
+client.on_disconnect = on_disconnect
 
 try:
     while True:

@@ -64,7 +64,7 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug       = patch.getint('general', 'debug')
+debug = patch.getint('general', 'debug')
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
