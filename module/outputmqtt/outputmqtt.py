@@ -107,7 +107,7 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    # map the Redis values to MIDI values
+                    # map the Redis values to MQTT values
                     val = float(item['data'])
                     # the scale and offset options are channel specific
                     scale  = patch.getfloat('scale', self.name, default=1)
@@ -122,11 +122,11 @@ class TriggerThread(threading.Thread):
 
 # each of the Redis messages is mapped onto a different MQTT topic
 trigger = []
-for name, redischannel, mqtttopic in zip(list1, list2, list3):
-    this = TriggerThread(redischannel, name, mqtttopic)
+for key1, key2, key3 in zip(list1, list2, list3):
+    this = TriggerThread(key2, key1, key3)
     trigger.append(this)
     if debug>1:
-        print(name, 'trigger configured')
+        print('trigger configured for ' + key1)
 
 # start the thread for each of the triggers
 for thread in trigger:

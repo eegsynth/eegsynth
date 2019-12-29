@@ -24,6 +24,7 @@ import argparse
 import os
 import redis
 import sys
+import threading
 import time
 
 if sys.version_info < (3,6):
@@ -65,8 +66,7 @@ patch = EEGsynth.patch(config, r)
 monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
-debug = patch.getint('general','debug')
-
+debug = patch.getint('general', 'debug')
 
 try:
     if sys.version_info < (3,6):
@@ -89,35 +89,73 @@ list3 = [] # the key name in OSC
 for i in range(len(list_input)):
     for j in range(len(list_output)):
         if list_input[i][0]==list_output[j][0]:
-            list1.append(list_input[i][0])
-            list2.append(list_input[i][1])
-            list3.append(list_output[j][1])
+            list1.append(list_input[i][0])  # short name in the ini file
+            list2.append(list_input[i][1])  # redis channel
+            list3.append(list_output[j][1]) # osc topic
 
-while True:
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
+# this is to prevent two messages from being sent at the same time
+lock = threading.Lock()
 
-    for key1,key2,key3 in zip(list1,list2,list3):
 
-        val = patch.getfloat('input', key1, multiple=True)
-        if any(item is None for item in val):
-            # the control value is not present in redis, skip it
-            continue
-        else:
-            val = [float(x) for x in val]
+class TriggerThread(threading.Thread):
+    def __init__(self, redischannel, name, osctopic):
+        threading.Thread.__init__(self)
+        self.redischannel = redischannel
+        self.name = name
+        self.osctopic = osctopic
+        self.running = True
+    def stop(self):
+        self.running = False
+    def run(self):
+        pubsub = r.pubsub()
+        pubsub.subscribe('OUTPUTOSC_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe(self.redischannel)     # this message contains the value of interest
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel']==self.redischannel:
+                    # map the Redis values to OSC values
+                    val = float(item['data'])
+                    # the scale and offset options are channel specific
+                    scale  = patch.getfloat('scale', self.name, default=1)
+                    offset = patch.getfloat('offset', self.name, default=0)
+                    # apply the scale and offset
+                    val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-        # the scale and offset options are channel specific
-        scale  = patch.getfloat('scale', key1, default=1)
-        offset = patch.getfloat('offset', key1, default=0)
-        # apply the scale and offset
-        val = EEGsynth.rescale(val, slope=scale, offset=offset)
+                    monitor.update(self.osctopic, val, debug>0)
+                    with lock:
+                        # send it as a string with a space as separator
+                        if sys.version_info < (3,6):
+                            msg = OSC.OSCMessage(self.osctopic)
+                            msg.append(val)
+                            s.send(msg)
+                        else:
+                            s.send_message(self.osctopic, val)
 
-        if debug>1:
-            print('OSC message', key3, '=', val)
 
-        if sys.version_info < (3,6):
-            msg = OSC.OSCMessage(key3)
-            msg.append(val)
-            s.send(msg)
-        else:
-            s.send_message(key3,val)
+# each of the Redis messages is mapped onto a different OSC topic
+trigger = []
+for key1, key2, key3 in zip(list1, list2, list3):
+    this = TriggerThread(key2, key1, key3)
+    trigger.append(this)
+    if debug>1:
+        print('trigger configured for ' + key1)
+
+# start the thread for each of the triggers
+for thread in trigger:
+    thread.start()
+
+try:
+    while True:
+        monitor.loop()
+        time.sleep(patch.getfloat('general', 'delay'))
+
+except KeyboardInterrupt:
+    print("Closing threads")
+    for thread in trigger:
+        thread.stop()
+    r.publish('OUTPUTOSC_UNBLOCK', 1)
+    for thread in trigger:
+        thread.join()
+    sys.exit()

@@ -79,7 +79,7 @@ list_output = config.items('output')
 
 list1 = [] # the key name that matches in the input and output section of the *.ini file
 list2 = [] # the key name in Redis
-list3 = [] # the key name in OSC
+list3 = [] # the key name in ZeroMQ
 for i in range(len(list_input)):
     for j in range(len(list_output)):
         if list_input[i][0]==list_output[j][0]:
@@ -102,14 +102,14 @@ class TriggerThread(threading.Thread):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
-        pubsub.subscribe('OUTPUTMQTT_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)     # this message contains the value of interest
+        pubsub.subscribe('OUTPUTZEROMQ_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe(self.redischannel)       # this message contains the value of interest
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    # map the Redis values to MIDI values
+                    # map the Redis values to ZeroMQ values
                     val = float(item['data'])
                     # the scale and offset options are channel specific
                     scale  = patch.getfloat('scale', self.name, default=1)
@@ -125,11 +125,11 @@ class TriggerThread(threading.Thread):
 
 # each of the Redis messages is mapped onto a different ZeroMQ topic
 trigger = []
-for name, redischannel, zeromqtopic in zip(list1, list2, list3):
-    this = TriggerThread(redischannel, name, zeromqtopic)
+for key1, key2, key3 in zip(list1, list2, list3):
+    this = TriggerThread(key2, key1, key3)
     trigger.append(this)
     if debug>1:
-        print(name, 'trigger configured')
+        print('trigger configured for ' + key1)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -144,7 +144,7 @@ except KeyboardInterrupt:
     print("Closing threads")
     for thread in trigger:
         thread.stop()
-    r.publish('OUTPUTMQTT_UNBLOCK', 1)
+    r.publish('OUTPUTZEROMQ_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()
