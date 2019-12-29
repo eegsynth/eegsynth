@@ -147,4 +147,5 @@ except KeyboardInterrupt:
     r.publish('OUTPUTZEROMQ_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
+    context.destroy()
     sys.exit()

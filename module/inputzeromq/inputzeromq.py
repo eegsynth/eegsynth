@@ -80,7 +80,7 @@ output_offset = patch.getfloat('output', 'offset', default=0)
 input_channels = patch.getstring('input', 'channels', multiple=True)
 if len(input_channels)==0:
     print('subscribed to everything')
-    socket.setsockopt_string(zmq.SUBSCRIBE, '')
+    socket.setsockopt_string(zmq.SUBSCRIBE, u'')
 else:
     for channel in input_channels:
         print('subscribed to ' + channel)
@@ -120,4 +120,5 @@ try:
 except KeyboardInterrupt:
     print("\nClosing module.")
     socket.close()
+    context.destroy()
     print("Done.")
