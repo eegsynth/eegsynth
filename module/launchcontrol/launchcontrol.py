@@ -31,23 +31,33 @@ import time
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0,os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
+
+if not 'general' in config:
+    raise RuntimeError("cannot read configuration from " + args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
@@ -55,11 +65,11 @@ try:
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
 
-# combine the patching from the configuration file and Redis
+# combine the patching from the command-line options, the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name)
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')

@@ -50,13 +50,8 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-n", "--name", default=name, help="name of the module")
-parser.add_argument("-p", "--path", default=path, help="path to the configuration file")
-parser.add_argument("-i", "--inifile", default=None, help="name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
-
-if args.inifile==None:
-    args.inifile = os.path.join(args.path, args.name + '.ini')
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
