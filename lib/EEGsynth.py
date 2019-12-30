@@ -44,9 +44,14 @@ class monitor():
     prints a boilerplate license upon startup.
     """
 
-    def __init__(self):
+    def __init__(self, name=None):
         self.previous_value = {}
         self.loop_time = None
+        if name!=None:
+            self.prefix = name + ": "
+        else:
+            self.prefix = ""
+
         print("""
 ##############################################################################
 # This software is part of the EEGsynth, see <http://www.eegsynth.org>.
@@ -74,7 +79,7 @@ Press Ctrl-C to stop this module.
         now = time.time()
         if self.loop_time is None:
             if debug:
-                print("Starting loop...")
+                print(self.prefix + "starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
@@ -82,7 +87,7 @@ Press Ctrl-C to stop this module.
         elapsed = now - self.loop_time
         if elapsed>=1:
             if debug:
-                print("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+                print(self.prefix + "looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
@@ -97,7 +102,7 @@ Press Ctrl-C to stop this module.
             except:
                 pass
             if debug:
-                printkeyval(key, val)
+                printkeyval(self.prefix + key, val)
             self.previous_value[key] = val
             return True
         else:
@@ -110,14 +115,14 @@ class patch():
 
     The formatting of the item in the ini file should be like this
       item=1            this returns 1
-      item=key          get the value of the key from redis
+      item=key          get the value of the key from Redis
     or if multiple is True
       item=1-20         this returns [1,20]
       item=1,2,3        this returns [1,2,3]
       item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
-      item=key1,key2    get the value of key1 and key2 from redis
-      item=key1,5       get the value of key1 from redis
-      item=0,key2       get the value of key2 from redis
+      item=key1,key2    get the value of key1 and key2 from Redis
+      item=key1,5       get the value of key1 from Redis
+      item=0,key2       get the value of key2 from Redis
     """
 
     def __init__(self, c, r):
