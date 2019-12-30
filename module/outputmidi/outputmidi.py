@@ -220,7 +220,7 @@ class TriggerThread(threading.Thread):
     def run(self):
         pubsub = r.pubsub()
         pubsub.subscribe('OUTPUTMIDI_UNBLOCK')  # this message unblocks the redis listen command
-        pubsub.subscribe(self.redischannel)  # this message contains the note
+        pubsub.subscribe(self.redischannel)     # this message contains the value of interest
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
@@ -251,7 +251,7 @@ for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'r
     trigger_name.append(name)
     trigger_code.append(None)
 
-# each of the Redis message is mapped onto a different MIDI message
+# each of the Redis messages is mapped onto a different MIDI message
 trigger = []
 for name, code in zip(trigger_name, trigger_code):
     if config.has_option('trigger', name):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# OutputOSC sends redis data according to OSC protocol
+# This module translates Redis controls to MQTT messages.
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2019 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,14 +23,11 @@ import configparser
 import argparse
 import os
 import redis
+import string
 import sys
 import threading
 import time
-
-if sys.version_info < (3,6):
-    import OSC
-else:
-    from pythonosc import udp_client
+import paho.mqtt.client as mqtt
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -59,6 +56,12 @@ try:
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
 
+try:
+    client = mqtt.Client()
+    client.connect(config.get('mqtt', 'hostname'), config.getint('mqtt', 'port'), config.getint('mqtt', 'timeout'))
+except:
+    raise RuntimeError("cannot connect to MQTT broker")
+
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
 
@@ -67,17 +70,6 @@ monitor = EEGsynth.monitor()
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
-
-try:
-    if sys.version_info < (3,6):
-        s = OSC.OSCClient()
-        s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
-    else:
-        s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
-    if debug>0:
-        print("Connected to OSC server")
-except:
-    raise RuntimeError("cannot connect to OSC server")
 
 # keys should be present in both the input and output section of the *.ini file
 list_input  = config.items('input')
@@ -91,31 +83,31 @@ for i in range(len(list_input)):
         if list_input[i][0]==list_output[j][0]:
             list1.append(list_input[i][0])  # short name in the ini file
             list2.append(list_input[i][1])  # redis channel
-            list3.append(list_output[j][1]) # osc topic
+            list3.append(list_output[j][1]) # mqtt topic
 
 # this is to prevent two messages from being sent at the same time
 lock = threading.Lock()
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, name, osctopic):
+    def __init__(self, redischannel, name, mqtttopic):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
         self.name = name
-        self.osctopic = osctopic
+        self.mqtttopic = mqtttopic
         self.running = True
     def stop(self):
         self.running = False
     def run(self):
         pubsub = r.pubsub()
-        pubsub.subscribe('OUTPUTOSC_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe('OUTPUTMQTT_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)     # this message contains the value of interest
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    # map the Redis values to OSC values
+                    # map the Redis values to MQTT values
                     val = float(item['data'])
                     # the scale and offset options are channel specific
                     scale  = patch.getfloat('scale', self.name, default=1)
@@ -123,18 +115,12 @@ class TriggerThread(threading.Thread):
                     # apply the scale and offset
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-                    monitor.update(self.osctopic, val, debug>0)
+                    monitor.update(self.mqtttopic, val, debug>0)
                     with lock:
-                        # send it as a string with a space as separator
-                        if sys.version_info < (3,6):
-                            msg = OSC.OSCMessage(self.osctopic)
-                            msg.append(val)
-                            s.send(msg)
-                        else:
-                            s.send_message(self.osctopic, val)
+                        client.publish(self.mqtttopic, payload=val, qos=0, retain=False)
 
 
-# each of the Redis messages is mapped onto a different OSC topic
+# each of the Redis messages is mapped onto a different MQTT topic
 trigger = []
 for key1, key2, key3 in zip(list1, list2, list3):
     this = TriggerThread(key2, key1, key3)
@@ -146,6 +132,27 @@ for key1, key2, key3 in zip(list1, list2, list3):
 for thread in trigger:
     thread.start()
 
+# The callback for when the client receives a CONNACK response from the server.
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    client.subscribe("$SYS/#")
+
+# The callback for when a PUBLISH message is received from the server.
+def on_message(client, userdata, msg):
+    if not msg.topic.startswith('$SYS'):
+        print("MQTT received " + msg.topic + " " + str(msg.payload))
+
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("MQTT disconnected")
+
+client.on_connect = on_connect
+client.on_message = on_message
+client.on_disconnect = on_disconnect
+
 try:
     while True:
         monitor.loop()
@@ -155,7 +162,7 @@ except KeyboardInterrupt:
     print("Closing threads")
     for thread in trigger:
         thread.stop()
-    r.publish('OUTPUTOSC_UNBLOCK', 1)
+    r.publish('OUTPUTMQTT_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()

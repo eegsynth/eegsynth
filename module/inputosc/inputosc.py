@@ -123,7 +123,6 @@ def python3_message_handler(addr, data):
     val = EEGsynth.rescale(data, slope=output_scale, offset=output_offset)
     patch.setvalue(key, val)
 
-
 try:
     if sys.version_info < (3,6):
         s = OSC.OSCServer((osc_address, osc_port))
