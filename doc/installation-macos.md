@@ -112,21 +112,23 @@ sudo pip install --upgrade pip
 Subsequently you can install the Python modules
 
 ```
-pip install Redis
-pip install mido
-pip install python-rtmidi
-pip install pyserial
-pip install python-osc # for python >= 3.6
-pip install OSC        # for python <= 3.5
-pip install numpy
-pip install nilearn
-pip install sklearn
-pip install scipy
-pip install pyqtgraph
-pip install matplotlib
-pip install bitalino
-pip install fuzzywuzzy[speedup]
-pip install neurokit
+sudo pip install Redis
+sudo pip install configparser
+sudo pip install numpy
+sudo pip install scipy
+sudo pip install mido
+sudo pip install python-rtmidi --pre
+sudo pip install pyserial
+sudo pip install python-osc # for python >= 3.6
+sudo pip install OSC        # for python <= 3.5
+sudo pip install pyqtgraph
+sudo pip install matplotlib
+sudo pip install bitalino
+sudo pip install fuzzywuzzy[speedup]
+sudo pip install nilearn
+sudo pip install sklearn
+sudo pip install neurokit
+sudo pip install paho-mqtt
 ```
 
 The graphical user interfaces of plotsignal and plotcontrol are generated using Qt4. This requires the bindings between Python and Qt to be installed using brew as follows
