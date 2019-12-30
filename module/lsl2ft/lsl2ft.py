@@ -71,7 +71,6 @@ monitor = EEGsynth.monitor(name=name)
 
 # get the options from the configuration file
 debug    = patch.getint('general', 'debug')
-delay    = patch.getfloat('general', 'delay')
 timeout  = patch.getfloat('lsl', 'timeout', default=30)
 lsl_name = patch.getstring('lsl', 'name')
 lsl_type = patch.getstring('lsl', 'type')
@@ -136,8 +135,8 @@ nominal_srate   = inlet.info().nominal_srate()
 ft_output.putHeader(channel_count, nominal_srate, FieldTrip.DATATYPE_FLOAT32)
 
 # this is used for feedback
-count = 0
-start = -np.Inf
+samples = 0
+blocksize = 1
 
 while True:
     monitor.loop()
@@ -145,8 +144,11 @@ while True:
     chunk, timestamps = inlet.pull_chunk()
     if timestamps:
         dat = np.asarray(chunk, dtype=np.float32)
-        count += dat.shape[0]
         ft_output.putData(dat)
-        if debug>0 and (time.time()-start)>delay:
-            print("processed %d samples" % count)
-            start = time.time()
+        blocksize = dat.shape[0]
+        samples += blocksize
+        monitor.update('samples', samples)
+    else:
+        # wait for a short time before trying again
+        # this prevents the polling from clogging the CPU to 100%
+		time.sleep(0.1*blocksize/nominal_srate)
