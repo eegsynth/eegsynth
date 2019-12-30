@@ -118,7 +118,6 @@ for iplot, name in enumerate(input_name):
     inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
     ylim = patch.getfloat('ylim', name, multiple=True, default=None)
-    print ylim
     if ylim==[] or ylim==None:
         print("Ylim empty, will let it flow")
     else:
