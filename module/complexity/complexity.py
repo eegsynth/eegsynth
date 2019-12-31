@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Spectral outputs power envelopes of user-defined frequency bands
+# Complexity measures computed per channel over a sliding window
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
@@ -122,13 +122,20 @@ window      = patch.getfloat('processing','window')  # in seconds
 window      = int(round(window * hdr_input.fSample)) # in samples
 taper       = np.hanning(window)
 frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
-svd         = [True if patch.getint('metrics', 'svd') == 1 else False]
-higuchi     = [True if patch.getint('metrics', 'higuchi') == 1 else False]
-hurst       = [True if patch.getint('metrics', 'hurst') == 1 else False]
-#list_prefixes = config.items('output')
-#prefixes = []
-#for i in range(len(list_prefixes)):
-#    prefixes.append(list_prefixes[i][1])
+shannon      = patch.getint('metrics', 'shannon',     default=0) != 0
+sampen       = patch.getint('metrics', 'sampen',      default=0) != 0
+multiscale   = patch.getint('metrics', 'multiscale',  default=0) != 0
+spectral     = patch.getint('metrics', 'spectral',    default=0) != 0
+svd          = patch.getint('metrics', 'svd',         default=0) != 0
+correlation  = patch.getint('metrics', 'correlation', default=0) != 0
+higushi      = patch.getint('metrics', 'higushi',     default=0) != 0
+petrosian    = patch.getint('metrics', 'petrosian',   default=0) != 0
+fisher       = patch.getint('metrics', 'fisher',      default=0) != 0
+hurst        = patch.getint('metrics', 'hurst',       default=0) != 0
+dfa          = patch.getint('metrics', 'dfa',         default=0) != 0
+lyap_r       = patch.getint('metrics', 'lyap_r',      default=0) != 0
+lyap_e       = patch.getint('metrics', 'lyap_e',      default=0) != 0
+
 
 if debug>2:
     print('taper     = ', taper)
@@ -136,16 +143,6 @@ if debug>2:
 
 begsample = -1
 endsample = -1
-
-# create list of prefixes for Redis
-computed_metrics = []
-if svd[0]:
-    computed_metrics.append('svd')
-if higuchi[0]:
-    computed_metrics.append('higuchi')
-if hurst[0]:
-    computed_metrics.append('hurst')
-
 
 while True:
     monitor.loop()
@@ -177,31 +174,32 @@ while True:
     for timeseries in dat.T:
         cp.append(complexity(timeseries,
                         sampling_rate=hdr_input.fSample,
-                        shannon=False,
-                        sampen=False,
-                        multiscale=False,
-                        spectral=False,
-                        svd=svd[0],
-                        correlation=False,
-                        higushi=higuchi[0],
-                        petrosian=False,
-                        fisher=False,
-                        hurst=hurst[0],
-                        dfa=False,
-                        lyap_r=False,
-                        lyap_e=False
+                        shannon=shannon,
+                        sampen=sampen,
+                        multiscale=multiscale,
+                        spectral=spectral,
+                        svd=svd,
+                        correlation=correlation,
+                        higushi=higushi,
+                        petrosian=petrosian,
+                        fisher=fisher,
+                        hurst=hurst,
+                        dfa=dfa,
+                        lyap_r=lyap_r,
+                        lyap_e=lyap_e,
                         ))
 
     metric_names = list(cp[0].keys())
 
-    if debug > 0:
-        #print(cp)
-        #print(metric_names)
-
     for chan in chanindx:
-        for i, metric in enumerate(computed_metrics):
-            ch_name = channame[chan]
-            key = "{}.{}".format(ch_name, metric)
-            print(key)
-            comp_val = cp[chan][metric_names[i]]
-            patch.setvalue(key, comp_val)
+        for metric in metric_names:
+            shortmetric = metric.lower()
+            # remove some trailing information
+            if shortmetric.startswith('entropy_'):
+                shortmetric = shortmetric[len('entropy_'):]
+            if shortmetric.startswith('fractal_dimension_'):
+                shortmetric = shortmetric[len('fractal_dimension_'):]
+            key = "{}.{}".format(channame[chan], shortmetric)
+            val = cp[chan][metric]
+            patch.setvalue(key, val)
+            monitor.update(key, val)
