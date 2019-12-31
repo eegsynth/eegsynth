@@ -1,4 +1,3 @@
-
 from . import accelerometer
 from . import audio2ft
 from . import bitalino2ft
