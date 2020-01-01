@@ -13,9 +13,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="eegsynth",
-    version_command="git describe --tags",
+    version_config={
+        "version_format": "{tag}.dev{sha}",
+        "starting_version": "0.1.0"
+    },
+    setup_requires=['better-setuptools-git-version'],
     author="Robert Oostenveld",
     author_email="r.oostenveld@gmail.com",
+    license="GPLv3",
     description="Converting real-time EEG into sounds, music and visual effects",
     long_description=long_description,
     long_description_content_type="text/markdown",
