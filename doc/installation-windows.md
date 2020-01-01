@@ -17,8 +17,8 @@ pip install configparser
 pip install mido
 pip install python-rtmidi --pre
 pip install pyserial
-pip install python-osc # for python >= 3.6
-pip install OSC        # for python <= 3.5
+pip install python-osc # for Python >= 3.6
+pip install OSC        # for Python <= 3.5
 pip install pyqtgraph
 pip install matplotlib
 pip install bitalino

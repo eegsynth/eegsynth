@@ -19,7 +19,7 @@ git commit -a  # commit the version number change
 git tag x.y.z  # tag this commit with the correct version number, see below
 
 python setup.py sdist bdist_wheel
-twine upload --repository-url https://pypi.org/ dist/*
+twine upload dist/*
 ```
 
 _Note: I tried both `setuptools-version-command` and `better-setuptools-git-version` to automatically use the git tag for the version number. They did not work consistently and caused incorrect version numbers upon installation._
