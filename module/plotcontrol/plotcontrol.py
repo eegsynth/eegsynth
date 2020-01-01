@@ -36,12 +36,19 @@ from scipy.signal import butter, lfilter
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
@@ -49,7 +56,7 @@ import EEGsynth
 import FieldTrip
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -65,7 +72,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name)
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -104,8 +111,6 @@ inputplot    = []
 inputcurve   = []
 
 # Create panels for each channel
-# for iplot in range(len(input_name)):
-
 for iplot, name in enumerate(input_name):
 
     inputplot.append(win.addPlot(title="%s" % name))
@@ -113,16 +118,15 @@ for iplot, name in enumerate(input_name):
     inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
     ylim = patch.getfloat('ylim', name, multiple=True, default=None)
-    print ylim
     if ylim==[] or ylim==None:
         print("Ylim empty, will let it flow")
     else:
         print("Setting Ylim according to specified range")
         inputplot[iplot].setYRange(ylim[0], ylim[1])
 
-    temp = input_variable[iplot].split(",")
-    for icurve in range(len(temp)):
-        linecolor = patch.getstring('linecolor', name, multiple=True, default='w')
+    variable = input_variable[iplot].split(",")
+    linecolor = patch.getstring('linecolor', name, multiple=True, default='w,'*len(variable))
+    for icurve in range(len(variable)):
         inputcurve.append(inputplot[iplot].plot(pen=linecolor[icurve]))
 
     win.nextRow()

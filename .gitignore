@@ -56,3 +56,12 @@ interface/node_modules
 
 # PyCharm project
 .idea/*
+
+# Python packaging 
+*.egg-info
+build/*
+dist/*
+*/__pycache__/*
+
+# Test patches
+patches/test_*

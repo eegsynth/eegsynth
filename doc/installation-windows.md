@@ -9,9 +9,22 @@ When using [Anaconda](https://www.anaconda.com), this is more or less how to get
 ```
 conda create -n eegsynth python=3.7 anaconda
 conda activate eegsynth
-conda install -c binstar redis-server ([info](https://anaconda.org/binstar/redis-server)) 
+conda install -c binstar redis-server ([info](https://anaconda.org/binstar/redis-server))
 conda install redis-py
 conda install python numpy scipy
-pip install mido
-```
 
+pip install configparser
+pip install mido
+pip install python-rtmidi --pre
+pip install pyserial
+pip install python-osc # for Python >= 3.6
+pip install OSC        # for Python <= 3.5
+pip install pyqtgraph
+pip install matplotlib
+pip install bitalino
+pip install fuzzywuzzy[speedup]
+pip install nilearn
+pip install sklearn
+pip install neurokit
+pip install paho-mqtt
+```

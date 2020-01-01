@@ -124,23 +124,24 @@ sudo pip install --upgrade pip (replace with pip3 for Python 3)
 Subsequently you can install the Python modules (replace with pip3 for Python 3)
 
 ```
-sudo pip install Redis
+sudo pip install redis
+sudo pip install configparser
+sudo pip install numpy
+sudo pip install scipy
 sudo pip install mido
 sudo pip install python-rtmidi --pre
 sudo pip install pyserial
-sudo pip install python-osc # for python >= 3.6
-sudo pip install OSC        # for python <= 3.5
-sudo pip install numpy
-sudo pip install nilearn
-sudo pip install sklearn
-sudo pip install scipy
+sudo pip install python-osc # for Python >= 3.6
+sudo pip install OSC        # for Python <= 3.5
 sudo pip install pyqtgraph
 sudo pip install matplotlib
 sudo pip install bitalino
 sudo pip install fuzzywuzzy[speedup]
+sudo pip install nilearn
+sudo pip install sklearn
 sudo pip install neurokit
-sudo pip install wiringpi  # only for raspberry pi
-sudo pip install configparser
+sudo pip install paho-mqtt
+sudo pip install wiringpi  # only for Raspberry Pi
 ```
 
 Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.
@@ -151,11 +152,11 @@ sudo apt-get install python-scipy
 
 ### Install graphics
 
-The plotsignal and plotcontrol modules are using pyqtgraph, which uses Qt4. This can be installed with
+The plotsignal and plotcontrol modules are implemented with pyqtgraph, which uses either PyQt4, PyQt5 or PySide. This can be installed with
 
 ```
 sudo apt-get install python-pyqtgraph
-sudo apt-get install python3-pyqt5 (for Python 3)
+sudo apt-get install python3-pyqt5 # for Python 3
 ```
 
 ### Install audio

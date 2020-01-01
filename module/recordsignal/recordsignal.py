@@ -33,12 +33,19 @@ import struct
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
@@ -46,13 +53,8 @@ import EEGsynth
 import FieldTrip
 import EDF
 
-MININT16 = -0xffff/2 - 1
-MAXINT16 =  0xffff/2 - 1
-MININT32 = -0xffffffff/2 - 1
-MAXINT32 =  0xffffffff/2 - 1
-
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -68,7 +70,12 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name)
+
+MININT16 = -0xffff/2 - 1
+MAXINT16 =  0xffff/2 - 1
+MININT32 = -0xffffffff/2 - 1
+MAXINT32 =  0xffffffff/2 - 1
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
