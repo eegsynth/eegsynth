@@ -11,7 +11,10 @@ conda create -n eegsynth python=3.7 anaconda
 conda activate eegsynth
 conda install -c binstar redis-server ([info](https://anaconda.org/binstar/redis-server))
 conda install redis-py
-conda install numpy scipy pyqtgraph
+conda install numpy
+conda install scipy
+conda install pyqtgraph
+conda install python-levenshtein
 
 pip install configparser
 pip install mido
