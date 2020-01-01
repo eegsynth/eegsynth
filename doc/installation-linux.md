@@ -40,20 +40,20 @@ In the subsequent Linux installation instructions we assume apt-get and pip as t
 This is used for inter-process communication between modules.
 
 ```
-sudo apt-get install Redis-server
+sudo apt-get install redis-server
 ```
 
 Redis will be automatically started on Linux. If you look for running processes, you should see
 
 ```
-pi@hackpi:/etc/Redis $ ps aux | grep Redis
-Redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/Redis-server 127.0.0.1:6379
+pi@hackpi:~ $ ps aux | grep redis
+redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379
 ```
 
-If you want to connect between different computers, you should edit /etc/Redis/Redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration"
+If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration"
 
 ```
-sudo nano /etc/Redis/Redis.conf
+sudo nano /etc/redis/redis.conf
 ```
 
 and comment out the line "bind 127.0.0.1" like this:
@@ -73,15 +73,15 @@ and comment out the line "bind 127.0.0.1" like this:
 After changing the configuration file, you can kill the server, which will then restart with the correct configuration:
 
 ```
-pi@raspberry:/etc/Redis $ ps aux | grep Redis
+pi@raspberry:~ $ ps aux | grep redis
 sudo kill -9 <ID>
 ```
 
 And you should see that it restarts and binds to all interfaces:
 
 ```
-pi@raspberry:/etc/Redis $ ps aux | grep Redis
-Redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/Redis-server *:6379
+pi@raspberry:~ $ ps aux | grep redis
+Redis     2840  0.0  2.2  29332  2684 ?        Ssl  11:35   0:00 /usr/bin/redis-server *:6379
 ```
 
 The Redis command line interface is an useful tool for monitoring and debugging the Redis server:
@@ -107,21 +107,21 @@ sudo apt-get install libasound2-dev
 sudo apt-get install libjack-dev
 ```
 
-### Install python modules
+### Install Python modules
 
-For Python packages we are using pip as the package manager. To install pip, use the following
+For Python we are using pip as the package manager. To install pip, use the following
 
 ```
-sudo apt-get install python-pip (replace with pip3 for Python 3)
+sudo apt-get install python-pip # replace with pip3 for Python 3
 ```
 
 To make sure it is up to date, you should do
 
 ```
-sudo pip install --upgrade pip (replace with pip3 for Python 3)
+sudo pip install --upgrade pip # replace with pip3 for Python 3
 ```
 
-Subsequently you can install the Python modules (replace with pip3 for Python 3)
+Subsequently you can install the Python modules (replace with pip3 for Python 3).
 
 ```
 sudo pip install redis
@@ -129,7 +129,7 @@ sudo pip install configparser
 sudo pip install numpy
 sudo pip install scipy
 sudo pip install mido
-sudo pip install python-rtmidi --pre
+sudo pip install python-rtmidi
 sudo pip install pyserial
 sudo pip install python-osc # for Python >= 3.6
 sudo pip install OSC        # for Python <= 3.5
@@ -166,12 +166,4 @@ This is only needed for the software synthesizer module. Note that good quality 
 ```
 sudo apt-get install python-pyaudio
 sudo apt-get install jackd
-```
-
-The following might actually not be needed.
-
-```
-sudo apt-get install alsa-utils
-sudo apt-get install mpg321
-sudo apt-get install lame
 ```
