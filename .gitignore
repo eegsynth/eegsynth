@@ -61,6 +61,7 @@ interface/node_modules
 *.egg-info
 build/*
 dist/*
+*/__pycache__/*
 
 # Test patches
 patches/test_*
