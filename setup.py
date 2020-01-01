@@ -60,7 +60,7 @@ setuptools.setup(
         "real-time",
     ],
     project_urls={
-        "Documentation": "https://github.com/eegsynth/eegsynth/raw/master/doc",
+        "Documentation": "https://github.com/eegsynth/eegsynth/blob/master/doc/README.md",
         "Source": "https://github.com/eegsynth/eegsynth/",
         "Tracker": "https://github.com/eegsynth/eegsynth/issues",
     },

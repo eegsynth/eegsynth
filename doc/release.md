@@ -24,6 +24,18 @@ twine upload dist/*
 
 _Note: I tried both `setuptools-version-command` and `better-setuptools-git-version` to automatically use the git tag for the version number. They did not work consistently and caused incorrect version numbers upon installation._
 
+## Testing the release process
+
+It is possible to test the packaging and distribution process using this:
+
+```bash
+twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+```
+
+```bash
+pip install --extra-index-url https://test.pypi.org/simple/ eegsynth
+```
+
 ## Version numbering
 
 We use [semantic versioning](https://semver.org) for the releases.
