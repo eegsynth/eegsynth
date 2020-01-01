@@ -5,19 +5,12 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# This uses https://pypi.org/project/setuptools-version-command/
-# to keep the version number in line with that of the git repository.
-
 # The organization of the python code is non-standard, hence a custom
 # package_dir and packages specification is needed.
 
 setuptools.setup(
     name="eegsynth",
-    version_config={
-        "version_format": "{tag}.dev{sha}",
-        "starting_version": "0.1.0"
-    },
-    setup_requires=['better-setuptools-git-version'],
+    version="0.0.1",
     author="Robert Oostenveld",
     author_email="r.oostenveld@gmail.com",
     license="GPLv3",
@@ -25,7 +18,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="http://www.eegsynth.org",
-    package_dir={'eegsynth': '.', 'eegsynth.lib': 'lib', 'eegsynth.module': 'module', 'eegsynth.module.*': 'module.*'},
+    package_dir={'eegsynth': '.', 'eegsynth.lib': 'lib', 'eegsynth.module': 'module'},
     packages=['eegsynth'] + ['eegsynth.' + s for s in setuptools.find_packages('.')],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
