@@ -159,9 +159,9 @@ winx        = patch.getfloat('display', 'xpos')
 winy        = patch.getfloat('display', 'ypos')
 winwidth    = patch.getfloat('display', 'width')
 winheight   = patch.getfloat('display', 'height')
-window      = patch.getfloat('arguments', 'window')        # in seconds
-clipsize    = patch.getfloat('arguments', 'clipsize')      # in seconds
-stepsize    = patch.getfloat('arguments', 'stepsize')      # in seconds
+window      = patch.getfloat('arguments', 'window', default=5.0)        # in seconds
+clipsize    = patch.getfloat('arguments', 'clipsize', default=0.0)      # in seconds
+stepsize    = patch.getfloat('arguments', 'stepsize', default=0.1)      # in seconds
 lrate       = patch.getfloat('arguments', 'learning_rate', default=0.2)
 ylim        = patch.getfloat('arguments', 'ylim', multiple=True, default=None)
 
