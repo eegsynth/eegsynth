@@ -127,6 +127,8 @@ for i in range(1, 17):
         gate.append(this)
         if debug>1:
             print(name, 'OK')
+if len(gate)==0:
+    print('no gates were specified in the ini file')
 
 # start the thread for each of the notes
 for thread in gate:
