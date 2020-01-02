@@ -123,27 +123,23 @@ begsample = -1
 endsample = -1
 
 while True:
+    monitor.loop()
+    time.sleep(patch.getfloat('general', 'delay'))
 
-    window = patch.getfloat('processing', 'window') * \
-             patch.getfloat('scale', 'window') + \
-             patch.getfloat('offset', 'window')  # in seconds
+    scale_window = patch.getfloat('scale', 'window', default=1.)
+    offset_window = patch.getfloat('offset', 'window', default=0.)
+    window = patch.getfloat('processing', 'window', default=2)
+    window = EEGsynth.rescale(window, slope=scale_window, offset=offset_window)
 
-    if debug > 1:
-        print('window = ', window, 'seconds')
+    monitor.update('window', window, debug>1)
 
     window = int(round(window * hdr_input.fSample))  # in samples
     taper = np.hanning(window)
     frequency = np.fft.rfftfreq(window, 1.0 / hdr_input.fSample)
 
-    if debug > 1:
-        print('window = ', window, 'samples')
-
-    if debug > 2:
-        print('taper     = ', taper)
-        print('frequency = ', frequency)
-
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
+    if debug>1:
+        print('taper', taper)
+        print('frequency', frequency)
 
     band_items = config.items('band')
     bandname = []
@@ -157,7 +153,8 @@ while True:
         bandname.append(item[0])
         bandlo.append(lohi[0])
         bandhi.append(lohi[1])
-    if debug>0:
+
+    if debug>1:
         print(bandname, bandlo, bandhi)
 
     hdr_input = ftc.getHeader()
