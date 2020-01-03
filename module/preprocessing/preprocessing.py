@@ -108,8 +108,7 @@ while hdr_input is None:
     if debug>0:
         print("Waiting for data to arrive...")
     if (time.time()-start)>timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
+        raise RuntimeError("timeout while waiting for data")
     hdr_input = ft_input.getHeader()
     time.sleep(0.1)
 
@@ -188,11 +187,9 @@ while True:
         time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if (hdr_input.nSamples-1)<(endsample-window):
-            print("Error: buffer reset detected")
-            raise SystemExit
+            raise RuntimeError("buffer reset detected")
         if (time.time()-start)>timeout:
-            print("Error: timeout while waiting for data")
-            raise SystemExit
+            raise RuntimeError("timeout while waiting for data")
 
     # determine the start of the actual processing
     start = time.time()

@@ -96,8 +96,7 @@ while hdr_input is None:
     if debug>0:
         print("Waiting for data to arrive...")
     if (time.time()-start)>timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
+        raise RuntimeError("timeout while waiting for data")
     hdr_input = ftc.getHeader()
     time.sleep(0.1)
 
@@ -150,8 +149,7 @@ while True:
 
     hdr_input = ftc.getHeader()
     if (hdr_input.nSamples-1)<endsample:
-        print("Error: buffer reset detected")
-        raise SystemExit
+        raise RuntimeError("buffer reset detected")
     endsample = hdr_input.nSamples - 1
     if endsample<window:
         # not enough data, try again in the next iteration

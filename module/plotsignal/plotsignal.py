@@ -139,8 +139,7 @@ while hdr_input is None:
     if debug > 0:
         print("Waiting for data to arrive...")
     if (time.time() - start) > timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
+        raise RuntimeError("timeout while waiting for data")
     hdr_input = ft_input.getHeader()
     time.sleep(0.1)
 
