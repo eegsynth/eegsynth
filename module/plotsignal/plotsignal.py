@@ -100,12 +100,13 @@ def _setup():
     if len(locals()):
         print('LOCALS: ' + ', '.join(locals().keys()))
 
+
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global channels, winx, winy, winwidth, winheight, window, clipsize, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, ichan, channr, timer, begsample, endsample
+    global channels, winx, winy, winwidth, winheight, window, clipsize, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
 
     # read variables from ini/redis
     channels    = patch.getint('arguments', 'channels', multiple=True)
@@ -138,7 +139,6 @@ def _start():
         print(hdr_input)
         print(hdr_input.labels)
 
-    channels    = [chan - 1 for chan in channels] # since python using indexing from 0 instead of 1
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
 
@@ -180,16 +180,15 @@ def _start():
     # Initialize variables
     timeplot = []
     curve    = []
-    curvemax = []*len(channels)
+    curvemax = [None]*len(channels)
 
     # Create panels for each channel
-    for ichan in range(len(channels)):
-        channr = channels[ichan] + 1
+    for plotnr, channr in enumerate(channels):
 
         timeplot.append(win.addPlot(title="%s%s" % ('Channel ', channr)))
-        timeplot[ichan].setLabel('left', text='Amplitude')
-        timeplot[ichan].setLabel('bottom', text='Time (s)')
-        curve.append(timeplot[ichan].plot(pen='w'))
+        timeplot[plotnr].setLabel('left', text='Amplitude')
+        timeplot[plotnr].setLabel('bottom', text='Time (s)')
+        curve.append(timeplot[plotnr].plot(pen='w'))
         win.nextRow()
 
     signal.signal(signal.SIGINT, _stop)
@@ -210,7 +209,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global channels, winx, winy, winwidth, winheight, window, clipsize, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, ichan, channr, timer, begsample, endsample
+    global channels, winx, winy, winwidth, winheight, window, clipsize, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
     global dat, timeaxis
 
     hdr_input = ft_input.getHeader()
@@ -255,25 +254,24 @@ def _loop_once():
     if clipsize > 0:
         dat = dat[clipsize:-clipsize,:]
 
-    for ichan in range(len(channels)):
-        channr = channels[ichan]
+    for plotnr, channr in enumerate(channels):
 
         # time axis
         timeaxis = np.linspace(-(window-2*clipsize) / hdr_input.fSample, 0, len(dat))
 
         # update timecourses
-        curve[ichan].setData(timeaxis, dat[:, channr])
+        curve[plotnr].setData(timeaxis, dat[:, channr-1])
 
         if len(ylim)==2:
             # set the vertical scale to the user-specified limits
-            timeplot[ichan].setYRange(ylim[0], ylim[1])
+            timeplot[plotnr].setYRange(ylim[0], ylim[1])
         else:
             # slowly adapt the vertical scale to the running max
-            if curvemax[ichan]==None:
-                curvemax[ichan] = max(abs(dat[:, channr]))
+            if curvemax[plotnr]==None:
+                curvemax[plotnr] = max(abs(dat[:, channr-1]))
             else:
-                curvemax[ichan] = (1 - lrate) * curvemax[ichan] + lrate * max(abs(dat[:, channr]))
-            timeplot[ichan].setYRange(-curvemax[ichan], curvemax[ichan])
+                curvemax[plotnr] = (1 - lrate) * curvemax[plotnr] + lrate * max(abs(dat[:, channr-1]))
+            timeplot[plotnr].setYRange(-curvemax[plotnr], curvemax[plotnr])
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):

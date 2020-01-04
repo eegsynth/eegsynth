@@ -107,7 +107,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, numchannel, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, ichan, channr, timer, begsample, endsample
+    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -129,11 +129,7 @@ def _start():
         print(hdr_input.labels)
 
     # read variables from ini/redis
-    channels = patch.getint('arguments', 'channels', multiple=True)
-    channels = [chan - 1 for chan in channels] # since python starts counting at 0
-    numchannel  = len(channels)
-
-    # read variables from ini/redis
+    channels    = patch.getint('arguments', 'channels', multiple=True)
     window      = patch.getfloat('arguments', 'window', default=5.0)        # in seconds
     clipsize    = patch.getfloat('arguments', 'clipsize', default=0.0)      # in seconds
     stepsize    = patch.getfloat('arguments', 'stepsize', default=0.1)      # in seconds
@@ -153,7 +149,7 @@ def _start():
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
     numhistory  = int(historysize / stepsize)                  # number of observations in the history
     freqaxis    = fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
-    history     = np.zeros((numchannel, freqaxis.shape[0], numhistory))
+    history     = np.zeros((len(channels), freqaxis.shape[0], numhistory))
 
     # ideally it should be possible to change these on the fly
     showred     = patch.getint('input', 'showred', default=1)
@@ -224,8 +220,7 @@ def _start():
     specmin_hist    = []
 
     # Create panels for each channel
-    for ichan in range(numchannel):
-        channr = channels[ichan] + 1
+    for plotnr, channr in enumerate(channels):
 
         plot = win.addPlot(title="%s%s" % ('Spectrum channel ', channr))
         # speeds up the initial axis scaling set the range to something different than [0, 0]
@@ -233,14 +228,14 @@ def _start():
         plot.setYRange(0,1)
 
         freqplot_curr.append(plot)
-        freqplot_curr[ichan].setLabel('left', text='Power')
-        freqplot_curr[ichan].setLabel('bottom', text='Frequency (Hz)')
+        freqplot_curr[plotnr].setLabel('left', text='Power')
+        freqplot_curr[plotnr].setLabel('bottom', text='Frequency (Hz)')
 
-        spect_curr.append(freqplot_curr[ichan].plot(pen='w'))
-        redleft_curr.append(freqplot_curr[ichan].plot(pen='r'))
-        redright_curr.append(freqplot_curr[ichan].plot(pen='r'))
-        blueleft_curr.append(freqplot_curr[ichan].plot(pen='b'))
-        blueright_curr.append(freqplot_curr[ichan].plot(pen='b'))
+        spect_curr.append(freqplot_curr[plotnr].plot(pen='w'))
+        redleft_curr.append(freqplot_curr[plotnr].plot(pen='r'))
+        redright_curr.append(freqplot_curr[plotnr].plot(pen='r'))
+        blueleft_curr.append(freqplot_curr[plotnr].plot(pen='b'))
+        blueright_curr.append(freqplot_curr[plotnr].plot(pen='b'))
 
         plot = win.addPlot(title="%s%s%s%s%s" % ('Averaged spectrum channel ', channr, ' (', historysize, 's)'))
         # speeds up the initial axis scaling set the range to something different than [0, 0]
@@ -248,14 +243,14 @@ def _start():
         plot.setYRange(0,1)
 
         freqplot_hist.append(plot)
-        freqplot_hist[ichan].setLabel('left', text='Power')
-        freqplot_hist[ichan].setLabel('bottom', text='Frequency (Hz)')
+        freqplot_hist[plotnr].setLabel('left', text='Power')
+        freqplot_hist[plotnr].setLabel('bottom', text='Frequency (Hz)')
 
-        spect_hist.append(freqplot_hist[ichan].plot(pen='w'))
-        redleft_hist.append(freqplot_hist[ichan].plot(pen='r'))
-        redright_hist.append(freqplot_hist[ichan].plot(pen='r'))
-        blueleft_hist.append(freqplot_hist[ichan].plot(pen='b'))
-        blueright_hist.append(freqplot_hist[ichan].plot(pen='b'))
+        spect_hist.append(freqplot_hist[plotnr].plot(pen='w'))
+        redleft_hist.append(freqplot_hist[plotnr].plot(pen='r'))
+        redright_hist.append(freqplot_hist[plotnr].plot(pen='r'))
+        blueleft_hist.append(freqplot_hist[plotnr].plot(pen='b'))
+        blueright_hist.append(freqplot_hist[plotnr].plot(pen='b'))
         win.nextRow()
 
         # initialize as lists
@@ -293,7 +288,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, numchannel, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, ichan, channr, timer, begsample, endsample
+    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
     global dat, taper, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
     hdr_input = ft_input.getHeader()
@@ -345,14 +340,13 @@ def _loop_once():
     # shift the FFT history by one step
     history = np.roll(history, 1, axis=2)
 
-    for ichan in range(numchannel):
-        channr = channels[ichan]
+    for plotnr, channr in enumerate(channels):
 
         # estimate the absolute FFT amplitude at the current moment
-        fft_curr[ichan] = abs(fft(dat[:, channr]))
+        fft_curr[plotnr] = abs(fft(dat[:, channr-1]))
 
         # update the FFT history with the current estimate
-        history[ichan, :, numhistory - 1] = fft_curr[ichan]
+        history[plotnr, :, numhistory - 1] = fft_curr[plotnr]
         fft_hist = np.mean(history, axis=2)
 
         # user-selected frequency band
@@ -360,25 +354,25 @@ def _loop_once():
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
         # adapt the vertical scale to the running mean of the min/max
-        if specmax_curr[ichan]==None:
-            specmax_curr[ichan] = max(fft_curr[ichan][freqrange])
-            specmin_curr[ichan] = min(fft_curr[ichan][freqrange])
-            specmax_hist[ichan] = max(fft_hist[ichan][freqrange])
-            specmin_hist[ichan] = min(fft_hist[ichan][freqrange])
+        if specmax_curr[plotnr]==None:
+            specmax_curr[plotnr] = max(fft_curr[plotnr][freqrange])
+            specmin_curr[plotnr] = min(fft_curr[plotnr][freqrange])
+            specmax_hist[plotnr] = max(fft_hist[plotnr][freqrange])
+            specmin_hist[plotnr] = min(fft_hist[plotnr][freqrange])
         else:
-            specmax_curr[ichan] = (1 - lrate) * float(specmax_curr[ichan]) + lrate * max(fft_curr[ichan][freqrange])
-            specmin_curr[ichan] = (1 - lrate) * float(specmin_curr[ichan]) + lrate * min(fft_curr[ichan][freqrange])
-            specmax_hist[ichan] = (1 - lrate) * float(specmax_hist[ichan]) + lrate * max(fft_hist[ichan][freqrange])
-            specmin_hist[ichan] = (1 - lrate) * float(specmin_hist[ichan]) + lrate * min(fft_hist[ichan][freqrange])
+            specmax_curr[plotnr] = (1 - lrate) * float(specmax_curr[plotnr]) + lrate * max(fft_curr[plotnr][freqrange])
+            specmin_curr[plotnr] = (1 - lrate) * float(specmin_curr[plotnr]) + lrate * min(fft_curr[plotnr][freqrange])
+            specmax_hist[plotnr] = (1 - lrate) * float(specmax_hist[plotnr]) + lrate * max(fft_hist[plotnr][freqrange])
+            specmin_hist[plotnr] = (1 - lrate) * float(specmin_hist[plotnr]) + lrate * min(fft_hist[plotnr][freqrange])
 
-        freqplot_curr[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
-        freqplot_hist[ichan].setXRange(arguments_freqrange[0], arguments_freqrange[1])
-        freqplot_curr[ichan].setYRange(specmin_curr[ichan], specmax_curr[ichan])
-        freqplot_hist[ichan].setYRange(specmin_hist[ichan], specmax_hist[ichan])
+        freqplot_curr[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
+        freqplot_hist[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
+        freqplot_curr[plotnr].setYRange(specmin_curr[plotnr], specmax_curr[plotnr])
+        freqplot_hist[plotnr].setYRange(specmin_hist[plotnr], specmax_hist[plotnr])
 
         # update the spectra
-        spect_curr[ichan].setData(freqaxis[freqrange], fft_curr[ichan][freqrange])
-        spect_hist[ichan].setData(freqaxis[freqrange], fft_hist[ichan][freqrange])
+        spect_curr[plotnr].setData(freqaxis[freqrange], fft_curr[plotnr][freqrange])
+        spect_hist[plotnr].setData(freqaxis[freqrange], fft_hist[plotnr][freqrange])
 
         # update the plotted lines
         redfreq   = patch.getfloat('input', 'redfreq', default=10. / arguments_freqrange[1])
@@ -392,17 +386,17 @@ def _loop_once():
 
         # update the vertical plotted lines
         if showred:
-            redleft_curr[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
-            redright_curr[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+            redleft_curr[plotnr].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
+            redright_curr[plotnr].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
         if showblue:
-            blueleft_curr[ichan].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
-            blueright_curr[ichan].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[ichan], specmax_curr[ichan]])
+            blueleft_curr[plotnr].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
+            blueright_curr[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
         if showred:
-            redleft_hist[ichan].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
-            redright_hist[ichan].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
+            redleft_hist[plotnr].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
+            redright_hist[plotnr].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
         if showblue:
-            blueleft_hist[ichan].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
-            blueright_hist[ichan].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_hist[ichan], specmax_hist[ichan]])
+            blueleft_hist[plotnr].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
+            blueright_hist[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
 
     # update labels at the vertical lines
     if showred:
