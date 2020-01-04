@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from copy import copy
 import configparser
 import argparse
 import numpy as np
@@ -28,6 +27,7 @@ import pandas as pd
 import sys
 import time
 import redis
+from copy import copy
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -51,156 +51,187 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug   = patch.getint('general', 'debug')
-timeout = patch.getfloat('input_fieldtrip','timeout', default=30)
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-try:
-    ftc_host = patch.getstring('input_fieldtrip', 'hostname')
-    ftc_port = patch.getint('input_fieldtrip', 'port')
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name)
+
+    # get the options from the configuration file
+    debug   = patch.getint('general', 'debug')
+
+    try:
+        ft_host = patch.getstring('input_fieldtrip', 'hostname')
+        ft_port = patch.getint('input_fieldtrip', 'port')
+        if debug > 0:
+            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        if debug > 0:
+            print("Connected to input FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to input FieldTrip buffer")
+
+    try:
+        ft_host = patch.getstring('output_fieldtrip', 'hostname')
+        ft_port = patch.getint('output_fieldtrip', 'port')
+        if debug > 0:
+            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        if debug > 0:
+            print("Connected to output FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to output FieldTrip buffer")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
+
+    # this is the timeout for the FieldTrip buffer
+    timeout = patch.getfloat('input_fieldtrip','timeout', default=30)
+
+    hdr_input = None
+    start = time.time()
+    while hdr_input is None:
+        if debug > 0:
+            print("Waiting for data to arrive...")
+        if (time.time()-start)>timeout:
+            raise RuntimeError("timeout while waiting for data")
+        time.sleep(0.1)
+        hdr_input = ft_input.getHeader()
+
     if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_input = FieldTrip.Client()
-    ft_input.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to input FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to input FieldTrip buffer")
+        print("Data arrived")
+    if debug > 1:
+        print(hdr_input)
+        print(hdr_input.labels)
 
-try:
-    ftc_host = patch.getstring('output_fieldtrip', 'hostname')
-    ftc_port = patch.getint('output_fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to output FieldTrip buffer")
+    # get the input and output options
+    input_number, input_channel = list(map(list, list(zip(*config.items('input_channel')))))
+    output_number, output_channel = list(map(list, list(zip(*config.items('output_channel')))))
 
-# get the input and output options
-input_number, input_channel = list(map(list, list(zip(*config.items('input_channel')))))
-output_number, output_channel = list(map(list, list(zip(*config.items('output_channel')))))
+    # convert to integer and make the indices zero-offset
+    input_number = [int(number)-1 for number in input_number]
+    output_number = [int(number)-1 for number in output_number]
 
-# convert to integer and make the indices zero-offset
-input_number = [int(number)-1 for number in input_number]
-output_number = [int(number)-1 for number in output_number]
+    # ensure that all input channels have a label
+    nInputs = hdr_input.nChannels
+    if len(hdr_input.labels) == 0:
+        hdr_input.labels = list(map(str, range(1, nInputs+1)))
 
-hdr_input = None
-start = time.time()
-while hdr_input is None:
-    if debug > 0:
-        print("Waiting for data to arrive...")
-    if (time.time()-start)>timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
-    hdr_input = ft_input.getHeader()
-    time.sleep(0.1)
-
-if debug > 0:
-    print("Data arrived")
-if debug > 1:
-    print(hdr_input)
-    print(hdr_input.labels)
-
-# ensure that all input channels have a label
-nInputs = hdr_input.nChannels
-if len(hdr_input.labels) == 0:
-    for i in range(nInputs):
-        hdr_input.labels.append('{}'.format(i+1))
-
-# update the labels with the ones specified in the ini file
-for number, channel in zip(input_number, input_channel):
-    if number < nInputs:
-        hdr_input.labels[number] = channel
-
-# update the input channel specification
-input_number = list(range(nInputs))
-input_channel = hdr_input.labels
-
-# ensure that all output channels have a label
-nOutputs = max(output_number)+1
-tmp = ['{}'.format(i+1) for i in range(nOutputs)]
-for number, channel in zip(output_number, output_channel):
-    tmp[number] = channel
-
-# update the output channel specification
-output_number = list(range(nOutputs))
-output_channel = tmp
-
-if debug > 0:
-    print('===== input channels =====')
+    # update the labels with the ones specified in the ini file
     for number, channel in zip(input_number, input_channel):
-        print(number, '=', channel)
-    print('===== output channels =====')
+        if number < nInputs:
+            hdr_input.labels[number] = channel
+
+    # update the input channel specification
+    input_number = list(range(nInputs))
+    input_channel = hdr_input.labels
+
+    # ensure that all output channels have a label
+    nOutputs = max(output_number)+1
+    tmp = list(map(str, range(1, nOutputs+1)))
     for number, channel in zip(output_number, output_channel):
-        print(number, '=', channel)
+        tmp[number] = channel
 
-sample_rate         = patch.getfloat('cogito', 'sample_rate')
-window              = patch.getfloat('cogito', 'window')
-f_min               = patch.getfloat('cogito', 'f_min')
-f_max               = patch.getfloat('cogito', 'f_max')
-f_offset            = patch.getfloat('cogito', 'f_offset')
-scaling             = patch.getfloat('cogito', 'scaling')
-polyorder           = patch.getint('cogito', 'polyorder', default=None)
-profileMin          = patch.getfloat('cogito', 'profileMin')
-profileMax          = patch.getfloat('cogito', 'profileMax')
-profileCorrection   = np.loadtxt('Dwingeloo-Transmitter-Profile.txt')
-profileCorrection   = (1. - profileCorrection)*(profileMax-profileMin) + profileMin
+    # update the output channel specification
+    output_number = list(range(nOutputs))
+    output_channel = tmp
 
-f_min = int(f_min/window)
-f_max = int(f_max/window)
-window = int(round(window*hdr_input.fSample)) # expressed in samples
+    if debug > 0:
+        print('===== input channels =====')
+        for number, channel in zip(input_number, input_channel):
+            print(number, '=', channel)
+        print('===== output channels =====')
+        for number, channel in zip(output_number, output_channel):
+            print(number, '=', channel)
 
-ft_output.putHeader(nOutputs, sample_rate, hdr_input.dataType, labels=output_channel)
+    sample_rate         = patch.getfloat('cogito', 'sample_rate')
+    window              = patch.getfloat('cogito', 'window')
+    f_min               = patch.getfloat('cogito', 'f_min')
+    f_max               = patch.getfloat('cogito', 'f_max')
+    f_offset            = patch.getfloat('cogito', 'f_offset')
+    scaling             = patch.getfloat('cogito', 'scaling')
+    polyorder           = patch.getint('cogito', 'polyorder', default=None)
+    profileMin          = patch.getfloat('cogito', 'profileMin')
+    profileMax          = patch.getfloat('cogito', 'profileMax')
+    profileCorrection   = np.loadtxt('Dwingeloo-Transmitter-Profile.txt')
+    profileCorrection   = (1. - profileCorrection)*(profileMax-profileMin) + profileMin
 
-# Reading EEG layout
-layout = pd.read_csv("gtec_layout.csv", index_col=0)
-definition = 10
-val = layout.loc[:, ['x', 'y', 'z']].values
-val = (val - val.min())/(val.max()-val.min())*definition
-positions = np.round(val).astype(int)
+    f_min = int(f_min/window)
+    f_max = int(f_max/window)
+    window = int(round(window*hdr_input.fSample)) # expressed in samples
 
-if debug > 1:
-    print("nsample", hdr_input.nSamples)
-    print("nchan", hdr_input.nChannels)
-    print("window", window)
+    ft_output.putHeader(nOutputs, sample_rate, hdr_input.dataType, labels=output_channel)
 
-# jump to the end of the stream
-if hdr_input.nSamples-1<window:
-    begsample = 0
-    endsample = window-1
-else:
-    begsample = hdr_input.nSamples-window
-    endsample = hdr_input.nSamples-1
+    # Reading EEG layout
+    layout = pd.read_csv("gtec_layout.csv", index_col=0)
+    definition = 10
+    val = layout.loc[:, ['x', 'y', 'z']].values
+    val = (val - val.min())/(val.max()-val.min())*definition
+    positions = np.round(val).astype(int)
 
-inputscaling = 0
-outputscaling = 0
+    if debug > 1:
+        print("nsample", hdr_input.nSamples)
+        print("nchan", hdr_input.nChannels)
+        print("window", window)
 
-while True:
+    inputscaling = 0
+    outputscaling = 0
+
+    # jump to the end of the input stream
+    if hdr_input.nSamples<window:
+        begsample = 0
+        endsample = window-1
+    else:
+        begsample = hdr_input.nSamples-window
+        endsample = hdr_input.nSamples-1
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
+    global dat_input, tmpvar, ch, chan_time, original, t, fourier, mask, convert, signal_time, signal, dat_output, write_time
+
     monitor.loop()
 
-    # measure the time that it takes
+    # determine when we start polling for available data
     start = time.time()
 
     while endsample>hdr_input.nSamples-1:
@@ -208,12 +239,11 @@ while True:
         time.sleep(patch.getfloat('general', 'delay'))
         hdr_input = ft_input.getHeader()
         if (hdr_input.nSamples-1)<(endsample-window):
-            print("Error: buffer reset detected")
-            raise SystemExit
+            raise RuntimeError("buffer reset detected")
         if (time.time()-start)>timeout:
-            print("Error: timeout while waiting for data")
-            raise SystemExit
+            raise RuntimeError("timeout while waiting for data")
 
+    # get the input data
     dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
     if inputscaling==0:
@@ -221,7 +251,7 @@ while True:
         tmpvar = max(tmp.var(axis=0))
         if tmpvar>0:
             inputscaling = 1/np.sqrt(tmpvar)
-        print('inputscaling', inputscaling)
+        monitor.update('inputscaling', inputscaling)
 
     # scale the data to have approximately unit variance
     # the scaling parameter is determined only once, and is the same for all channels
@@ -264,7 +294,7 @@ while True:
         convert = np.concatenate(channel) * profileCorrection[ch]
         tmp.append(convert)
 
-        if debug > 1:
+        if debug > 2:
             print('time to process single channel: ' + str((time.time() - chan_time) * 1000))
 
     signal_time = time.time()
@@ -279,7 +309,7 @@ while True:
         tmpvar = max(tmp.var(axis=0))
         if tmpvar>0:
             outputscaling = 1/np.sqrt(tmpvar)
-        print('outputscaling', outputscaling)
+        monitor.update('outputscaling', outputscaling)
 
     # scale the data to have approximately unit variance
     # the scaling parameter is determined only once
@@ -292,10 +322,26 @@ while True:
 
     if debug > 1:
         print('time to write data to buffer: ' + str((time.time() - write_time) * 1000))
+    if debug > 0:
+	    print("processed", window, "samples in", (time.time()-start)*1000, "ms")
 
     # increment the counters for the next loop
     begsample += window
     endsample += window
 
-    if debug > 0:
-	    print("processed", window, "samples in", (time.time()-start)*1000, "ms")
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    while True:
+        _loop_once()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    _loop_forever()

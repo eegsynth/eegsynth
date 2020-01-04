@@ -1,9 +1,14 @@
 import sys
 
+from .plotspectral import _setup, _start, _loop_forever
+
 class Executable:
     def __init__(self, args=None):
         if args!=None:
             # override the command line arguments
             sys.argv = [sys.argv[0]] + args
-        # the module is implemented as a Python script and starts as soon as it is imported
-        from . import plotspectral
+
+        # the Qt application does not restart upon a raised exception
+        _setup()
+        _start()
+        _loop_forever()

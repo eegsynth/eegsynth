@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Heartrate detects beats and returns the heart rate based on the beat-to-beat interval
+# This module detects heart beats and returns the rate based on the beat-to-beat interval
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2018 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ import os
 import redis
 import sys
 import time
-import threading
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -50,88 +49,120 @@ sys.path.insert(0, os.path.join(path,'../../lib'))
 import FieldTrip
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# get the options from the configuration file
-debug     = patch.getint('general','debug')
-timeout   = patch.getfloat('fieldtrip','timeout', default=30)
-channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
-window    = patch.getfloat('processing','window')
-threshold = patch.getfloat('processing', 'threshold')
-lrate     = patch.getfloat('processing', 'learning_rate', default=1)
-debounce  = patch.getfloat('processing', 'debounce', default=0.3)             # minimum time between beats (s)
-key_beat  = patch.getstring('output', 'heartbeat')
-key_rate  = patch.getstring('output', 'heartrate')
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name)
 
-try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_input = FieldTrip.Client()
-    ft_input.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to input FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to input FieldTrip buffer")
+    # get the options from the configuration file
+    debug = patch.getint('general','debug')
 
-hdr_input = None
-start = time.time()
-while hdr_input is None:
+    try:
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        if debug > 0:
+            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        if debug > 0:
+            print("Connected to input FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to input FieldTrip buffer")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global timeout, hdr_input, start, channel, window, threshold, lrate, debounce, key_beat, key_rate, curvemin, curvemean, curvemax, prev, begsample, endsample
+
+    # this is the timeout for the FieldTrip buffer
+    timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
+
+    hdr_input = None
+    start = time.time()
+    while hdr_input is None:
+        if debug>0:
+            print("Waiting for data to arrive...")
+        if (time.time()-start)>timeout:
+            raise RuntimeError("timeout while waiting for data")
+        time.sleep(0.1)
+        hdr_input = ft_input.getHeader()
+
     if debug>0:
-        print("Waiting for data to arrive...")
-    if (time.time()-start)>timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
-    hdr_input = ft_input.getHeader()
-    time.sleep(0.1)
+        print("Data arrived")
+    if debug>1:
+        print(hdr_input)
+        print(hdr_input.labels)
 
-if debug>0:
-    print("Data arrived")
-if debug>1:
-    print(hdr_input)
-    print(hdr_input.labels)
+    # get the options from the configuration file
+    channel   = patch.getint('input','channel')-1                                 # one-offset in the ini file, zero-offset in the code
+    window    = patch.getfloat('processing','window')
+    threshold = patch.getfloat('processing', 'threshold')
+    lrate     = patch.getfloat('processing', 'learning_rate', default=1)
+    debounce  = patch.getfloat('processing', 'debounce', default=0.3)             # minimum time between beats (s)
+    key_beat  = patch.getstring('output', 'heartbeat')
+    key_rate  = patch.getstring('output', 'heartrate')
 
-window = round(window * hdr_input.fSample)  # in samples
+    window = round(window * hdr_input.fSample)  # in samples
 
-curvemin  = np.nan;
-curvemean = np.nan;
-curvemax  = np.nan;
-prev      = np.nan
+    curvemin  = np.nan;
+    curvemean = np.nan;
+    curvemax  = np.nan;
+    prev      = np.nan
 
-begsample = -1
-endsample = -1
+    begsample = -1
+    endsample = -1
 
-while True:
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global timeout, hdr_input, start, channel, window, threshold, lrate, debounce, key_beat, key_rate, curvemin, curvemean, curvemax, prev, begsample, endsample
+    global dat, negrange, posrange, thresh, prevsample, sample, last, bpm, duration, duration_scale, duration_offset
+
     monitor.loop()
     time.sleep(patch.getfloat('general','delay'))
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
-        print("Error: buffer reset detected")
-        raise SystemExit
+        raise RuntimeError("buffer reset detected")
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
         if debug>0:
             print("Waiting for data...")
-        continue
+        return
 
     # process the last window
     begsample = hdr_input.nSamples - int(window)
@@ -169,7 +200,7 @@ while True:
 
     if len(sample)<1:
         # no beat was detected
-        continue
+        return
 
     # determine the last beat in the window
     last = sample[-1]
@@ -178,7 +209,7 @@ while True:
     if np.isnan(prev):
         # the first beat has not been detected yet
         prev = last
-        continue
+        return
 
     if last-prev>debounce:
         # require a minimum time between beats
@@ -194,3 +225,20 @@ while True:
 
             patch.setvalue(key_rate, bpm, debug=debug)
             patch.setvalue(key_beat, bpm, debug=debug, duration=duration)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    while True:
+        _loop_once()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    _loop_forever()

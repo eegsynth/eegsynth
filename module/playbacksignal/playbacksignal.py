@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -85,12 +85,12 @@ if debug>0:
     print("Reading data from", filename)
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
+    ft_host = patch.getstring('fieldtrip','hostname')
+    ft_port = patch.getint('fieldtrip','port')
     if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    ft_output = FieldTrip.Client()
+    ft_output.connect(ft_host, ft_port)
     if debug>0:
         print("Connected to FieldTrip buffer")
 except:
@@ -172,7 +172,7 @@ if debug>1:
     print("fSample", H.fSample)
     print("labels", labels)
 
-ftc.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
+ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
 
 blocksize = int(patch.getfloat('playback', 'blocksize')*H.fSample)
 begsample = 0
@@ -218,7 +218,7 @@ while True:
     D = A[begsample:endsample+1,:]
 
     # write the data to the output buffer
-    ftc.putData(D)
+    ft_output.putData(D)
 
     begsample += blocksize
     endsample += blocksize

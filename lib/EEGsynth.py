@@ -5,7 +5,7 @@ import time
 import threading
 import math
 import numpy as np
-from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
+from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 ###################################################################################################
 def printkeyval(key, val):
@@ -56,7 +56,7 @@ class monitor():
 ##############################################################################
 # This software is part of the EEGsynth, see <http://www.eegsynth.org>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -79,7 +79,8 @@ Press Ctrl-C to stop this module.
         now = time.time()
         if self.loop_time is None:
             if debug:
-                print(self.prefix + "starting loop...")
+                print(self.prefix, end = '')
+                print("starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
@@ -87,7 +88,8 @@ Press Ctrl-C to stop this module.
         elapsed = now - self.loop_time
         if elapsed>=1:
             if debug:
-                print(self.prefix + "looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+                print(self.prefix, end = '')
+                print("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
@@ -102,11 +104,16 @@ Press Ctrl-C to stop this module.
             except:
                 pass
             if debug:
-                printkeyval(self.prefix + key, val)
+                print(self.prefix, end = '')
+                printkeyval(key, val)
             self.previous_value[key] = val
             return True
         else:
             return False
+
+    def print(self, *args):
+        print(self.prefix, end = '')
+        print(*args)
 
 ###################################################################################################
 class patch():
@@ -496,3 +503,108 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
 def online_filter(b, a, x, axis=-1, zi=[]):
     y, zo = lfilter(b, a, x, axis=axis, zi=zi)
     return y, zo
+
+####################################################################
+def butter_bandpass(lowcut, highcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+####################################################################
+def butter_lowpass(lowcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    b, a = butter(order, low, btype='lowpass')
+    return b, a
+
+####################################################################
+def butter_highpass(highcut, fs, order=9):
+    nyq = 0.5 * fs
+    high = highcut / nyq
+    b, a = butter(order, high, btype='highpass')
+    return b, a
+
+####################################################################
+def notch(f0, fs, Q=30):
+    # Q = Quality factor
+    w0 = f0 / (fs / 2)  # Normalized Frequency
+    b, a = iirnotch(w0, Q)
+    return b, a
+
+####################################################################
+def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_lowpass_filter(dat, lowcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_lowpass(lowcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_highpass_filter(dat, highcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_highpass(highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def notch_filter(dat, f0, fs, Q=30, dir='onepass'):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    The fiter direction can be specified as
+        'onepass'         forward filter only
+        'onepass-reverse' reverse filter only, i.e. backward in time
+        'twopass'         zero-phase forward and reverse filter
+        'twopass-reverse' zero-phase reverse and forward filter
+        'twopass-average' average of the twopass and the twopass-reverse
+    '''
+
+    b, a = notch(f0, fs, Q=Q)
+    if dir=='onepass':
+        y = lfilter(b, a, dat)
+    elif dir=='onepass-reverse':
+        y = dat
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+    elif dir=='twopass':
+        y = dat
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+    elif dir=='twopass-reverse':
+        y = dat
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+    elif dir=='twopass-average':
+        # forward
+        y1 = dat
+        y1 = lfilter(b, a, y1)
+        y1 = np.flip(y1, 1)
+        y1 = lfilter(b, a, y1)
+        y1 = np.flip(y1, 1)
+        # reverse
+        y2 = dat
+        y2 = np.flip(y2, 1)
+        y2 = lfilter(b, a, y2)
+        y2 = np.flip(y2, 1)
+        y2 = lfilter(b, a, y2)
+        # average
+        y = (y1 + y2)/2
+    return y

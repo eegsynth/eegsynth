@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -89,12 +89,12 @@ if fileformat is None:
     fileformat = ext[1:]
 
 try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
+    ft_host = patch.getstring('fieldtrip', 'hostname')
+    ft_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
+        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    ft_input = FieldTrip.Client()
+    ft_input.connect(ft_host, ft_port)
     if debug > 0:
         print("Connected to FieldTrip buffer")
 except:
@@ -106,10 +106,9 @@ while hdr_input is None:
     if debug > 0:
         print("Waiting for data to arrive...")
     if (time.time() - start) > timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
-    hdr_input = ftc.getHeader()
+        raise RuntimeError("timeout while waiting for data")
     time.sleep(0.1)
+    hdr_input = ft_input.getHeader()
 
 if debug > 0:
     print("Data arrived")
@@ -122,7 +121,7 @@ recording = False
 while True:
     monitor.loop()
 
-    hdr_input = ftc.getHeader()
+    hdr_input = ft_input.getHeader()
 
     if recording and hdr_input is None:
         if debug > 0:
@@ -194,12 +193,12 @@ while True:
             raise NotImplementedError('unsupported file format')
 
         # determine the starting point for recording
-        if hdr_input.nSamples > blocksize:
-            endsample = hdr_input.nSamples - 1
-            begsample = endsample - blocksize + 1
-        else:
+        if hdr_input.nSamples<blocksize:
+            begsample = 0
             endsample = blocksize - 1
-            begsample = endsample - blocksize + 1
+        else:
+            begsample = hdr_input.nSamples - blocksize
+            endsample = hdr_input.nSamples - 1
         # remember the sample from the data stream at which the recording started
         startsample = begsample
 
@@ -222,7 +221,7 @@ while True:
         if ((endsample - startsample + 1) % synchronize) == 0:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, endsample - startsample + 1)
-        dat = ftc.getData([begsample, endsample]).astype(np.float64)
+        dat = ft_input.getData([begsample, endsample]).astype(np.float64)
         if debug > 0:
             print("Writing sample", begsample, "to", endsample, "as", np.shape(dat))
         if fileformat == 'edf':

@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2019 EEGsynth project
+# Copyright (C) 2019-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -76,12 +76,12 @@ lsl_name = patch.getstring('lsl', 'name')
 lsl_type = patch.getstring('lsl', 'type')
 
 try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
+    ft_host = patch.getstring('fieldtrip', 'hostname')
+    ft_port = patch.getint('fieldtrip', 'port')
     if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
+        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
+    ft_output.connect(ft_host, ft_port)
     if debug > 0:
         print("Connected to output FieldTrip buffer")
 except:

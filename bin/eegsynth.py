@@ -58,7 +58,7 @@ def _main():
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("inifile", default=path, nargs='+', help="configuration file for a patch")
+    parser.add_argument("inifile", nargs='+', help="configuration file for a patch")
     args = parser.parse_args()
 
     # start with an empty list of files

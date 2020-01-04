@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,126 +53,157 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug = patch.getint('general','debug')
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip', 'timeout')
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name)
 
-try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
+    # get the options from the configuration file
+    debug = patch.getint('general','debug')
+
+    try:
+        ft_host = patch.getstring('fieldtrip','hostname')
+        ft_port = patch.getint('fieldtrip','port')
+        if debug>0:
+            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        if debug>0:
+            print("Connected to FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to FieldTrip buffer")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
+
+    # this is the timeout for the FieldTrip buffer
+    timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
+
+    hdr_input = None
+    start = time.time()
+    while hdr_input is None:
+        if debug > 0:
+            print("Waiting for data to arrive...")
+        if (time.time() - start) > timeout:
+            raise RuntimeError("timeout while waiting for data")
+        time.sleep(0.1)
+        hdr_input = ft_input.getHeader()
+
     if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
+        print("Data arrived")
+    if debug>1:
+        print(hdr_input)
+        print(hdr_input.labels)
+
+    channel_items = config.items('input')
+    channame = []
+    chanindx = []
+    for item in channel_items:
+        # channel numbers are one-offset in the ini file, zero-offset in the code
+        channame.append(item[0])
+        chanindx.append(patch.getint('input', item[0])-1)
+
     if debug>0:
-        print("Connected to FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to FieldTrip buffer")
+        print(channame, chanindx)
 
-hdr_input = None
-start = time.time()
-while hdr_input is None:
-    if debug>0:
-        print("Waiting for data to arrive...")
-    if (time.time()-start)>timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
-    hdr_input = ftc.getHeader()
-    time.sleep(0.1)
+    shannon     = patch.getint('metrics', 'shannon',     default=0) != 0
+    sampen      = patch.getint('metrics', 'sampen',      default=0) != 0
+    multiscale  = patch.getint('metrics', 'multiscale',  default=0) != 0
+    spectral    = patch.getint('metrics', 'spectral',    default=0) != 0
+    svd         = patch.getint('metrics', 'svd',         default=0) != 0
+    correlation = patch.getint('metrics', 'correlation', default=0) != 0
+    higushi     = patch.getint('metrics', 'higushi',     default=0) != 0
+    petrosian   = patch.getint('metrics', 'petrosian',   default=0) != 0
+    fisher      = patch.getint('metrics', 'fisher',      default=0) != 0
+    hurst       = patch.getint('metrics', 'hurst',       default=0) != 0
+    dfa         = patch.getint('metrics', 'dfa',         default=0) != 0
+    lyap_r      = patch.getint('metrics', 'lyap_r',      default=0) != 0
+    lyap_e      = patch.getint('metrics', 'lyap_e',      default=0) != 0
+    window      = patch.getfloat('processing','window')  # in seconds
 
-if debug>0:
-    print("Data arrived")
-if debug>1:
-    print(hdr_input)
-    print(hdr_input.labels)
+    window      = int(round(window * hdr_input.fSample)) # in samples
+    taper       = np.hanning(window)
+    frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 
-channel_items = config.items('input')
-channame = []
-chanindx = []
-for item in channel_items:
-    # channel numbers are one-offset in the ini file, zero-offset in the code
-    channame.append(item[0])
-    chanindx.append(patch.getint('input', item[0])-1)
+    if debug>2:
+        print('taper     = ', taper)
+        print('frequency = ', frequency)
 
-if debug>0:
-    print(channame, chanindx)
+    begsample = -1
+    endsample = -1
 
-window      = patch.getfloat('processing','window')  # in seconds
-window      = int(round(window * hdr_input.fSample)) # in samples
-taper       = np.hanning(window)
-frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
-shannon      = patch.getint('metrics', 'shannon',     default=0) != 0
-sampen       = patch.getint('metrics', 'sampen',      default=0) != 0
-multiscale   = patch.getint('metrics', 'multiscale',  default=0) != 0
-spectral     = patch.getint('metrics', 'spectral',    default=0) != 0
-svd          = patch.getint('metrics', 'svd',         default=0) != 0
-correlation  = patch.getint('metrics', 'correlation', default=0) != 0
-higushi      = patch.getint('metrics', 'higushi',     default=0) != 0
-petrosian    = patch.getint('metrics', 'petrosian',   default=0) != 0
-fisher       = patch.getint('metrics', 'fisher',      default=0) != 0
-hurst        = patch.getint('metrics', 'hurst',       default=0) != 0
-dfa          = patch.getint('metrics', 'dfa',         default=0) != 0
-lyap_r       = patch.getint('metrics', 'lyap_r',      default=0) != 0
-lyap_e       = patch.getint('metrics', 'lyap_e',      default=0) != 0
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
-if debug>2:
-    print('taper     = ', taper)
-    print('frequency = ', frequency)
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
+    global dat, meandat, chan, sample, metrics, timeseries, metric_names, metric, shortmetric, key, val
 
-begsample = -1
-endsample = -1
-
-while True:
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
-    hdr_input = ftc.getHeader()
-    if (hdr_input.nSamples-1)<endsample:
-        print("Error: buffer reset detected")
-        raise SystemExit
+    hdr_input = ft_input.getHeader()
+    if (hdr_input.nSamples - 1) < endsample:
+        raise RuntimeError("buffer reset detected")
+    if hdr_input.nSamples < window:
+        # there are not yet enough samples in the buffer
+        if debug>0:
+            print("Waiting for data...")
+        return
+
+    # get the most recent data segment
+    begsample = hdr_input.nSamples - window
     endsample = hdr_input.nSamples - 1
-    if endsample<window:
-        # not enough data, try again in the next iteration
-        continue
-
-    begsample = endsample-window+1
-    dat = ftc.getData([begsample, endsample]).astype(np.double)
-
+    dat = ft_input.getData([begsample, endsample]).astype(np.double)
     dat = dat[:, chanindx]
-    meandat = dat.mean(0)
 
     # subtract the channel mean and apply the taper to each sample
+    meandat = dat.mean(0)
     for chan in range(dat.shape[1]):
         for sample in range(dat.shape[0]):
             dat[sample, chan] -= meandat[chan]
             dat[sample, chan] *= taper[sample]
 
     # compute complexity over the sample direction
-    cp = []
+    metrics = []
     for timeseries in dat.T:
-        cp.append(complexity(timeseries,
+        metrics.append(complexity(timeseries,
                         sampling_rate=hdr_input.fSample,
                         shannon=shannon,
                         sampen=sampen,
@@ -189,7 +220,7 @@ while True:
                         lyap_e=lyap_e,
                         ))
 
-    metric_names = list(cp[0].keys())
+    metric_names = list(metrics[0].keys())
 
     for chan in chanindx:
         for metric in metric_names:
@@ -200,6 +231,23 @@ while True:
             if shortmetric.startswith('fractal_dimension_'):
                 shortmetric = shortmetric[len('fractal_dimension_'):]
             key = "{}.{}".format(channame[chan], shortmetric)
-            val = cp[chan][metric]
+            val = metrics[chan][metric]
             patch.setvalue(key, val)
             monitor.update(key, val)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    while True:
+        _loop_once()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    _loop_forever()
