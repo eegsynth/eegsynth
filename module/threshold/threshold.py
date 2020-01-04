@@ -54,7 +54,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_input_host, ft_input_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -79,12 +79,12 @@ def _setup():
     debug = patch.getint('general', 'debug')
 
     try:
-        ft_input_host = patch.getstring('fieldtrip', 'hostname')
-        ft_input_port = patch.getint('fieldtrip', 'port')
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
         if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_input_host, ft_input_port))
+            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
-        ft_input.connect(ft_input_host, ft_input_port)
+        ft_input.connect(ft_host, ft_port)
         if debug > 0:
             print("Connected to FieldTrip buffer")
     except:
@@ -99,7 +99,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_input_host, ft_input_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, rectify, invert, prefix, window, scale_threshold, offset_threshold, scale_interval, offset_interval, channels, previous, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -155,7 +155,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_input_host, ft_input_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, rectify, invert, prefix, window, scale_threshold, offset_threshold, scale_interval, offset_interval, channels, previous, begsample, endsample
     global dat_input, threshold, interval, channel, maxind, maxval, sample, key
 
