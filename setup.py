@@ -7,24 +7,24 @@ with open("README.md", "r") as fh:
 
 # update the local links, so that the documentation on PyPi points to Github
 long_description = long_description.replace(
-    "](bin",      "](https://github.com/robertoostenveld/eegsynth/raw/master/bin")
+    "](bin",      "](https://github.com/eegsynth/eegsynth/raw/master/bin")
 long_description = long_description.replace(
-    "](doc",      "](https://github.com/robertoostenveld/eegsynth/raw/master/doc")
+    "](doc",      "](https://github.com/eegsynth/eegsynth/raw/master/doc")
 long_description = long_description.replace(
-    "](hardware", "](https://github.com/robertoostenveld/eegsynth/raw/master/hardware")
+    "](hardware", "](https://github.com/eegsynth/eegsynth/raw/master/hardware")
 long_description = long_description.replace(
-    "](lib",      "](https://github.com/robertoostenveld/eegsynth/raw/master/lib")
+    "](lib",      "](https://github.com/eegsynth/eegsynth/raw/master/lib")
 long_description = long_description.replace(
-    "](module",   "](https://github.com/robertoostenveld/eegsynth/raw/master/module")
+    "](module",   "](https://github.com/eegsynth/eegsynth/raw/master/module")
 long_description = long_description.replace(
-    "](patches",  "](https://github.com/robertoostenveld/eegsynth/raw/master/patches")
+    "](patches",  "](https://github.com/eegsynth/eegsynth/raw/master/patches")
 
 # The organization of the Python code is non-standard, hence a custom
 # package_dir and packages specification is needed.
 
 setuptools.setup(
     name="eegsynth",
-    version="0.2.0",
+    version="0.2.1",
     description="Converting real-time EEG into sounds, music and visual effects",
     long_description=long_description,
     long_description_content_type="text/markdown",
