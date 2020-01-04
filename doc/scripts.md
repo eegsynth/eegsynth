@@ -168,8 +168,8 @@ try:
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
 
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
+    ft_input = FieldTrip.Client()
+    ft_input.connect(ftc_host, ftc_port)
 
     if debug>0:
         print "Connected to FieldTrip buffer"
@@ -192,14 +192,14 @@ while hdr_input is None:
     if (time.time()-start)>timeout:
         raise RuntimeError("timeout while waiting for data")
 
-    hdr_input = ftc.getHeader()
+    hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 ```
 
 We can also use the _nSamples_ field in the header to wait for a specified number of samples:
 
 ```
-hdr_input = ftc.getHeader()
+hdr_input = ft_input.getHeader()
 
 if (hdr_input.nSamples-1)<endsample:
     raise RuntimeError("buffer reset detected")
