@@ -31,7 +31,7 @@ import sys
 import time
 import signal
 from scipy.fftpack import fft, fftfreq
-from scipy.signal import butter, lfilter, detrend, filtfilt, decimate
+from scipy.signal import detrend
 from scipy.interpolate import interp1d
 
 if hasattr(sys, 'frozen'):
@@ -57,6 +57,9 @@ import EEGsynth
 import FieldTrip
 
 def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
 
     parser = argparse.ArgumentParser()
@@ -103,7 +106,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, numchannel, window, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, ichan, channr, timer, begsample, endsample
+    global timeout, hdr_input, start, channels, numchannel, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, ichan, channr, timer, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -127,11 +130,13 @@ def _start():
     # read variables from ini/redis
     channels = patch.getint('arguments', 'channels', multiple=True)
     channels = [chan - 1 for chan in channels] # since python starts counting at 0
-
     numchannel  = len(channels)
-    window      = patch.getfloat('arguments', 'window')         # in seconds
-    stepsize    = patch.getfloat('arguments', 'stepsize')       # in seconds
-    historysize = patch.getfloat('arguments', 'historysize')    # in seconds
+
+    # read variables from ini/redis
+    window      = patch.getfloat('arguments', 'window', default=5.0)        # in seconds
+    clipsize    = patch.getfloat('arguments', 'clipsize', default=0.0)      # in seconds
+    stepsize    = patch.getfloat('arguments', 'stepsize', default=0.1)      # in seconds
+    historysize = patch.getfloat('arguments', 'historysize', default=10)    # in seconds
     lrate       = patch.getfloat('arguments', 'learning_rate', default=0.2)
     scale_red   = patch.getfloat('scale', 'red')
     scale_blue  = patch.getfloat('scale', 'blue')
@@ -143,14 +148,31 @@ def _start():
     winheight   = patch.getfloat('display', 'height')
     prefix      = patch.getstring('output', 'prefix')
 
-    window      = int(round(window * hdr_input.fSample))        # in samples
-    numhistory  = int(historysize / stepsize)                   # number of observations in the history
-    freqaxis    = fftfreq(window, 1. / hdr_input.fSample)
+    window      = int(round(window * hdr_input.fSample))       # in samples
+    clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
+    numhistory  = int(historysize / stepsize)                  # number of observations in the history
+    freqaxis    = fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
     history     = np.zeros((numchannel, freqaxis.shape[0], numhistory))
 
     # ideally it should be possible to change these on the fly
     showred     = patch.getint('input', 'showred', default=1)
     showblue    = patch.getint('input', 'showblue', default=1)
+
+    # lowpass, highpass and bandpass are optional, but mutually exclusive
+    filtorder = 9
+    if patch.hasitem('arguments', 'bandpass'):
+        filter = patch.getfloat('arguments', 'bandpass', multiple=True)
+    elif patch.hasitem('arguments', 'lowpass'):
+        filter = patch.getfloat('arguments', 'lowpass')
+        filter = [np.nan, filter]
+    elif patch.hasitem('arguments', 'highpass'):
+        filter = patch.getfloat('arguments', 'highpass')
+        filter = [filter, np.nan]
+    else:
+        filter = [np.nan, np.nan]
+
+    # notch filtering is optional
+    notch = patch.getfloat('arguments', 'notch', default=np.nan)
 
     # wait until there is enough data
     begsample = -1
@@ -270,7 +292,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, numchannel, window, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, ichan, channr, timer, begsample, endsample
+    global timeout, hdr_input, start, channels, numchannel, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, ichan, channr, timer, begsample, endsample
     global dat, taper, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
     hdr_input = ft_input.getHeader()
@@ -292,10 +314,28 @@ def _loop_once():
 
     dat = ft_input.getData([begsample, endsample]).astype(np.double)
 
+    # demean the data to prevent spectral leakage
+    if patch.getint('arguments', 'demean', default=1):
+        dat = detrend(dat, axis=0, type='constant')
+
     # detrend the data to prevent spectral leakage
     # this is rather slow, hence the default is not to detrend
     if patch.getint('arguments', 'detrend', default=0):
         dat = detrend(dat, axis=0, type='linear')
+
+    # apply the user-defined filtering
+    if not np.isnan(filter[0]) and not np.isnan(filter[1]):
+        dat = EEGsynth.butter_bandpass_filter(dat.T, filter[0], filter[1], int(hdr_input.fSample), filtorder).T
+    elif not np.isnan(filter[1]):
+        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filtorder).T
+    elif not np.isnan(filter[0]):
+        dat = EEGsynth.butter_highpass_filter(dat.T, filter[0], int(hdr_input.fSample), filtorder).T
+    if not np.isnan(notch):
+        dat = EEGsynth.notch_filter(dat.T, notch, hdr_input.fSample).T
+
+    # remove the filter padding
+    if clipsize > 0:
+        dat = dat[clipsize:-clipsize,:]
 
     # taper the data
     taper = np.hanning(len(dat))

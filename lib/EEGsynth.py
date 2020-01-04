@@ -527,24 +527,6 @@ def butter_highpass(highcut, fs, order=9):
     return b, a
 
 ####################################################################
-def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
-    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
-    y = lfilter(b, a, dat)
-    return y
-
-####################################################################
-def butter_lowpass_filter(dat, lowcut, fs, order=9):
-    b, a = butter_lowpass(lowcut, fs, order=order)
-    y = lfilter(b, a, dat)
-    return y
-
-####################################################################
-def butter_highpass_filter(dat, highcut, fs, order=9):
-    b, a = butter_highpass(highcut, fs, order=order)
-    y = lfilter(b, a, dat)
-    return y
-
-####################################################################
 def notch(f0, fs, Q=30):
     # Q = Quality factor
     w0 = f0 / (fs / 2)  # Normalized Frequency
@@ -552,7 +534,77 @@ def notch(f0, fs, Q=30):
     return b, a
 
 ####################################################################
-def notch_filter(dat, f0, fs, Q=30):
-    b, a = notch(f0, fs, Q=Q)
+def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_lowpass_filter(dat, lowcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_lowpass(lowcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_highpass_filter(dat, highcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_highpass(highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def notch_filter(dat, f0, fs, Q=30, dir='onepass'):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    The fiter direction can be specified as
+        'onepass'         forward filter only
+        'onepass-reverse' reverse filter only, i.e. backward in time
+        'twopass'         zero-phase forward and reverse filter
+        'twopass-reverse' zero-phase reverse and forward filter
+        'twopass-average' average of the twopass and the twopass-reverse
+    '''
+
+    b, a = notch(f0, fs, Q=Q)
+    if dir=='onepass':
+        y = lfilter(b, a, dat)
+    elif dir=='onepass-reverse':
+        y = dat
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+    elif dir=='twopass':
+        y = dat
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+    elif dir=='twopass-reverse':
+        y = dat
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+    elif dir=='twopass-average':
+        # forward
+        y1 = dat
+        y1 = lfilter(b, a, y1)
+        y1 = np.flip(y1, 1)
+        y1 = lfilter(b, a, y1)
+        y1 = np.flip(y1, 1)
+        # reverse
+        y2 = dat
+        y2 = np.flip(y2, 1)
+        y2 = lfilter(b, a, y2)
+        y2 = np.flip(y2, 1)
+        y2 = lfilter(b, a, y2)
+        # average
+        y = (y1 + y2)/2
     return y
