@@ -56,6 +56,7 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 
+
 def _setup():
     '''Initialize the module
     This adds a set of global variables
