@@ -5,7 +5,7 @@ import time
 import threading
 import math
 import numpy as np
-from scipy.signal import firwin, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
+from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 ###################################################################################################
 def printkeyval(key, val):
@@ -56,7 +56,7 @@ class monitor():
 ##############################################################################
 # This software is part of the EEGsynth, see <http://www.eegsynth.org>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -79,7 +79,8 @@ Press Ctrl-C to stop this module.
         now = time.time()
         if self.loop_time is None:
             if debug:
-                print(self.prefix + "starting loop...")
+                print(self.prefix, end = '')
+                print("starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
@@ -87,7 +88,8 @@ Press Ctrl-C to stop this module.
         elapsed = now - self.loop_time
         if elapsed>=1:
             if debug:
-                print(self.prefix + "looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+                print(self.prefix, end = '')
+                print("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
@@ -102,11 +104,16 @@ Press Ctrl-C to stop this module.
             except:
                 pass
             if debug:
-                printkeyval(self.prefix + key, val)
+                print(self.prefix, end = '')
+                printkeyval(key, val)
             self.previous_value[key] = val
             return True
         else:
             return False
+
+    def print(self, *args):
+        print(self.prefix, end = '')
+        print(*args)
 
 ###################################################################################################
 class patch():
@@ -496,3 +503,56 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
 def online_filter(b, a, x, axis=-1, zi=[]):
     y, zo = lfilter(b, a, x, axis=axis, zi=zi)
     return y, zo
+
+####################################################################
+def butter_bandpass(lowcut, highcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+####################################################################
+def butter_lowpass(lowcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    b, a = butter(order, low, btype='lowpass')
+    return b, a
+
+####################################################################
+def butter_highpass(highcut, fs, order=9):
+    nyq = 0.5 * fs
+    high = highcut / nyq
+    b, a = butter(order, high, btype='highpass')
+    return b, a
+
+####################################################################
+def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_lowpass_filter(dat, lowcut, fs, order=9):
+    b, a = butter_lowpass(lowcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_highpass_filter(dat, highcut, fs, order=9):
+    b, a = butter_highpass(highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def notch(f0, fs, Q=30):
+    # Q = Quality factor
+    w0 = f0 / (fs / 2)  # Normalized Frequency
+    b, a = iirnotch(w0, Q)
+    return b, a
+
+####################################################################
+def notch_filter(dat, f0, fs, Q=30):
+    b, a = notch(f0, fs, Q=Q)
+    y = lfilter(b, a, dat)
+    return y
