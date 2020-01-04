@@ -148,6 +148,7 @@ while True:
         # try to evaluate the equation
         try:
             val = eval(equation)
+            val = float(val) # deal with True/False
             if debug>1:
                 print('%s = %s = %g' % (key, equation, val))
             patch.setvalue(key, val)

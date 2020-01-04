@@ -179,17 +179,18 @@ class TriggerThread(threading.Thread):
                                     equation = equation.replace(name, str(value))
 
                                 # try to evaluate each equation
-                                val = eval(equation)
-                                if debug>1:
-                                    print('%s = %s = %g' % (key, equation, val))
-                                patch.setvalue(key, val)
                                 try:
-                                    pass
+                                    val = eval(equation)
+                                    val = float(val) # deal with True/False
+                                    if debug>1:
+                                        print('%s = %s = %g' % (key, equation, val))
+                                    patch.setvalue(key, val)
                                 except ZeroDivisionError:
                                     # division by zero is not a serious error
                                     patch.setvalue(equation[0], np.NaN)
                                 except:
                                     print('Error in evaluation: %s = %s' % (key, equation))
+
                             # send a copy of the original trigger with the given prefix
                             key = '%s.%s' % (prefix, item['channel'])
                             val = float(item['data'])
