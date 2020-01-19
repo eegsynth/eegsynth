@@ -32,11 +32,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -85,20 +85,24 @@ except:
 lock = threading.Lock()
 
 
-def SetGate(gate, val):
-    if debug > 1:
-        print("gate%d" % (gate), "=", val)
+def SetControl(chanindx, chanval):
     lock.acquire()
-    s.write('*g%dv%d#' % (gate, val))
+    s.write(b'*c%dv%04d#' % (chanindx, chanval))
+    lock.release()
+
+
+def SetGate(chanindx, chanval):
+    lock.acquire()
+    s.write(b'*g%dv%d#' % (chanindx, chanval))
     lock.release()
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, redischannel, gate, duration):
+    def __init__(self, redischannel, chanindx, chanstr):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
-        self.gate = gate
-        self.duration = duration
+        self.chanindx = chanindx
+        self.chanstr = chanstr
         self.running = True
 
     def stop(self):
@@ -115,33 +119,56 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
-                    # switch to the value specified in the event, it can be 0 or 1
-                    val = float(item['data']) > 0
-                    SetGate(self.gate, val)
-                    if self.duration != None:
-                        # schedule a timer to switch it off after the specified duration
-                        duration = patch.getfloat('duration', self.duration)
-                        duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
-                        # some minimal time is needed for the delay
-                        duration = EEGsynth.limit(duration, 0.05, float('Inf'))
-                        t = threading.Timer(duration, SetGate, args=[self.gate, False])
-                        t.start()
+                    chanval = float(item['data'])
+
+                    if self.chanstr.startswith('cv'):
+                        # the value should be between 0 and 4095
+                        scale = patch.getfloat('scale', self.chanstr, default=4095)
+                        offset = patch.getfloat('offset', self.chanstr, default=0)
+                        # apply the scale and offset
+                        chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+                        chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
+                        chanval = int(chanval)
+                        SetControl(self.chanindx, chanval)
+                        monitor.update(self.chanstr, chanval, debug > 0)
+
+                    elif self.chanstr.startswith('gate'):
+                        # the value should be 0 or 1
+                        scale = patch.getfloat('scale', self.chanstr, default=1)
+                        offset = patch.getfloat('offset', self.chanstr, default=0)
+                        # apply the scale and offset
+                        chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+                        chanval = int(chanval > 0)
+                        SetGate(self.chanindx, chanval)
+                        monitor.update(self.chanstr, chanval, debug > 0)
+
+                        # schedule a timer to switch the gate off after the specified duration
+                        duration = patch.getfloat('duration', self.chanstr, default=None)
+                        if duration != None:
+                            duration = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
+                            # some minimal time is needed for the delay
+                            duration = EEGsynth.limit(duration, 0.05, float('Inf'))
+                            t = threading.Timer(duration, SetGate, args=[self.chanindx, False])
+                            t.start()
 
 
 trigger = []
+# configure the trigger threads for the control voltages
+for chanindx in range(1, 5):
+    chanstr = "cv%d" % chanindx
+    if patch.hasitem('trigger', chanstr):
+        redischannel = patch.getstring('trigger', chanstr)
+        trigger.append(TriggerThread(redischannel, chanindx, chanstr))
+        if debug > 0:
+            print("configured", redischannel, "on", chanindx)
+# configure the trigger threads for the gates
 for chanindx in range(1, 5):
     chanstr = "gate%d" % chanindx
-    try:
-        channel = patch.getstring('trigger', chanstr)
-        try:
-            duration = patch.getstring('duration', chanstr)
-            trigger.append(TriggerThread(channel, chanindx, chanstr))
-        except:
-            trigger.append(TriggerThread(channel, chanindx, None))
+    if patch.hasitem('trigger', chanstr):
+        redischannel = patch.getstring('trigger', chanstr)
+        trigger.append(TriggerThread(redischannel, chanindx, chanstr))
         if debug > 0:
-            print("configured", channel, chanindx)
-    except:
-        pass
+            print("configured", redischannel, "on", chanindx)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -151,7 +178,7 @@ try:
     while True:
         time.sleep(patch.getfloat('general', 'delay'))
 
-        # loop over the control values
+        # loop over the control voltages
         for chanindx in range(1, 5):
             chanstr = "cv%d" % chanindx
             # this returns None when the channel is not present
@@ -172,13 +199,10 @@ try:
             chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
             chanval = int(chanval)
 
-            if debug > 0:
-                monitor.update(chanstr, chanval)
+            SetControl(chanindx, chanval)
+            monitor.update(chanstr, chanval, debug > 0)
 
-            lock.acquire()
-            s.write('*c%dv%04d#' % (chanindx, chanval))
-            lock.release()
-
+        # loop over the gates
         for chanindx in range(1, 5):
             chanstr = "gate%d" % chanindx
             chanval = patch.getfloat('input', chanstr)
@@ -197,12 +221,9 @@ try:
             # the value for the gate should be 0 or 1
             chanval = int(chanval > 0)
 
-            if debug > 0:
-                monitor.update(chanstr, chanval)
+            SetGate(chanindx, chanval)
+            monitor.update(chanstr, chanval, debug > 0)
 
-            lock.acquire()
-            s.write('*g%dv%d#' % (chanindx, chanval))
-            lock.release()
 
 except KeyboardInterrupt:
     print("Closing threads")
