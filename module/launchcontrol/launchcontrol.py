@@ -69,10 +69,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 # get the options from the configuration file
-debug       = patch.getint('general', 'debug')
 push        = patch.getint('button', 'push',    multiple=True)      # push-release button
 toggle1     = patch.getint('button', 'toggle1', multiple=True)      # on-off button
 toggle2     = patch.getint('button', 'toggle2', multiple=True)      # on1-on2-off button
@@ -86,6 +85,7 @@ scale_note     = patch.getfloat('scale', 'note', default=1./127)
 scale_control  = patch.getfloat('scale', 'control', default=1./127)
 offset_note    = patch.getfloat('offset', 'note', default=0)
 offset_control = patch.getfloat('offset', 'control', default=0)
+
 
 # on windows the input and output are different, on unix they are the same
 # use "input/output" when specified, otherwise use "device" for both
@@ -106,25 +106,23 @@ mididevice_input  = process.extractOne(mididevice_input, mido.get_input_names())
 mididevice_output = process.extractOne(mididevice_output, mido.get_output_names())[0] # select the closest match
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ INPUT ------')
+monitor.info('------ INPUT ------')
 for port in mido.get_input_names():
-  print(port)
-print('------ OUTPUT ------')
+  monitor.info(port)
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
+  monitor.info(port)
+monitor.info('-------------------------')
 
 try:
     inputport = mido.open_input(mididevice_input)
-    if debug > 0:
-        print("Connected to MIDI input")
+    monitor.info("Connected to MIDI input")
 except:
     raise RuntimeError("cannot connect to MIDI input")
 
 try:
     outputport = mido.open_output(mididevice_output)
-    if debug > 0:
-        print("Connected to MIDI output")
+    monitor.info("Connected to MIDI output")
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -202,14 +200,15 @@ while True:
             except:
                 pass
 
-        if debug>1 and msg.type!='clock':
-            print(msg)
+        if msg.type!='clock':
+            monitor.debug(msg)
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scale_control, offset=offset_control)
-            patch.setvalue(key, val, debug=debug)
+            patch.setvalue(key, val)
+            monitor.update(key, val)
 
         elif hasattr(msg, "note"):
             # the default is not to send a message
@@ -266,16 +265,15 @@ while True:
                 if status in list(state0value.keys()):
                     val = state0value[status]
 
-            if debug > 1:
-                print(status, val)
-
             if not val is None:
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
                 val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
-                patch.setvalue(key, val, debug=debug)
+                patch.setvalue(key, val)
+                monitor.update(key, val)
 
                 # prefix.note=note
                 key = "{}.note".format(patch.getstring('output', 'prefix'))
                 val = msg.note
-                patch.setvalue(key, val, debug=debug)
+                patch.setvalue(key, val)
+                monitor.update(key, val)

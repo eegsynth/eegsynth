@@ -58,7 +58,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug
+    global parser, args, config, r, response, patch, monitor
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -77,20 +77,14 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug
+    global parser, args, config, r, response, patch, monitor
     global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
 
     # get the options from the configuration file
@@ -137,9 +131,9 @@ def _start():
 
         ylim = patch.getfloat('ylim', name, multiple=True, default=None)
         if ylim==[] or ylim==None:
-            print("Ylim empty, will let it flow")
+            monitor.info("Ylim empty, will let it flow")
         else:
-            print("Setting Ylim according to specified range")
+            monitor.info("Setting Ylim according to specified range")
             inputplot[iplot].setYRange(ylim[0], ylim[1])
 
         variable = input_variable[iplot].split(",")
@@ -157,16 +151,12 @@ def _start():
         timer.setInterval(10)            # timeout in milliseconds
         timer.start(int(delay * 1000))   # in milliseconds
 
-        # there should not be any local variables in this function, they should all be global
-        if len(locals()):
-            print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_once():
     '''Update the main figure once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug
+    global parser, args, config, r, response, patch, monitor
     global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
     global counter, input_variable_list, ivar, timeaxis
 
@@ -191,10 +181,6 @@ def _loop_once():
             # update timecourses
             inputcurve[counter].setData(timeaxis, inputhistory[counter, :])
             counter += 1
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

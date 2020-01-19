@@ -61,7 +61,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -80,33 +80,24 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.info('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to input FieldTrip buffer")
+        monitor.info("Connected to input FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -115,18 +106,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info("Waiting for data to arrive...")
         if (time.time() - start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info("Data arrived")
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     # read variables from ini/redis
     channels    = patch.getint('arguments', 'channels', multiple=True)
@@ -279,15 +267,12 @@ def _start():
     timer.setInterval(10)                     # timeout in milliseconds
     timer.start(int(round(stepsize * 1000)))  # in milliseconds
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 def _loop_once():
     '''Update the main figure once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
     global dat, taper, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
@@ -305,8 +290,7 @@ def _loop_once():
     begsample = (hdr_input.nSamples - window)  # the clipsize will be removed from both sides after filtering
     endsample = (hdr_input.nSamples - 1)
 
-    if debug > 0:
-        monitor.print("reading from sample %d to %d" % (begsample, endsample))
+    monitor.info("reading from sample %d to %d" % (begsample, endsample))
 
     dat = ft_input.getData([begsample, endsample]).astype(np.double)
 
@@ -434,10 +418,6 @@ def _loop_once():
         patch.setvalue(key, bluefreq - bluewidth)
         key = "%s.%s.%s" % (prefix, 'blueband', 'high')
         patch.setvalue(key, bluefreq + bluewidth)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

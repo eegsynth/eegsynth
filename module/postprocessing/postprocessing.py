@@ -70,10 +70,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
-
-# get the options from the configuration file
-debug = patch.getint('general', 'debug')
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 def rand(x):
     # the input variable is ignored
@@ -100,7 +97,7 @@ def sanitize(equation):
 # assign the initial values
 for item in config.items('initial'):
     val = patch.getfloat('initial', item[0])
-    patch.setvalue(item[0], val, debug=(debug>0))
+    patch.setvalue(item[0], val)
     monitor.update(item[0], val)
 
 # get the input and output options
@@ -116,32 +113,30 @@ else:
 # make the equations robust against sub-string replacements
 output_equation = [sanitize(equation) for equation in output_equation]
 
-if debug>0:
-    print('===== input variables =====')
-    for name,variable in zip(input_name, input_variable):
-        monitor.update(name, variable)
-    print('===== output equations =====')
-    for name,equation in zip(output_name, output_equation):
-        monitor.update(name, equation)
-    print('============================')
+monitor.info('===== input variables =====')
+for name,variable in zip(input_name, input_variable):
+    monitor.info(name, '=', variable)
+monitor.info('===== output equations =====')
+for name,equation in zip(output_name, output_equation):
+    monitor.info(name, '=', equation)
+monitor.info('============================')
 
 while True:
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
-    if debug>1:
-        print('============================')
+    monitor.debug('============================')
 
     input_value = []
     for name in input_name:
-        val = patch.getfloat('input', name, debug=(debug>1))
+        val = patch.getfloat('input', name)
         input_value.append(val)
 
     for key, equation in zip(output_name, output_equation):
         # replace the variable names in the equation by the values
         for name, value in zip(input_name, input_value):
             if value is None and equation.count(name)>0:
-                print('Undefined value: %s' % (name))
+                monitor.error('Undefined value: %s' % (name))
             else:
                 equation = equation.replace(name, str(value))
 
@@ -149,11 +144,10 @@ while True:
         try:
             val = eval(equation)
             val = float(val) # deal with True/False
-            if debug>1:
-                print('%s = %s = %g' % (key, equation, val))
+            monitor.debug('%s = %s = %g' % (key, equation, val))
             patch.setvalue(key, val)
         except ZeroDivisionError:
             # division by zero is not a serious error
             patch.setvalue(equation[0], np.NaN)
         except:
-            print('Error in evaluation: %s = %s' % (key, equation))
+            monitor.error('Error in evaluation: %s = %s' % (key, equation))

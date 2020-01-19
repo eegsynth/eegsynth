@@ -71,10 +71,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 # get the options from the configuration file
-debug = patch.getint('general', 'debug')
 prefix = patch.getstring('output', 'prefix')
 
 def rand(x):
@@ -102,7 +101,7 @@ def sanitize(equation):
 # assign the initial values
 for item in config.items('initial'):
     val = patch.getfloat('initial', item[0])
-    patch.setvalue(item[0], val, debug=(debug>0))
+    patch.setvalue(item[0], val)
     monitor.update(item[0], val)
 
 # get the input variables
@@ -119,15 +118,14 @@ for item in config.items('trigger'):
     # make the equations robust against sub-string replacements
     output_equation[item[0]] = [sanitize(equation) for equation in output_equation[item[0]]]
 
-if debug>0:
-    print('===== input variables =====')
-    for name,variable in zip(input_name, input_variable):
-        monitor.update(name, variable)
-    for item in config.items('trigger'):
-        print('===== output equations for %s =====' % item[0])
-        for name,equation in zip(output_name[item[0]], output_equation[item[0]]):
-            monitor.update(name, equation)
-    print('============================')
+monitor.info('===== input variables =====')
+for name,variable in zip(input_name, input_variable):
+    monitor.info(name, '=', variable)
+for item in config.items('trigger'):
+    monitor.info('===== output equations for %s =====' % item[0])
+    for name,equation in zip(output_name[item[0]], output_equation[item[0]]):
+        monitor.info(name, '=', equation)
+monitor.info('============================')
 
 # this is to prevent two triggers from being processed at the same time
 lock = threading.Lock()
@@ -150,7 +148,7 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel'] == self.redischannel:
                         with lock:
-                            print('----- %s ----- ' % (self.redischannel))
+                            monitor.debug('----- %s ----- ' % (self.redischannel))
                             input_value = []
                             for name in input_name:
                                 # get the values of the input variables
@@ -166,7 +164,7 @@ class TriggerThread(threading.Thread):
                                 # replace the variable names in the equation by the values
                                 for name, value in zip(input_name, input_value):
                                     if value is None and equation.count(name)>0:
-                                        print('Undefined value: %s' % (name))
+                                        monitor.error('Undefined value: %s' % (name))
                                     else:
                                         equation = equation.replace(name, str(value))
 
@@ -174,7 +172,7 @@ class TriggerThread(threading.Thread):
                                 name  = self.trigger
                                 value = float(item['data'])
                                 if value is None and equation.count(name)>0:
-                                    print('Undefined value: %s' % (name))
+                                    monitor.error('Undefined value: %s' % (name))
                                 else:
                                     equation = equation.replace(name, str(value))
 
@@ -182,14 +180,13 @@ class TriggerThread(threading.Thread):
                                 try:
                                     val = eval(equation)
                                     val = float(val) # deal with True/False
-                                    if debug>1:
-                                        print('%s = %s = %g' % (key, equation, val))
+                                    monitor.debug('%s = %s = %g' % (key, equation, val))
                                     patch.setvalue(key, val)
                                 except ZeroDivisionError:
                                     # division by zero is not a serious error
                                     patch.setvalue(equation[0], np.NaN)
                                 except:
-                                    print('Error in evaluation: %s = %s' % (key, equation))
+                                    monitor.error('Error in evaluation: %s = %s' % (key, equation))
 
                             # send a copy of the original trigger with the given prefix
                             key = '%s.%s' % (prefix, item['channel'])
@@ -198,12 +195,10 @@ class TriggerThread(threading.Thread):
 
 # create the background threads that deal with the triggers
 trigger = []
-if debug>1:
-    print("Setting up threads for each trigger")
+monitor.debug("Setting up threads for each trigger")
 for item in config.items('trigger'):
         trigger.append(TriggerThread(item[0], item[1]))
-        if debug>1:
-            print(item[0], item[1], 'OK')
+        monitor.debug(item[0], item[1], 'OK')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -215,7 +210,7 @@ try:
         time.sleep(patch.getfloat('general', 'delay'))
 
 except KeyboardInterrupt:
-    print('Closing threads')
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('PROCESSTRIGGER_UNBLOCK', 1)

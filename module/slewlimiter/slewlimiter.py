@@ -65,10 +65,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 # get the options from the configuration file
-debug = patch.getint('general', 'debug')
 prefix = patch.getstring('output', 'prefix')
 
 # get the list of input variables
@@ -95,7 +94,6 @@ while True:
             # initialize for the first time
             previous_val[name] = val
         val = (1 - lrate) * previous_val[name] + lrate * val
-        if debug>0:
-            monitor.update(key, val)
+        monitor.update(key, val)
         patch.setvalue(key, val)
         previous_val[name] = val

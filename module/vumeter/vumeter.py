@@ -67,10 +67,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 # get the options from the configuration file
-debug           = patch.getint('general', 'debug')
 delay           = patch.getfloat('general', 'delay')
 winx            = patch.getfloat('display', 'xpos')
 winy            = patch.getfloat('display', 'ypos')
@@ -80,9 +79,9 @@ winheight       = patch.getfloat('display', 'height')
 # get the input options
 input_name, input_variable = list(zip(*config.items('input')))
 
-if debug>0:
-    for name,variable in zip(input_name, input_variable):
-        print("%s = %s" % (name, variable))
+for name,variable in zip(input_name, input_variable):
+    monitor.info("%s = %s" % (name, variable))
+
 
 class Window(QtGui.QWidget):
     def __init__(self):
@@ -121,8 +120,7 @@ class Window(QtGui.QWidget):
             val = patch.getfloat('input', name, default=np.nan)
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-            if debug>0:
-                monitor.update(name, val)
+            monitor.update(name, val)
 
             threshold = patch.getfloat('threshold', name, default=1)
             threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)
@@ -155,9 +153,11 @@ class Window(QtGui.QWidget):
         qp.end()
         self.show()
 
+
 def sigint_handler(*args):
     # close the application cleanly
     QtGui.QApplication.quit()
+
 
 # start the graphical user interface
 app = QtGui.QApplication(sys.argv)

@@ -75,40 +75,28 @@ def _setup():
     # combine the patching from the configuration file and Redis
     patch = EEGsynth.patch(config, r)
 
-
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     try:
         ft_host = patch.getstring('input_fieldtrip','hostname')
         ft_port = patch.getint('input_fieldtrip','port')
-        if debug>0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.info('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug>0:
-            print("Connected to input FieldTrip buffer")
+        monitor.info("Connected to input FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
     try:
         ft_host = patch.getstring('output_fieldtrip','hostname')
         ft_port = patch.getint('output_fieldtrip','port')
-        if debug>0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.info('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_output = FieldTrip.Client()
         ft_output.connect(ft_host, ft_port)
-        if debug>0:
-            print("Connected to output FieldTrip buffer")
+        monitor.info("Connected to output FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _start():
@@ -124,18 +112,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug>0:
-            print("Waiting for data to arrive...")
+        monitor.info("Waiting for data to arrive...")
         if (time.time()-start)>timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug>0:
-        print("Data arrived")
-    if debug>1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info("Data arrived")
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     window = patch.getfloat('processing', 'window')
     window = int(round(window*hdr_input.fSample))
@@ -160,8 +145,7 @@ def _start():
         # scale them to the Nyquist frequency
         default_scale = hdr_input.fSample/2
 
-    if debug>0:
-        print('default scale for filter settings is %.0f' % (default_scale))
+    monitor.info('default scale for filter settings is %.0f' % (default_scale))
 
     scale_lowpass       = patch.getfloat('scale', 'lowpassfilter', default=default_scale)
     scale_highpass      = patch.getfloat('scale', 'highpassfilter', default=default_scale)
@@ -195,10 +179,6 @@ def _start():
         begsample = hdr_input.nSamples-window
         endsample = hdr_input.nSamples-1
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_once():
     '''Run the main loop once
@@ -228,9 +208,8 @@ def _loop_once():
     dat_input  = ft_input.getData([begsample, endsample]).astype(np.float32)
     dat_output = dat_input
 
-    if debug>2:
-        print("------------------------------------------------------------")
-        print("read        ", window, "samples in", (time.time()-start)*1000, "ms")
+    monitor.trace("------------------------------------------------------------")
+    monitor.trace("read        ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Online bandpass filtering
     highpassfilter = patch.getfloat('processing', 'highpassfilter', default=None)
@@ -256,8 +235,7 @@ def _loop_once():
     if not(highpassfilter is None) or not(lowpassfilter is None):
         # apply the filter to the data
         dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
-        if debug>1:
-            print("filtered    ", window, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("filtered    ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Online notch filtering
     notchfilter = patch.getfloat('processing', 'notchfilter', default=None)
@@ -277,8 +255,7 @@ def _loop_once():
     if not(notchfilter is None):
         # apply the filter to the data
         dat_output, nzi = EEGsynth.online_filter(nb, na, dat_output, axis=0, zi=nzi)
-        if debug>1:
-            print("notched     ", window, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("notched     ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Differentiate
     if differentiate:
@@ -297,44 +274,34 @@ def _loop_once():
         for t in range(window):
             dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
             previous = copy(dat_output[t, :])
-        if debug>1:
-            print("smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # Downsampling
     if not(downsample is None):
         # do not apply an anti aliassing filter, the data segment is probably too short for that
         dat_output = decimate(dat_output, downsample, n=0, ftype='iir', axis=0, zero_phase=True)
         window_new = int(window / downsample)
-        if debug>1:
-            print("downsampled ", window, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("downsampled ", window, "samples in", (time.time()-start)*1000, "ms")
     else:
         window_new = window
 
     # Re-referencing
     if reference == 'median':
         dat_output -= repmat(np.nanmedian(dat_output, axis=1), dat_output.shape[1], 1).T
-        if debug>1:
-            print("rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms")
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
-        if debug>1:
-            print("rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
-    if debug>0:
-        print("preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms")
-    if debug>2:
-        print("wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms")
+    monitor.trace("wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # increment the counters for the next loop
     begsample += window
     endsample += window
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():
