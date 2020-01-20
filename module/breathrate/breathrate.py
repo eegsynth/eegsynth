@@ -73,6 +73,9 @@ key_rate = patch.getstring('output', 'key')
 window = patch.getfloat('processing', 'window')
 stride = patch.getfloat('general', 'delay')
 lrate = patch.getfloat('processing', 'lrate')
+nibi = patch.getint("processing", "nibi")
+offset = patch.getfloat("processing", "offset")
+
 
 try:
     ftc_host = patch.getstring('fieldtrip', 'hostname')
@@ -103,20 +106,23 @@ if debug>0:
 if debug>1:
     print(hdr_input)
     print(hdr_input.labels)
-    
+  
+# Set parameters.
 sfreq = hdr_input.fSample
 window = int(np.rint(window * sfreq))
 
-# initiate variables
 state = 'wrc'
 maxbr = 100
 micsfact = 0.5
 mdcsfact = 0.1
 ics = np.nan
 dcs = np.nan
-mics = np.int(np.rint((micsfact * 60/maxbr) * sfreq))
-mdcs = np.int(np.rint((mdcsfact * 60/maxbr) * sfreq))
+mics = np.int(np.rint((micsfact * 60 / maxbr) * sfreq))
+mdcs = np.int(np.rint((mdcsfact * 60 / maxbr) * sfreq))
 lowtafact = 0.25
+
+# Initiate variables.
+n = 0
 meanta = 0
 stdta = 0
 lastrisex = 0
@@ -126,7 +132,8 @@ currentmin = np.inf
 currentmax = -np.inf
 begsample = -1
 endsample = -1
-n = 0
+ibi_buffer = np.zeros((nibi, 3))
+
 
 while True:
     # window shift implicitely controlled with temporal delay; to
@@ -149,7 +156,7 @@ while True:
     endsample = hdr_input.nSamples - 1
     block_idcs = np.arange(begsample, endsample, dtype=int)
     dat = ft_input.getData([begsample, endsample])
-    dat = dat[:, channel]
+    dat = dat[:, channel] - offset
     
     # find zero-crossings
     greater = dat > 0
@@ -228,13 +235,16 @@ while True:
             lowta = typta * lowtafact
 
             if currentta > lowta:
-                #declare the current maximum a valid peak
+                # Declare the current maximum a valid peak.
+                print('BREATH DETECTED')
                 peak = currentmax_idx
                 if np.isnan(lastpeak):
                     lastpeak = peak
                     continue
-                rate = (60 / ((peak - lastpeak) / sfreq))
-                print('BREATH DETECTED')
+                # Append the current average rate to the buffer.
+                ibi_buffer = np.roll(ibi_buffer, -1)
+                ibi_buffer[-1] = (60 / ((peak - lastpeak) / sfreq))
+                rate = np.mean(ibi_buffer)
                 # publish rate
                 patch.setvalue(key_rate, rate, debug=debug)
                 lastpeak = peak
