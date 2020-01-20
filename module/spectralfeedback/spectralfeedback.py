@@ -29,9 +29,9 @@ import time
 import signal
 from scipy.signal import decimate, detrend
 from scipy.interpolate import interp1d
-#from spectrum import arburg, arma2psd
+from spectrum import arburg, arma2psd
 from pyqtgraph.Qt import QtGui, QtCore
-from numpy.fft import rfft, rfftfreq
+from numpy.fft import rfftfreq
 
 
 if hasattr(sys, 'frozen'):
@@ -162,14 +162,14 @@ def update():
     dat = detrend(dat)
     dat *= np.hanning(window_downsamp)
 
-#    # compute AR coefficients
-#    AR, rho, _ = arburg(dat, order=16)
-#    # use coefficients to compute spectral estimate
-#    psd = arma2psd(AR, rho=rho, NFFT=window)
-#    # select only positive frequencies
-#    psd = np.flip(psd[t:])
+    # compute AR coefficients
+    AR, rho, _ = arburg(dat, order=16)
+    # use coefficients to compute spectral estimate
+    psd = arma2psd(AR, rho=rho, NFFT=window)
+    # select only positive frequencies
+    psd = np.flip(psd[int(np.rint(window_downsamp / 2)):])
 
-    psd = abs(rfft(dat))
+    #psd = abs(rfft(dat))
     
     # interpolate psd at desired frequency resolution in order to be able to 
     # set feedback thresholds at intervals smaller than the original frequency
