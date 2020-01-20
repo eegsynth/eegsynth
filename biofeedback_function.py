@@ -1,42 +1,36 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 16 11:06:14 2019
 
-@author: John Doe
-"""
-
-import math
+import numpy as np
 import matplotlib.pyplot as plt
 
-min_br = 6
-max_br = 30
-min_feedback = 0
-max_feedback = 1
+min_br = 5
+max_br = 40
 
-def mappingfun(x):
+def mappingfun(x, min_br, max_br):
 
-#    y = ((x - min_br) * ((max_feedback - min_feedback) / (max_br - min_br)) +
-#         min_feedback)
-    return 1 / (1 + math.exp(-0.5*(x-15)))#y**2
+    x0 = min_br
+    y0 = 1
+    x1 = max_br
+    y1 = 0.0001
+
+    if x < min_br:
+        return 1
+    elif x > max_br:
+        return 0
+    else:
+        expo = y0 * (y1 / y0) ** ((x - x0) / (x1 - x0))
+        # expo = np.exp(((min_br - 1) -x) * (min_br /(max_br - min_br)))
+        return expo
 
 
-brs = range(60)
+mappingfun = np.frompyfunc(mappingfun, 3, 1)
+
+brs = np.linspace(0, 60, 600)
 feedback = []
 
-for current_br in brs:
+feedback = mappingfun(brs, min_br, max_br)
 
-    if current_br <= min_br:
-        feedback.append(min_feedback)
-    elif current_br >= max_br:
-        feedback.append(max_feedback)
-    else:
-        feedback.append(mappingfun(current_br))
-    
-    
-plt.figure()
-ax1 = plt.subplot(211)
-ax2 = plt.subplot(212, sharex=ax1)
-ax1.plot(feedback, c='r')
-ax2.plot(brs)
-ax2.axhline(6)
+fig, ax = plt.subplots()
+ax.plot(brs, feedback, c='r')
+ax.vlines([min_br, max_br], ymin=0, ymax=1)
 
