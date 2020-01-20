@@ -64,7 +64,7 @@ while block * stride + window <= signal.size:
     
     AR, rho, _ = arburg(dat, order=16)
     pburg = arma2psd(AR, rho=rho, NFFT=window)
-    pburg = np.flip(pburg[t:])
+    pburg = np.flip(pburg[int(window / 2):])
     pburg_all[:, block] = pburg
     
     pfft = rfft(dat, window, norm=None)
