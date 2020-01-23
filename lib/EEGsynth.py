@@ -85,18 +85,20 @@ Press Ctrl-C to stop this module.
     def loop(self, debug=True):
         now = time.time()
         if self.loop_time is None:
-            self.info("starting loop...")
+            if debug:
+                self.info("starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
             self.loop_count += 1
         elapsed = now - self.loop_time
         if elapsed>=1:
-            self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+            if debug:
+                self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
-    def update(self, key, val):
+    def update(self, key, val, debug=True):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
             try:
                 # the comparison returns false in case both are nan
@@ -106,7 +108,8 @@ Press Ctrl-C to stop this module.
                     return False
             except:
                 pass
-            self.info(formatkeyval(key, val))
+            if debug:
+                self.info(formatkeyval(key, val))
             self.previous_value[key] = val
             return True
         else:
