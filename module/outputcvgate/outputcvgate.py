@@ -23,10 +23,12 @@ import configparser
 import argparse
 import os
 import redis
-import serial
 import sys
 import threading
 import time
+import serial
+import serial.tools.list_ports
+from fuzzywuzzy import process
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -58,7 +60,6 @@ config.read(args.inifile)
 
 try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
 
@@ -66,18 +67,20 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-# get the options from the configuration file
-debug = patch.getint('general', 'debug')
 # values between 0 and 1 work well for the duration
 duration_scale = patch.getfloat('duration', 'scale', default=1)
 duration_offset = patch.getfloat('duration', 'offset', default=0)
 
+# get the specified serial device, or the one that is the closest match
+serialdevice = patch.getstring('serial', 'device')
+serialdevice = EEGsynth.trimquotes(serialdevice)
+serialdevice = process.extractOne(serialdevice, [comport.device for comport in serial.tools.list_ports.comports()])[0] # select the closest match
+
 try:
-    s = serial.Serial(patch.getstring('serial', 'device'), patch.getint('serial', 'baudrate'), timeout=3.0)
-    if debug > 0:
-        print("Connected to serial port")
+    s = serial.Serial(serialdevice, patch.getint('serial', 'baudrate'), timeout=3.0)
+    monitor.success("Connected to serial port")
 except:
     raise RuntimeError("cannot connect to serial port")
 
@@ -130,7 +133,7 @@ class TriggerThread(threading.Thread):
                         chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
                         chanval = int(chanval)
                         SetControl(self.chanindx, chanval)
-                        monitor.update(self.chanstr, chanval, debug > 0)
+                        monitor.update(self.chanstr, chanval)
 
                     elif self.chanstr.startswith('gate'):
                         # the value should be 0 or 1
@@ -140,7 +143,7 @@ class TriggerThread(threading.Thread):
                         chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
                         chanval = int(chanval > 0)
                         SetGate(self.chanindx, chanval)
-                        monitor.update(self.chanstr, chanval, debug > 0)
+                        monitor.update(self.chanstr, chanval)
 
                         # schedule a timer to switch the gate off after the specified duration
                         duration = patch.getfloat('duration', self.chanstr, default=None)
@@ -159,16 +162,14 @@ for chanindx in range(1, 5):
     if patch.hasitem('trigger', chanstr):
         redischannel = patch.getstring('trigger', chanstr)
         trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-        if debug > 0:
-            print("configured", redischannel, "on", chanindx)
+        monitor.info("configured", redischannel, "on", chanindx)
 # configure the trigger threads for the gates
 for chanindx in range(1, 5):
     chanstr = "gate%d" % chanindx
     if patch.hasitem('trigger', chanstr):
         redischannel = patch.getstring('trigger', chanstr)
         trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-        if debug > 0:
-            print("configured", redischannel, "on", chanindx)
+        monitor.info("configured", redischannel, "on", chanindx)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -186,8 +187,7 @@ try:
 
             if chanval == None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print(chanstr, 'not available')
+                monitor.trace(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -200,7 +200,7 @@ try:
             chanval = int(chanval)
 
             SetControl(chanindx, chanval)
-            monitor.update(chanstr, chanval, debug > 0)
+            monitor.update(chanstr, chanval)
 
         # loop over the gates
         for chanindx in range(1, 5):
@@ -209,8 +209,7 @@ try:
 
             if chanval == None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print(chanstr, 'not available')
+                monitor.trace(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -222,11 +221,11 @@ try:
             chanval = int(chanval > 0)
 
             SetGate(chanindx, chanval)
-            monitor.update(chanstr, chanval, debug > 0)
+            monitor.update(chanstr, chanval)
 
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTCVGATE_UNBLOCK', 1)
