@@ -4,19 +4,23 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QFormLayout)
 from PyQt5.QtCore import QTimer
 from pyqtgraph import PlotWidget
+import pyqtgraph as pg
 import numpy as np
 
 
 class View(QMainWindow):
 
     def __init__(self, model, controller):
+        
         super().__init__()
 
         self._model = model
         self._controller = controller
+        
+        pg.setConfigOptions(antialias=True)
 
         # Specify the application layout.
-        ################################
+        #################################
 
         self.breathingplot = PlotWidget()
         self.breathingplot_menu = QFormLayout()
@@ -50,40 +54,39 @@ class View(QMainWindow):
         self.vlayout0.setStretch(2, 10)
         self.vlayout0.setStretch(3, 1)
 
-        # Set timer for breathingplot (update plot every 100 msec)
-        breathingplot_timer = QTimer()
-        breathingplot_timer.timeout.connect(self.plot_breathing)
-        breathingplot_timer.start(100)    # in msec
+        # Set timer for breathingplot (update plot every 100 msec).
+        self.breathingplot_timer = QTimer()
+        self.breathingplot_timer.timeout.connect(self.plot_breathing)
+        self.breathingplot_timer.start(100)    # in msec
 
         # Initiate variables.
-        self.breathing = np.zeros(self._model.window)
-        self.breathingwindow = np.linspace(-self._model.window / self._model.sfreq,
-                                           0, self._model.window * self._model.sfreq)
-
-
-    # Define the plotting methods.
-    ##############################
+        self.breathingsignal = self.breathingplot.plot()
+        self.powerspectrum = self.spectralplot.plot()
+        
+        # Define the plotting methods.
+        ##############################
+        
+        # Connect methods to signals emitted by the model.
+        self._model.psd_changed.connect(self.plot_psd)
+        self._model.biofeedback_changed(self.plot_biofeedback)
 
     def plot_breathing(self):
+        # If window or channel are updated, the update will take effect on the
+        # first subsequent call of this method.
+        header = self._model.ftc.getHeader()
+        current_idx = header.nSamples
+        sfreq = header.fSample
+        beg = current_idx - self._model.window * sfreq
+        end = current_idx - 1
+        data = self._model.ftc.getData([beg, end])[:, self._model.channel]
+        time = np.linspace(-self._model.window, 0, self._model.window * sfreq)
+        self.breathingsignal.setData(time, data)
 
-        self.breathing = self._model.ft_client.getData(self._model.window)
-        self.breathingplot.plot(self.breathing, self.breathingwindow)
+
+    def plot_psd(self, psd):
+        # Update the power spectrum.
+        self.powerspectrum.setData(self._model.freqs, psd)
 
 
-    def plot_spectral(self):
+    def plot_biofeedback(self, biofeedback):
         pass
-
-
-    def plot_biofeedback(self):
-        pass
-
-
-    # Display biofeedback mapping with current breathing estimate.
-
-
-    # Display breathing spectrum.
-
-
-
-
-
