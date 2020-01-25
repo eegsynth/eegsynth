@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
+from pyqtgraph import LinearRegionItem
 import FieldTrip
 import time
 
@@ -12,6 +13,8 @@ class Model(QObject):
     biofeedback_changed = pyqtSignal(object)
 
     # The following model attributes are set by the controller.
+    ###########################################################
+    
     @property
     def psd(self):
         return self._psd
@@ -30,15 +33,85 @@ class Model(QObject):
         self._freqs = value
         
     @property
+    def rewardratio(self):
+        return self._rewardratio
+    
+    @rewardratio.setter
+    def rewardratio(self, value):
+        self._rewardratio = value
+        
+    @property
     def biofeedback(self):
         return self._biofeedback
     
     @biofeedback.setter
     def biofeedback(self, value):
         self._biofeedback = value
-        self.biofeedback_changed.emit(value)
+        # Emit both the x-coordinate (rewardratio) and y-coordinate
+        # (biofeedback) for the view's biofeedback plot.
+        self.biofeedback_changed.emit([self._rewardratio, value])
         
     # The following model attributes are set directly by the view.
+    ##############################################################    
+       
+    @pyqtProperty(float)
+    def biofeedbacktarget(self):
+        return self._biofeedbacktarget
+    
+    @pyqtSlot(float)
+    def set_biofeedbacktarget(self, value):
+        self._biofeedbacktarget = value
+        
+    @pyqtProperty(str)
+    def biofeedbackmapping(self):
+        return self._biofeedbackmapping
+    
+    @pyqtSlot(str)
+    def set_biofeedbackmapping(self, value):
+        self._biofeedbackmapping = value
+        
+    @pyqtProperty(object)
+    def lowreward(self):
+        return self._lowreward
+    
+    @pyqtSlot(object)
+    def set_lowreward(self, value):
+        if isinstance(value, type(LinearRegionItem())):
+            value = value.getRegion()[0]
+            if value != self._lowreward:
+                self._lowreward = value
+        else:
+            self._lowreward = value
+        
+    @pyqtProperty(object)
+    def upreward(self):
+        return self._upreward
+    
+    @pyqtSlot(object)
+    def set_upreward(self, value):
+        if isinstance(value, type(LinearRegionItem())):
+            value = value.getRegion()[1]
+            if value != self._upreward:
+                self._upreward = value
+        else:
+            self._upreward = value
+        
+    @pyqtProperty(object)
+    def lowtotal(self):
+        return self._lowtotal
+    
+    @pyqtSlot(object)
+    def set_lowtotal(self, value):
+        self._lowtotal = value
+        
+    @pyqtProperty(object)
+    def uptotal(self):
+        return self._uptotal
+    
+    @pyqtSlot(object)
+    def set_uptotal(self, value):
+        self._uptotal = value
+        
     @pyqtProperty(int)
     def window(self):
         return self._window
@@ -56,21 +129,21 @@ class Model(QObject):
         self._channel = value
     
     @pyqtProperty(str)
-    def ft_host(self):
-        return self._ft_host
+    def fthost(self):
+        return self._fthost
     
     @pyqtSlot(str)
-    def set_ft_host(self, value):
-        self._ft_host = value
+    def set_fthost(self, value):
+        self._fthost = value
         
     @pyqtProperty(int)
-    def ft_port(self):
-        return self._ft_port
+    def ftport(self):
+        return self._ftport
     
     @pyqtSlot(int)
-    def set_ft_port(self, value):
-        self._ft_port = value
-
+    def set_ftport(self, value):
+        self._ftport = value
+        
         
     def __init__(self):
         
@@ -78,20 +151,27 @@ class Model(QObject):
         
         self._window = 30
         self._channel = 0
-        self._ft_host = "localhost"
-        self._ft_port = 1972
+        self._fthost = "localhost"
+        self._ftport = 1972
         self._psd = None
         self._freqs = None
         self._biofeedback = None
+        self._biofeedbackmapping = "exponential"
+        self._biofeedbacktarget = 3
+        self._rewardratio = None
+        self._lowreward = 0.06
+        self._upreward = 0.14
+        self._lowtotal = 0
+        self._uptotal = 0.5
         
         # Instantiate FieldTrip client.
         # Check if the buffer is running.
         try:
             self.ftc = FieldTrip.Client()
-            self.ftc.connect(self._ft_host, self._ft_port)
+            self.ftc.connect(self._fthost, self._ftport)
         except ConnectionRefusedError:
             raise RuntimeError(f"Make sure that a FieldTrip buffer is running "
-                               f"on \"{self._ft_host}:{self._ft_port}\"")
+                               f"on \"{self._fthost}:{self._ftport}\"")
         # Wait until there is enough data in the buffer (note that this blocks
         # the event loop on purpose).
         hdr = self.ftc.getHeader()
@@ -104,4 +184,3 @@ class Model(QObject):
             print("Waiting for sufficient amount of samples.")
             hdr = self.ftc.getHeader()
             
-    

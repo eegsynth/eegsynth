@@ -3,7 +3,9 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QFormLayout)
 from PyQt5.QtCore import QTimer
-from pyqtgraph import PlotWidget
+from PyQt5.QtGui import QBrush, QColor
+from pyqtgraph import (PlotWidget, ScatterPlotItem, PlotCurveItem,
+                       InfiniteLine, LinearRegionItem)
 import pyqtgraph as pg
 import numpy as np
 
@@ -59,16 +61,46 @@ class View(QMainWindow):
         self.breathingplot_timer.timeout.connect(self.plot_breathing)
         self.breathingplot_timer.start(100)    # in msec
 
-        # Initiate variables.
-        self.breathingsignal = self.breathingplot.plot()
-        self.powerspectrum = self.spectralplot.plot()
+        # Configure the breathingplot.
+        self.breathingsignal = PlotCurveItem()
+        self.breathingplot.addItem(self.breathingsignal)
+        
+        # Configure the spectralplot.
+        self.powerspectrum = PlotCurveItem()
+        self.spectralplot.addItem(self.powerspectrum)
+        
+        rewardrangebrush = QBrush(QColor(0, 255, 0, 50))
+        self.rewardrange = LinearRegionItem()
+        self.rewardrange.sigRegionChangeFinished.connect(self._model.set_lowreward)
+        self.rewardrange.sigRegionChangeFinished.connect(self._model.set_upreward)
+        self.rewardrange.setBrush(rewardrangebrush)
+        self.spectralplot.addItem(self.rewardrange)
+        
+        # Configure the biofeedbackplot.
+        self.biofeedbackplot.setRange(xRange=[0, self._model.biofeedbacktarget + 1],
+                                      yRange=[0, 1])
+        self.biofeedbackplot.setLimits(xMin=0)
+        
+        self.biofeedbackscatter = ScatterPlotItem()
+        self.biofeedbackscatter.setSymbol("+")
+        self.biofeedbackscatter.setSize(50)
+        self.biofeedbackscatter.setBrush((255, 165, 0))    # tuple with RGB values
+        self.biofeedbackplot.addItem(self.biofeedbackscatter)
+        
+        self.biofeedbackfunction = PlotCurveItem()
+        self.biofeedbackplot.addItem(self.biofeedbackfunction)
+        
+        self.biofeedbacktarget = InfiniteLine(angle=90)
+        self.biofeedbackplot.addItem(self.biofeedbacktarget)
+        
+
         
         # Define the plotting methods.
         ##############################
         
         # Connect methods to signals emitted by the model.
         self._model.psd_changed.connect(self.plot_psd)
-        self._model.biofeedback_changed(self.plot_biofeedback)
+        self._model.biofeedback_changed.connect(self.plot_biofeedback)
 
     def plot_breathing(self):
         # If window or channel are updated, the update will take effect on the
@@ -85,8 +117,17 @@ class View(QMainWindow):
 
     def plot_psd(self, psd):
         # Update the power spectrum.
+        self.rewardrange.setRegion([self._model.lowreward,
+                                    self._model.upreward])
         self.powerspectrum.setData(self._model.freqs, psd)
 
 
+
     def plot_biofeedback(self, biofeedback):
-        pass
+        self.biofeedbackscatter.setData([biofeedback[0]], [biofeedback[1]])
+        xmin = self.biofeedbackplot.getViewBox().viewRange()[0][0]
+        xmax = self.biofeedbackplot.getViewBox().viewRange()[0][1]
+        xvals = np.linspace(xmin, xmax, (xmax - xmin) * 100)
+        yvals = [self._controller.biofeedback_function(i, self._model.biofeedbackmapping) for i in xvals]
+        self.biofeedbackfunction.setData(xvals, yvals)
+        self.biofeedbacktarget.setValue(self._model.biofeedbacktarget)
