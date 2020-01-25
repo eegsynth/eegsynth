@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
-from pyqtgraph import LinearRegionItem
+from pyqtgraph import LinearRegionItem, InfiniteLine
 import FieldTrip
 import time
 
@@ -54,13 +54,16 @@ class Model(QObject):
     # The following model attributes are set directly by the view.
     ##############################################################    
        
-    @pyqtProperty(float)
+    @pyqtProperty(object)
     def biofeedbacktarget(self):
         return self._biofeedbacktarget
     
-    @pyqtSlot(float)
+    @pyqtSlot(object)
     def set_biofeedbacktarget(self, value):
-        self._biofeedbacktarget = value
+        if isinstance(value, type(InfiniteLine())):
+            self._biofeedbacktarget = value.value()
+        else:
+            self._biofeedbacktarget = value
         
     @pyqtProperty(str)
     def biofeedbackmapping(self):
@@ -155,10 +158,10 @@ class Model(QObject):
         self._ftport = 1972
         self._psd = None
         self._freqs = None
-        self._biofeedback = None
+        self._biofeedback = 0
         self._biofeedbackmapping = "exponential"
         self._biofeedbacktarget = 3
-        self._rewardratio = None
+        self._rewardratio = 0
         self._lowreward = 0.06
         self._upreward = 0.14
         self._lowtotal = 0
