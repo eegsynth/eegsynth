@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,12 +37,19 @@ import threading
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path,'../../lib'))
@@ -52,7 +59,7 @@ import EEGsynth
 from EEGsynth import compress, limit, rescale, normalizerange, normalizestandard
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -72,7 +79,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name)
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -200,6 +207,7 @@ class TriggerThread(threading.Thread):
 
                                 # try to evaluate each equation
 <<<<<<< HEAD
+<<<<<<< HEAD
                                 try:
                                     val = eval(equation)
                                     if debug>1:
@@ -213,11 +221,20 @@ class TriggerThread(threading.Thread):
                                 try:
                                     pass
 >>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
+=======
+                                try:
+                                    val = eval(equation)
+                                    val = float(val) # deal with True/False
+                                    if debug>1:
+                                        print('%s = %s = %g' % (key, equation, val))
+                                    patch.setvalue(key, val)
+>>>>>>> d84689deef091d3526059bc1644541fdda075824
                                 except ZeroDivisionError:
                                     # division by zero is not a serious error
                                     patch.setvalue(equation[0], np.NaN)
                                 except:
                                     print('Error in evaluation: %s = %s' % (key, equation))
+
                             # send a copy of the original trigger with the given prefix
                             key = '%s.%s' % (prefix, item['channel'])
 <<<<<<< HEAD

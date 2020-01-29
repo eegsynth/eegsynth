@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,107 +31,145 @@ from scipy import signal as sp
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
 import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# get the options from the configuration file
-debug             = patch.getint('general','debug')
-nchannels         = patch.getint('generate', 'nchannels')
-fsample           = patch.getfloat('generate', 'fsample')
-shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name)
 
-# the scale and offset are used to map the Redis values to internal values
-scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
-scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
-scale_offset      = patch.getfloat('scale', 'offset', default=1)
-scale_noise       = patch.getfloat('scale', 'noise', default=1)
-scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
-offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
-offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
-offset_offset     = patch.getfloat('offset', 'offset', default=0)
-offset_noise      = patch.getfloat('offset', 'noise', default=0)
-offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
+    # get the options from the configuration file
+    debug = patch.getint('general','debug')
 
-blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
-datatype  = 'float32'
+    try:
+        ft_host = patch.getstring('fieldtrip','hostname')
+        ft_port = patch.getint('fieldtrip','port')
+        if debug>0:
+            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        if debug>0:
+            print("Connected to output FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug>0:
-        print("Connected to output FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to output FieldTrip buffer")
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
-if datatype == 'uint8':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)
-elif datatype == 'int8':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT8)
-elif datatype == 'uint16':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT16)
-elif datatype == 'int16':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT16)
-elif datatype == 'uint32':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT32)
-elif datatype == 'int32':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT32)
-elif datatype == 'float32':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT32)
-elif datatype == 'float64':
-    ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT64)
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output
+    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, prev_frequency, prev_amplitude, prev_offset, prev_noise, prev_dutycycle, block, begsample, endsample, timevec, phasevec
 
-if debug > 1:
-    print("nchannels", nchannels)
-    print("fsample", fsample)
-    print("blocksize", blocksize)
+    # get the options from the configuration file
+    nchannels         = patch.getint('generate', 'nchannels')
+    fsample           = patch.getfloat('generate', 'fsample')
+    shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
 
-prev_frequency = -1
-prev_amplitude = -1
-prev_offset    = -1
-prev_noise     = -1
-prev_dutycycle = -1
+    # the scale and offset are used to map the Redis values to internal values
+    scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
+    scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
+    scale_offset      = patch.getfloat('scale', 'offset', default=1)
+    scale_noise       = patch.getfloat('scale', 'noise', default=1)
+    scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
+    offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
+    offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
+    offset_offset     = patch.getfloat('offset', 'offset', default=0)
+    offset_noise      = patch.getfloat('offset', 'noise', default=0)
+    offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
 
-block     = 0
-begsample = 0
-endsample = blocksize-1
+    blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
+    datatype  = 'float32'
 
-# the time axis per block remains the same, the phase linearly increases
-timevec  = np.arange(1, blocksize+1) / fsample
-phasevec = np.zeros(1)
+    if datatype == 'uint8':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)
+    elif datatype == 'int8':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT8)
+    elif datatype == 'uint16':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT16)
+    elif datatype == 'int16':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT16)
+    elif datatype == 'uint32':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT32)
+    elif datatype == 'int32':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_INT32)
+    elif datatype == 'float32':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT32)
+    elif datatype == 'float64':
+        ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT64)
 
-while True:
+    if debug > 1:
+        print("nchannels", nchannels)
+        print("fsample", fsample)
+        print("blocksize", blocksize)
+
+    prev_frequency = -1
+    prev_amplitude = -1
+    prev_offset    = -1
+    prev_noise     = -1
+    prev_dutycycle = -1
+
+    block     = 0
+    begsample = 0
+    endsample = blocksize-1
+
+    # the time axis per block remains the same, the phase linearly increases
+    timevec  = np.arange(1, blocksize+1) / fsample
+    phasevec = np.zeros(1)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output
+    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, prev_frequency, prev_amplitude, prev_offset, prev_noise, prev_dutycycle, block, begsample, endsample, timevec, phasevec
+    global start, frequency, amplitude, offset, noise, dutycycle, signal, dat_output, chan, desired, elapsed, naptime
+
     monitor.loop()
 
     if patch.getint('signal', 'rewind', default=0):
@@ -148,13 +186,13 @@ while True:
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
         phase = 0
-        continue
+        return
 
     if patch.getint('signal', 'pause', default=0):
         if debug>0:
             print("Paused")
         time.sleep(0.1);
-        continue
+        return
 
     # measure the time to correct for the slip
     start = time.time();
@@ -240,3 +278,20 @@ while True:
 
     if debug>0:
         print("generated", blocksize, "samples in", (time.time()-start)*1000, "ms")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    while True:
+        _loop_once()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    _loop_forever()
