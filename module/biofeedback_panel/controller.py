@@ -1,27 +1,69 @@
 #!/usr/bin/env python3
 
-from PyQt5.QtCore import QObject, QTimer
-from scipy.signal import decimate, detrend
+from PyQt5.QtCore import QObject, QRunnable, QThreadPool
 from scipy.interpolate import interp1d
+from scipy.signal import detrend
 import numpy as np
 from numpy.fft import rfftfreq
 from spectrum import arburg, arma2psd
+import time
+import FieldTrip
+
+
+class Worker(QRunnable):
+
+    def __init__(self, fn, controller, **kwargs):
+        super(Worker, self).__init__()
+        self.fn = fn
+        self.kwargs = kwargs
+        self.controller = controller
+
+    def run(self):
+        self.fn(self.controller, **self.kwargs)
+
+
+# decorator that runs Controller methods in Worker thread
+def threaded(fn):
+    def threader(controller, **kwargs):
+        worker = Worker(fn, controller, **kwargs)
+        controller.threadpool.start(worker)
+    return threader
 
 
 class Controller(QObject):
-
+    
     def __init__(self, model):
         
         super().__init__()
 
         self._model = model
+        
+        self.threadpool = QThreadPool()
+        
+        # Instantiate FieldTrip client.
+        # Check if the buffer is running.
+        try:
+            self.ftc = FieldTrip.Client()
+            self.ftc.connect(self._model.fthost, self._model.ftport)
+        except ConnectionRefusedError:
+            raise RuntimeError(f"Make sure that a FieldTrip buffer is running "
+                               f"on \"{self._fthost}:{self._ftport}\"")
+        # Wait until there is enough data in the buffer (note that this blocks
+        # the event loop on purpose).
+        hdr = self.ftc.getHeader()
+        while hdr is None:
+            time.sleep(1)
+            print("Waiting for header.")
+            hdr = self.ftc.getHeader()
+        while hdr.nSamples < hdr.fSample * self._model.window:
+            time.sleep(1)
+            print("Waiting for sufficient amount of samples.")
+            hdr = self.ftc.getHeader()
+            
+        self.get_breathing()
+        self.compute_biofeedback()
+        
                 
-        # Set timer for computation of biofeedback (update every 2000 msec).
-        self.biofeedback_timer = QTimer()
-        self.biofeedback_timer.timeout.connect(self.biofeedback)
-        self.biofeedback_timer.start(2000)    # in msec
-        
-        
     def biofeedback_function(self, x, mapping):
         """
         Parameters
@@ -55,59 +97,90 @@ class Controller(QObject):
         
     # Compute current breathing estimate (spectral ratio) and derive
     # biofeedback.
-    def biofeedback(self):
-        # All variables that can be changed dynamically are obtained from the
-        # model (i.e., attributes).
+    @threaded
+    def compute_biofeedback(self):
+        while True:
+            time.sleep(2)
+            # All variables that can be changed dynamically are obtained from the
+            # model (i.e., attributes).
+            
+            data, sfreq = self._model.data, self._model.sfreq
+            nsamp = len(data)
+            freqs = rfftfreq(nsamp, 1 / sfreq)
+            interpres = 0.025
+            freqsintp = np.arange(freqs[0], freqs[-1], interpres)
+            self._model.freqs = freqsintp
+            rewardrange = np.logical_and(freqsintp >= self._model.lowreward,
+                                         freqsintp <= self._model.upreward)
+            totalrange = np.logical_and(freqsintp >= self._model.lowtotal,
+                                        freqsintp <= self._model.uptotal)
+            overlaprange = np.logical_and(rewardrange, totalrange)
         
-        header = self._model.ftc.getHeader()
-        current_idx = header.nSamples
-        sfreq = header.fSample
-        sfreq_downsamp = 2
-        downsampfact = int(sfreq / sfreq_downsamp)
-        if downsampfact <= 1:
-            raise RuntimeError(f"Sampling frequency {sfreq} is too low.")
-        window_downsamp = int(np.rint(self._model.window * sfreq_downsamp))
-        freqs = rfftfreq(window_downsamp, 1 / sfreq_downsamp)
-        interpres = 0.025
-        freqsintp = np.arange(freqs[0], freqs[-1], interpres)
-        self._model.freqs = freqsintp
-        rewardrange = np.logical_and(freqsintp >= self._model.lowreward,
-                                     freqsintp <= self._model.upreward)
-        totalrange = np.logical_and(freqsintp >= self._model.lowtotal,
-                                    freqsintp <= self._model.uptotal)
+            # Detrend and taper the signal.
+            data = detrend(data)
+            data *= np.hanning(nsamp)
         
-        # Get the latest data from the buffer.
-        beg = current_idx - self._model.window * sfreq
-        end = current_idx - 1
-        data = self._model.ftc.getData([beg, end])[:, self._model.channel]
-    
-        # Downsample signal (important to use fir not iir).
-        data = decimate(data, downsampfact, ftype="fir")
-    
-        # Detrend and taper the signal.
-        data = detrend(data)
-        data *= np.hanning(window_downsamp)
-    
-        # Compute autoregressive coefficients.
-        AR, rho, _ = arburg(data, order=12)
-        # Use coefficients to compute spectral estimate.
-        psd = arma2psd(AR, rho=rho, NFFT=window_downsamp)
-        # Select only positive frequencies.
-        psd = np.flip(psd[int(np.rint(window_downsamp / 2) - 1):])
-    
-        # Interpolate PSD at desired frequency resolution in order to be able 
-        # to set feedback thresholds at intervals smaller than the original 
-        # frequency resolution.
-        f = interp1d(freqs, psd)
-        psdintp = f(self._model.freqs)
-        self._model.psd = psdintp
+            # Compute autoregressive coefficients.
+            AR, rho, _ = arburg(data, order=12)
+            # Use coefficients to compute spectral estimate.
+            psd = arma2psd(AR, rho=rho, NFFT=nsamp)
+            # Select only positive frequencies.
+            psd = np.flip(psd[int(np.rint(nsamp / 2) - 1):])
         
-        # Compute biofeedback based on the PSD
-        rewardpsd = np.sum(psdintp[rewardrange])
-        totalpsd = np.sum(psdintp[totalrange])
-        rewardratio = rewardpsd / (totalpsd - rewardpsd)
-        self._model.rewardratio = rewardratio
-        biofeedback = self.biofeedback_function(rewardratio,
-                                                self._model.biofeedbackmapping)
-        self._model.biofeedback = biofeedback
+            # Interpolate PSD at desired frequency resolution in order to be able 
+            # to set feedback thresholds at intervals smaller than the original 
+            # frequency resolution.
+            f = interp1d(freqs, psd)
+            psdintp = f(self._model.freqs)
+            self._model.psd = psdintp
+            
+            # Compute biofeedback based on the PSD
+            rewardpsd = np.sum(psdintp[rewardrange])
+            totalpsd = np.sum(psdintp[totalrange])
+            overlappsd = np.sum(psdintp[overlaprange])
+            if overlappsd == totalpsd:
+                rewardratio = rewardpsd / totalpsd
+            else:
+                rewardratio = rewardpsd / (totalpsd - overlappsd)
+            self._model.rewardratio = rewardratio
+            biofeedback = self.biofeedback_function(rewardratio,
+                                                    self._model.biofeedbackmapping)
+            self._model.biofeedback = biofeedback
+        
+        
+    @threaded
+    def get_breathing(self):
+        
+        # Important: this must be the only place where updates to the window
+        # size are considered. Everywhere else window size needs to be
+        # inferred from the number of samples in data. Otherwise race
+        # conditions occur where the window size is already updated while the
+        # data has still the number of elements specified by the previous
+        # window size.
+        
+        while True:
+            time.sleep(0.1)
+        
+            header = self.ftc.getHeader()
+            current_idx = header.nSamples
+            sfreq = header.fSample
+            self._model.sfreq = sfreq
+            
+            window = self._model.window
+        
+            # Get the latest data from the buffer.
+            beg = current_idx - window * sfreq
+            end = current_idx - 1
+            
+            while np.sign(beg) == -1:
+                print(f"Waiting for {end - beg} samples. Currently {current_idx} samples are in the buffer.")
+                time.sleep(1)
+                header = self.ftc.getHeader()
+                current_idx = header.nSamples
+                beg = current_idx - window * sfreq
+                end = current_idx - 1
+            
+            data = self.ftc.getData([beg, end])[:, self._model.channel]
+        
+            self._model.data = data
         

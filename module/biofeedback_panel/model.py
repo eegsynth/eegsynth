@@ -2,8 +2,6 @@
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
 from pyqtgraph import LinearRegionItem, InfiniteLine
-import FieldTrip
-import time
 
 
 class Model(QObject):
@@ -11,10 +9,28 @@ class Model(QObject):
     # Costum signals.
     psd_changed = pyqtSignal(object)
     biofeedback_changed = pyqtSignal(object)
+    breathing_changed = pyqtSignal(object)
 
     # The following model attributes are set by the controller.
     ###########################################################
     
+    @property
+    def data(self):
+        return self._data
+    
+    @data.setter
+    def data(self, value):
+        self._data = value
+        self.breathing_changed.emit(value)
+        
+    @property
+    def sfreq(self):
+        return self._sfreq
+    
+    @sfreq.setter
+    def sfreq(self, value):
+        self._sfreq = value
+        
     @property
     def psd(self):
         return self._psd
@@ -83,8 +99,6 @@ class Model(QObject):
             value = value.getRegion()[0]
             if value != self._lowreward:
                 self._lowreward = value
-        else:
-            self._lowreward = value
         
     @pyqtProperty(object)
     def upreward(self):
@@ -96,8 +110,6 @@ class Model(QObject):
             value = value.getRegion()[1]
             if value != self._upreward:
                 self._upreward = value
-        else:
-            self._upreward = value
         
     @pyqtProperty(object)
     def lowtotal(self):
@@ -105,7 +117,10 @@ class Model(QObject):
     
     @pyqtSlot(object)
     def set_lowtotal(self, value):
-        self._lowtotal = value
+        if isinstance(value, type(LinearRegionItem())):
+            value = value.getRegion()[0]
+            if value != self._lowtotal:
+                self._lowtotal = value
         
     @pyqtProperty(object)
     def uptotal(self):
@@ -113,7 +128,10 @@ class Model(QObject):
     
     @pyqtSlot(object)
     def set_uptotal(self, value):
-        self._uptotal = value
+        if isinstance(value, type(LinearRegionItem())):
+            value = value.getRegion()[1]
+            if value != self._uptotal:
+                self._uptotal = value
         
     @pyqtProperty(int)
     def window(self):
@@ -121,7 +139,7 @@ class Model(QObject):
     
     @pyqtSlot(int)
     def set_window(self, value):
-        self._window = value
+        self._window = value * 10
         
     @pyqtProperty(int)
     def channel(self):
@@ -152,10 +170,10 @@ class Model(QObject):
         
         super().__init__()
         
-        self._window = 30
+        self._window = 10
         self._channel = 0
         self._fthost = "localhost"
-        self._ftport = 1972
+        self._ftport = 1973
         self._psd = None
         self._freqs = None
         self._biofeedback = 0
@@ -166,24 +184,9 @@ class Model(QObject):
         self._upreward = 0.14
         self._lowtotal = 0
         self._uptotal = 0.5
+        self._data = []
+        self._sfreq = 10
+
         
-        # Instantiate FieldTrip client.
-        # Check if the buffer is running.
-        try:
-            self.ftc = FieldTrip.Client()
-            self.ftc.connect(self._fthost, self._ftport)
-        except ConnectionRefusedError:
-            raise RuntimeError(f"Make sure that a FieldTrip buffer is running "
-                               f"on \"{self._fthost}:{self._ftport}\"")
-        # Wait until there is enough data in the buffer (note that this blocks
-        # the event loop on purpose).
-        hdr = self.ftc.getHeader()
-        while hdr is None:
-            time.sleep(1)
-            print("Waiting for header.")
-            hdr = self.ftc.getHeader()
-        while hdr.nSamples < hdr.fSample * self._window:
-            time.sleep(1)
-            print("Waiting for sufficient amount of samples.")
-            hdr = self.ftc.getHeader()
+        
             

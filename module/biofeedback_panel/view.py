@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QFormLayout)
-from PyQt5.QtCore import QTimer
+                             QFormLayout, QLabel, QSlider)
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush, QColor
 from pyqtgraph import (PlotWidget, ScatterPlotItem, PlotCurveItem,
                        InfiniteLine, LinearRegionItem)
@@ -26,6 +26,20 @@ class View(QMainWindow):
 
         self.breathingplot = PlotWidget()
         self.breathingplot_menu = QFormLayout()
+        self.windowsize_label = QLabel(f"Window size ({self._model.window} seconds)")
+        self.windowsize_input = QSlider()
+        self.windowsize_input.setTracking(False)
+        self.windowsize_input.setOrientation(Qt.Horizontal)
+        self.windowsize_input.setTickPosition(QSlider.TicksBelow)
+        self.windowsize_input.setTickInterval(1)
+        self.windowsize_input.setMinimum(1)
+        self.windowsize_input.setMaximum(12)
+        self.breathingplot_menu.addRow(self.windowsize_label,
+                                       self.windowsize_input)
+        self.windowsize_input.valueChanged.connect(self._model.set_window)
+        lambdafn = lambda : self.windowsize_label.setText(f"Window size ({self._model.window} seconds)")
+        self.windowsize_input.valueChanged.connect(lambdafn)
+
         self.spectralplot = PlotWidget()
         self.spectralplot_menu = QFormLayout()
         self.biofeedbackplot = PlotWidget()
@@ -56,18 +70,22 @@ class View(QMainWindow):
         self.vlayout0.setStretch(2, 10)
         self.vlayout0.setStretch(3, 1)
 
-        # Set timer for breathingplot (update plot every 100 msec).
-        self.breathingplot_timer = QTimer()
-        self.breathingplot_timer.timeout.connect(self.plot_breathing)
-        self.breathingplot_timer.start(100)    # in msec
-
         # Configure the breathingplot.
         self.breathingsignal = PlotCurveItem()
         self.breathingplot.addItem(self.breathingsignal)
+        self.breathingplot.getAxis("bottom").setLabel("seconds")
         
         # Configure the spectralplot.
         self.powerspectrum = PlotCurveItem()
+        self.powerspectrum.setZValue(2)
         self.spectralplot.addItem(self.powerspectrum)
+        
+        self.spectralbounds = [0, 1]
+        self.spectralplot.setRange(xRange=self.spectralbounds)
+        # Convert frequencies [0, 1] to rate [0, 60]
+        self.spectralplot.getAxis("bottom").setScale(60)
+        self.spectralplot.getAxis("bottom").setLabel("breathing rate")
+        self.spectralplot.getAxis("left").setLabel("power")
         
         rewardrangebrush = QBrush(QColor(0, 255, 0, 50))
         self.rewardrange = LinearRegionItem()
@@ -83,7 +101,23 @@ class View(QMainWindow):
         self.rewardrange.sigRegionChangeFinished.connect(self._model.set_upreward)
         self.rewardrange.sigRegionChangeFinished.connect(self.plot_rewardrange)
         self.rewardrange.setBrush(rewardrangebrush)
+        self.rewardrange.setZValue(2)
         self.spectralplot.addItem(self.rewardrange)
+        
+        self.totalrange = LinearRegionItem()
+        # Fix the possible range to the range of frequencies [0, 1] at sampling
+        # rate of 2 Hz.
+        self.totalrange.setBounds([0, 1])
+        # Initialize the range with the default values.
+        self.totalrange.setRegion([self._model.lowtotal, self._model.uptotal])
+        # Emit changes to both the internal plotting function (important since
+        # elements within one plot must be independent!) as well as to the
+        # model (for controller access).
+        self.totalrange.sigRegionChangeFinished.connect(self._model.set_lowtotal)
+        self.totalrange.sigRegionChangeFinished.connect(self._model.set_uptotal)
+        self.totalrange.sigRegionChangeFinished.connect(self.plot_totalrange)
+        self.totalrange.setZValue(1)
+        self.spectralplot.addItem(self.totalrange)
         
         # Configure the biofeedbackplot.
         self.biofeedbackbounds = [0, self._model.biofeedbacktarget + 1]
@@ -111,24 +145,26 @@ class View(QMainWindow):
         self.biofeedbacktarget.sigPositionChangeFinished.emit(self.biofeedbacktarget)
         self.biofeedbackplot.addItem(self.biofeedbacktarget)
         
+        self.biofeedbackplot.getAxis("bottom").setLabel("rewardratio (rewardrange / (totalrange - rewardrange))")
+        self.biofeedbackplot.getAxis("left").setLabel("biofeedback")
+        
         # Define the plotting methods.
         ##############################
-        
+
         # Connect methods to signals emitted by the model.
         self._model.psd_changed.connect(self.plot_psd)
         self._model.biofeedback_changed.connect(self.plot_biofeedback)
+        self._model.breathing_changed.connect(self.plot_breathing)
 
 
-    def plot_breathing(self):
+    def plot_breathing(self, breathing):
         # If window or channel are updated, the update will take effect on the
         # first subsequent call of this method.
-        header = self._model.ftc.getHeader()
-        current_idx = header.nSamples
-        sfreq = header.fSample
-        beg = current_idx - self._model.window * sfreq
-        end = current_idx - 1
-        data = self._model.ftc.getData([beg, end])[:, self._model.channel]
-        time = np.linspace(-self._model.window, 0, self._model.window * sfreq)
+        
+        # Important to get these attributes simultaneously!
+        data, sfreq = self._model.data, self._model.sfreq
+        nsamp = len(data)
+        time = np.linspace(-nsamp / sfreq, 0, nsamp)
         self.breathingsignal.setData(time, data)
 
 
@@ -138,6 +174,10 @@ class View(QMainWindow):
     
     def plot_rewardrange(self, rewardrange):
         self.rewardrange.setRegion(rewardrange.getRegion())
+        
+        
+    def plot_totalrange(self, totalrange):
+        self.totalrange.setRegion(totalrange.getRegion())
 
 
     def plot_biofeedback(self, biofeedback):
