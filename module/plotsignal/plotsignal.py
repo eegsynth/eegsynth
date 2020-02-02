@@ -132,7 +132,7 @@ def _start():
 
     monitor.info('Data arrived')
     monitor.debug(hdr_input)
-        monitor.debug(hdr_input.labels)
+    monitor.debug(hdr_input.labels)
 
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
