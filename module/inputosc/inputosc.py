@@ -72,7 +72,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -90,12 +90,11 @@ def python2_message_handler(addr, tags, data, source):
     global output_scale
     global output_offset
 
-    if debug > 1:
-        print("---")
-        print("source %s" % OSC.getUrlStr(source))
-        print("addr   %s" % addr)
-        print("tags   %s" % tags)
-        print("data   %s" % data)
+    monitor.debug("---")
+    monitor.debug("source %s" % OSC.getUrlStr(source))
+    monitor.debug("addr   %s" % addr)
+    monitor.debug("tags   %s" % tags)
+    monitor.debug("data   %s" % data)
 
     if addr[0] != '/':
         # ensure it starts with a slash
@@ -121,9 +120,8 @@ def python3_message_handler(addr, data):
     global output_scale
     global output_offset
 
-    if debug > 1:
-        print("addr   %s" % addr)
-        print("data   %s" % data)
+    monitor.debug("addr   %s" % addr)
+    monitor.debug("data   %s" % data)
 
     # assume that it is a single scalar value
     key = prefix + addr.replace('/', '.')
@@ -137,9 +135,9 @@ try:
         # s.addMsgHandler("/1/faderA", test_handler)
         s.addDefaultHandlers()
         # just checking which handlers we have added
-        print("Registered Callback functions are :")
+        monitor.info("Registered Callback functions are :")
         for addr in s.getOSCAddressSpace():
-            print(addr)
+            monitor.info(addr)
         # start the server thread
         st = threading.Thread(target=s.serve_forever)
         st.start()
@@ -148,11 +146,10 @@ try:
         # dispatcher.map("/1/faderA", test_handler)
         dispatcher.set_default_handler(python3_message_handler)
         server = osc_server.ThreadingOSCUDPServer((osc_address, osc_port), dispatcher)
-        print("Serving on {}".format(server.server_address))
+        monitor.info("Serving on {}".format(server.server_address))
         # the following is blocking
         server.serve_forever()
-    if debug > 0:
-        print("Started OSC server")
+    monitor.success("Started OSC server")
 except:
     raise RuntimeError("cannot start OSC server")
 
@@ -167,8 +164,8 @@ try:
         output_offset   = patch.getfloat('output', 'offset', default=0)
 
 except KeyboardInterrupt:
-    print("\nClosing module.")
+    monitor.success("\nClosing module.")
     s.close()
-    print("Waiting for OSC server thread to finish.")
+    monitor.info("Waiting for OSC server thread to finish.")
     st.join()
-    print("Done.")
+    monitor.success("Done.")

@@ -83,7 +83,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
@@ -91,12 +91,10 @@ def _setup():
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to input FieldTrip buffer")
+        monitor.success('Connected to input FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
@@ -118,16 +116,14 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time()-start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 1:
-        print("input nsample", hdr_input.nSamples)
-        print("input nchan", hdr_input.nChannels)
+    monitor.debug("input nsample", hdr_input.nSamples)
+    monitor.debug("input nchan", hdr_input.nChannels)
 
     # get the options from the configuration file
     inputlist   = patch.getint('input', 'channels', multiple=True)
@@ -176,21 +172,17 @@ def _loop_once():
     enable = patch.getint('history', 'enable', default=1)
 
     if enable and prev_enable:
-        if debug > 0:
-            print("Updating the history")
+        monitor.info("Updating the history")
     elif enable and not prev_enable:
-        if debug > 0:
-            print("Enabling the updating")
-            # jump to the end of the input stream
-            hdr_input = ft_input.getHeader()
-            begsample = hdr_input.nSamples-stepsize
-            endsample = hdr_input.nSamples-1
+        monitor.info("Enabling the updating")
+        # jump to the end of the input stream
+        hdr_input = ft_input.getHeader()
+        begsample = hdr_input.nSamples-stepsize
+        endsample = hdr_input.nSamples-1
     elif not enable and not prev_enable:
-        if debug > 0:
-            print("Not updating the history")
+        monitor.info("Not updating the history")
     elif not enable and prev_enable:
-        if debug > 0:
-            print("Disabling the updating")
+        monitor.info("Disabling the updating")
 
     if not enable:
         time.sleep(patch.getfloat('general', 'delay'))
@@ -205,8 +197,7 @@ def _loop_once():
         if (time.time()-start) > timeout:
             raise RuntimeError("timeout while waiting for data")
 
-    if debug>1:
-        print("reading samples", begsample, "to", endsample)
+    monitor.debug("reading samples", begsample, "to", endsample)
 
     # get the input data, sample vector and time vector
     dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
@@ -239,7 +230,7 @@ def _loop_once():
     for operation in list(historic.keys()):
         key = prefix + "." + operation
         val = historic[operation]
-        patch.setvalue(key, val, debug>1)
+        patch.setvalue(key, val, debug > 1)
 
     begsample += stepsize
     endsample += stepsize

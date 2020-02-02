@@ -66,23 +66,21 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug    = patch.getint('general','debug')
 filename = patch.getstring('playback', 'file')
 
-if debug>0:
-    print("Reading data from", filename)
+monitor.info("Reading data from", filename)
 
 f = EDF.EDFReader()
 f.open(filename)
 
-if debug>1:
-    print("NSignals", f.getNSignals())
-    print("SignalFreqs", f.getSignalFreqs())
-    print("NSamples", f.getNSamples())
-    print("SignalTextLabels", f.getSignalTextLabels())
+monitor.info("NSignals", f.getNSignals())
+monitor.info("SignalFreqs", f.getSignalFreqs())
+monitor.info("NSamples", f.getNSamples())
+monitor.info("SignalTextLabels", f.getSignalTextLabels())
 
 for chanindx in range(f.getNSignals()):
     if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
@@ -98,11 +96,11 @@ nSamples = f.getNSamples()[0]
 
 # search-and-replace to reduce the length of the channel labels
 for replace in config.items('replace'):
-    print(replace)
+    monitor.debug(replace)
     for i in range(len(channelz)):
         channelz[i] = channelz[i].replace(replace[0], replace[1])
 for s,z in zip(channels, channelz):
-    print("Writing channel", s, "as control value", z)
+    monitor.info("Writing channel", s, "as control value", z)
 
 # this should write data in one-sample blocks
 blocksize = 1
@@ -114,36 +112,31 @@ while True:
     monitor.loop()
 
     if endsample>nSamples-1:
-        if debug>0:
-            print("End of file reached, jumping back to start")
+        monitor.info("End of file reached, jumping back to start")
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if patch.getint('playback', 'rewind', default=0):
-        if debug>0:
-            print("Rewind pressed, jumping back to start of file")
+        monitor.info("Rewind pressed, jumping back to start of file")
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if not patch.getint('playback', 'play', default=1):
-        if debug>0:
-            print("Stopped")
+        monitor.info("Stopped")
         time.sleep(0.1);
         continue
 
     if patch.getint('playback', 'pause', default=0):
-        if debug>0:
-            print("Paused")
+        monitor.info("Paused")
         time.sleep(0.1);
         continue
 
     # measure the time to correct for the slip
     start = time.time()
 
-    if debug>1:
-        print("Playing control value", block, 'from', begsample, 'to', endsample)
+    monitor.debug("Playing control value", block, 'from', begsample, 'to', endsample)
 
     for indx in range(len(channelz)):
         # read one sample for a single channel
@@ -163,5 +156,4 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    if debug>0:
-        print("played", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("played", blocksize, "samples in", (time.time()-start)*1000, "ms")

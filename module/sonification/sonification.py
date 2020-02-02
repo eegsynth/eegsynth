@@ -73,7 +73,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
@@ -81,24 +81,20 @@ def _setup():
     try:
         ft_host = patch.getstring('input_fieldtrip', 'hostname')
         ft_port = patch.getint('input_fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to input FieldTrip buffer")
+        monitor.success('Connected to input FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
     try:
         ft_host = patch.getstring('output_fieldtrip', 'hostname')
         ft_port = patch.getint('output_fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_output = FieldTrip.Client()
         ft_output.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to output FieldTrip buffer")
+        monitor.success('Connected to output FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
 
@@ -120,18 +116,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time()-start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug>0:
-        print("Data arrived")
-    if debug>1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info('Data arrived')
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     # get the options from the configuration file
     sample_rate = patch.getfloat('sonification', 'sample_rate')
@@ -176,9 +169,8 @@ def _start():
         ft_output.putHeader(1, sample_rate, FieldTrip.DATATYPE_FLOAT32, ['mono'])
     hdr_output = ft_output.getHeader()
 
-    if debug > 1:
-        print("output nsample", hdr_output.nSamples)
-        print("output nchan", hdr_output.nChannels)
+    monitor.debug("output nsample", hdr_output.nSamples)
+    monitor.debug("output nchan", hdr_output.nChannels)
 
     # this is the number of samples per input and per output block
     nInput = int(round(window*hdr_input.fSample))
@@ -239,11 +231,10 @@ def _start():
             lowpass = None
         right_b[i], right_a[i], right_zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, highpass, lowpass, f_order, dat_output)
 
-    if debug>0:
-        print("left audio channels", left)
-        print("left audio frequencies", left_f)
-        print("right audio channels", right)
-        print("right audio frequencies", right_f)
+    monitor.info("left audio channels", left)
+    monitor.info("left audio frequencies", left_f)
+    monitor.info("right audio channels", right)
+    monitor.info("right audio frequencies", right_f)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -355,8 +346,7 @@ def _loop_once():
     #        nOutput *= 1.002
     #    nOutput = int(round(nOutput))
 
-    if debug>0:
-        print("wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms")
+    monitor.info("wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms")
 
     # shift to the next block of data
     begsample += nInput

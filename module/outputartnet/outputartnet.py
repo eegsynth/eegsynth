@@ -66,7 +66,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general','debug')
@@ -94,8 +94,7 @@ try:
 
             if chanval==None:
                 # the value is not present in Redis, skip it
-                if debug>2:
-                    print(chanstr, 'not available')
+                monitor.trace(chanstr, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -110,8 +109,7 @@ try:
             if dmxdata[chanindx-1]!=chanval:
                 # update the DMX value for this channel
                 dmxdata[chanindx-1] = chanval
-                if debug>1:
-                    print("DMX channel%03d" % chanindx, '=', chanval)
+                monitor.debug("DMX channel%03d" % chanindx, '=', chanval)
                 artnet.broadcastDMX(dmxdata,address)
             elif (time.time()-prevtime)>1:
                 # send a maintenance packet now and then
@@ -119,9 +117,8 @@ try:
                 prevtime = time.time()
 
 except KeyboardInterrupt:
+    monitor.success("closing...")
     # blank out
-    if debug>0:
-        print("closing...")
     dmxdata = [0] * 512
     artnet.broadcastDMX(dmxdata,address)
     time.sleep(0.1) # this seems to take some time

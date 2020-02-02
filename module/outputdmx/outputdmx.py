@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -94,7 +94,7 @@ for chanindx in range(0, 512):
 
 # my fixture won't work if the frame size is too small
 dmxsize = max(dmxsize, 16)
-print("universe size = %d" % dmxsize)
+module.info("universe size = %d" % dmxsize)
 
 # make an empty frame
 dmxframe = [0] * dmxsize
@@ -117,8 +117,7 @@ def sendframe():
     ]
     packet.extend(dmxframe)
     packet.append(END_VAL)
-    if debug > 1:
-        print(packet)
+    monitor.debug(packet)
     packet = map(chr, packet)
     s.write(''.join(packet))
 
@@ -150,8 +149,7 @@ try:
 
             # only update if the value has changed
             if dmxframe[chanindx] != chanval:
-                if debug > 0:
-                    print("DMX channel%03d" % chanindx, '=', chanval)
+                monitor.info("DMX channel%03d" % chanindx, '=', chanval)
                 dmxframe[chanindx] = chanval
                 update = True
 
@@ -166,8 +164,7 @@ try:
 
 
 except KeyboardInterrupt:
-    if debug > 0:
-        print("closing...")
+    monitor.success("closing...")
     # blank out everything
     dmxframe = [0] * 512
     sendframe()

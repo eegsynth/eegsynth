@@ -68,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -81,20 +81,20 @@ blocksize = patch.getint('audio', 'blocksize')
 nchans = 1
 format = p.get_format_from_width(2)  # the desired sample width in bytes (1, 2, 3, or 4)
 
-print('------------------------------------------------------------------')
+monitor.info('------------------------------------------------------------------')
 info = p.get_host_api_info_by_index(0)
-print(info)
-print('------------------------------------------------------------------')
+monitor.info(info)
+monitor.info('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-print('------------------------------------------------------------------')
+        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+monitor.info('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-print("Selected device is", devinfo['name'])
-print(devinfo)
-print('------------------------------------------------------------------')
+monitor.info("Selected device is", devinfo['name'])
+monitor.info(devinfo)
+monitor.info('------------------------------------------------------------------')
 
 stream = p.open(format=format,
                 channels=nchans,
@@ -125,8 +125,7 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                if debug>1:
-                    print(item['channel'], "=", item['data'])
+                monitor.debug(item['channel'], "=", item['data'])
                 lock.acquire()
                 self.last = self.time
                 lock.release()
@@ -224,20 +223,20 @@ class ControlThread(threading.Thread):
             self.adsr_release = adsr_release
             self.vca_envelope = vca_envelope
             lock.release()
-            if debug > 2:
-                print('----------------------------------')
-                print('vco_pitch      =', vco_pitch)
-                print('vco_sin        =', vco_sin)
-                print('vco_tri        =', vco_tri)
-                print('vco_saw        =', vco_saw)
-                print('vco_sqr        =', vco_sqr)
-                print('lfo_depth      =', lfo_depth)
-                print('lfo_frequency  =', lfo_frequency)
-                print('adsr_attack    =', adsr_attack)
-                print('adsr_decay     =', adsr_decay)
-                print('adsr_sustain   =', adsr_sustain)
-                print('adsr_release   =', adsr_release)
-                print('vca_envelope   =', vca_envelope)
+
+            monitor.trace('----------------------------------')
+            monitor.trace('vco_pitch      =', vco_pitch)
+            monitor.trace('vco_sin        =', vco_sin)
+            monitor.trace('vco_tri        =', vco_tri)
+            monitor.trace('vco_saw        =', vco_saw)
+            monitor.trace('vco_sqr        =', vco_sqr)
+            monitor.trace('lfo_depth      =', lfo_depth)
+            monitor.trace('lfo_frequency  =', lfo_frequency)
+            monitor.trace('adsr_attack    =', adsr_attack)
+            monitor.trace('adsr_decay     =', adsr_decay)
+            monitor.trace('adsr_sustain   =', adsr_sustain)
+            monitor.trace('adsr_release   =', adsr_release)
+            monitor.trace('vca_envelope   =', vca_envelope)
 
 
 # start the background thread that deals with control value changes
@@ -321,7 +320,7 @@ try:
         offset = offset + blocksize
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     control.stop()
     control.join()
     trigger.stop()

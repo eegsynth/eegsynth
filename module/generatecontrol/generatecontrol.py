@@ -66,7 +66,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug            = patch.getint('general', 'debug')
@@ -84,12 +84,6 @@ offset_offset    = patch.getfloat('offset', 'offset', default=0)
 offset_noise     = patch.getfloat('offset', 'noise', default=0)
 offset_dutycycle = patch.getfloat('offset', 'dutycycle', default=0)
 
-prev_frequency = -1
-prev_amplitude = -1
-prev_offset    = -1
-prev_noise     = -1
-prev_dutycycle = -1
-
 # the sample number and phase should be 0 upon the start of the signal
 sample = 0
 phase = 0
@@ -98,15 +92,13 @@ while True:
     monitor.loop()
 
     if patch.getint('signal', 'rewind', default=0):
-        if debug > 0:
-            print("Rewind pressed, jumping back to start of signal")
+        monitor.info("Rewind pressed, jumping back to start of signal")
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
         phase = 0
 
     if not patch.getint('signal', 'play', default=1):
-        if debug > 0:
-            print("Stopped")
+        monitor.info("Stopped")
         time.sleep(0.1)
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
@@ -114,8 +106,7 @@ while True:
         continue
 
     if patch.getint('signal', 'pause', default=0):
-        if debug > 0:
-            print("Paused")
+        monitor.info("Paused")
         time.sleep(0.1)
         continue
 
@@ -135,21 +126,11 @@ while True:
     noise = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
     dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
-    if frequency != prev_frequency or debug > 2:
-        print("frequency =", frequency)
-        prev_frequency = frequency
-    if amplitude != prev_amplitude or debug > 2:
-        print("amplitude =", amplitude)
-        prev_amplitude = amplitude
-    if offset != prev_offset or debug > 2:
-        print("offset    =", offset)
-        prev_offset = offset
-    if noise != prev_noise or debug > 2:
-        print("noise     =", noise)
-        prev_noise = noise
-    if dutycycle != prev_dutycycle or debug > 2:
-        print("dutycycle =", dutycycle)
-        prev_dutycycle = dutycycle
+    monitor.update("frequency", frequency)
+    monitor.update("amplitude", amplitude)
+    monitor.update("offset   ", offset)
+    monitor.update("noise    ", noise)
+    monitor.update("dutycycle", dutycycle)
 
     # compute the phase of this sample
     phase = phase + 2 * np.pi * frequency * stepsize
@@ -180,5 +161,4 @@ while True:
         time.sleep(naptime)
 
     sample += 1
-    if debug > 0:
-        print("generated sample", sample, "in", (time.time() - start) * 1000, "ms")
+    monitor.info("generated sample", sample, "in", (time.time() - start) * 1000, "ms")

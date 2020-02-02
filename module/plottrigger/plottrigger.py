@@ -69,7 +69,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -104,8 +104,7 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    if debug>1:
-                        print(item)
+                    monitor.info(item)
                     lock.acquire()
                     now = time.time()
                     val = float(item['data'])
@@ -124,10 +123,9 @@ for i in range(1, 17):
         # start the background thread that deals with this channel
         this = TriggerThread(patch.getstring('gate', name), i)
         gate.append(this)
-        if debug>1:
-            print(name, 'OK')
+        monitor.info(name, 'OK')
 if len(gate)==0:
-    print('no gates were specified in the ini file')
+    monitor.warning('no gates were specified in the ini file')
 
 # start the thread for each of the notes
 for thread in gate:
@@ -195,7 +193,7 @@ timer.start(int(round(delay * 1000)))     # in milliseconds
 # Start
 QtGui.QApplication.instance().exec_()
 
-print('Closing threads')
+monitor.success('Closing threads')
 for thread in gate:
     thread.stop()
 r.publish('PLOTTRIGGER_UNBLOCK', 1)

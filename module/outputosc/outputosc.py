@@ -70,7 +70,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -81,8 +81,7 @@ try:
         s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
     else:
         s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
-    if debug>0:
-        print("Connected to OSC server")
+    monitor.success('Connected to OSC server")
 except:
     raise RuntimeError("cannot connect to OSC server")
 
@@ -130,7 +129,7 @@ class TriggerThread(threading.Thread):
                     # apply the scale and offset
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-                    monitor.update(self.osctopic, val, debug>0)
+                    monitor.update(self.osctopic, val, debug > 0)
                     with lock:
                         # send it as a string with a space as separator
                         if sys.version_info < (3,6):
@@ -146,8 +145,7 @@ trigger = []
 for key1, key2, key3 in zip(list1, list2, list3):
     this = TriggerThread(key2, key1, key3)
     trigger.append(this)
-    if debug>1:
-        print('trigger configured for ' + key1)
+    monitor.debug('trigger configured for ' + key1)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -159,7 +157,7 @@ try:
         time.sleep(patch.getfloat('general', 'delay'))
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTOSC_UNBLOCK', 1)

@@ -66,7 +66,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug           = patch.getint('general', 'debug')
@@ -112,8 +112,7 @@ class Window(QtGui.QWidget):
                 elif item[1]=='text':
                     # text has an internal value identical to the external value
                     val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                if debug>0:
-                    print('%s = %g' % (key, val))
+                monitor.info('%s = %g' % (key, val))
             except:
                 # set the default initial value to 0
                 val = 0

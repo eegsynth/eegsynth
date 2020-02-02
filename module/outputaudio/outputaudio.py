@@ -132,7 +132,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug  = patch.getint('general', 'debug')
@@ -140,12 +140,10 @@ def _setup():
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to input FieldTrip buffer")
+        monitor.success('Connected to input FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
@@ -167,18 +165,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time() - start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print("buffer nchans", hdr_input.nChannels)
-        print("buffer rate", hdr_input.fSample)
+    monitor.info('Data arrived')
+    monitor.debug("buffer nchans", hdr_input.nChannels)
+    monitor.debug("buffer rate", hdr_input.fSample)
 
     # get the options from the configuration file
     device  = patch.getint('audio', 'device')
@@ -196,26 +191,25 @@ def _start():
     scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
     offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
-    if debug > 0:
-        print("audio nchans", nchans)
-        print("audio rate", outputrate)
+    monitor.info("audio nchans", nchans)
+    monitor.info("audio rate", outputrate)
 
     p = pyaudio.PyAudio()
 
-    print('------------------------------------------------------------------')
+    monitor.info('------------------------------------------------------------------')
     info = p.get_host_api_info_by_index(0)
-    print(info)
-    print('------------------------------------------------------------------')
+    monitor.info(info)
+    monitor.info('------------------------------------------------------------------')
     for i in range(info.get('deviceCount')):
         if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-            print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+            monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
         if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-            print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-    print('------------------------------------------------------------------')
+            monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+    monitor.info('------------------------------------------------------------------')
     devinfo = p.get_device_info_by_index(device)
-    print("Selected device is", devinfo['name'])
-    print(devinfo)
-    print('------------------------------------------------------------------')
+    monitor.info("Selected device is", devinfo['name'])
+    monitor.info(devinfo)
+    monitor.info('------------------------------------------------------------------')
 
     # this is to prevent concurrency problems
     lock = threading.Lock()
@@ -313,8 +307,7 @@ def _loop_once():
         if old/new > 0.1 or old/new < 10:
             inputrate = (1 - lrate) * old + lrate * new
 
-    if debug > 0:
-        print("read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration)
+    monitor.info("read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration)
 
     monitor.update("inputrate", int(inputrate), debug > 1)
     monitor.update("outputrate", int(outputrate), debug > 1)
@@ -322,7 +315,7 @@ def _loop_once():
     monitor.update("len(stack)", len(stack), debug > 1)
 
     if np.min(dat)<-1 or np.max(dat)>1:
-        print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
+        monitor.warning('WARNING: signal exceeds [-1,+1] range, the audio will clip')
 
     begsample += window
     endsample += window

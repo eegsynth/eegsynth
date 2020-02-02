@@ -44,6 +44,16 @@ def trimquotes(option):
 class monitor():
     """Class to monitor control values and print them to screen when they have changed. It also
     prints a boilerplate license upon startup.
+
+    monitor.loop()           - to be called on every iteration of the loop
+    monitor.update(key, val) - to be used to check whether values change
+
+    monitor.error(...)     - shows always
+    monitor.warning(...)   - shows always
+    monitor.success(...)   - debug level 0
+    monitor.info(...)      - debug level 1
+    monitor.debug(...)     - debug level 2
+    monitor.trace(...)     - debug level 3
     """
 
     def __init__(self, name=None, debug=0):
@@ -118,6 +128,10 @@ Press Ctrl-C to stop this module.
     def error(self, *args):
         args = (self.prefix, ) + args
         logger.error(" ".join(map(format, args)))
+
+    def warning(self, *args):
+        args = (self.prefix, ) + args
+        logger.warning(" ".join(map(format, args)))
 
     def success(self, *args):
         args = (self.prefix, ) + args
@@ -211,7 +225,7 @@ class patch():
                 val = float(default)
 
         if debug:
-            print(formatkeyval(key, val))
+            print(formatkeyval(item, val))
 
         if multiple:
             # return it as list
@@ -275,7 +289,7 @@ class patch():
                 val = int(default)
 
         if debug:
-            print(formatkeyval(key, val))
+            print(formatkeyval(item, val))
 
         if multiple:
             # return it as list
@@ -314,7 +328,7 @@ class patch():
                 val = val.split(separator)     # split on the separator
 
         if debug:
-            print(formatkeyval(key, val))
+            print(formatkeyval(item, val))
 
         if multiple:
             # return it as list
@@ -336,7 +350,7 @@ class patch():
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
         if debug:
-            print(formatkeyval(key, val))
+            print(formatkeyval(item, val))
         if duration > 0:
             # switch off after a certain amount of time
             threading.Timer(duration, self.setvalue, args=[item, 0.]).start()

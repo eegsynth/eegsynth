@@ -75,7 +75,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug   = patch.getint('general', 'debug')
@@ -83,30 +83,22 @@ def _setup():
     try:
         ft_host = patch.getstring('input_fieldtrip', 'hostname')
         ft_port = patch.getint('input_fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to input FieldTrip buffer")
+        monitor.success('Connected to input FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
     try:
         ft_host = patch.getstring('output_fieldtrip', 'hostname')
         ft_port = patch.getint('output_fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_output = FieldTrip.Client()
         ft_output.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to output FieldTrip buffer")
+        monitor.success('Connected to output FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _start():
@@ -122,18 +114,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time()-start)>timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info('Data arrived')
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     # get the input and output options
     input_number, input_channel = list(map(list, list(zip(*config.items('input_channel')))))
@@ -168,12 +157,12 @@ def _start():
     output_channel = tmp
 
     if debug > 0:
-        print('===== input channels =====')
+        monitor.print('===== input channels =====')
         for number, channel in zip(input_number, input_channel):
-            print(number, '=', channel)
-        print('===== output channels =====')
+            monitor.print(number, '=', channel)
+        monitor.print('===== output channels =====')
         for number, channel in zip(output_number, output_channel):
-            print(number, '=', channel)
+            monitor.print(number, '=', channel)
 
     sample_rate         = patch.getfloat('cogito', 'sample_rate')
     window              = patch.getfloat('cogito', 'window')
@@ -200,10 +189,9 @@ def _start():
     val = (val - val.min())/(val.max()-val.min())*definition
     positions = np.round(val).astype(int)
 
-    if debug > 1:
-        print("nsample", hdr_input.nSamples)
-        print("nchan", hdr_input.nChannels)
-        print("window", window)
+    monitor.debug("nsample", hdr_input.nSamples)
+    monitor.debug("nchan", hdr_input.nChannels)
+    monitor.debug("window", window)
 
     inputscaling = 0
     outputscaling = 0
@@ -215,10 +203,6 @@ def _start():
     else:
         begsample = hdr_input.nSamples-window
         endsample = hdr_input.nSamples-1
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_once():
@@ -294,15 +278,13 @@ def _loop_once():
         convert = np.concatenate(channel) * profileCorrection[ch]
         tmp.append(convert)
 
-        if debug > 2:
-            print('time to process single channel: ' + str((time.time() - chan_time) * 1000))
+        monitor.trace('time to process single channel: ' + str((time.time() - chan_time) * 1000))
 
     signal_time = time.time()
     signal = np.fft.irfft(np.concatenate(tmp), int(sample_rate))
     dat_output = np.atleast_2d(signal).T.astype(np.float32)
 
-    if debug > 1:
-        print('time to inverse FFT: ' + str((time.time() - signal_time) * 1000))
+    monitor.debug('time to inverse FFT: ' + str((time.time() - signal_time) * 1000))
 
     if outputscaling==0:
         tmp = dat_output - dat_output.mean(axis=0)
@@ -320,18 +302,12 @@ def _loop_once():
     # write the data to the output buffer
     ft_output.putData(dat_output)
 
-    if debug > 1:
-        print('time to write data to buffer: ' + str((time.time() - write_time) * 1000))
-    if debug > 0:
-	    print("processed", window, "samples in", (time.time()-start)*1000, "ms")
+    monitor.debug('time to write data to buffer: ' + str((time.time() - write_time) * 1000))
+    monitor.info("processed", window, "samples in", (time.time()-start)*1000, "ms")
 
     # increment the counters for the next loop
     begsample += window
     endsample += window
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():
