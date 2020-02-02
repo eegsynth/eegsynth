@@ -85,7 +85,7 @@ monitor.info('-------------------------')
 
 try:
     inputport = mido.open_input(mididevice)
-    monitor.success('Connected to MIDI input")
+    monitor.success('Connected to MIDI input')
 except:
     raise RuntimeError("cannot connect to MIDI input")
 

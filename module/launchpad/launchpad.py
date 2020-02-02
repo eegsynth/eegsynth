@@ -114,7 +114,7 @@ mididevice_output = process.extractOne(mididevice_output, mido.get_output_names(
 
 try:
     inputport = mido.open_input(mididevice_input)
-    monitor.success('Connected to MIDI input")
+    monitor.success('Connected to MIDI input')
 except:
     raise RuntimeError("cannot connect to MIDI input")
 
