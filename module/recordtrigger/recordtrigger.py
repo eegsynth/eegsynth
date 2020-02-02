@@ -132,6 +132,7 @@ for thread in trigger:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         if recording and not patch.getint('recording', 'record'):

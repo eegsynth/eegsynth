@@ -177,10 +177,10 @@ monitor.update('offset_duration',  offset_duration)
 
 try:
     while True:
+        monitor.loop()
+
         # measure the time to correct for the slip
         start = time.time()
-
-        monitor.info('loop')
 
         # the active sequence is specified as an integer between 0 and 127
         active = patch.getfloat('sequence', 'active', default=0)

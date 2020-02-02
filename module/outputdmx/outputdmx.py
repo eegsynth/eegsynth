@@ -126,6 +126,7 @@ prevtime = time.time()
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         update = False

@@ -177,6 +177,7 @@ for thread in trigger:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         # loop over the control voltages

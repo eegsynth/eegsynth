@@ -150,6 +150,7 @@ for name in control_name:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         for name, cmd in zip(control_name, control_code):

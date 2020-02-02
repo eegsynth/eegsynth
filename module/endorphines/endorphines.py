@@ -147,6 +147,7 @@ for channel in range(0, 16):
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         # loop over the control values

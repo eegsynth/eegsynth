@@ -203,10 +203,10 @@ previous_redis_play  = None
 
 try: # FIXME do we need this or can we catch errors before?
     while True:
+        monitor.loop()
+
         # measure the time to correct for the slip
         start = time.time()
-
-        monitor.trace('loop')
 
         redis_play  = patch.getint('redis', 'play')
         midi_play   = patch.getint('midi', 'play')

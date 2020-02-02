@@ -84,6 +84,7 @@ prevtime = time.time()
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         # loop over the control values, these are 1-offset in the ini file

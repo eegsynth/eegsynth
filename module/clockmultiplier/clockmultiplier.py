@@ -150,8 +150,9 @@ for thread in triggers:
 
 try:
     while True:
-        time.sleep(1)
+        monitor.loop()
         monitor.update("count", count / len(multipliers))
+        time.sleep(1)
 
 except KeyboardInterrupt:
     monitor.success('Closing threads')

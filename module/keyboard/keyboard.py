@@ -233,6 +233,7 @@ for thread in trigger:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general','delay'))
 
         for msg in inputport.iter_pending():
