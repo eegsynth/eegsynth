@@ -76,7 +76,7 @@ except:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -88,11 +88,11 @@ output_offset = patch.getfloat('output', 'offset', default=0)
 
 input_channels = patch.getstring('input', 'channels', multiple=True)
 if len(input_channels)==0:
-    print('subscribed to everything')
+    monitor.info('subscribed to everything')
     socket.setsockopt_string(zmq.SUBSCRIBE, u'')
 else:
     for channel in input_channels:
-        print('subscribed to ' + channel)
+        monitor.info('subscribed to ' + channel)
         socket.setsockopt_string(zmq.SUBSCRIBE, channel)
 
 # set a timeout for receiving messages
@@ -127,7 +127,7 @@ try:
         output_offset = patch.getfloat('output', 'offset', default=0)
 
 except KeyboardInterrupt:
-    print("\nClosing module.")
+    monitor.success("\nClosing module.")
     socket.close()
     context.destroy()
-    print("Done.")
+    monitor.success("Done.")

@@ -66,7 +66,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general','debug')
@@ -86,13 +86,13 @@ offset_note    = patch.getfloat('offset', 'note', default=0)
 offset_control = patch.getfloat('offset', 'control', default=0)
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ INPUT ------')
+monitor.info('------ INPUT ------')
 for port in mido.get_input_names():
-    print(port)
-print('------ OUTPUT ------')
+    monitor.info(port)
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-    print(port)
-print('-------------------------')
+    monitor.info(port)
+monitor.info('-------------------------')
 
 # on windows the input and output are different, on unix they are the same
 # use "input/output" when specified, or otherwise use "device" for both
@@ -114,15 +114,13 @@ mididevice_output = process.extractOne(mididevice_output, mido.get_output_names(
 
 try:
     inputport = mido.open_input(mididevice_input)
-    if debug > 0:
-        print("Connected to MIDI input")
+    monitor.success('Connected to MIDI input")
 except:
     raise RuntimeError("cannot connect to MIDI input")
 
 try:
     outputport = mido.open_output(mididevice_output)
-    if debug > 0:
-        print("Connected to MIDI output")
+    monitor.success('Connected to MIDI output')
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -131,7 +129,7 @@ if not midichannel is None:
     midichannel-=1
 monitor.update('midichannel', midichannel)
 
-print(model)
+module.info(model)
 
 # these are the MIDI values for the LED color
 if model == 'mk1':
@@ -212,8 +210,8 @@ while True:
             except:
                 pass
 
-        if debug>1 and msg.type!='clock':
-            print(msg)
+        if msg.type!='clock':
+            monitor.debug(msg)
 
         if hasattr(msg, "control"):
             # e.g. prefix.control000=value
@@ -276,8 +274,7 @@ while True:
                 if status in list(state0value.keys()):
                     val = state0value[status]
 
-            if debug > 1:
-                print(status, val)
+            monitor.debug(status, val)
 
             if not val is None:
                 # prefix.noteXXX=value

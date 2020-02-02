@@ -64,19 +64,18 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
-debug   = patch.getint('general','debug')
+debug   = patch.getint('general', 'debug')
 delay   = patch.getfloat('general', 'delay')
 prefix  = patch.getstring('output', 'prefix')
 
 # get the input options
 input_name, input_variable = list(zip(*config.items('input')))
 
-if debug>0:
-    for name,variable in zip(input_name, input_variable):
-        print("%s = %s" % (name, variable))
+for name,variable in zip(input_name, input_variable):
+    monitor.info("%s = %s" % (name, variable))
 
 while True:
     monitor.loop()
@@ -98,8 +97,7 @@ while True:
         monitor.update('hi', hi)
 
         if lo is None or hi is None:
-            if debug>1:
-                print("cannot apply compressor/expander")
+            monitor.debug("cannot apply compressor/expander")
             continue
 
         for name,variable in zip(input_name, input_variable):

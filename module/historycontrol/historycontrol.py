@@ -64,7 +64,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -103,17 +103,13 @@ while True:
     enable = patch.getint('history', 'enable', default=1)
 
     if enable and prev_enable:
-        if debug > 0:
-            print("Updating the history")
+        monitor.info("Updating the history")
     elif enable and not prev_enable:
-        if debug > 0:
-            print("Enabling the updating")
+        monitor.info("Enabling the updating")
     elif not enable and not prev_enable:
-        if debug > 0:
-            print("Not updating the history")
+        monitor.info("Not updating the history")
     elif not enable and prev_enable:
-        if debug > 0:
-            print("Disabling the updating")
+        monitor.info("Disabling the updating")
 
     if not enable:
         time.sleep(0.1)
@@ -160,8 +156,7 @@ while True:
                 key = inputlist[channel] + "." + operation
                 val = historic[operation][channel]
                 patch.setvalue(key, val)
-                if debug>1:
-                    print('%s = %g' % (key, val))
+                monitor.debug('%s = %g' % (key, val))
 
         elapsed = time.time() - start
         naptime = stepsize - elapsed

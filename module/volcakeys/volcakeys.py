@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # the list of MIDI commands is the only aspect that is specific to the Volca Keys
 # see http://media.aadl.org/files/catalog_guides/1444140_chart.pdf
@@ -80,10 +80,10 @@ note_code = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
 debug = patch.getint('general','debug')
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ OUTPUT ------')
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
+  monitor.info(port)
+monitor.info('-------------------------')
 
 midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
 mididevice  = patch.getstring('midi', 'device')
@@ -92,8 +92,7 @@ mididevice  = process.extractOne(mididevice, mido.get_output_names())[0] # selec
 
 try:
     outputport = mido.open_output(mididevice)
-    if debug>0:
-        print("Connected to MIDI output")
+    monitor.success('Connected to MIDI output')
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -125,8 +124,7 @@ class TriggerThread(threading.Thread):
                     val = EEGsynth.rescale(item['data'], slope=scale, offset=offset)
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
-                    if debug>1:
-                        print(item['channel'], "=", val)
+                    monitor.debug(item['channel'], "=", val)
                     msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
                     outputport.send(msg)
@@ -139,8 +137,7 @@ for name, code in zip(note_name, note_code):
         # start the background thread that deals with this note
         this = TriggerThread(patch.getstring('note', name), code)
         trigger.append(this)
-        if debug>1:
-            print(name, 'OK')
+        monitor.debug(name, 'OK')
 
 # start the thread for each of the notes
 for thread in trigger:
@@ -168,14 +165,13 @@ try:
             val = EEGsynth.limit(val, 0, 127)
             val = int(val)
             msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
-            if debug>1:
-                print(cmd, val, name)
+            monitor.debug(cmd, val, name)
             lock.acquire()
             outputport.send(msg)
             lock.release()
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('VOLCAKEYS_UNBLOCK', 1)

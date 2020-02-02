@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -85,18 +85,17 @@ scale_velocity  = patch.getfloat('scale', 'velocity', default=1)
 offset_velocity = patch.getfloat('offset', 'velocity', default=0)
 
 # this is only for debugging, and to check which MIDI devices are accessible
-print('------ INPUT ------')
+monitor.info('------ INPUT ------')
 for port in mido.get_input_names():
-    print(port)
-print('------ OUTPUT ------')
+    monitor.info(port)
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-    print(port)
-print('-------------------------')
+    monitor.info(port)
+monitor.info('-------------------------')
 
 try:
     outputport = mido.open_output(mididevice)
-    if debug>0:
-        print("Connected to MIDI output")
+    monitor.success('Connected to MIDI output')
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -179,8 +178,7 @@ def sendMidi(name, code, val):
         SetNoteOn(code, val)
         return
 
-    if debug>0:
-        print(name, code, val)
+    monitor.info(name, code, val)
 
     if name.startswith('control'):
         if midichannel is None:
@@ -233,8 +231,7 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    if debug>1:
-                        print(item['channel'], '=', item['data'])
+                    monitor.debug(item['channel'], '=', item['data'])
                     # map the Redis values to MIDI values
                     val = float(item['data'])
                     # the scale and offset options are channel specific and can be changed on the fly
@@ -265,8 +262,7 @@ for name, code in zip(trigger_name, trigger_code):
         # start the background thread that deals with this note
         this = TriggerThread(patch.getstring('trigger', name), name, code)
         trigger.append(this)
-        if debug>1:
-            print(name, 'trigger configured')
+        monitor.debug(name, 'trigger configured')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -316,7 +312,7 @@ try:
 
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTMIDI_UNBLOCK', 1)

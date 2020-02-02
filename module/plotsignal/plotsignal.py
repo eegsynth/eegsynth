@@ -79,7 +79,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
@@ -87,12 +87,10 @@ def _setup():
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to input FieldTrip buffer")
+        monitor.success('Connected to input FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
@@ -126,18 +124,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time() - start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info('Data arrived')
+    monitor.debug(hdr_input)
+        monitor.debug(hdr_input.labels)
 
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
@@ -215,7 +210,7 @@ def _loop_once():
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
         # raise RuntimeError("buffer reset detected")
-        monitor.print("buffer reset detected")
+        monitor.info("buffer reset detected")
         begsample = -1
         while begsample < 0:
             hdr_input = ft_input.getHeader()
@@ -226,8 +221,7 @@ def _loop_once():
     begsample = (hdr_input.nSamples - window)  # the clipsize will be removed from both sides after filtering
     endsample = (hdr_input.nSamples - 1)
 
-    if debug > 0:
-        monitor.print("reading from sample %d to %d" % (begsample, endsample))
+    monitor.info("reading from sample %d to %d" % (begsample, endsample))
 
     dat = ft_input.getData([begsample, endsample]).astype(np.double)
 

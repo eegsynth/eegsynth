@@ -70,7 +70,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 MININT16 = -0xffff/2 - 1
 MAXINT16 =  0xffff/2 - 1
@@ -91,30 +91,25 @@ if fileformat is None:
 try:
     ft_host = patch.getstring('fieldtrip', 'hostname')
     ft_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_input = FieldTrip.Client()
     ft_input.connect(ft_host, ft_port)
-    if debug > 0:
-        print("Connected to FieldTrip buffer")
+    monitor.success('Connected to FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
 
 hdr_input = None
 start = time.time()
 while hdr_input is None:
-    if debug > 0:
-        print("Waiting for data to arrive...")
+    monitor.info('Waiting for data to arrive...')
     if (time.time() - start) > timeout:
         raise RuntimeError("timeout while waiting for data")
     time.sleep(0.1)
     hdr_input = ft_input.getHeader()
 
-if debug > 0:
-    print("Data arrived")
-if debug > 1:
-    print(hdr_input)
-    print(hdr_input.labels)
+monitor.info('Data arrived')
+monitor.debug(hdr_input)
+monitor.debug(hdr_input.labels)
 
 recording = False
 
@@ -124,22 +119,19 @@ while True:
     hdr_input = ft_input.getHeader()
 
     if recording and hdr_input is None:
-        if debug > 0:
-            print("Header is empty - closing", fname)
+        monitor.info("Header is empty - closing", fname)
         f.close()
         recording = False
         continue
 
     if recording and not patch.getint('recording', 'record'):
-        if debug > 0:
-            print("Recording disabled - closing", fname)
+        monitor.info("Recording disabled - closing", fname)
         f.close()
         recording = False
         continue
 
     if not recording and not patch.getint('recording', 'record'):
-        if debug > 0:
-            print("Recording is not enabled")
+        monitor.info("Recording is not enabled")
         time.sleep(1)
 
     if not recording and patch.getint('recording', 'record'):
@@ -159,8 +151,7 @@ while True:
         physical_max = patch.getfloat('recording', 'physical_max')
 
         # write the header to file
-        if debug > 0:
-            print("Opening", fname)
+        monitor.info("Opening", fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -180,7 +171,7 @@ while True:
             chan_info['digital_max'] = hdr_input.nChannels * [MAXINT16]
             chan_info['ch_names'] = hdr_input.labels
             chan_info['n_samps'] = hdr_input.nChannels * [blocksize]
-            print(chan_info)
+            monitor.info(chan_info)
             f = EDF.EDFWriter(fname)
             f.writeHeader((meas_info, chan_info))
         elif fileformat == 'wav':
@@ -203,16 +194,14 @@ while True:
         startsample = begsample
 
     if recording and hdr_input.nSamples < begsample - 1:
-        if debug > 0:
-            print("Header was reset - closing", fname)
+        monitor.info("Header was reset - closing", fname)
         f.close()
         recording = False
         continue
 
     if recording and endsample > hdr_input.nSamples - 1:
         # the data is not yet available
-        if debug > 2:
-            print("Waiting for data", endsample, hdr_input.nSamples)
+        monitor.debug("Waiting for data", endsample, hdr_input.nSamples)
         time.sleep((endsample - hdr_input.nSamples) / hdr_input.fSample)
         continue
 
@@ -222,8 +211,7 @@ while True:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, endsample - startsample + 1)
         dat = ft_input.getData([begsample, endsample]).astype(np.float64)
-        if debug > 0:
-            print("Writing sample", begsample, "to", endsample, "as", np.shape(dat))
+        monitor.info("Writing sample", begsample, "to", endsample, "as", np.shape(dat))
         if fileformat == 'edf':
             # the scaling is done in the EDF writer
             f.writeBlock(np.transpose(dat))

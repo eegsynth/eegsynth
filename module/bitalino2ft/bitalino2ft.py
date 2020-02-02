@@ -68,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -83,21 +83,18 @@ nchans = len(channels)
 for i in range(nchans):
     channels[i] -= 1
 
-if debug > 0:
-    print("fsample", fsample)
-    print("channels", channels)
-    print("nchans", nchans)
-    print("blocksize", blocksize)
+monitor.info("fsample", fsample)
+monitor.info("channels", channels)
+monitor.info("nchans", nchans)
+monitor.info("blocksize", blocksize)
 
 try:
     ft_host = patch.getstring('fieldtrip', 'hostname')
     ft_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ft_host, ft_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
+    monitor.success('Connected to output FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to output FieldTrip buffer")
 
@@ -107,11 +104,9 @@ ft_output.putHeader(nchans, float(fsample), datatype)
 try:
     # Connect to BITalino
     device = BITalino(device)
+    monitor.success((device.version()))
 except:
     raise RuntimeError("cannot connect to BITalino")
-
-# Read BITalino version
-print((device.version()))
 
 # Set battery threshold
 device.battery(batterythreshold)
@@ -142,10 +137,10 @@ while True:
     countfeedback += blocksize
 
     if debug > 1:
-        print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
+        monitor.print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
     elif debug > 0 and countfeedback >= fsample:
         # this gets printed approximately once per second
-        print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
         startfeedback = time.time()
         countfeedback = 0
 

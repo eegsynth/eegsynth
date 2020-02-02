@@ -69,7 +69,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general','debug')
@@ -81,18 +81,15 @@ if fileformat is None:
     name, ext = os.path.splitext(filename)
     fileformat = ext[1:]
 
-if debug>0:
-    print("Reading data from", filename)
+monitor.info("Reading data from", filename)
 
 try:
     ft_host = patch.getstring('fieldtrip','hostname')
     ft_port = patch.getint('fieldtrip','port')
-    if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ft_host, ft_port)
-    if debug>0:
-        print("Connected to FieldTrip buffer")
+    monitor.success('Connected to FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
 
@@ -123,7 +120,7 @@ if fileformat=='edf':
     # read all the data from the file
     A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
     for chanindx in range(H.nChannels):
-        print("reading channel", chanindx)
+        monitor.info("reading channel", chanindx)
         A[:,chanindx] = f.readSignal(chanindx)
     f.close()
 
@@ -166,11 +163,10 @@ elif fileformat=='wav':
 else:
     raise NotImplementedError('unsupported file format')
 
-if debug>1:
-    print("nChannels", H.nChannels)
-    print("nSamples", H.nSamples)
-    print("fSample", H.fSample)
-    print("labels", labels)
+monitor.debug("nChannels", H.nChannels)
+monitor.debug("nSamples", H.nSamples)
+monitor.debug("fSample", H.fSample)
+monitor.debug("labels", labels)
 
 ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
 
@@ -183,36 +179,31 @@ while True:
     monitor.loop()
 
     if endsample>H.nSamples-1:
-        if debug>0:
-            print("End of file reached, jumping back to start")
+        monitor.info("End of file reached, jumping back to start")
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if patch.getint('playback', 'rewind', default=0):
-        if debug>0:
-            print("Rewind pressed, jumping back to start of file")
+        monitor.info("Rewind pressed, jumping back to start of file")
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if not patch.getint('playback', 'play', default=1):
-        if debug>0:
-            print("Stopped")
+        monitor.info("Stopped")
         time.sleep(0.1);
         continue
 
     if patch.getint('playback', 'pause', default=0):
-        if debug>0:
-            print("Paused")
+        monitor.info("Paused")
         time.sleep(0.1);
         continue
 
     # measure the time to correct for the slip
     start = time.time()
 
-    if debug>0:
-        print("Playing block", block, 'from', begsample, 'to', endsample)
+    monitor.info("Playing block", block, 'from', begsample, 'to', endsample)
 
     # copy the selected samples from the in-memory data
     D = A[begsample:endsample+1,:]
@@ -233,5 +224,4 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    if debug>0:
-        print("played", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("played", blocksize, "samples in", (time.time()-start)*1000, "ms")

@@ -279,7 +279,7 @@ def _loop_once():
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
         # raise RuntimeError("buffer reset detected")
-        monitor.print("buffer reset detected")
+        monitor.info("buffer reset detected")
         begsample = -1
         while begsample < 0:
             hdr_input = ft_input.getHeader()

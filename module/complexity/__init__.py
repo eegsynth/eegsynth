@@ -9,7 +9,7 @@ class Executable:
             # override the command line arguments
             sys.argv = [sys.argv[0]] + args
 
-        # the setup is required to pass without errors
+        # the setup MUST pass without errors
         _setup()
 
         while True:

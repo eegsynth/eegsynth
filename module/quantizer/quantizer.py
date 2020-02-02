@@ -65,7 +65,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general','debug')
@@ -105,21 +105,18 @@ while True:
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
-    if debug>0:
-        print('----------------------------------------')
+    monitor.info('----------------------------------------')
 
     for channel, name in zip(input_channel, input_name):
         val = patch.getfloat('input', channel)
         if val is None:
-            if debug>0:
-                print(name, 'not found')
+            monitor.info(name, 'not found')
             pass
         else:
             # map the Redis values to the internally used values
             val = EEGsynth.rescale(val, slope=input_scale, offset=input_offset)
             # look up the nearest index of the input_value vector
-            if debug>0:
-                print('%s = %g' % (name, val))
+            monitor.info('%s = %g' % (name, val))
             idx = find_nearest_idx(input_value, val)
             for qname, qvalue in zip(output_name, output_value):
                 key = '{}.{}'.format(name, qname)
@@ -129,8 +126,7 @@ while True:
                 else:
                     # take the last value from the output list
                     val = qvalue[-1]
-                if debug>0:
-                    print('%s = %g' % (key, val))
+                monitor.info('%s = %g' % (key, val))
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                 patch.setvalue(key, val)
