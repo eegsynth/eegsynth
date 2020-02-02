@@ -51,42 +51,6 @@ else:
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
-
-# values between 0 and 1 work well for the duration
-duration_scale = patch.getfloat('duration', 'scale', default=1)
-duration_offset = patch.getfloat('duration', 'offset', default=0)
-
-# get the specified serial device, or the one that is the closest match
-serialdevice = patch.getstring('serial', 'device')
-serialdevice = EEGsynth.trimquotes(serialdevice)
-serialdevice = process.extractOne(serialdevice, [comport.device for comport in serial.tools.list_ports.comports()])[0] # select the closest match
-
-try:
-    s = serial.Serial(serialdevice, patch.getint('serial', 'baudrate'), timeout=3.0)
-    monitor.success("Connected to serial port")
-except:
-    raise RuntimeError("cannot connect to serial port")
-
-# this is to prevent two triggers from being activated at the same time
-lock = threading.Lock()
-
 
 def SetControl(chanindx, chanval):
     lock.acquire()
@@ -155,81 +119,162 @@ class TriggerThread(threading.Thread):
                             t.start()
 
 
-trigger = []
-# configure the trigger threads for the control voltages
-for chanindx in range(1, 5):
-    chanstr = "cv%d" % chanindx
-    if patch.hasitem('trigger', chanstr):
-        redischannel = patch.getstring('trigger', chanstr)
-        trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-        monitor.info("configured", redischannel, "on", chanindx)
-# configure the trigger threads for the gates
-for chanindx in range(1, 5):
-    chanstr = "gate%d" % chanindx
-    if patch.hasitem('trigger', chanstr):
-        redischannel = patch.getstring('trigger', chanstr)
-        trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-        monitor.info("configured", redischannel, "on", chanindx)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-# start the thread for each of the triggers
-for thread in trigger:
-    thread.start()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-try:
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # values between 0 and 1 work well for the duration
+    duration_scale = patch.getfloat('duration', 'scale', default=1)
+    duration_offset = patch.getfloat('duration', 'offset', default=0)
+
+    # get the specified serial device, or the one that is the closest match
+    serialdevice = patch.getstring('serial', 'device')
+    serialdevice = EEGsynth.trimquotes(serialdevice)
+    serialdevice = process.extractOne(serialdevice, [comport.device for comport in serial.tools.list_ports.comports()])[0] # select the closest match
+
+    try:
+        s = serial.Serial(serialdevice, patch.getint('serial', 'baudrate'), timeout=3.0)
+        monitor.success("Connected to serial port")
+    except:
+        raise RuntimeError("cannot connect to serial port")
+
+    # this is to prevent two triggers from being activated at the same time
+    lock = threading.Lock()
+
+    trigger = []
+    # configure the trigger threads for the control voltages
+    for chanindx in range(1, 5):
+        chanstr = "cv%d" % chanindx
+        if patch.hasitem('trigger', chanstr):
+            redischannel = patch.getstring('trigger', chanstr)
+            trigger.append(TriggerThread(redischannel, chanindx, chanstr))
+            monitor.info("configured", redischannel, "on", chanindx)
+    # configure the trigger threads for the gates
+    for chanindx in range(1, 5):
+        chanstr = "gate%d" % chanindx
+        if patch.hasitem('trigger', chanstr):
+            redischannel = patch.getstring('trigger', chanstr)
+            trigger.append(TriggerThread(redischannel, chanindx, chanstr))
+            monitor.info("configured", redischannel, "on", chanindx)
+
+    # start the thread for each of the triggers
+    for thread in trigger:
+        thread.start()
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
+
+    monitor.loop()
+    time.sleep(patch.getfloat('general', 'delay'))
+
+    # loop over the control voltages
+    for chanindx in range(1, 5):
+        chanstr = "cv%d" % chanindx
+        # this returns None when the channel is not present
+        chanval = patch.getfloat('input', chanstr)
+
+        if chanval == None:
+            # the value is not present in Redis, skip it
+            monitor.trace(chanstr, 'not available')
+            continue
+
+        # the scale and offset options are channel specific
+        scale = patch.getfloat('scale', chanstr, default=4095)
+        offset = patch.getfloat('offset', chanstr, default=0)
+        # apply the scale and offset
+        chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+        # ensure that it is within limits
+        chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
+        chanval = int(chanval)
+
+        SetControl(chanindx, chanval)
+        monitor.update(chanstr, chanval)
+
+    # loop over the gates
+    for chanindx in range(1, 5):
+        chanstr = "gate%d" % chanindx
+        chanval = patch.getfloat('input', chanstr)
+
+        if chanval == None:
+            # the value is not present in Redis, skip it
+            monitor.trace(chanstr, 'not available')
+            continue
+
+        # the scale and offset options are channel specific
+        scale = patch.getfloat('scale', chanstr, default=4095)
+        offset = patch.getfloat('offset', chanstr, default=0)
+        # apply the scale and offset
+        chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
+        # the value for the gate should be 0 or 1
+        chanval = int(chanval > 0)
+
+        SetGate(chanindx, chanval)
+        monitor.update(chanstr, chanval)
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
     while True:
-        monitor.loop()
-        time.sleep(patch.getfloat('general', 'delay'))
-
-        # loop over the control voltages
-        for chanindx in range(1, 5):
-            chanstr = "cv%d" % chanindx
-            # this returns None when the channel is not present
-            chanval = patch.getfloat('input', chanstr)
-
-            if chanval == None:
-                # the value is not present in Redis, skip it
-                monitor.trace(chanstr, 'not available')
-                continue
-
-            # the scale and offset options are channel specific
-            scale = patch.getfloat('scale', chanstr, default=4095)
-            offset = patch.getfloat('offset', chanstr, default=0)
-            # apply the scale and offset
-            chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
-            # ensure that it is within limits
-            chanval = EEGsynth.limit(chanval, lo=0, hi=4095)
-            chanval = int(chanval)
-
-            SetControl(chanindx, chanval)
-            monitor.update(chanstr, chanval)
-
-        # loop over the gates
-        for chanindx in range(1, 5):
-            chanstr = "gate%d" % chanindx
-            chanval = patch.getfloat('input', chanstr)
-
-            if chanval == None:
-                # the value is not present in Redis, skip it
-                monitor.trace(chanstr, 'not available')
-                continue
-
-            # the scale and offset options are channel specific
-            scale = patch.getfloat('scale', chanstr, default=4095)
-            offset = patch.getfloat('offset', chanstr, default=0)
-            # apply the scale and offset
-            chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
-            # the value for the gate should be 0 or 1
-            chanval = int(chanval > 0)
-
-            SetGate(chanindx, chanval)
-            monitor.update(chanstr, chanval)
+        _loop_once()
 
 
-except KeyboardInterrupt:
+def _stop():
+    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''
     monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTCVGATE_UNBLOCK', 1)
     for thread in trigger:
-        thread.join()
-    sys.exit()
+            thread.join()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

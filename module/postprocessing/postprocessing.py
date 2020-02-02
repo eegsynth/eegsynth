@@ -53,32 +53,16 @@ import EEGsynth
 # these function names can be used in the equation that gets parsed
 from EEGsynth import compress, limit, rescale, normalizerange, normalizestandard
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 def rand(x):
     # the input variable is ignored
     return np.asscalar(random.rand(1))
 
+
 def randn(x):
     # the input variable is ignored
     return np.asscalar(random.randn(1))
+
 
 def sanitize(equation):
     equation.replace(' ', '')
@@ -94,34 +78,83 @@ def sanitize(equation):
     equation = ' '.join(equation.split())
     return equation
 
-# assign the initial values
-for item in config.items('initial'):
-    val = patch.getfloat('initial', item[0])
-    patch.setvalue(item[0], val)
-    monitor.update(item[0], val)
 
-# get the input and output options
-if len(config.items('input')):
-    input_name, input_variable = list(zip(*config.items('input')))
-else:
-    input_name, input_variable = ([], [])
-if len(config.items('output')):
-    output_name, output_equation = list(zip(*config.items('output')))
-else:
-    output_name, output_equation = ([], [])
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-# make the equations robust against sub-string replacements
-output_equation = [sanitize(equation) for equation in output_equation]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-monitor.info('===== input variables =====')
-for name,variable in zip(input_name, input_variable):
-    monitor.info(name, '=', variable)
-monitor.info('===== output equations =====')
-for name,equation in zip(output_name, output_equation):
-    monitor.info(name, '=', equation)
-monitor.info('============================')
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-while True:
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, input_name, input_variable, output_name, output_equation, variable, equation
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # assign the initial values
+    for item in config.items('initial'):
+        val = patch.getfloat('initial', item[0])
+        patch.setvalue(item[0], val)
+        monitor.update(item[0], val)
+
+    # get the input and output options
+    if len(config.items('input')):
+        input_name, input_variable = list(zip(*config.items('input')))
+    else:
+        input_name, input_variable = ([], [])
+    if len(config.items('output')):
+        output_name, output_equation = list(zip(*config.items('output')))
+    else:
+        output_name, output_equation = ([], [])
+
+    # make the equations robust against sub-string replacements
+    output_equation = [sanitize(equation) for equation in output_equation]
+
+    monitor.info('===== input variables =====')
+    for name,variable in zip(input_name, input_variable):
+        monitor.info(name, '=', variable)
+    monitor.info('===== output equations =====')
+    for name,equation in zip(output_name, output_equation):
+        monitor.info(name, '=', equation)
+    monitor.info('============================')
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, input_name, input_variable, output_name, output_equation, variable, equation
+
     monitor.loop()
     time.sleep(patch.getfloat('general', 'delay'))
 
@@ -151,3 +184,16 @@ while True:
             patch.setvalue(equation[0], np.NaN)
         except:
             monitor.error('Error in evaluation: %s = %s' % (key, equation))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    while True:
+        _loop_once()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    _loop_forever()

@@ -50,78 +50,6 @@ else:
 sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-# get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-monophonic  = patch.getint('general', 'monophonic', default=1)
-midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
-mididevice  = patch.getstring('midi', 'device')
-mididevice  = EEGsynth.trimquotes(mididevice)
-mididevice  = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
-
-# values between 0 and 1 work well for the note duration
-scale_duration  = patch.getfloat('scale', 'duration', default=1)
-offset_duration = patch.getfloat('offset', 'duration', default=0)
-# values around 64 work well for the note velocity
-scale_velocity  = patch.getfloat('scale', 'velocity', default=1)
-offset_velocity = patch.getfloat('offset', 'velocity', default=0)
-
-# this is only for debugging, and to check which MIDI devices are accessible
-monitor.info('------ INPUT ------')
-for port in mido.get_input_names():
-    monitor.info(port)
-monitor.info('------ OUTPUT ------')
-for port in mido.get_output_names():
-    monitor.info(port)
-monitor.info('-------------------------')
-
-try:
-    outputport = mido.open_output(mididevice)
-    monitor.success('Connected to MIDI output')
-except:
-    raise RuntimeError("cannot connect to MIDI output")
-
-# this is to prevent two messages from being sent at the same time
-lock = threading.Lock()
-
-previous_note = None
-velocity_note = None
-duration_note = None
-
-def UpdateVelocity():
-    global velocity_note
-    velocity_note = patch.getfloat('velocity', 'note', default=64)
-    velocity_note = int(EEGsynth.rescale(velocity_note, slope=scale_velocity, offset=offset_velocity))
-
-def UpdateDuration():
-    global duration_note
-    duration_note = patch.getfloat('duration', 'note', default=None)
-    if duration_note != None:
-        duration_note = EEGsynth.rescale(duration_note, slope=scale_duration, offset=offset_duration)
-        # some minimal time is needed for the duration
-        duration_note = EEGsynth.limit(duration_note, 0.05, float('Inf'))
-
-# call them once at the start
-UpdateVelocity()
-UpdateDuration()
 
 def SetNoteOn(note, velocity):
     global previous_note
@@ -242,80 +170,200 @@ class TriggerThread(threading.Thread):
                         sendMidi(self.name, self.code, val)
 
 
-trigger_name = []
-trigger_code = []
-for code in range(1,128):
-    trigger_name.append("note%03d" % code)
-    trigger_code.append(code)
-    trigger_name.append("control%03d" % code)
-    trigger_code.append(code)
-    trigger_name.append("polytouch%03d" % code)
-    trigger_code.append(code)
-for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
-    trigger_name.append(name)
-    trigger_code.append(None)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-# each of the Redis messages is mapped onto a different MIDI message
-trigger = []
-for name, code in zip(trigger_name, trigger_code):
-    if config.has_option('trigger', name):
-        # start the background thread that deals with this note
-        this = TriggerThread(patch.getstring('trigger', name), name, code)
-        trigger.append(this)
-        monitor.debug(name, 'trigger configured')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# start the thread for each of the triggers
-for thread in trigger:
-    thread.start()
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-control_name = []
-control_code = []
-for code in range(1,128):
-    control_name.append("note%03d" % code)
-    control_code.append(code)
-    control_name.append("control%03d" % code)
-    control_code.append(code)
-    control_name.append("polytouch%03d" % code)
-    control_code.append(code)
-for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
-    control_name.append(name)
-    control_code.append(None)
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# control values are only interesting when different from the previous value
-previous_val = {}
-for name in control_name:
-    previous_val[name] = None
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-try:
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global debug, mididevice, port, previous_note, UpdateVelocity, UpdateDuration, TriggerThread, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, SetNoteOff, SetNoteOn, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, sendMidi, velocity_note
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+
+    # get the options from the configuration file
+    debug       = patch.getint('general', 'debug')
+    monophonic  = patch.getint('general', 'monophonic', default=1)
+    midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
+    mididevice  = patch.getstring('midi', 'device')
+    mididevice  = EEGsynth.trimquotes(mididevice)
+    mididevice  = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
+
+    # values between 0 and 1 work well for the note duration
+    scale_duration  = patch.getfloat('scale', 'duration', default=1)
+    offset_duration = patch.getfloat('offset', 'duration', default=0)
+    # values around 64 work well for the note velocity
+    scale_velocity  = patch.getfloat('scale', 'velocity', default=1)
+    offset_velocity = patch.getfloat('offset', 'velocity', default=0)
+
+    # this is only for debugging, and to check which MIDI devices are accessible
+    monitor.info('------ INPUT ------')
+    for port in mido.get_input_names():
+        monitor.info(port)
+    monitor.info('------ OUTPUT ------')
+    for port in mido.get_output_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+
+    try:
+        outputport = mido.open_output(mididevice)
+        monitor.success('Connected to MIDI output')
+    except:
+        raise RuntimeError("cannot connect to MIDI output")
+
+    # this is to prevent two messages from being sent at the same time
+    lock = threading.Lock()
+
+    previous_note = None
+    velocity_note = None
+    duration_note = None
+
+    def UpdateVelocity():
+        global velocity_note
+        velocity_note = patch.getfloat('velocity', 'note', default=64)
+        velocity_note = int(EEGsynth.rescale(velocity_note, slope=scale_velocity, offset=offset_velocity))
+
+    def UpdateDuration():
+        global duration_note
+        duration_note = patch.getfloat('duration', 'note', default=None)
+        if duration_note != None:
+            duration_note = EEGsynth.rescale(duration_note, slope=scale_duration, offset=offset_duration)
+            # some minimal time is needed for the duration
+            duration_note = EEGsynth.limit(duration_note, 0.05, float('Inf'))
+
+    # call them once at the start
+    UpdateVelocity()
+    UpdateDuration()
+
+    trigger_name = []
+    trigger_code = []
+    for code in range(1,128):
+        trigger_name.append("note%03d" % code)
+        trigger_code.append(code)
+        trigger_name.append("control%03d" % code)
+        trigger_code.append(code)
+        trigger_name.append("polytouch%03d" % code)
+        trigger_code.append(code)
+    for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+        trigger_name.append(name)
+        trigger_code.append(None)
+
+    # each of the Redis messages is mapped onto a different MIDI message
+    trigger = []
+    for name, code in zip(trigger_name, trigger_code):
+        if config.has_option('trigger', name):
+            # start the background thread that deals with this note
+            this = TriggerThread(patch.getstring('trigger', name), name, code)
+            trigger.append(this)
+            monitor.debug(name, 'trigger configured')
+
+    # start the thread for each of the triggers
+    for thread in trigger:
+        thread.start()
+
+    control_name = []
+    control_code = []
+    for code in range(1,128):
+        control_name.append("note%03d" % code)
+        control_code.append(code)
+        control_name.append("control%03d" % code)
+        control_code.append(code)
+        control_name.append("polytouch%03d" % code)
+        control_code.append(code)
+    for name in ['note', 'aftertouch', 'pitchwheel', 'start', 'continue', 'stop', 'reset']:
+        control_name.append(name)
+        control_code.append(None)
+
+    # control values are only interesting when different from the previous value
+    previous_val = {}
+    for name in control_name:
+        previous_val[name] = None
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global debug, mididevice, port, previous_note, UpdateVelocity, UpdateDuration, TriggerThread, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, SetNoteOff, SetNoteOn, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, sendMidi, velocity_note
+
+    monitor.loop()
+    time.sleep(patch.getfloat('general', 'delay'))
+
+    UpdateVelocity()
+    UpdateDuration()
+
+    for name, code in zip(control_name, control_code):
+        # loop over the control values
+        val = patch.getfloat('control', name)
+        if val is None:
+            continue # it should be skipped when not present in the ini or Redis
+        if val==previous_val[name]:
+            continue # it should be skipped when identical to the previous value
+        previous_val[name] = val
+
+        # the scale and offset options are channel specific and can be changed on the fly
+        scale = patch.getfloat('scale', name, default=127)
+        offset = patch.getfloat('offset', name, default=0)
+        val = EEGsynth.rescale(val, slope=scale, offset=offset)
+        with lock:
+            sendMidi(name, code, val)
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
     while True:
-        monitor.loop()
-        time.sleep(patch.getfloat('general', 'delay'))
-
-        UpdateVelocity()
-        UpdateDuration()
-
-        for name, code in zip(control_name, control_code):
-            # loop over the control values
-            val = patch.getfloat('control', name)
-            if val is None:
-                continue # it should be skipped when not present in the ini or Redis
-            if val==previous_val[name]:
-                continue # it should be skipped when identical to the previous value
-            previous_val[name] = val
-
-            # the scale and offset options are channel specific and can be changed on the fly
-            scale = patch.getfloat('scale', name, default=127)
-            offset = patch.getfloat('offset', name, default=0)
-            val = EEGsynth.rescale(val, slope=scale, offset=offset)
-            with lock:
-                sendMidi(name, code, val)
+        _loop_once()
 
 
-except KeyboardInterrupt:
+def _stop():
+    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''
+    global monitor, triggers
+
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTMIDI_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
-    sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

@@ -53,55 +53,6 @@ else:
 sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-# get the options from the configuration file
-debug = patch.getint('general', 'debug')
-
-try:
-    if sys.version_info < (3,6):
-        s = OSC.OSCClient()
-        s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
-    else:
-        s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
-    monitor.success('Connected to OSC server")
-except:
-    raise RuntimeError("cannot connect to OSC server")
-
-# keys should be present in both the input and output section of the *.ini file
-list_input  = config.items('input')
-list_output = config.items('output')
-
-list1 = [] # the key name that matches in the input and output section of the *.ini file
-list2 = [] # the key name in Redis
-list3 = [] # the key name in OSC
-for i in range(len(list_input)):
-    for j in range(len(list_output)):
-        if list_input[i][0]==list_output[j][0]:
-            list1.append(list_input[i][0])  # short name in the ini file
-            list2.append(list_input[i][1])  # redis channel
-            list3.append(list_output[j][1]) # osc topic
-
-# this is to prevent two messages from being sent at the same time
-lock = threading.Lock()
-
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, name, osctopic):
@@ -140,23 +91,111 @@ class TriggerThread(threading.Thread):
                             s.send_message(self.osctopic, val)
 
 
-# each of the Redis messages is mapped onto a different OSC topic
-trigger = []
-for key1, key2, key3 in zip(list1, list2, list3):
-    this = TriggerThread(key2, key1, key3)
-    trigger.append(this)
-    monitor.debug('trigger configured for ' + key1)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-# start the thread for each of the triggers
-for thread in trigger:
-    thread.start()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-try:
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, s, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+
+    try:
+        if sys.version_info < (3,6):
+            s = OSC.OSCClient()
+            s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
+        else:
+            s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
+        monitor.success('Connected to OSC server')
+    except:
+        raise RuntimeError("cannot connect to OSC server")
+
+    # keys should be present in both the input and output section of the *.ini file
+    list_input  = config.items('input')
+    list_output = config.items('output')
+
+    list1 = [] # the key name that matches in the input and output section of the *.ini file
+    list2 = [] # the key name in Redis
+    list3 = [] # the key name in OSC
+    for i in range(len(list_input)):
+        for j in range(len(list_output)):
+            if list_input[i][0]==list_output[j][0]:
+                list1.append(list_input[i][0])  # short name in the ini file
+                list2.append(list_input[i][1])  # redis channel
+                list3.append(list_output[j][1]) # osc topic
+
+    # this is to prevent two messages from being sent at the same time
+    lock = threading.Lock()
+
+    # each of the Redis messages is mapped onto a different OSC topic
+    trigger = []
+    for key1, key2, key3 in zip(list1, list2, list3):
+        this = TriggerThread(key2, key1, key3)
+        trigger.append(this)
+        monitor.debug('trigger configured for ' + key1)
+
+    # start the thread for each of the triggers
+    for thread in trigger:
+        thread.start()
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global monitor, patch
+
+    monitor.loop()
+    time.sleep(patch.getfloat('general', 'delay'))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
     while True:
-        monitor.loop()
-        time.sleep(patch.getfloat('general', 'delay'))
+        _loop_once()
 
-except KeyboardInterrupt:
+
+def _stop():
+    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''
+    global monitor, triggers
+
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
@@ -164,3 +203,12 @@ except KeyboardInterrupt:
     for thread in trigger:
         thread.join()
     sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

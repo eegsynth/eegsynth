@@ -143,7 +143,7 @@ def _start():
 
         win.nextRow()
 
-        signal.signal(signal.SIGINT, _quit)
+        signal.signal(signal.SIGINT, _stop)
 
         # Set timer for update
         timer = QtCore.QTimer()
@@ -159,6 +159,8 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor
     global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
     global counter, input_variable_list, ivar, timeaxis
+
+    monitor.loop()
 
     # shift all historic data with one sample
     inputhistory = np.roll(inputhistory, -1, axis=1)
@@ -189,12 +191,16 @@ def _loop_forever():
     QtGui.QApplication.instance().exec_()
 
 
-def _quit(*args):
-    # keyboard interrupt handling
+def _stop(*args):
+    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''
     QtGui.QApplication.quit()
 
 
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()

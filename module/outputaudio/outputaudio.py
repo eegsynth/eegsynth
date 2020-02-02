@@ -334,7 +334,10 @@ def _loop_forever():
 
 
 def _stop():
-    # SystemExit, KeyboardInterrupt
+    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''
+    global stream, p
+
     stream.stop_stream()
     stream.close()
     p.terminate()
@@ -343,4 +346,7 @@ def _stop():
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()

@@ -276,6 +276,8 @@ def _loop_once():
     global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
     global dat, taper, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
+    monitor.loop()
+
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
         # raise RuntimeError("buffer reset detected")
@@ -427,10 +429,15 @@ def _loop_forever():
 
 
 def _stop(*args):
+    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''
     QtGui.QApplication.quit()
 
 
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()
