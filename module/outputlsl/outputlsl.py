@@ -68,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -119,18 +119,15 @@ class TriggerThread(threading.Thread):
                     else:
                         marker = self.name
                     with lock:
-                        if debug>1:
-                            print(marker)
+                        monitor.debug(marker)
                         outlet.push_sample([marker])
 
 # create the background threads that deal with the triggers
 trigger = []
-if debug>1:
-    print("Setting up threads for each trigger")
+monitor.info("Setting up threads for each trigger")
 for item in config.items('trigger'):
         trigger.append(TriggerThread(item[0], item[1]))
-        if debug>0:
-            print(item[0], item[1], 'OK')
+        monitor.debug(item[0], item[1], 'OK')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -168,12 +165,11 @@ try:
             else:
                 marker = name
             with lock:
-                if debug>1:
-                    print(marker)
+                monitor.debug(marker)
                 outlet.push_sample([marker])
 
 except KeyboardInterrupt:
-    print('Closing threads')
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTLSL_UNBLOCK', 1)

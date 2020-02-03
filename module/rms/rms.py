@@ -74,7 +74,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
@@ -82,12 +82,10 @@ def _setup():
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to FieldTrip buffer")
+        monitor.success('Connected to FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to FieldTrip buffer")
 
@@ -109,18 +107,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time() - start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info('Data arrived')
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     channel_items = config.items('input')
     channame = []
@@ -158,8 +153,7 @@ def _loop_once():
         raise RuntimeError("buffer reset detected")
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
-        if debug>0:
-            print("Waiting for data...")
+        monitor.info('Waiting for data to arrive...')
         return
 
     # get the most recent data segment
@@ -176,8 +170,7 @@ def _loop_once():
             # this avoids an occasional "ValueError: math domain error"
             rms[i] = math.sqrt(rms[i] / window)
 
-    if debug > 0:
-        print("rms =", rms)
+    monitor.update("rms", rms)
 
     for name, val in zip(channame, rms):
         # send it as control value: prefix.channelX=val

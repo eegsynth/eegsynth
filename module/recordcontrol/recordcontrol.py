@@ -68,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 MININT16 = -np.power(2., 15)
 MAXINT16 =  np.power(2., 15) - 1
@@ -97,15 +97,13 @@ while True:
     start = time.time()
 
     if recording and not patch.getint('recording', 'record'):
-        if debug > 0:
-            print("Recording disabled - closing", fname)
+        monitor.info("Recording disabled - closing", fname)
         f.close()
         recording = False
         continue
 
     if not recording and not patch.getint('recording', 'record'):
-        if debug > 0:
-            print("Recording is not enabled")
+        monitor.info("Recording is not enabled")
         time.sleep(1)
 
     if not recording and patch.getint('recording', 'record'):
@@ -129,19 +127,18 @@ while True:
 
         # search-and-replace to reduce the length of the channel labels
         for replace in config.items('replace'):
-            print(replace)
+            monitor.debug(replace)
             for i in range(len(channelz)):
                 channelz[i] = channelz[i].replace(replace[0], replace[1])
         for s, z in zip(channels, channelz):
-            print("Writing control value", s, "as channel", z)
+            monitor.info("Writing control value", s, "as channel", z)
 
         # these are required for mapping floating point values onto 16 bit integers
         physical_min = patch.getfloat('recording', 'physical_min')
         physical_max = patch.getfloat('recording', 'physical_max')
 
         # write the header to file
-        if debug > 0:
-            print("Opening", fname)
+        monitor.info("Opening", fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -188,11 +185,7 @@ while True:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, sample)
 
-
-        if debug > 1:
-            print("Writing", D)
-        elif debug > 0:
-            print("Writing sample", sample, "as", np.shape(D))
+        monitor.info("Writing sample", sample, "as", np.shape(D))
 
         if fileformat == 'edf':
             f.writeBlock(D)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QFormLayout, QLabel, QSlider)
+                             QFormLayout, QLabel, QSlider, QLineEdit)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush, QColor
 from pyqtgraph import (PlotWidget, ScatterPlotItem, PlotCurveItem,
@@ -42,6 +42,16 @@ class View(QMainWindow):
 
         self.spectralplot = PlotWidget()
         self.spectralplot_menu = QFormLayout()
+        self.rewardmax_label = QLabel(f"Max reward ({self._model.upreward} bpm)")
+        self.rewardmax_input = QLineEdit()
+        self.rewardmax_input.setText(str(self._model.upreward))
+        lambdafn = lambda : self.rewardrange.setRegion([self._model.lowreward,
+                                                        float(self.rewardmax_input.text())])
+        self.rewardmax_input.returnPressed.connect(lambdafn)
+        self.spectralplot_menu.addRow(self.rewardmax_label,
+                                      self.rewardmax_input)
+        
+        
         self.biofeedbackplot = PlotWidget()
         self.biofeedbackplot_menu = QFormLayout()
 
@@ -88,7 +98,7 @@ class View(QMainWindow):
         self.spectralplot.getAxis("left").setLabel("power")
         
         rewardrangebrush = QBrush(QColor(0, 255, 0, 50))
-        self.rewardrange = LinearRegionItem()
+        self.rewardrange = LinearRegionItem(swapMode="block")
         # Fix the possible range to the range of frequencies [0, 1] at sampling
         # rate of 2 Hz.
         self.rewardrange.setBounds([0, 1])
@@ -104,7 +114,7 @@ class View(QMainWindow):
         self.rewardrange.setZValue(2)
         self.spectralplot.addItem(self.rewardrange)
         
-        self.totalrange = LinearRegionItem()
+        self.totalrange = LinearRegionItem(swapMode="block")
         # Fix the possible range to the range of frequencies [0, 1] at sampling
         # rate of 2 Hz.
         self.totalrange.setBounds([0, 1])

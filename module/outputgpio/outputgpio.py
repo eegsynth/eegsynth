@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # make a dictionary that maps GPIOs to the WiringPi number
 pin = {
@@ -104,8 +104,7 @@ lock = threading.Lock()
 
 def SetGPIO(gpio, val=1):
     lock.acquire()
-    if debug > 1:
-        print(gpio, pin[gpio], val)
+    monitor.debug(gpio, pin[gpio], val)
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
 
@@ -156,7 +155,7 @@ wiringpi.wiringPiSetup()
 # set up PWM for the control channels
 previous_val = {}
 for gpio, channel in config.items('control'):
-    print("control", channel, gpio)
+    monitor.info("control", channel, gpio)
     wiringpi.softPwmCreate(pin[gpio], 0, 100)
     # control values are only relevant when different from the previous value
     previous_val[gpio] = None
@@ -167,15 +166,15 @@ for gpio, channel in config.items('trigger'):
     wiringpi.pinMode(pin[gpio], 1)
     duration = patch.getstring('duration', gpio)
     trigger.append(TriggerThread(channel, gpio, duration))
-    print("trigger", channel, gpio)
+    monitor.info("trigger", channel, gpio)
 
 # start the thread for each of the triggers
 for thread in trigger:
     thread.start()
 
-
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         for gpio, channel in config.items('control'):
@@ -197,7 +196,7 @@ try:
             lock.release()
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTGPIO_UNBLOCK', 1)

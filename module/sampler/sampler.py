@@ -73,7 +73,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug           = patch.getint('general', 'debug')
@@ -106,20 +106,20 @@ finished        = patch.getstring('prefix', 'finished', default='finished')
 
 p = pyaudio.PyAudio()
 
-print('------------------------------------------------------------------')
+monitor.info('------------------------------------------------------------------')
 info = p.get_host_api_info_by_index(0)
-print(info)
-print('------------------------------------------------------------------')
+monitor.info(info)
+monitor.info('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-print('------------------------------------------------------------------')
+        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+monitor.info('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-print("Selected device is", devinfo['name'])
-print(devinfo)
-print('------------------------------------------------------------------')
+monitor.info("Selected device is", devinfo['name'])
+monitor.info(devinfo)
+monitor.info('------------------------------------------------------------------')
 
 # this is to prevent concurrency problems
 lock = threading.Lock()
@@ -171,8 +171,12 @@ def callback(in_data, frame_count, time_info, status):
 
     if stack.shape[0]==0 and current_channel!=None:
         # send a trigger to indicate that the sample finished playing
+<<<<<<< HEAD
         patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug>1)
 >>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
+=======
+        patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug > 1)
+>>>>>>> 2dc503a341c6f97679a2233bd9aa1fb4485896d7
         current_channel = None
         current_value = 0
 
@@ -269,11 +273,15 @@ class TriggerThread(threading.Thread):
                             count = round((endsample-begsample)/speed)
                             selection = np.linspace(begsample, endsample-1, count).astype(np.int32)
                             dat = dat[selection]
+<<<<<<< HEAD
 >>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
                             if debug>0:
                                 print("playing %s for up to %d ms" % (filename, 1000*dat.shape[0]/rate))
+=======
+                            monitor.info("playing %s for up to %d ms" % (filename, 1000*dat.shape[0]/rate))
+>>>>>>> 2dc503a341c6f97679a2233bd9aa1fb4485896d7
                         except:
-                            print("cannot load %s" % filename)
+                            module.warning("cannot load %s" % filename)
                             continue
 
 <<<<<<< HEAD
@@ -310,7 +318,7 @@ class TriggerThread(threading.Thread):
                             dat *= np.power(10., scaling/20.)
 
                         if np.min(dat)<-1 or np.max(dat)>1:
-                            print('WARNING: signal exceeds [-1,+1] range, the audio will clip')
+                            monitor.warning('WARNING: signal exceeds [-1,+1] range, the audio will clip')
 
                         with lock:
                             # replace the current playback stack
@@ -323,14 +331,18 @@ class TriggerThread(threading.Thread):
                             current_channel = self.redischannel
                             current_value = val
                             # send a trigger to indicate that the sample started playing
+<<<<<<< HEAD
                             patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug>1)
 >>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
+=======
+                            patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug > 1)
+>>>>>>> 2dc503a341c6f97679a2233bd9aa1fb4485896d7
 
 
 # create the background threads that deal with the triggers
 trigger = []
 for channel, sample in zip(input_channel, input_sample):
-    print(channel, sample)
+    monitor.info(channel, sample)
     trigger.append(TriggerThread(channel, sample))
 
 for thread in trigger:

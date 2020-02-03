@@ -66,7 +66,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug      = patch.getint('general','debug')
@@ -78,15 +78,14 @@ output_scale    = patch.getfloat('output', 'scale', default=1./127) # MIDI value
 output_offset   = patch.getfloat('output', 'offset', default=0.)    # MIDI values are from 0 to 127
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ INPUT ------')
+monitor.info('------ INPUT ------')
 for port in mido.get_input_names():
-  print(port)
-print('-------------------------')
+  monitor.info(port)
+monitor.info('-------------------------')
 
 try:
     inputport = mido.open_input(mididevice)
-    if debug>0:
-        print("Connected to MIDI input")
+    monitor.success('Connected to MIDI input')
 except:
     raise RuntimeError("cannot connect to MIDI input")
 
@@ -95,9 +94,7 @@ while True:
     time.sleep(patch.getfloat('general','delay'))
 
     for msg in inputport.iter_pending():
-
-        if debug>1:
-            print(msg)
+        monitor.debug(msg)
 
         if hasattr(msg, "control"):
             # prefix.control000=value

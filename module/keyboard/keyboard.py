@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # the list of MIDI commands is specific to the implementation for a full-scale keyboard
 # see https://newt.phys.unsw.edu.au/jw/notes.html
@@ -97,25 +97,23 @@ output_scale  = patch.getfloat('output', 'scale', default=1./127)
 output_offset = patch.getfloat('output', 'offset', default=0)
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ INPUT ------')
+monitor.info('------ INPUT ------')
 for port in mido.get_input_names():
-  print(port)
-print('------ OUTPUT ------')
+  monitor.info(port)
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
+  monitor.info(port)
+monitor.info('-------------------------')
 
 try:
     inputport = mido.open_input(mididevice)
-    if debug>0:
-        print("Connected to MIDI input")
+    monitor.success('Connected to MIDI input')
 except:
     raise RuntimeError("cannot connect to MIDI input")
 
 try:
     outputport = mido.open_output(mididevice)
-    if debug>0:
-        print("Connected to MIDI output")
+    monitor.success('Connected to MIDI output')
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -130,7 +128,7 @@ lock = threading.Lock()
 # this is used to send direct and delayed messages
 def SendMessage(msg):
     lock.acquire()
-    print(msg)
+    monitor.info(msg)
     outputport.send(msg)
     lock.release()
 
@@ -185,12 +183,11 @@ class TriggerThread(threading.Thread):
                     else:
                         duration = self.duration
 
-                    if debug>1:
-                        print('----------------------------------------------')
-                        print("onset   ", self.onset,       "=", val)
-                        print("velocity", self.velocity,    "=", velocity)
-                        print("pitch   ", self.pitch,       "=", pitch)
-                        print("duration", self.duration,    "=", duration)
+                    monitor.debug('----------------------------------------------')
+                    monitor.debug("onset   ", self.onset,       "=", val)
+                    monitor.debug("velocity", self.velocity,    "=", velocity)
+                    monitor.debug("pitch   ", self.pitch,       "=", pitch)
+                    monitor.debug("duration", self.duration,    "=", duration)
 
                     if midichannel is None:
                         msg = mido.Message('note_on', note=pitch, velocity=velocity)
@@ -217,8 +214,7 @@ for name, code in zip(note_name, note_code):
         pitch    = code
         duration = None
         trigger.append(TriggerThread(onset, velocity, pitch, duration))
-        if debug>1:
-            print(name, 'OK')
+        monitor.debug(name, 'OK')
 
 try:
     # the keyboard notes can also be controlled using a single trigger
@@ -227,8 +223,7 @@ try:
     pitch    = patch.getstring('input', 'pitch')
     duration = patch.getstring('input', 'duration')
     trigger.append(TriggerThread(onset, velocity, pitch, duration))
-    if debug>1:
-        print('onset, velocity, pitch and duration OK')
+    monitor.debug('onset, velocity, pitch and duration OK')
 except:
     pass
 
@@ -238,6 +233,7 @@ for thread in trigger:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general','delay'))
 
         for msg in inputport.iter_pending():
@@ -249,11 +245,11 @@ try:
                 except:
                     pass
 
-            if debug>0 and msg.type!='clock':
-                print(msg)
+            if msg.type!='clock':
+                monitor.info(msg)
 
             if hasattr(msg,'note'):
-                print(msg)
+                monitor.info(msg)
                 if patch.getstring('processing','detect')=='release' and msg.velocity>0:
                     pass
                 elif patch.getstring('processing','detect')=='press' and msg.velocity==0:
@@ -276,7 +272,7 @@ try:
                 pass
 
 except KeyboardInterrupt:
-    print('Closing threads')
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('KEYBOARD_UNBLOCK', 1)

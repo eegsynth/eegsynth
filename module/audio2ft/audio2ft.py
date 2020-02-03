@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -79,36 +79,33 @@ nchans      = patch.getint('audio', 'nchans', default=2)
 try:
     ft_host = patch.getstring('fieldtrip', 'hostname')
     ft_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_output = FieldTrip.Client()
     ft_output.connect(ft_host, ft_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
+    monitor.success('Connected to output FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-if debug > 0:
-    print("rate", rate)
-    print("nchans", nchans)
-    print("blocksize", blocksize)
+monitor.info("rate", rate)
+monitor.info("nchans", nchans)
+monitor.info("blocksize", blocksize)
 
 p = pyaudio.PyAudio()
 
-print('------------------------------------------------------------------')
+monitor.info('------------------------------------------------------------------')
 info = p.get_host_api_info_by_index(0)
-print(info)
-print('------------------------------------------------------------------')
+monitor.info(info)
+monitor.info('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-print('------------------------------------------------------------------')
+        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+monitor.info('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-print("Selected device is", devinfo['name'])
-print(devinfo)
-print('------------------------------------------------------------------')
+monitor.info("Selected device is", devinfo['name'])
+monitor.info(devinfo)
+monitor.info('------------------------------------------------------------------')
 
 stream = p.open(format=pyaudio.paInt16,
                 channels=nchans,
@@ -138,10 +135,10 @@ while True:
     countfeedback += blocksize
 
     if debug > 1:
-        print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
+        monitor.print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
     elif debug > 0 and countfeedback >= rate:
         # this gets printed approximately once per second
-        print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
         startfeedback = time.time()
         countfeedback = 0
 

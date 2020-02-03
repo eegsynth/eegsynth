@@ -110,6 +110,9 @@ class Model(QObject):
             value = value.getRegion()[1]
             if value != self._upreward:
                 self._upreward = value
+        elif isinstance(value, str):
+            value = float(value)
+            self._upreward = value
         
     @pyqtProperty(object)
     def lowtotal(self):
@@ -121,6 +124,9 @@ class Model(QObject):
             value = value.getRegion()[0]
             if value != self._lowtotal:
                 self._lowtotal = value
+        elif isinstance(value, str):
+            value = float(value)
+            self._lowtotal = value
         
     @pyqtProperty(object)
     def uptotal(self):

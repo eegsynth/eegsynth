@@ -6,9 +6,10 @@ import threading
 import math
 import numpy as np
 from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
+from loguru import logger
 
 ###################################################################################################
-def printkeyval(key, val):
+def formatkeyval(key, val):
     if sys.version_info < (3,0):
         # this works in Python 2, but fails in Python 3
         isstring = isinstance(val, basestring)
@@ -16,13 +17,14 @@ def printkeyval(key, val):
         # this works in Python 3, but fails for unicode strings in Python 2
         isstring = isinstance(val, str)
     if val is None:
-        print("%s = None" % (key))
+        output = "%s = None" % (key)
     elif isinstance(val, list):
-        print("%s = %s" % (key, str(val)))
+        output = "%s = %s" % (key, str(val))
     elif isstring:
-        print("%s = %s" % (key, val))
+        output = "%s = %s" % (key, val)
     else:
-        print("%s = %g" % (key, val))
+        output = "%s = %g" % (key, val)
+    return output
 
 ###################################################################################################
 def trimquotes(option):
@@ -42,15 +44,30 @@ def trimquotes(option):
 class monitor():
     """Class to monitor control values and print them to screen when they have changed. It also
     prints a boilerplate license upon startup.
+
+    monitor.loop()           - to be called on every iteration of the loop
+    monitor.update(key, val) - to be used to check whether values change
+
+    monitor.error(...)     - shows always
+    monitor.warning(...)   - shows always
+    monitor.success(...)   - debug level 0
+    monitor.info(...)      - debug level 1
+    monitor.debug(...)     - debug level 2
+    monitor.trace(...)     - debug level 3
     """
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, debug=0):
         self.previous_value = {}
         self.loop_time = None
+        # the prefis is added to the rest of the message, which is also a tuple
         if name!=None:
-            self.prefix = name + ": "
+            self.prefix = name + ":"
         else:
             self.prefix = ""
+
+        logger.remove()
+        level = ['SUCCESS', 'INFO', 'DEBUG', 'TRACE']
+        logger.add(sys.stdout, format="{message}", level=level[debug])
 
         print("""
 ##############################################################################
@@ -79,8 +96,7 @@ Press Ctrl-C to stop this module.
         now = time.time()
         if self.loop_time is None:
             if debug:
-                print(self.prefix, end = '')
-                print("starting loop...")
+                self.info("starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
@@ -88,8 +104,7 @@ Press Ctrl-C to stop this module.
         elapsed = now - self.loop_time
         if elapsed>=1:
             if debug:
-                print(self.prefix, end = '')
-                print("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+                self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
@@ -100,20 +115,42 @@ Press Ctrl-C to stop this module.
                 a = math.isnan(self.previous_value[key])
                 b = math.isnan(val)
                 if (a and b):
-                    debug = False
+                    return False
             except:
                 pass
             if debug:
-                print(self.prefix, end = '')
-                printkeyval(key, val)
+                self.info(formatkeyval(key, val))
             self.previous_value[key] = val
             return True
         else:
             return False
 
+    def error(self, *args):
+        args = (self.prefix, ) + args
+        logger.error(" ".join(map(format, args)))
+
+    def warning(self, *args):
+        args = (self.prefix, ) + args
+        logger.warning(" ".join(map(format, args)))
+
+    def success(self, *args):
+        args = (self.prefix, ) + args
+        logger.success(" ".join(map(format, args)))
+
+    def info(self, *args):
+        args = (self.prefix, ) + args
+        logger.info(" ".join(map(format, args)))
+
+    def debug(self, *args):
+        args = (self.prefix, ) + args
+        logger.debug(" ".join(map(format, args)))
+
+    def trace(self, *args):
+        args = (self.prefix, ) + args
+        logger.trace(" ".join(map(format, args)))
+
     def print(self, *args):
-        print(self.prefix, end = '')
-        print(*args)
+        print(self.prefix, *args)
 
 ###################################################################################################
 class patch():
@@ -188,7 +225,7 @@ class patch():
                 val = float(default)
 
         if debug:
-            printkeyval(item, val)
+            print(formatkeyval(item, val))
 
         if multiple:
             # return it as list
@@ -252,7 +289,7 @@ class patch():
                 val = int(default)
 
         if debug:
-            printkeyval(item, val)
+            print(formatkeyval(item, val))
 
         if multiple:
             # return it as list
@@ -291,7 +328,7 @@ class patch():
                 val = val.split(separator)     # split on the separator
 
         if debug:
-            printkeyval(item, val)
+            print(formatkeyval(item, val))
 
         if multiple:
             # return it as list
@@ -313,7 +350,7 @@ class patch():
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
         if debug:
-            print("%s = %g" % (item, val))
+            print(formatkeyval(item, val))
         if duration > 0:
             # switch off after a certain amount of time
             threading.Timer(duration, self.setvalue, args=[item, 0.]).start()

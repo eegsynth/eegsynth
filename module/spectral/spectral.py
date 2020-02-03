@@ -54,7 +54,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -73,33 +73,24 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
-
-    # get the options from the configuration file
-    debug = patch.getint('general','debug')
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     try:
         ft_host = patch.getstring('fieldtrip','hostname')
         ft_port = patch.getint('fieldtrip','port')
-        if debug>0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.info('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug>0:
-            print("Connected to FieldTrip buffer")
+        monitor.info("Connected to FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to FieldTrip buffer")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -108,18 +99,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug>0:
-            print("Waiting for data to arrive...")
+        monitor.info("Waiting for data to arrive...")
         if (time.time()-start)>timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug>0:
-        print("Data arrived")
-    if debug>1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info("Data arrived")
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     channel_items = config.items('input')
     channame = []
@@ -129,24 +117,19 @@ def _start():
         channame.append(item[0])
         chanindx.append(patch.getint('input', item[0])-1)
 
-    if debug>0:
-        print(channame, chanindx)
+    monitor.info(channame, chanindx)
 
-    prefix      = patch.getstring('output', 'prefix')
+    prefix = patch.getstring('output', 'prefix')
 
     begsample = -1
     endsample = -1
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
     global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
 
@@ -158,15 +141,14 @@ def _loop_once():
     window = patch.getfloat('processing', 'window', default=2)
     window = EEGsynth.rescale(window, slope=scale_window, offset=offset_window)
 
-    monitor.update('window', window, debug>1)
+    monitor.update('window', window)
 
     window = int(round(window * hdr_input.fSample))  # in samples
     taper = np.hanning(window)
     frequency = np.fft.rfftfreq(window, 1.0 / hdr_input.fSample)
 
-    if debug>1:
-        print('taper', taper)
-        print('frequency', frequency)
+    monitor.debug('taper', taper)
+    monitor.debug('frequency', frequency)
 
     band_items = config.items('band')
     bandname = []
@@ -175,22 +157,19 @@ def _loop_once():
     for item in band_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
         lohi = patch.getfloat('band', item[0], multiple=True)
-        if debug>2:
-            print(item[0], lohi)
+        monitor.trace(item[0], lohi)
         bandname.append(item[0])
         bandlo.append(lohi[0])
         bandhi.append(lohi[1])
 
-    if debug>1:
-        print(bandname, bandlo, bandhi)
+    monitor.debug(bandname, bandlo, bandhi)
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples - 1) < endsample:
         raise RuntimeError("buffer reset detected")
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
-        if debug > 0:
-            print("Waiting for data...")
+        monitor.info("Waiting for data...")
         return
 
     # get the most recent data segment
@@ -232,8 +211,7 @@ def _loop_once():
                 power[i] /= count
             i+=1
 
-    if debug>1:
-        print(power)
+    monitor.debug(power)
 
     i = 0
     for chan in channame:
@@ -241,10 +219,6 @@ def _loop_once():
             key = "%s.%s.%s" % (prefix, chan, band)
             patch.setvalue(key, power[i])
             i+=1
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

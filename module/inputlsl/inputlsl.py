@@ -65,10 +65,9 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
 # get the options from the configuration file
-debug           = patch.getint('general', 'debug')
 delay           = patch.getfloat('general', 'delay')
 timeout         = patch.getfloat('lsl', 'timeout', default=30)
 lsl_name        = patch.getstring('lsl', 'name')
@@ -76,12 +75,12 @@ lsl_type        = patch.getstring('lsl', 'type')
 lsl_format      = patch.getstring('lsl', 'format')
 output_prefix   = patch.getstring('output', 'prefix')
 
-print("looking for an LSL stream...")
+monitor.info("looking for an LSL stream...")
 start = time.time()
 selected = []
 while len(selected)<1:
     if (time.time() - start) > timeout:
-        print("Error: timeout while waiting for LSL stream")
+        monitor.error("Error: timeout while waiting for LSL stream")
         raise SystemExit
 
     # find the desired stream on the lab network
@@ -100,13 +99,12 @@ while len(selected)<1:
         if match:
             # select this stream for further processing
             selected.append(stream)
-            print('-------- STREAM(*) ------')
+            monitor.info('-------- STREAM(*) ------')
         else:
-            print('-------- STREAM ---------')
-        if debug>0:
-            print("name", name)
-            print("type", type)
-    print('-------------------------')
+            monitor.info('-------- STREAM ---------')
+        monitor.info("name", name)
+        monitor.info("type", type)
+    monitor.info('-------------------------')
 
 # create a new inlet from the first (and hopefully only) selected stream
 inlet = lsl.StreamInlet(selected[0])
@@ -115,7 +113,7 @@ inlet = lsl.StreamInlet(selected[0])
 lsl_name = inlet.info().name()
 lsl_type = inlet.info().type()
 lsl_id   = inlet.info().source_id()
-print('connected to LSL stream %s (type = %s, id = %s)' % (lsl_name, lsl_type, lsl_id))
+monitor.success('connected to LSL stream %s (type = %s, id = %s)' % (lsl_name, lsl_type, lsl_id))
 
 while True:
     monitor.loop()
@@ -140,5 +138,5 @@ while True:
             val = 1.
 
         # send the Redis message
-        print(name, '=', val)
+        monitor.update(name, val)
         patch.setvalue(name, val)

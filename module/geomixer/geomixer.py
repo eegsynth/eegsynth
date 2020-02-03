@@ -69,7 +69,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug   = patch.getint('general', 'debug')
@@ -131,8 +131,7 @@ while True:
         lower_treshold = 0. - switch_precision
         upper_treshold = 1. + switch_precision
 
-    if debug > 1:
-        print('------------------------------------------------------------------')
+    monitor.debug('------------------------------------------------------------------')
 
     # is there a reason to change?
     if even(edge):
@@ -157,8 +156,7 @@ while True:
         dwelltime = 0
     else:
         dwelltime += delay
-        if debug > 1:
-            print('dwelling for', dwelltime)
+        monitor.debug('dwelling for', dwelltime)
     previous = change
 
     # is the dwelltime long enough?
@@ -172,8 +170,7 @@ while True:
         # send the edge number as an integer value to Redis
         key = '%s.%s.edge' % (prefix, patch.getstring('input', 'channel'))
         patch.setvalue(key, edge)
-        if debug > 1:
-            print('switch to edge', edge)
+        monitor.debug('switch to edge', edge)
 
     channel_val = [0. for i in range(number)]
     for this in range(number):
@@ -190,10 +187,10 @@ while True:
 
     if debug > 0:
         # print them all on a single line, this is Python 2 specific
-        print(('edge=%2d' % edge), end=' ')
+        monitor.print(('edge=%2d' % edge), end=' ')
         for key, val in zip(channel_name, channel_val):
-            print((' %s = %0.2f' % (key, val)), end=' ')
-        print('')  # force a newline
+            monitor.print((' %s = %0.2f' % (key, val)), end=' ')
+        monitor.print('')  # force a newline
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl

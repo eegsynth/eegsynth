@@ -73,7 +73,7 @@ except:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -122,7 +122,7 @@ class TriggerThread(threading.Thread):
                     # apply the scale and offset
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-                    monitor.update(self.mqtttopic, val, debug>0)
+                    monitor.update(self.mqtttopic, val, debug > 0)
                     with lock:
                         client.publish(self.mqtttopic, payload=val, qos=0, retain=False)
 
@@ -132,8 +132,7 @@ trigger = []
 for key1, key2, key3 in zip(list1, list2, list3):
     this = TriggerThread(key2, key1, key3)
     trigger.append(this)
-    if debug>1:
-        print('trigger configured for ' + key1)
+    monitor.debug('trigger configured for ' + key1)
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -141,7 +140,7 @@ for thread in trigger:
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
+    ("Connected with result code "+str(rc))
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
@@ -150,11 +149,11 @@ def on_connect(client, userdata, flags, rc):
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     if not msg.topic.startswith('$SYS'):
-        print("MQTT received " + msg.topic + " " + str(msg.payload))
+        monitor.info("MQTT received " + msg.topic + " " + str(msg.payload))
 
 def on_disconnect(client, userdata, rc):
     if rc != 0:
-        print("MQTT disconnected")
+        monitor.info("MQTT disconnected")
 
 client.on_connect = on_connect
 client.on_message = on_message
@@ -166,7 +165,7 @@ try:
         time.sleep(patch.getfloat('general', 'delay'))
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTMQTT_UNBLOCK', 1)

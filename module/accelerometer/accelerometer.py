@@ -73,26 +73,17 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to FieldTrip buffer")
+        monitor.success("Connected to FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to FieldTrip buffer")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _start():
@@ -108,18 +99,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.success("Waiting for data to arrive...")
         if (time.time() - start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.success("Data arrived")
+    monitor.info(hdr_input)
+    monitor.info(hdr_input.labels)
 
     # get the processing parameters
     window = patch.getfloat('processing', 'window')
@@ -135,10 +123,6 @@ def _start():
 
     begsample = -1
     endsample = -1
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_once():
@@ -157,8 +141,7 @@ def _loop_once():
         raise RuntimeError("buffer reset detected")
     if hdr_input.nSamples < window:
         # there are not yet enough samples in the buffer
-        if debug > 0:
-            print("Waiting for data...")
+        monitor.success("Waiting for data...")
         return
 
     # get the most recent data segment
@@ -171,10 +154,6 @@ def _loop_once():
         key = patch.getstring('output', 'prefix') + '.' + channame
         val = np.mean(dat[:, chanindx])
         patch.setvalue(key, val)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

@@ -26,6 +26,8 @@ import redis
 import sys
 import time
 import serial
+import serial.tools.list_ports
+from fuzzywuzzy import process
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -65,10 +67,21 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
+
+# get the specified serial device, or the one that is the closest match
+serialdevice = patch.getstring('serial', 'device')
+serialdevice = EEGsynth.trimquotes(serialdevice)
+serialdevice = process.extractOne(serialdevice, [comport.device for comport in serial.tools.list_ports.comports()])[0] # select the closest match
+
+try:
+    s = serial.Serial(serialdevice, patch.getint('serial', 'baudrate'), timeout=3.0)
+    monitor.info("Connected to serial port")
+except:
+    raise RuntimeError("cannot connect to serial port")
 
 # determine the size of the universe
 dmxsize = 0
@@ -81,20 +94,10 @@ for chanindx in range(0, 512):
 
 # my fixture won't work if the frame size is too small
 dmxsize = max(dmxsize, 16)
-print("universe size = %d" % dmxsize)
+module.info("universe size = %d" % dmxsize)
 
 # make an empty frame
 dmxframe = [0] * dmxsize
-
-try:
-    s = serial.Serial()
-    s.port = patch.getstring('serial', 'device')
-    s.baudrate = 57600
-    s.open()
-    if debug > 0:
-        print("Connected to serial port")
-except:
-    raise RuntimeError("cannot connect to serial port")
 
 # See http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
 # See https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
@@ -114,8 +117,7 @@ def sendframe():
     ]
     packet.extend(dmxframe)
     packet.append(END_VAL)
-    if debug > 1:
-        print(packet)
+    monitor.debug(packet)
     packet = map(chr, packet)
     s.write(''.join(packet))
 
@@ -124,6 +126,7 @@ prevtime = time.time()
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         update = False
@@ -147,8 +150,7 @@ try:
 
             # only update if the value has changed
             if dmxframe[chanindx] != chanval:
-                if debug > 0:
-                    print("DMX channel%03d" % chanindx, '=', chanval)
+                monitor.info("DMX channel%03d" % chanindx, '=', chanval)
                 dmxframe[chanindx] = chanval
                 update = True
 
@@ -163,8 +165,7 @@ try:
 
 
 except KeyboardInterrupt:
-    if debug > 0:
-        print("closing...")
+    monitor.success("closing...")
     # blank out everything
     dmxframe = [0] * 512
     sendframe()

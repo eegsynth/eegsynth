@@ -73,7 +73,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general','debug')
@@ -81,25 +81,20 @@ def _setup():
     try:
         ft_host = patch.getstring('fieldtrip','hostname')
         ft_port = patch.getint('fieldtrip','port')
-        if debug>0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_output = FieldTrip.Client()
         ft_output.connect(ft_host, ft_port)
-        if debug>0:
-            print("Connected to output FieldTrip buffer")
+        monitor.success('Connected to output FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output
-    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, prev_frequency, prev_amplitude, prev_offset, prev_noise, prev_dutycycle, block, begsample, endsample, timevec, phasevec
+    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, timevec, phasevec
 
     # get the options from the configuration file
     nchannels         = patch.getint('generate', 'nchannels')
@@ -138,16 +133,9 @@ def _start():
     elif datatype == 'float64':
         ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT64)
 
-    if debug > 1:
-        print("nchannels", nchannels)
-        print("fsample", fsample)
-        print("blocksize", blocksize)
-
-    prev_frequency = -1
-    prev_amplitude = -1
-    prev_offset    = -1
-    prev_noise     = -1
-    prev_dutycycle = -1
+    monitor.debug("nchannels", nchannels)
+    monitor.debug("fsample", fsample)
+    monitor.debug("blocksize", blocksize)
 
     block     = 0
     begsample = 0
@@ -157,31 +145,25 @@ def _start():
     timevec  = np.arange(1, blocksize+1) / fsample
     phasevec = np.zeros(1)
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output
-    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, prev_frequency, prev_amplitude, prev_offset, prev_noise, prev_dutycycle, block, begsample, endsample, timevec, phasevec
+    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, timevec, phasevec
     global start, frequency, amplitude, offset, noise, dutycycle, signal, dat_output, chan, desired, elapsed, naptime
 
     monitor.loop()
 
     if patch.getint('signal', 'rewind', default=0):
-        if debug>0:
-            print("Rewind pressed, jumping back to start of signal")
+        monitor.info("Rewind pressed, jumping back to start of signal")
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
         phase = 0
 
     if not patch.getint('signal', 'play', default=1):
-        if debug>0:
-            print("Stopped")
+        monitor.info("Stopped")
         time.sleep(0.1);
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
@@ -189,22 +171,21 @@ def _loop_once():
         return
 
     if patch.getint('signal', 'pause', default=0):
-        if debug>0:
-            print("Paused")
+        monitor.info("Paused")
         time.sleep(0.1);
         return
 
     # measure the time to correct for the slip
     start = time.time();
 
-    if debug>1:
-        print("Generating block", block, 'from', begsample, 'to', endsample)
+    monitor.debug("Generating block", block, 'from', begsample, 'to', endsample)
 
     frequency = patch.getfloat('signal', 'frequency', default=10)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.8)
     offset    = patch.getfloat('signal', 'offset', default=0)           # the DC component of the output signal
     noise     = patch.getfloat('signal', 'noise', default=0.1)
     dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)      # for the square wave
+
     # map the Redis values to signal parameters
     frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
     amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
@@ -212,21 +193,11 @@ def _loop_once():
     noise     = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
     dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
-    if frequency!=prev_frequency or debug>2:
-        print("frequency =", frequency)
-        prev_frequency = frequency
-    if amplitude!=prev_amplitude or debug>2:
-        print("amplitude =", amplitude)
-        prev_amplitude = amplitude
-    if offset!=prev_offset or debug>2:
-        print("offset    =", offset)
-        prev_offset = offset
-    if noise!=prev_noise or debug>2:
-        print("noise     =", noise)
-        prev_noise = noise
-    if dutycycle!=prev_dutycycle or debug>2:
-        print("dutycycle =", dutycycle)
-        prev_dutycycle = dutycycle
+    monitor.update("frequency", frequency)
+    monitor.update("amplitude", amplitude)
+    monitor.update("offset   ", offset)
+    monitor.update("noise    ", noise)
+    monitor.update("dutycycle", dutycycle)
 
     # compute the phase of each sample in this block
     phasevec = 2 * np.pi * frequency * timevec + phasevec[-1]
@@ -276,12 +247,7 @@ def _loop_once():
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    if debug>0:
-        print("generated", blocksize, "samples in", (time.time()-start)*1000, "ms")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
+    monitor.info("generated", blocksize, "samples in", (time.time()-start)*1000, "ms")
 
 
 def _loop_forever():

@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug      = patch.getint('general', 'debug')
@@ -76,15 +76,14 @@ mididevice = EEGsynth.trimquotes(mididevice)
 mididevice = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ OUTPUT ------')
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
+  monitor.info(port)
+monitor.info('-------------------------')
 
 try:
     outputport = mido.open_output(mididevice)
-    if debug>0:
-        print("Connected to MIDI output")
+    monitor.success('Connected to MIDI output')
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -108,15 +107,13 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    if debug>0:
-                        print(item)
+                    monitor.info(item)
                     if int(float(item['data']))>0:
                         pitch = int(8191)
                     else:
                         pitch = int(0)
                     msg = mido.Message('pitchwheel', pitch=pitch, channel=self.midichannel)
-                    if debug>1:
-                        print(msg)
+                    monitor.debug(msg)
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -134,8 +131,7 @@ for channel in range(0, 16):
         # start the background thread that deals with this channel
         this = TriggerThread(patch.getstring('gate', name), channel)
         gate.append(this)
-        if debug>1:
-            print(name, 'OK')
+        monitor.debug(name, 'OK')
 
 # start the thread for each of the notes
 for thread in gate:
@@ -151,6 +147,7 @@ for channel in range(0, 16):
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         # loop over the control values
@@ -162,14 +159,12 @@ try:
 
             if val is None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print(name, 'not available')
+                monitor.trace(name, 'not available')
                 continue
 
             if port_val is None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print(name, 'not available')
+                monitor.trace(name, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -192,15 +187,14 @@ try:
                 val = EEGsynth.limit(val, lo=-8192, hi=8191)
                 val = int(val)
             else:
-                print('No output mode (note or pitchbend) specified!')
+                monitor.info('No output mode (note or pitchbend) specified!')
                 break
 
             if val != previous_val[name] or not val: # it should be skipped when identical to the previous value
 
                 previous_val[name] = val
 
-                if debug > 0:
-                    print(name, val, port_val)
+                monitor.info(name, val, port_val)
 
                 # midi channels in the inifile are 1-16, in the code 0-15
                 midichannel = channel
@@ -210,8 +204,7 @@ try:
                 elif patch.getstring('general', 'mode') == 'note':
                     msg = mido.Message('note_on', note=val, velocity=127, time=0, channel=midichannel)
 
-                if debug > 1:
-                    print(msg)
+                monitor.debug(msg)
 
                 lock.acquire()
                 outputport.send(msg)
@@ -223,14 +216,12 @@ try:
             if port_val != previous_port_val[name] and patch.getstring('general', 'mode') != 'note' or not port_val : # it should be skipped when identical to the previous value
                 previous_port_val[name] = port_val
 
-                if debug > 0:
-                    print(name, val, port_val)
+                monitor.info(name, val, port_val)
 
                 # CC#5 sets portamento
                 msg = mido.Message('control_change', control=5, value=int(port_val), channel=midichannel)
 
-                if debug > 1:
-                    print(msg)
+                monitor.debug(msg)
 
                 lock.acquire()
                 outputport.send(msg)
@@ -240,7 +231,7 @@ try:
                 time.sleep(patch.getfloat('general', 'pulselength'))
 
 except KeyboardInterrupt:
-    print('Closing threads')
+    monitor.success('Closing threads')
     for thread in gate:
         thread.stop()
     r.publish('ENDORPHINES_UNBLOCK', 1)

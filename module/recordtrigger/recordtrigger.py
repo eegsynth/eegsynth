@@ -68,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug        = patch.getint('general','debug')
@@ -118,24 +118,20 @@ class TriggerThread(threading.Thread):
                         except ValueError:
                             # keep it as a string
                             val = item['data']
-                            if debug>0:
-                                print(("cannot apply scaling, writing %s as string" % (self.redischannel)))
+                            monitor.info(("cannot apply scaling, writing %s as string" % (self.redischannel)))
                     if not f.closed:
                         lock.acquire()
                         # write the value, it can be either a number or a string
                         f.write("%s\t%s\t%s\n" % (self.redischannel, val, timestamp))
                         lock.release()
-                        if debug>0:
-                            print(("%s\t%s\t%s" % (self.redischannel, val, timestamp)))
+                        monitor.info(("%s\t%s\t%s" % (self.redischannel, val, timestamp)))
 
 # create the background threads that deal with the triggers
 trigger = []
-if debug>1:
-    print("Setting up threads for each trigger")
+monitor.info("Setting up threads for each trigger")
 for item in config.items('trigger'):
         trigger.append(TriggerThread(item[0]))
-        if debug>1:
-            print(item[0], 'OK')
+        monitor.debug(item[0], 'OK')
 
 # start the thread for each of the triggers
 for thread in trigger:
@@ -143,18 +139,17 @@ for thread in trigger:
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         if recording and not patch.getint('recording', 'record'):
-            if debug>0:
-                print("Recording disabled - closing", fname)
+            monitor.info("Recording disabled - closing", fname)
             f.close()
             recording = False
             continue
 
         if not recording and not patch.getint('recording', 'record'):
-            if debug>0:
-                print("Recording is not enabled")
+            monitor.info("Recording is not enabled")
             time.sleep(1)
 
         if not recording and patch.getint('recording', 'record'):
@@ -164,8 +159,7 @@ try:
             if len(ext) == 0:
                 ext = '.' + fileformat
             fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
-            if debug>0:
-                print("Recording enabled - opening", fname)
+            monitor.info("Recording enabled - opening", fname)
             f = open(fname, 'w')
             f.write("event\tvalue\ttimestamp\n")
             f.flush()
@@ -173,9 +167,9 @@ try:
 
 except KeyboardInterrupt:
     if not f.closed:
-        print('Closing file')
+        monitor.info('Closing file')
         f.close()
-    print('Closing threads')
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('RECORDTRIGGER_UNBLOCK', 1)

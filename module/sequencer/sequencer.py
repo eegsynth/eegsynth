@@ -67,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug   = patch.getint('general', 'debug')
@@ -154,8 +154,7 @@ class SequenceThread(threading.Thread):
                             # send it also as sequencer.noteXXX with value 1.0
                             key = '%s%03d' % (self.key, val)
                             patch.setvalue(key, 1., duration=self.duration*self.steptime)
-                        if debug>0:
-                            print("step %2d :" % (self.step + 1), self.key, "=", val)
+                        monitor.info("step %2d :" % (self.step + 1), self.key, "=", val)
                         # increment to the next step
                         self.step = (self.step + 1) % len(self.sequence)
 
@@ -167,23 +166,21 @@ key = "{}.note".format(prefix)
 sequencethread = SequenceThread(clock, key)
 sequencethread.start()
 
-if debug > 0:
-    monitor.update('scale_active',     scale_active)
-    monitor.update('scale_transpose',  scale_transpose)
-    monitor.update('scale_note',       scale_note)
-    monitor.update('scale_duration',   scale_duration)
-    monitor.update('offset_active',    offset_active)
-    monitor.update('offset_transpose', offset_transpose)
-    monitor.update('offset_note',      offset_note)
-    monitor.update('offset_duration',  offset_duration)
+monitor.update('scale_active',     scale_active)
+monitor.update('scale_transpose',  scale_transpose)
+monitor.update('scale_note',       scale_note)
+monitor.update('scale_duration',   scale_duration)
+monitor.update('offset_active',    offset_active)
+monitor.update('offset_transpose', offset_transpose)
+monitor.update('offset_note',      offset_note)
+monitor.update('offset_duration',  offset_duration)
 
 try:
     while True:
+        monitor.loop()
+
         # measure the time to correct for the slip
         start = time.time()
-
-        if debug > 1:
-            print('loop')
 
         # the active sequence is specified as an integer between 0 and 127
         active = patch.getfloat('sequence', 'active', default=0)
@@ -204,12 +201,11 @@ try:
             # a duration of 0 or less means that the note will not switch off
             duration = EEGsynth.limit(duration, 0.1, 0.9)
 
-        if debug > 0:
-            # show the parameters whose value has changed
-            monitor.update("active",    active)
-            monitor.update("sequence",  sequence)
-            monitor.update("transpose", transpose)
-            monitor.update("duration",  duration)
+        # show the parameters whose value has changed
+        monitor.update("active",    active)
+        monitor.update("sequence",  sequence)
+        monitor.update("transpose", transpose)
+        monitor.update("duration",  duration)
 
         sequencethread.setSequence(sequence)
         sequencethread.setTranspose(transpose)
@@ -222,11 +218,11 @@ try:
 
 except KeyboardInterrupt:
     try:
-        print("Disabling last note")
+        monitor.success("Disabling last note")
         patch.setvalue(key, 0.)
     except:
         pass
-    print("Closing threads")
+    monitor.success('Closing threads')
     sequencethread.stop()
     r.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()

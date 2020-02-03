@@ -177,6 +177,7 @@ class Controller(QObject):
                 time.sleep(1)
                 header = self.ftc.getHeader()
                 current_idx = header.nSamples
+                window = self._model.window
                 beg = current_idx - window * sfreq
                 end = current_idx - 1
             

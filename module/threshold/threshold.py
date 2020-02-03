@@ -73,7 +73,7 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name)
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
@@ -81,12 +81,10 @@ def _setup():
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
         ft_port = patch.getint('fieldtrip', 'port')
-        if debug > 0:
-            print('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
-        if debug > 0:
-            print("Connected to FieldTrip buffer")
+        monitor.success('Connected to FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to FieldTrip buffer")
 
@@ -108,18 +106,15 @@ def _start():
     hdr_input = None
     start = time.time()
     while hdr_input is None:
-        if debug > 0:
-            print("Waiting for data to arrive...")
+        monitor.info('Waiting for data to arrive...')
         if (time.time() - start) > timeout:
             raise RuntimeError("timeout while waiting for data")
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    if debug > 0:
-        print("Data arrived")
-    if debug > 1:
-        print(hdr_input)
-        print(hdr_input.labels)
+    monitor.info('Data arrived')
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
     # get the options from the configuration file
     rectify = patch.getint('processing', 'rectify', default=0)
@@ -176,8 +171,7 @@ def _loop_once():
     # get the input data
     dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
 
-    if debug>1:
-        print("read from sample %d to %d" % (begsample, endsample))
+    monitor.debug("read from sample %d to %d" % (begsample, endsample))
 
     # rectify the data
     if rectify:

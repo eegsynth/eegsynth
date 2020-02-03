@@ -67,10 +67,10 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name)
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
-debug          = patch.getint('general', 'debug')
+debug = patch.getint('general', 'debug')
 
 # the scale and offset are used to map the Redis values to internal values
 scale_rate     = patch.getfloat('scale', 'rate', default=1)
@@ -108,8 +108,7 @@ def trigger(send=True):
     # compute a random duration which is uniform between mintime and maxtime
     duration = mintime + float(random.rand(1)) * (maxtime-mintime)
     # schedule the next trigger
-    if debug>1:
-        print('scheduling next trigger after %g seconds' % (duration))
+    monitor.debug('scheduling next trigger after %g seconds' % (duration))
     t = threading.Timer(duration, trigger)
     t.start()
 
@@ -126,11 +125,10 @@ while True:
     rate   = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
     spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
 
-    change = monitor.update('rate', rate, debug>0)
-    change = monitor.update('spread', spread, debug>0) or change
+    change = monitor.update('rate', rate, debug > 0)
+    change = monitor.update('spread', spread, debug > 0) or change
 
     if change:
-        if debug>1:
-            print('canceling previously scheduled trigger')
+        monitor.debug('canceling previously scheduled trigger')
         t.cancel()
         trigger(send=False)
