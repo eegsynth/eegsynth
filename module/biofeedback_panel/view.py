@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QFormLayout, QLabel, QSlider, QLineEdit)
+                             QFormLayout, QLabel, QSlider, QLineEdit,
+                             QGroupBox, QComboBox)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush, QColor
 from pyqtgraph import (PlotWidget, ScatterPlotItem, PlotCurveItem,
@@ -41,19 +42,34 @@ class View(QMainWindow):
         self.windowsize_input.valueChanged.connect(lambdafn)
 
         self.spectralplot = PlotWidget()
-        self.spectralplot_menu = QFormLayout()
-        self.rewardmax_label = QLabel(f"Max reward ({self._model.upreward} bpm)")
-        self.rewardmax_input = QLineEdit()
-        self.rewardmax_input.setText(str(self._model.upreward))
-        lambdafn = lambda : self.rewardrange.setRegion([self._model.lowreward,
-                                                        float(self.rewardmax_input.text())])
-        self.rewardmax_input.returnPressed.connect(lambdafn)
-        self.spectralplot_menu.addRow(self.rewardmax_label,
-                                      self.rewardmax_input)
-        
+        self.spectralplot_menu = QGroupBox("Biofeedback thresholds")
+        self.spectralplot_menuitems = QHBoxLayout()
+        self.rewardmin_label = QLabel(f"Min reward: {round(self._model.lowreward * 60, 2)} bpm")
+        self.rewardmax_label = QLabel(f"Max reward: {round(self._model.upreward * 60, 2)} bpm")
+        self.totalmin_label = QLabel(f"Min total: {round(self._model.lowtotal * 60, 2)} bpm")
+        self.totalmax_label = QLabel(f"Max total: {round(self._model.uptotal * 60, 2)} bpm")
+        self.spectralplot_menuitems.addWidget(self.rewardmin_label)
+        self.spectralplot_menuitems.addWidget(self.rewardmax_label)
+        self.spectralplot_menuitems.addWidget(self.totalmin_label)
+        self.spectralplot_menuitems.addWidget(self.totalmax_label)
+        self.spectralplot_menu.setLayout(self.spectralplot_menuitems)
         
         self.biofeedbackplot = PlotWidget()
-        self.biofeedbackplot_menu = QFormLayout()
+        self.biofeedbackplot_menu = QGroupBox("Biofeedback mapping")
+        self.biofeedbackplot_menuitems = QVBoxLayout()
+        self.biofeedbacktarget_label = QLabel(f"Target: {round(self._model.biofeedbacktarget, 2)}")
+        self.biofeedbackplot_menuitems.addWidget(self.biofeedbacktarget_label)
+        self.biofeedbackplot_menu.setLayout(self.biofeedbackplot_menuitems)
+        self.biofeedbackmapping_label = QLabel("Mapping:")
+        self.biofeedbackmapping_input = QComboBox()
+        self.biofeedbackmapping_input.addItem("linear")
+        self.biofeedbackmapping_input.addItem("exponential")
+        self.biofeedbackmapping_input.currentTextChanged.connect(self._model.set_biofeedbackmapping)
+        self.biofeedbackmapping_input.currentTextChanged.connect(self.plot_biofeedbackmapping)
+        self.biofeedbackplot_menuitems.addWidget(self.biofeedbackmapping_label)
+        self.biofeedbackplot_menuitems.addWidget(self.biofeedbackmapping_input)
+        # Initialize with default value
+        self._model.set_biofeedbackmapping(self.biofeedbackmapping_input.currentText())
 
         self.centralwidget = QWidget()
         self.setCentralWidget(self.centralwidget)
@@ -67,8 +83,8 @@ class View(QMainWindow):
         self.hlayout1.addWidget(self.biofeedbackplot)
 
         self.hlayout0.addLayout(self.breathingplot_menu)
-        self.hlayout2.addLayout(self.spectralplot_menu)
-        self.hlayout2.addLayout(self.biofeedbackplot_menu)
+        self.hlayout2.addWidget(self.spectralplot_menu)
+        self.hlayout2.addWidget(self.biofeedbackplot_menu)
 
         self.vlayout0.addWidget(self.breathingplot)
         self.vlayout0.addLayout(self.hlayout0)
@@ -98,34 +114,34 @@ class View(QMainWindow):
         self.spectralplot.getAxis("left").setLabel("power")
         
         rewardrangebrush = QBrush(QColor(0, 255, 0, 50))
-        self.rewardrange = LinearRegionItem(swapMode="block")
+        self.rewardrange = LinearRegionItem()
         # Fix the possible range to the range of frequencies [0, 1] at sampling
         # rate of 2 Hz.
         self.rewardrange.setBounds([0, 1])
         # Initialize the range with the default values.
         self.rewardrange.setRegion([self._model.lowreward, self._model.upreward])
-        # Emit changes to both the internal plotting function (important since
-        # elements within one plot must be independent!) as well as to the
-        # model (for controller access).
         self.rewardrange.sigRegionChangeFinished.connect(self._model.set_lowreward)
         self.rewardrange.sigRegionChangeFinished.connect(self._model.set_upreward)
-        self.rewardrange.sigRegionChangeFinished.connect(self.plot_rewardrange)
+        lambdafn = lambda : self.rewardmin_label.setText(f"Min reward: {round(self._model.lowreward * 60, 2)} bpm")
+        self.rewardrange.sigRegionChangeFinished.connect(lambdafn)
+        lambdafn = lambda : self.rewardmax_label.setText(f"Max reward: {round(self._model.upreward * 60, 2)} bpm")
+        self.rewardrange.sigRegionChangeFinished.connect(lambdafn)
         self.rewardrange.setBrush(rewardrangebrush)
         self.rewardrange.setZValue(2)
         self.spectralplot.addItem(self.rewardrange)
         
-        self.totalrange = LinearRegionItem(swapMode="block")
+        self.totalrange = LinearRegionItem()
         # Fix the possible range to the range of frequencies [0, 1] at sampling
         # rate of 2 Hz.
         self.totalrange.setBounds([0, 1])
         # Initialize the range with the default values.
         self.totalrange.setRegion([self._model.lowtotal, self._model.uptotal])
-        # Emit changes to both the internal plotting function (important since
-        # elements within one plot must be independent!) as well as to the
-        # model (for controller access).
         self.totalrange.sigRegionChangeFinished.connect(self._model.set_lowtotal)
         self.totalrange.sigRegionChangeFinished.connect(self._model.set_uptotal)
-        self.totalrange.sigRegionChangeFinished.connect(self.plot_totalrange)
+        lambdafn = lambda : self.totalmin_label.setText(f"Min total: {round(self._model.lowtotal * 60, 2)} bpm")
+        self.totalrange.sigRegionChangeFinished.connect(lambdafn)
+        lambdafn = lambda : self.totalmax_label.setText(f"Max total: {round(self._model.uptotal * 60, 2)} bpm")
+        self.totalrange.sigRegionChangeFinished.connect(lambdafn)
         self.totalrange.setZValue(1)
         self.spectralplot.addItem(self.totalrange)
         
@@ -147,12 +163,14 @@ class View(QMainWindow):
         self.biofeedbacktarget = InfiniteLine(angle=90, movable=True)
         self.biofeedbacktarget.setBounds(self.biofeedbackbounds)
         self.biofeedbacktarget.sigPositionChangeFinished.connect(self._model.set_biofeedbacktarget)
-        self.biofeedbacktarget.sigPositionChangeFinished.connect(self.plot_biofeedbacktarget)
+        self.biofeedbacktarget.sigPositionChangeFinished.connect(self.plot_biofeedbackmapping)
+        lambdafn = lambda : self.biofeedbacktarget_label.setText(f"Target: {round(self._model.biofeedbacktarget, 2)}")
+        self.biofeedbacktarget.sigPositionChangeFinished.connect(lambdafn)
         # Initialize the plot. Note that the signal must be emitted manually,
         # since InfiniteLine does not emit sigPositionChangeFinished if value
         # is set programatically.
         self.biofeedbacktarget.setValue(self._model.biofeedbacktarget)
-        self.biofeedbacktarget.sigPositionChangeFinished.emit(self.biofeedbacktarget)
+        self.biofeedbacktarget.sigPositionChangeFinished.emit("foo")
         self.biofeedbackplot.addItem(self.biofeedbacktarget)
         
         self.biofeedbackplot.getAxis("bottom").setLabel("rewardratio (rewardrange / (totalrange - rewardrange))")
@@ -181,24 +199,14 @@ class View(QMainWindow):
     def plot_psd(self, psd):
         self.powerspectrum.setData(self._model.freqs, psd)
     
-    
-    def plot_rewardrange(self, rewardrange):
-        self.rewardrange.setRegion(rewardrange.getRegion())
-        
-        
-    def plot_totalrange(self, totalrange):
-        self.totalrange.setRegion(totalrange.getRegion())
-
 
     def plot_biofeedback(self, biofeedback):
         self.biofeedbackscatter.setData([biofeedback[0]], [biofeedback[1]])
         
         
-    def plot_biofeedbacktarget(self, biofeedbacktarget):
-        self.biofeedbacktarget.setValue(biofeedbacktarget.value())
-        # Update the function plot as well (updating biofeedbackscatte will
-        # happen at the earliest subsequent call of plot_biofeedback
-        # (controlled by timer).
+    def plot_biofeedbackmapping(self):
+        # Note that the mapping needs to be re-plotted when the target
+        # changes as well as when the mapping changes.
         xmin = self.biofeedbackbounds[0]
         xmax = self.biofeedbackbounds[1]
         xvals = np.linspace(xmin, xmax, (xmax - xmin) * 100)

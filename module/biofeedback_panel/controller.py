@@ -109,7 +109,6 @@ class Controller(QObject):
             freqs = rfftfreq(nsamp, 1 / sfreq)
             interpres = 0.025
             freqsintp = np.arange(freqs[0], freqs[-1], interpres)
-            self._model.freqs = freqsintp
             rewardrange = np.logical_and(freqsintp >= self._model.lowreward,
                                          freqsintp <= self._model.upreward)
             totalrange = np.logical_and(freqsintp >= self._model.lowtotal,
@@ -131,9 +130,8 @@ class Controller(QObject):
             # to set feedback thresholds at intervals smaller than the original 
             # frequency resolution.
             f = interp1d(freqs, psd)
-            psdintp = f(self._model.freqs)
-            self._model.psd = psdintp
-            
+            psdintp = f(freqsintp)
+                        
             # Compute biofeedback based on the PSD
             rewardpsd = np.sum(psdintp[rewardrange])
             totalpsd = np.sum(psdintp[totalrange])
@@ -142,10 +140,12 @@ class Controller(QObject):
                 rewardratio = rewardpsd / totalpsd
             else:
                 rewardratio = rewardpsd / (totalpsd - overlappsd)
-            self._model.rewardratio = rewardratio
             biofeedback = self.biofeedback_function(rewardratio,
                                                     self._model.biofeedbackmapping)
-            self._model.biofeedback = biofeedback
+            (self._model.freqs,
+             self._model.psd ,
+             self._model.rewardratio,
+             self._model.biofeedback) = (freqsintp, psdintp, rewardratio, biofeedback)
         
         
     @threaded

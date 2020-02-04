@@ -78,8 +78,6 @@ class Model(QObject):
     def set_biofeedbacktarget(self, value):
         if isinstance(value, type(InfiniteLine())):
             self._biofeedbacktarget = value.value()
-        else:
-            self._biofeedbacktarget = value
         
     @pyqtProperty(str)
     def biofeedbackmapping(self):
