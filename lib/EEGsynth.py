@@ -92,23 +92,21 @@ class monitor():
 Press Ctrl-C to stop this module.
         """)
 
-    def loop(self, debug=True):
+    def loop(self):
         now = time.time()
         if self.loop_time is None:
-            if debug:
-                self.info("starting loop...")
+            self.success("starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
             self.loop_count += 1
         elapsed = now - self.loop_time
         if elapsed>=1:
-            if debug:
-                self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+            self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
-    def update(self, key, val, debug=True):
+    def update(self, key, val):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
             try:
                 # the comparison returns false in case both are nan
@@ -118,8 +116,7 @@ Press Ctrl-C to stop this module.
                     return False
             except:
                 pass
-            if debug:
-                self.info(formatkeyval(key, val))
+            self.info(formatkeyval(key, val))
             self.previous_value[key] = val
             return True
         else:
@@ -174,7 +171,7 @@ class patch():
         self.redis  = r
 
     ####################################################################
-    def getfloat(self, section, item, multiple=False, default=None, debug=False):
+    def getfloat(self, section, item, multiple=False, default=None):
         if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
@@ -224,9 +221,6 @@ class patch():
             elif multiple == False and default != None:
                 val = float(default)
 
-        if debug:
-            print(formatkeyval(item, val))
-
         if multiple:
             # return it as list
             return val
@@ -238,7 +232,7 @@ class patch():
                 return val
 
     ####################################################################
-    def getint(self, section, item, multiple=False, default=None, debug=False):
+    def getint(self, section, item, multiple=False, default=None):
         if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
@@ -288,9 +282,6 @@ class patch():
             elif multiple == False and default != None:
                 val = int(default)
 
-        if debug:
-            print(formatkeyval(item, val))
-
         if multiple:
             # return it as list
             return val
@@ -302,7 +293,7 @@ class patch():
                 return val
 
     ####################################################################
-    def getstring(self, section, item, default=None, multiple=False, debug=False):
+    def getstring(self, section, item, default=None, multiple=False):
         # get all items from the ini file, there might be one or multiple
         try:
             val = self.config.get(section, item)
@@ -327,9 +318,6 @@ class patch():
                 val = squeeze(separator, val)  # remove double separators
                 val = val.split(separator)     # split on the separator
 
-        if debug:
-            print(formatkeyval(item, val))
-
         if multiple:
             # return it as list
             return val
@@ -346,11 +334,9 @@ class patch():
         return self.config.has_option(section, item)
 
     ####################################################################
-    def setvalue(self, item, val, debug=False, duration=0):
+    def setvalue(self, item, val, duration=0):
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
-        if debug:
-            print(formatkeyval(item, val))
         if duration > 0:
             # switch off after a certain amount of time
             threading.Timer(duration, self.setvalue, args=[item, 0.]).start()

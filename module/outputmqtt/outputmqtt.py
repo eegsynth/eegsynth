@@ -122,7 +122,7 @@ class TriggerThread(threading.Thread):
                     # apply the scale and offset
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-                    monitor.update(self.mqtttopic, val, debug > 0)
+                    monitor.update(self.mqtttopic, val)
                     with lock:
                         client.publish(self.mqtttopic, payload=val, qos=0, retain=False)
 

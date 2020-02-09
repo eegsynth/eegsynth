@@ -248,7 +248,7 @@ def _loop_once():
             # e.g. prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scale_control, offset=offset_control)
-            patch.setvalue(key, val, debug=debug)
+            patch.setvalue(key, val)
 
         elif hasattr(msg, "note"):
             # the default is not to send a message
@@ -311,11 +311,11 @@ def _loop_once():
                 # prefix.noteXXX=value
                 key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
                 val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
-                patch.setvalue(key, val, debug=debug)
+                patch.setvalue(key, val)
                 # prefix.note=note
                 key = "{}.note".format(patch.getstring('output', 'prefix'))
                 val = msg.note
-                patch.setvalue(key, val, debug=debug)
+                patch.setvalue(key, val)
 
 
 def _loop_forever():

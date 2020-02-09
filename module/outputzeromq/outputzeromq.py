@@ -127,7 +127,7 @@ class TriggerThread(threading.Thread):
                     # apply the scale and offset
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-                    monitor.update(self.zeromqtopic, val, debug > 0)
+                    monitor.update(self.zeromqtopic, val)
                     with lock:
                         # send it as a string with a space as separator
                         socket.send_string("%s %f" % (self.zeromqtopic, val))

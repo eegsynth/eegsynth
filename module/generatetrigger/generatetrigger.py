@@ -92,7 +92,7 @@ def trigger(send=True):
     if send:
         # send the current trigger
         key = patch.getstring('output', 'prefix') + '.note'
-        patch.setvalue(key, 1., debug=debug)
+        patch.setvalue(key, 1.)
 
     # the rate is in bpm, i.e. quarter notes per minute
     if rate-spread>0:
@@ -125,8 +125,8 @@ while True:
     rate   = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
     spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
 
-    change = monitor.update('rate', rate, debug > 0)
-    change = monitor.update('spread', spread, debug > 0) or change
+    change = monitor.update('rate', rate)
+    change = monitor.update('spread', spread) or change
 
     if change:
         monitor.debug('canceling previously scheduled trigger')

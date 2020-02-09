@@ -145,7 +145,7 @@ def callback(in_data, frame_count, time_info, status):
 
     if stack.shape[0]==0 and current_channel!=None:
         # send a trigger to indicate that the sample finished playing
-        patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug > 1)
+        patch.setvalue("%s.%s" % (finished, current_channel), current_value)
         current_channel = None
         current_value = 0
 
@@ -267,7 +267,7 @@ class TriggerThread(threading.Thread):
                             current_channel = self.redischannel
                             current_value = val
                             # send a trigger to indicate that the sample started playing
-                            patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug > 1)
+                            patch.setvalue("%s.%s" % (started, current_channel), current_value)
 
 
 # create the background threads that deal with the triggers

@@ -192,7 +192,7 @@ def _loop_once():
         sample = maxind+begsample
         if maxval>=threshold and (sample-previous[channel])>=(interval*hdr_input.fSample):
             key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
-            patch.setvalue(key, float(maxval), debug=debug)
+            patch.setvalue(key, float(maxval))
             previous[channel] = sample
 
     # increment the counters for the next loop

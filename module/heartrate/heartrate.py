@@ -217,8 +217,8 @@ def _loop_once():
             duration_offset = patch.getfloat('offset', 'duration', default=0)
             duration        = EEGsynth.rescale(duration, slope=duration_scale, offset=duration_offset)
 
-            patch.setvalue(key_rate, bpm, debug=debug)
-            patch.setvalue(key_beat, bpm, debug=debug, duration=duration)
+            patch.setvalue(key_rate, bpm)
+            patch.setvalue(key_beat, bpm, duration=duration)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -236,7 +236,7 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input
-    
+
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
 

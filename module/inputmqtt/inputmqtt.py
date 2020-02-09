@@ -102,7 +102,7 @@ def on_message(client, userdata, msg):
                 key = "%s.%s" % (prefix, key)
             # assume that it is a single scalar value
             val = EEGsynth.rescale(float(msg.payload), slope=output_scale, offset=output_offset)
-            monitor.update(key, val, debug > 0)
+            monitor.update(key, val)
             patch.setvalue(key, val)
         except:
             pass
