@@ -84,7 +84,6 @@ def _main():
         module = os.path.split(file)[-1]        # keep only the filename
         module = os.path.splitext(module)[0]    # remove the ini extension
         module = module.split('-')[0]           # remove whatever comes after a "-" separator
-        module = module.split('_')[0]           # remove whatever comes after a "_" separator
 
         # convert the string in a reference to the corresponding Module class
         # as soon as the object is instantiated, the module will start
