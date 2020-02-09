@@ -1,7 +1,7 @@
 import sys
 import time
 
-from .generatesignal import _setup, _start, _loop_forever
+from .generatesignal import _setup, _start, _loop_once, _loop_forever, _stop
 
 class Executable:
     def __init__(self, args=None):
@@ -21,4 +21,5 @@ class Executable:
                 # restart after one second
                 time.sleep(1)
             except KeyboardInterrupt:
+                _stop()
                 raise SystemExit

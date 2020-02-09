@@ -1,7 +1,7 @@
 import sys
 import time
 
-from .postprocessing import _setup, _start, _loop_forever
+from .postprocessing import _setup, _start, _loop_once, _loop_forever, _stop
 
 class Executable:
     def __init__(self, args=None):
