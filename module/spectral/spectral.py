@@ -147,9 +147,6 @@ def _loop_once():
     taper = np.hanning(window)
     frequency = np.fft.rfftfreq(window, 1.0 / hdr_input.fSample)
 
-    monitor.debug('taper', taper)
-    monitor.debug('frequency', frequency)
-
     band_items = config.items('band')
     bandname = []
     bandlo   = []
@@ -157,7 +154,6 @@ def _loop_once():
     for item in band_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
         lohi = patch.getfloat('band', item[0], multiple=True)
-        monitor.trace(item[0], lohi)
         bandname.append(item[0])
         bandlo.append(lohi[0])
         bandhi.append(lohi[1])
