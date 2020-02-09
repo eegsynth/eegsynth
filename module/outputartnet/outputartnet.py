@@ -161,7 +161,7 @@ def _loop_forever():
 
 
 def _stop():
-    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, artnet
 
