@@ -275,7 +275,7 @@ class Window(QtGui.QWidget):
             if target.type!='text':
                 # text has an internal value identical to the external value
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-            patch.setvalue(key, val, debug=debug)
+            patch.setvalue(key, val)
 
     def setcolor(self, target):
         # see https://www.w3schools.com/css/css3_buttons.asp

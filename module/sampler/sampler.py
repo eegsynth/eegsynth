@@ -60,11 +60,7 @@ config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-<<<<<<< HEAD
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
-=======
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
->>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -172,11 +168,15 @@ def callback(in_data, frame_count, time_info, status):
     if stack.shape[0]==0 and current_channel!=None:
         # send a trigger to indicate that the sample finished playing
 <<<<<<< HEAD
+<<<<<<< HEAD
         patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug>1)
 >>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
 =======
         patch.setvalue("%s.%s" % (finished, current_channel), current_value, debug=debug > 1)
 >>>>>>> 2dc503a341c6f97679a2233bd9aa1fb4485896d7
+=======
+        patch.setvalue("%s.%s" % (finished, current_channel), current_value)
+>>>>>>> a13803abcfc65b0fbdc66bdfeb0e5a8d512f753a
         current_channel = None
         current_value = 0
 
@@ -332,11 +332,15 @@ class TriggerThread(threading.Thread):
                             current_value = val
                             # send a trigger to indicate that the sample started playing
 <<<<<<< HEAD
+<<<<<<< HEAD
                             patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug>1)
 >>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
 =======
                             patch.setvalue("%s.%s" % (started, current_channel), current_value, debug=debug > 1)
 >>>>>>> 2dc503a341c6f97679a2233bd9aa1fb4485896d7
+=======
+                            patch.setvalue("%s.%s" % (started, current_channel), current_value)
+>>>>>>> a13803abcfc65b0fbdc66bdfeb0e5a8d512f753a
 
 
 # create the background threads that deal with the triggers

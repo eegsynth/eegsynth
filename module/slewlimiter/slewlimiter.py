@@ -135,6 +135,12 @@ def _loop_forever():
         _loop_once()
 
 
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    pass
+
+
 if __name__ == '__main__':
     _setup()
     _start()

@@ -80,7 +80,7 @@ class TriggerThread(threading.Thread):
                     # apply the scale and offset
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-                    monitor.update(self.osctopic, val, debug > 0)
+                    monitor.update(self.osctopic, val)
                     with lock:
                         # send it as a string with a space as separator
                         if sys.version_info < (3,6):
@@ -192,9 +192,9 @@ def _loop_forever():
 
 
 def _stop():
-    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, triggers
+    global monitor, trigger, r
 
     monitor.success('Closing threads')
     for thread in trigger:

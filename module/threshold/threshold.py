@@ -192,7 +192,7 @@ def _loop_once():
         sample = maxind+begsample
         if maxval>=threshold and (sample-previous[channel])>=(interval*hdr_input.fSample):
             key = "%s.channel%d" % (patch.getstring('output','prefix'), channel+1)
-            patch.setvalue(key, float(maxval), debug=debug)
+            patch.setvalue(key, float(maxval))
             previous[channel] = sample
 
     # increment the counters for the next loop
@@ -209,6 +209,15 @@ def _loop_forever():
     '''
     while True:
         _loop_once()
+
+
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    global monitor, ft_input
+
+    ft_input.disconnect()
+    monitor.success('Disconnected from input FieldTrip buffer')
 
 
 if __name__ == '__main__':

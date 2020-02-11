@@ -207,7 +207,7 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     QtGui.QApplication.quit()
 

@@ -111,7 +111,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, gate, number, i, this, thread, app, win, plot
+    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -132,7 +132,7 @@ def _start():
     # this is to prevent two messages from being sent at the same time
     lock = threading.Lock()
 
-    gate = []
+    trigger = []
     number = []
     # each of the gates that can be triggered is mapped onto a different message
     for i in range(1, 17):
@@ -142,13 +142,13 @@ def _start():
             data[i] = []
             # start the background thread that deals with this channel
             this = TriggerThread(patch.getstring('gate', name), i)
-            gate.append(this)
+            trigger.append(this)
             monitor.info(name, 'OK')
-    if len(gate)==0:
+    if len(trigger)==0:
         monitor.warning('no gates were specified in the ini file')
 
     # start the thread for each of the notes
-    for thread in gate:
+    for thread in trigger:
         thread.start()
 
 
@@ -165,7 +165,7 @@ def _start():
     plot.setLabel('left', text='Channel')
     plot.setLabel('bottom', text='Time (s)')
     plot.setXRange(-window, 0)
-    plot.setYRange(0.5, len(gate)+0.5)
+    plot.setYRange(0.5, len(trigger)+0.5)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -177,7 +177,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch
-    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, gate, number, i, this, thread, app, win, plot
+    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
 
     monitor.loop()
 
@@ -231,13 +231,15 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
+    global monitor, trigger, r
+
     monitor.success('Closing threads')
-    for thread in gate:
+    for thread in trigger:
         thread.stop()
     r.publish('PLOTTRIGGER_UNBLOCK', 1)
-    for thread in gate:
+    for thread in trigger:
         thread.join()
     QtGui.QApplication.quit()
 

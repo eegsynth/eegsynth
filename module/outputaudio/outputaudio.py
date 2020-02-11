@@ -309,10 +309,10 @@ def _loop_once():
 
     monitor.info("read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration)
 
-    monitor.update("inputrate", int(inputrate), debug > 1)
-    monitor.update("outputrate", int(outputrate), debug > 1)
-    monitor.update("stretch", stretch, debug > 1)
-    monitor.update("len(stack)", len(stack), debug > 1)
+    monitor.update("inputrate", int(inputrate))
+    monitor.update("outputrate", int(outputrate))
+    monitor.update("stretch", stretch)
+    monitor.update("len(stack)", len(stack))
 
     if np.min(dat)<-1 or np.max(dat)>1:
         monitor.warning('WARNING: signal exceeds [-1,+1] range, the audio will clip')
@@ -334,7 +334,7 @@ def _loop_forever():
 
 
 def _stop():
-    '''Clean up and stop on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global stream, p
 

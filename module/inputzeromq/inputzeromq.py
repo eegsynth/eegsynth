@@ -119,7 +119,7 @@ try:
                 key = "%s.%s" % (prefix, key)
             # assume that it is a single scalar value
             val = EEGsynth.rescale(float(val), slope=output_scale, offset=output_offset)
-            monitor.update(key, val, debug > 0)
+            monitor.update(key, val)
             patch.setvalue(key, val)
 
         # update the scale and offset, these values are updated after every delay

@@ -121,7 +121,7 @@ class TriggerThread(threading.Thread):
                     time.sleep(patch.getfloat('general','pulselength'))
 
 # each of the gates that can be triggered is mapped onto a different message
-gate = []
+trigger = []
 for channel in range(0, 16):
 
     # channels are one-offset in the ini file, zero-offset in the code
@@ -130,11 +130,11 @@ for channel in range(0, 16):
 
         # start the background thread that deals with this channel
         this = TriggerThread(patch.getstring('gate', name), channel)
-        gate.append(this)
+        trigger.append(this)
         monitor.debug(name, 'OK')
 
 # start the thread for each of the notes
-for thread in gate:
+for thread in trigger:
     thread.start()
 
 # control values are only relevant when different from the previous value
@@ -232,9 +232,9 @@ try:
 
 except KeyboardInterrupt:
     monitor.success('Closing threads')
-    for thread in gate:
+    for thread in trigger:
         thread.stop()
     r.publish('ENDORPHINES_UNBLOCK', 1)
-    for thread in gate:
+    for thread in trigger:
         thread.join()
     sys.exit()
