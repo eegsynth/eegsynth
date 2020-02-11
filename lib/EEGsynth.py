@@ -59,7 +59,7 @@ class monitor():
     def __init__(self, name=None, debug=0):
         self.previous_value = {}
         self.loop_time = None
-        # the prefis is added to the rest of the message, which is also a tuple
+        # the prefix is added to the rest of the message, which is also a tuple
         if name!=None:
             self.prefix = name + ":"
         else:
@@ -92,12 +92,14 @@ class monitor():
 Press Ctrl-C to stop this module.
         """)
 
-    def loop(self):
+    def loop(self, duration=None):
         now = time.time()
+
         if self.loop_time is None:
             self.success("starting loop...")
             self.loop_time = now
             self.loop_count = 0
+            self.loop_start = time.time()
         else:
             self.loop_count += 1
         elapsed = now - self.loop_time
@@ -105,6 +107,8 @@ Press Ctrl-C to stop this module.
             self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
+        if duration!=None and now-self.loop_start>duration:
+            raise SystemExit
 
     def update(self, key, val):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
