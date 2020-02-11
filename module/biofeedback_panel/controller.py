@@ -8,6 +8,7 @@ from numpy.fft import rfftfreq
 from spectrum import arburg, arma2psd
 import time
 import FieldTrip
+import redis
 
 
 class Worker(QRunnable):
@@ -40,7 +41,7 @@ class Controller(QObject):
         
         self.threadpool = QThreadPool()
         
-        # Instantiate FieldTrip client.
+        # Instantiate FieldTrip client (buffer needs to be running locally).
         # Check if the buffer is running.
         try:
             self.ftc = FieldTrip.Client()
@@ -60,6 +61,16 @@ class Controller(QObject):
             print("Waiting for sufficient amount of samples.")
             hdr = self.ftc.getHeader()
             
+        # Instantiate Redis client (Redis server needs to be running locally).
+        try:
+            self.redis = redis.StrictRedis(host="localhost",
+                                           port=6379, db=0, charset='utf-8',
+                                           decode_responses=True)
+            self.redis.client_list()
+        except redis.ConnectionError:
+            raise RuntimeError("cannot connect to Redis server")
+            
+        # Start the threads.
         self.get_breathing()
         self.compute_biofeedback()
         
@@ -142,6 +153,11 @@ class Controller(QObject):
                 rewardratio = rewardpsd / (totalpsd - overlappsd)
             biofeedback = self.biofeedback_function(rewardratio,
                                                     self._model.biofeedbackmapping)
+           
+            # Publish the biofeedback value on the Redis channel.
+            self.redis.publish("Feedback", biofeedback)
+            
+            # Set the model attributes.
             (self._model.freqs,
              self._model.psd ,
              self._model.rewardratio,
