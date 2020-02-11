@@ -27,11 +27,7 @@ import numpy as np
 import os
 import pyqtgraph as pg
 import sys
-import time
 import signal
-import math
-from scipy.interpolate import interp1d
-from scipy.signal import butter, lfilter
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -85,28 +81,27 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor
-    global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
+    global delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     # get the options from the configuration file
     delay       = patch.getfloat('general', 'delay')
-    historysize = patch.getfloat('general', 'window') # in seconds
-    secwindow   = patch.getfloat('general', 'window')
+    window      = patch.getfloat('general', 'window') # in seconds
     winx        = patch.getfloat('display', 'xpos')
     winy        = patch.getfloat('display', 'ypos')
     winwidth    = patch.getfloat('display', 'width')
     winheight   = patch.getfloat('display', 'height')
 
-    historysize = int(historysize/delay) # in steps
+    historysize = int(window/delay) # in steps
+    timeaxis = np.linspace(-window, 0, historysize)
 
     input_name, input_variable = list(zip(*config.items('input')))
     ylim_name, ylim_value = list(zip(*config.items('ylim')))
 
-    # count total number of curves to be drawm
-    curve_nrs = 0
-    for i in range(len(input_name)):
-        temp = input_variable[i].split(",")
-        for ii in range(len(temp)):
-            curve_nrs += 1
+    # count the total number of curves to be drawm
+    counter = 0
+    for iplot, name in enumerate(input_name):
+        for control in input_variable[iplot].split(','):
+            counter += 1
 
     # initialize graphical window
     app = QtGui.QApplication([])
@@ -118,7 +113,7 @@ def _start():
     pg.setConfigOptions(antialias=True)
 
     # Initialize variables
-    inputhistory = np.ones((curve_nrs, historysize))
+    inputhistory = np.ones((counter, historysize))
     inputplot    = []
     inputcurve   = []
 
@@ -157,8 +152,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor
-    global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
-    global counter, input_variable_list, ivar, timeaxis
+    global delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     monitor.loop()
 
@@ -167,20 +161,10 @@ def _loop_once():
 
     # update with current data
     counter = 0
-    for iplot in range(len(input_name)):
-
-       input_variable_list = input_variable[iplot].split(",")
-
-       for ivar in range(len(input_variable_list)):
-            try:
-                inputhistory[counter, historysize-1] = r.get(input_variable_list[ivar])
-            except:
-                inputhistory[counter, historysize-1] = np.nan
-
-            # time axis
-            timeaxis = np.linspace(-secwindow, 0, historysize)
-
-            # update timecourses
+    for name in input_name:
+        values = patch.getfloat('input', name, multiple=True, default=np.nan)
+        for value in values:
+            inputhistory[counter, historysize-1] = value
             inputcurve[counter].setData(timeaxis, inputhistory[counter, :])
             counter += 1
 

@@ -19,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-from numpy import random
+from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod, random
 import configparser
 import argparse
 import numpy as np

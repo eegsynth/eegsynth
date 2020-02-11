@@ -26,6 +26,7 @@ import os
 import redis
 import sys
 import time
+from scipy.signal import detrend
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -172,28 +173,18 @@ def _loop_once():
     begsample = hdr_input.nSamples - window
     endsample = hdr_input.nSamples - 1
     dat = ft_input.getData([begsample, endsample]).astype(np.double)
-
-    # FIXME it should be possible to do this differently
-    power = []
-    for chan in channame:
-        for band in bandname:
-            power.append(0)
-
     dat = dat[:, chanindx]
-    meandat = dat.mean(0)
 
-    # FIXME use detrend just like plotspectral
-    # FIXME multiply with taper in one go
+    # demean the data to prevent spectral leakage
+    dat = detrend(dat, axis=0, type='constant')
 
-    # subtract the channel mean and apply the taper to each sample
-    for chan in range(dat.shape[1]):
-        for sample in range(dat.shape[0]):
-            dat[sample, chan] -= meandat[chan]
-            dat[sample, chan] *= taper[sample]
+    # taper the data
+    dat = dat * taper[:, np.newaxis]
 
     # compute the FFT over the sample direction
     F = np.fft.rfft(dat, axis=0)
 
+    power = [0] * len(channame) * len(bandname)
     i = 0
     for chan in range(F.shape[1]):
         for lo,hi in zip(bandlo,bandhi):
