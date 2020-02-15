@@ -9,7 +9,8 @@ When using [Anaconda](https://www.anaconda.com), this is more or less how to get
 ```
 conda create -n eegsynth python=3.7 anaconda
 conda activate eegsynth
-conda install -c binstar redis-server ([info](https://anaconda.org/binstar/redis-server))
+
+conda install -c binstar redis-server # see https://anaconda.org/binstar/redis-server
 conda install redis-py
 conda install numpy
 conda install scipy
