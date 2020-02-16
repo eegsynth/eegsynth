@@ -84,6 +84,7 @@ setuptools.setup(
         "redis",
         "scipy",
         "sklearn",
+        "termcolor",
         "zmq",
     ],
     python_requires=">=2.7",

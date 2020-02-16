@@ -10,6 +10,8 @@ import numpy as np
 from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 import logging
 from logging import Formatter
+import termcolor
+from termcolor import colored
 
 ###################################################################################################
 def formatkeyval(key, val):
@@ -50,40 +52,28 @@ class ColoredFormatter(Formatter):
 
     def __init__(self, name=None):
         self.name = name
-
-    def colored(self, text, color):
-        colors = {
-            'black': 30,
-            'red': 31,
-            'green': 32,
-            'yellow': 33,
-            'blue': 34,
-            'magenta': 35,
-            'cyan': 36,
-            'white': 37,
-            'bgred': 41,
-            'bggrey': 100
-        }
-        clr = colors[color]
-        prefix = '\033['
-        suffix = '\033[0m'
-        return (prefix+'%dm%s'+suffix) % (clr, text)
+        # add reverse and bright colors
+        for color in termcolor.COLORS.keys():
+            termcolor.COLORS['reverse_'+color] = termcolor.COLORS[color]+10
+            termcolor.COLORS['bright_'+color] = termcolor.COLORS[color]+60
+        for color in termcolor.COLORS.keys():
+            print(colored(color, color))
 
     def format(self, record):
-        mapping = {
-            'CRITICAL': 'bgred',
+        colors = {
+            'CRITICAL': 'reverse_red',
             'ERROR': 'red',
             'WARNING': 'yellow',
             'SUCCESS': 'green',
             'INFO': 'cyan',
-            'DEBUG': 'bggrey',
-            'TRACE': 'blue',
+            'DEBUG': 'bright_grey',
+            'TRACE': 'reverse_white',
         }
-        color = mapping.get(record.levelname, 'white')
+        color = colors.get(record.levelname, 'white')
         if self.name:
-            return self.colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
+            return colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
         else:
-            return self.colored(record.levelname, color) + ': ' + record.getMessage()
+            return colored(record.levelname, color) + ': ' + record.getMessage()
 
 
 ###################################################################################################
@@ -94,6 +84,7 @@ class monitor():
     monitor.loop()           - to be called on every iteration of the loop
     monitor.update(key, val) - to be used to check whether values change
 
+    monitor.critical(...)  - shows always
     monitor.error(...)     - shows always
     monitor.warning(...)   - shows always
     monitor.success(...)   - debug level 0
@@ -189,6 +180,9 @@ Press Ctrl-C to stop this module.
             return True
         else:
             return False
+
+    def critical(self, *args):
+        self.logger.log(logging.CRITICAL, *args)
 
     def error(self, *args):
         self.logger.log(logging.ERROR, *args)
