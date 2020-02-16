@@ -82,16 +82,15 @@ setuptools.setup(
         "pyqtgraph",
         "pyserial",
         "redis",
-        "redis",
         "scipy",
         "sklearn",
         "zmq",
     ],
     python_requires=">=2.7",
     extras_require={
-        ":python_version<='3.5'": ["pyOSC"],
+        ":python_version<'3.5'": ["pyOSC"],
         ":python_version>='3.5'": ["python-rtmidi"],
-        ":python_version>='3.6'": ["python-osc"]
+        ":python_version>='3.5'": ["python-osc"]
     },
     entry_points={
         'console_scripts': [
