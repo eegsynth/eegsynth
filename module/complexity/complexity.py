@@ -36,8 +36,7 @@ try:
     from neurokit.signal import complexity
 except ImportError:
     # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: neurokit is required for the complexity module')
-    print('Warning: please intall it with "pip install neurokit"')
+    print('Warning: neurokit is required for the complexity module, please install it with "pip install neurokit"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

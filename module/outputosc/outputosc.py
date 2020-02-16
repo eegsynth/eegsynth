@@ -27,22 +27,22 @@ import sys
 import threading
 import time
 
-# The required package depends on the Python version. The pythonosc package uses commenting features introduced in 3.6.
-# This cannot be handled easily in the setup.py during installation, hence we only try to load the module.
-if sys.version_info < (3,6):
+# The required package depends on the Python version, one works for older and the other for newer versions.
+# This cannot be handled easily by setup.py during installation, hence we only _try_ to load the module.
+if sys.version_info < (3,5):
     try:
         import OSC
+        use_old_version = True
     except ImportError:
         # give a warning, not an error, so that eegsynth.py does not fail as a whole
-        print('Warning: OSC is required for the outputosc module, but not installed')
-        print('Warning: please intall it with "pip install OSC"')
+        print('Warning: OSC is required for the outputosc module, please install it with "pip install OSC"')
 else:
     try:
         from pythonosc import udp_client
+        use_old_version = False
     except ModuleNotFoundError:
         # give a warning, not an error, so that eegsynth.py does not fail as a whole
-        print('Warning: pythonosc is required for the outputosc module')
-        print('Warning: please intall it with "pip install pythonosc"')
+        print('Warning: pythonosc is required for the outputosc module, please install it with "pip install pythonosc"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -95,7 +95,7 @@ class TriggerThread(threading.Thread):
                     monitor.update(self.osctopic, val)
                     with lock:
                         # send it as a string with a space as separator
-                        if sys.version_info < (3,6):
+                        if use_old_version:
                             msg = OSC.OSCMessage(self.osctopic)
                             msg.append(val)
                             s.send(msg)
@@ -144,7 +144,7 @@ def _start():
     debug = patch.getint('general', 'debug')
 
     try:
-        if sys.version_info < (3,6):
+        if use_old_version:
             s = OSC.OSCClient()
             s.connect((patch.getstring('osc','hostname'), patch.getint('osc','port')))
         else:

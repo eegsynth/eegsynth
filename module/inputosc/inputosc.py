@@ -28,11 +28,23 @@ import sys
 import threading
 import time
 
-if sys.version_info < (3,6):
-    import OSC
+# The required package depends on the Python version, one works for older and the other for newer versions.
+# This cannot be handled easily by setup.py during installation, hence we only _try_ to load the module.
+if sys.version_info < (3,5):
+    try:
+        import OSC
+        use_old_version = True
+    except ImportError:
+        # give a warning, not an error, so that eegsynth.py does not fail as a whole
+        print('Warning: OSC is required for the outputosc module, please install it with "pip install OSC"')
 else:
-    from pythonosc import dispatcher
-    from pythonosc import osc_server
+    try:
+        from pythonosc import dispatcher
+        from pythonosc import osc_server
+        use_old_version = False
+    except ModuleNotFoundError:
+        # give a warning, not an error, so that eegsynth.py does not fail as a whole
+        print('Warning: pythonosc is required for the outputosc module, please install it with "pip install pythonosc"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -129,7 +141,7 @@ def python3_message_handler(addr, data):
     patch.setvalue(key, val)
 
 try:
-    if sys.version_info < (3,6):
+    if use_old_version:
         s = OSC.OSCServer((osc_address, osc_port))
         s.noCallback_handler = python2_message_handler
         # s.addMsgHandler("/1/faderA", test_handler)

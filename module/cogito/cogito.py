@@ -36,8 +36,7 @@ try:
     import pandas as pd
 except ImportError:
     # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: pandas is required for the cogito module')
-    print('Warning: please intall it with "pip install pandas"')
+    print('Warning: pandas is required for the cogito module, please install it with "pip install pandas"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
