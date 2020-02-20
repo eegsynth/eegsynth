@@ -29,6 +29,7 @@ import time
 import numpy as np
 from copy import copy
 from numpy.matlib import repmat
+from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
