@@ -29,9 +29,7 @@ import pyqtgraph as pg
 import sys
 import time
 import signal
-from scipy.fftpack import fft, fftfreq
 from scipy.signal import detrend
-from scipy.interpolate import interp1d
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -93,10 +91,6 @@ def _setup():
         monitor.success('Connected to input FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to input FieldTrip buffer")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _start():
@@ -194,10 +188,6 @@ def _start():
     timer.setInterval(10)                       # timeout in milliseconds
     timer.start(int(round(stepsize * 1000)))    # stepsize in milliseconds
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_once():
     '''Update the main figure once
@@ -211,7 +201,6 @@ def _loop_once():
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
-        # raise RuntimeError("buffer reset detected")
         monitor.info("buffer reset detected")
         begsample = -1
         while begsample < 0:
@@ -268,10 +257,6 @@ def _loop_once():
             else:
                 curvemax[plotnr] = (1 - lrate) * curvemax[plotnr] + lrate * max(abs(dat[:, channr-1]))
             timeplot[plotnr].setYRange(-curvemax[plotnr], curvemax[plotnr])
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

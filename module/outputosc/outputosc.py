@@ -27,10 +27,22 @@ import sys
 import threading
 import time
 
+# The required package depends on the Python version. The pythonosc package uses commenting features introduced in 3.6.
+# This cannot be handled easily in the setup.py during installation, hence we only try to load the module.
 if sys.version_info < (3,6):
-    import OSC
+    try:
+        import OSC
+    except ImportError:
+        # give a warning, not an error, so that eegsynth.py does not fail as a whole
+        print('Warning: OSC is required for the outputosc module, but not installed')
+        print('Warning: please intall it with "pip install OSC"')
 else:
-    from pythonosc import udp_client
+    try:
+        from pythonosc import udp_client
+    except ModuleNotFoundError:
+        # give a warning, not an error, so that eegsynth.py does not fail as a whole
+        print('Warning: pythonosc is required for the outputosc module')
+        print('Warning: please intall it with "pip install pythonosc"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

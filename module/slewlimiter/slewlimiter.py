@@ -21,7 +21,6 @@
 
 import configparser
 import argparse
-import numpy as np
 import os
 import redis
 import sys
