@@ -19,12 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-<<<<<<< HEAD
-from numpy.random import rand, randn
-=======
 from numpy import random
->>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
+from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod, random
 import configparser
 import argparse
 import numpy as np
@@ -58,8 +54,6 @@ import EEGsynth
 from EEGsynth import compress, limit, rescale, normalizerange, normalizestandard
 
 
-<<<<<<< HEAD
-=======
 def rand(x):
     # the input variable is ignored
     return np.asscalar(random.rand(1))
@@ -68,7 +62,6 @@ def rand(x):
 def randn(x):
     # the input variable is ignored
     return np.asscalar(random.randn(1))
->>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
 
 
 def sanitize(equation):
@@ -80,21 +73,16 @@ def sanitize(equation):
     equation = equation.replace('*', ' * ')
     equation = equation.replace('/', ' / ')
     equation = equation.replace(',', ' , ')
-<<<<<<< HEAD
-=======
     equation = equation.replace('>', ' > ')
     equation = equation.replace('<', ' < ')
->>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
     equation = ' '.join(equation.split())
     return equation
 
 
-<<<<<<< HEAD
 # get the input and output options
-<<<<<<< HEAD
 input_name, input_variable = list(zip(*config.items('input')))
 output_name, output_equation = list(zip(*config.items('output')))
-=======
+
 if len(config.items('input')):
     input_name, input_variable = list(zip(*config.items('input')))
 else:
@@ -103,8 +91,7 @@ if len(config.items('output')):
     output_name, output_equation = list(zip(*config.items('output')))
 else:
     output_name, output_equation = ([], [])
->>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
-=======
+
 def _setup():
     '''Initialize the module
     This adds a set of global variables
@@ -126,7 +113,6 @@ def _setup():
 
     # combine the patching from the configuration file and Redis
     patch = EEGsynth.patch(config, r)
->>>>>>> 2dc503a341c6f97679a2233bd9aa1fb4485896d7
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):

@@ -90,7 +90,7 @@ pip install mido
 pip install python-rtmidi
 pip install pyserial
 pip install python-osc # for Python >= 3.6
-pip install OSC        # for Python <= 3.5
+pip install pyOSC      # for Python <= 3.5
 pip install pyqtgraph
 pip install matplotlib
 pip install bitalino

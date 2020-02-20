@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import configparser
 import os
 import sys
@@ -6,7 +8,8 @@ import threading
 import math
 import numpy as np
 from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
-from loguru import logger
+import logging
+from logging import Formatter
 
 ###################################################################################################
 def formatkeyval(key, val):
@@ -41,6 +44,49 @@ def trimquotes(option):
     return option
 
 ###################################################################################################
+class ColoredFormatter(Formatter):
+    """Class to format logging messages
+    """
+
+    def __init__(self, name=None):
+        self.name = name
+
+    def colored(self, text, color):
+        colors = {
+            'black': 30,
+            'red': 31,
+            'green': 32,
+            'yellow': 33,
+            'blue': 34,
+            'magenta': 35,
+            'cyan': 36,
+            'white': 37,
+            'bgred': 41,
+            'bggrey': 100
+        }
+        clr = colors[color]
+        prefix = '\033['
+        suffix = '\033[0m'
+        return (prefix+'%dm%s'+suffix) % (clr, text)
+
+    def format(self, record):
+        mapping = {
+            'CRITICAL': 'bgred',
+            'ERROR': 'red',
+            'WARNING': 'yellow',
+            'SUCCESS': 'green',
+            'INFO': 'cyan',
+            'DEBUG': 'bggrey',
+            'TRACE': 'blue',
+        }
+        color = mapping.get(record.levelname, 'white')
+        if self.name:
+            return self.colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
+        else:
+            return self.colored(record.levelname, color) + ': ' + record.getMessage()
+
+
+###################################################################################################
 class monitor():
     """Class to monitor control values and print them to screen when they have changed. It also
     prints a boilerplate license upon startup.
@@ -59,15 +105,33 @@ class monitor():
     def __init__(self, name=None, debug=0):
         self.previous_value = {}
         self.loop_time = None
-        # the prefis is added to the rest of the message, which is also a tuple
-        if name!=None:
-            self.prefix = name + ":"
-        else:
-            self.prefix = ""
 
-        logger.remove()
-        level = ['SUCCESS', 'INFO', 'DEBUG', 'TRACE']
-        logger.add(sys.stdout, format="{message}", level=level[debug])
+        logger = logging.getLogger(__name__)
+        handler = logging.StreamHandler()
+        formatter = ColoredFormatter(name)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        # add a success level
+        logging.SUCCESS = logging.INFO + 5
+        logging.addLevelName(logging.SUCCESS, 'SUCCESS')
+
+        # add a trace level
+        logging.TRACE = logging.DEBUG - 5
+        logging.addLevelName(logging.TRACE, 'TRACE')
+
+        # remember the logger
+        self.logger = logger
+
+        if debug==0:
+            logger.setLevel(logging.SUCCESS)
+        elif debug==1:
+            logger.setLevel(logging.INFO)
+        elif debug==2:
+            logger.setLevel(logging.DEBUG)
+        elif debug==3:
+            logger.setLevel(logging.TRACE)
+
 
         print("""
 ##############################################################################
@@ -92,12 +156,14 @@ class monitor():
 Press Ctrl-C to stop this module.
         """)
 
-    def loop(self):
+    def loop(self, duration=None):
         now = time.time()
+
         if self.loop_time is None:
             self.success("starting loop...")
             self.loop_time = now
             self.loop_count = 0
+            self.loop_start = time.time()
         else:
             self.loop_count += 1
         elapsed = now - self.loop_time
@@ -105,6 +171,8 @@ Press Ctrl-C to stop this module.
             self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
+        if duration!=None and now-self.loop_start>duration:
+            raise SystemExit
 
     def update(self, key, val):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
@@ -123,28 +191,22 @@ Press Ctrl-C to stop this module.
             return False
 
     def error(self, *args):
-        args = (self.prefix, ) + args
-        logger.error(" ".join(map(format, args)))
+        self.logger.log(logging.ERROR, *args)
 
     def warning(self, *args):
-        args = (self.prefix, ) + args
-        logger.warning(" ".join(map(format, args)))
+        self.logger.log(logging.WARNING, *args)
 
     def success(self, *args):
-        args = (self.prefix, ) + args
-        logger.success(" ".join(map(format, args)))
+        self.logger.log(logging.SUCCESS, *args)
 
     def info(self, *args):
-        args = (self.prefix, ) + args
-        logger.info(" ".join(map(format, args)))
+        self.logger.log(logging.INFO, *args)
 
     def debug(self, *args):
-        args = (self.prefix, ) + args
-        logger.debug(" ".join(map(format, args)))
+        self.logger.log(logging.DEBUG, *args)
 
     def trace(self, *args):
-        args = (self.prefix, ) + args
-        logger.trace(" ".join(map(format, args)))
+        self.logger.log(logging.TRACE, *args)
 
     def print(self, *args):
         print(self.prefix, *args)

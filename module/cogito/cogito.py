@@ -19,15 +19,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 import configparser
 import argparse
 import numpy as np
 import os
-import pandas as pd
 import sys
 import time
 import redis
 from copy import copy
+
+try:
+    # Pandas is a rather large Python package.
+    # It is only used inside this specific EEGsynth module, hence it is not installed automatically
+    import pandas as pd
+except ImportError:
+    # give a warning, not an error, so that eegsynth.py does not fail as a whole
+    print('Warning: pandas is required for the cogito module')
+    print('Warning: please intall it with "pip install pandas"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

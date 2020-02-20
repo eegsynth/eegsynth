@@ -132,7 +132,7 @@ sudo pip install mido
 sudo pip install python-rtmidi
 sudo pip install pyserial
 sudo pip install python-osc # for Python >= 3.6
-sudo pip install OSC        # for Python <= 3.5
+sudo pip install pyOSC      # for Python <= 3.5
 sudo pip install pyqtgraph
 sudo pip install matplotlib
 sudo pip install bitalino

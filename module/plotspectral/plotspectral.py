@@ -32,7 +32,6 @@ import time
 import signal
 from scipy.fftpack import fft, fftfreq
 from scipy.signal import detrend
-from scipy.interpolate import interp1d
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -98,7 +97,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
+    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -139,6 +138,9 @@ def _start():
     freqaxis    = fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
     history     = np.zeros((len(channels), freqaxis.shape[0], numhistory))
 
+    # this is used to taper the data prior to Fourier transforming
+    taper = np.hanning(window)
+
     # ideally it should be possible to change these on the fly
     showred     = patch.getint('input', 'showred', default=1)
     showblue    = patch.getint('input', 'showblue', default=1)
@@ -175,10 +177,10 @@ def _start():
     win.setGeometry(winx, winy, winwidth, winheight)
 
     # initialize graphical elements
-    text_redleft        = pg.TextItem("", anchor=( 1,  0), color='r')
-    text_redright       = pg.TextItem("", anchor=( 0,  0), color='r')
-    text_blueleft       = pg.TextItem("", anchor=( 1, -1), color='b')
-    text_blueright      = pg.TextItem("", anchor=( 0, -1), color='b')
+    text_redleft_curr        = pg.TextItem("", anchor=( 1,  0), color='r')
+    text_redright_curr       = pg.TextItem("", anchor=( 0,  0), color='r')
+    text_blueleft_curr       = pg.TextItem("", anchor=( 1, -1), color='b')
+    text_blueright_curr      = pg.TextItem("", anchor=( 0, -1), color='b')
     text_redleft_hist   = pg.TextItem("", anchor=( 1,  0), color='r')
     text_redright_hist  = pg.TextItem("", anchor=( 0,  0), color='r')
     text_blueleft_hist  = pg.TextItem("", anchor=( 1, -1), color='b')
@@ -250,10 +252,10 @@ def _start():
         fft_hist.append(None)
 
     # print frequency at lines
-    freqplot_curr[0].addItem(text_redleft)
-    freqplot_curr[0].addItem(text_redright)
-    freqplot_curr[0].addItem(text_blueleft)
-    freqplot_curr[0].addItem(text_blueright)
+    freqplot_curr[0].addItem(text_redleft_curr)
+    freqplot_curr[0].addItem(text_redright_curr)
+    freqplot_curr[0].addItem(text_blueleft_curr)
+    freqplot_curr[0].addItem(text_blueright_curr)
     freqplot_hist[0].addItem(text_redleft_hist)
     freqplot_hist[0].addItem(text_redright_hist)
     freqplot_hist[0].addItem(text_blueleft_hist)
@@ -273,14 +275,13 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft, text_redright, text_blueleft, text_blueright, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample
-    global dat, taper, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
+    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global dat, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
     monitor.loop()
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
-        # raise RuntimeError("buffer reset detected")
         monitor.info("buffer reset detected")
         begsample = -1
         while begsample < 0:
@@ -320,7 +321,6 @@ def _loop_once():
         dat = dat[clipsize:-clipsize,:]
 
     # taper the data
-    taper = np.hanning(len(dat))
     dat = dat * taper[:, np.newaxis]
 
     # shift the FFT history by one step
@@ -351,6 +351,7 @@ def _loop_once():
             specmax_hist[plotnr] = (1 - lrate) * float(specmax_hist[plotnr]) + lrate * max(fft_hist[plotnr][freqrange])
             specmin_hist[plotnr] = (1 - lrate) * float(specmin_hist[plotnr]) + lrate * min(fft_hist[plotnr][freqrange])
 
+        # update the axes
         freqplot_curr[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_hist[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_curr[plotnr].setYRange(specmin_curr[plotnr], specmax_curr[plotnr])
@@ -360,66 +361,54 @@ def _loop_once():
         spect_curr[plotnr].setData(freqaxis[freqrange], fft_curr[plotnr][freqrange])
         spect_hist[plotnr].setData(freqaxis[freqrange], fft_hist[plotnr][freqrange])
 
-        # update the plotted lines
-        redfreq   = patch.getfloat('input', 'redfreq', default=10. / arguments_freqrange[1])
-        redfreq   = EEGsynth.rescale(redfreq, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
-        redwidth  = patch.getfloat('input', 'redwidth', default=1. / arguments_freqrange[1])
-        redwidth  = EEGsynth.rescale(redwidth, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
-        bluefreq  = patch.getfloat('input', 'bluefreq', default=20. / arguments_freqrange[1])
-        bluefreq  = EEGsynth.rescale(bluefreq, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
-        bluewidth = patch.getfloat('input', 'bluewidth', default=4. / arguments_freqrange[1])
-        bluewidth = EEGsynth.rescale(bluewidth, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
-
         # update the vertical plotted lines
         if showred:
+            redfreq  = patch.getfloat('input', 'redfreq', default=10. / arguments_freqrange[1])
+            redfreq  = EEGsynth.rescale(redfreq, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
+            redwidth = patch.getfloat('input', 'redwidth', default=1. / arguments_freqrange[1])
+            redwidth = EEGsynth.rescale(redwidth, slope=scale_red, offset=offset_red) * arguments_freqrange[1]
             redleft_curr[plotnr].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
             redright_curr[plotnr].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
-        if showblue:
-            blueleft_curr[plotnr].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
-            blueright_curr[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
-        if showred:
             redleft_hist[plotnr].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
             redright_hist[plotnr].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
+            # update labels at the vertical lines
+            text_redleft_curr.setText('%0.1f' % (redfreq - redwidth))
+            text_redleft_curr.setPos(redfreq - redwidth, specmax_curr[0])
+            text_redright_curr.setText('%0.1f' % (redfreq + redwidth))
+            text_redright_curr.setPos(redfreq + redwidth, specmax_curr[0])
+            text_redleft_hist.setText('%0.1f' % (redfreq - redwidth))
+            text_redleft_hist.setPos(redfreq - redwidth, specmax_hist[0])
+            text_redright_hist.setText('%0.1f' % (redfreq + redwidth))
+            text_redright_hist.setPos(redfreq + redwidth, specmax_hist[0])
+            # write the positions of the lines to Redis
+            key = "%s.%s.%s" % (prefix, 'redband', 'low')
+            patch.setvalue(key, redfreq - redwidth)
+            key = "%s.%s.%s" % (prefix, 'redband', 'high')
+            patch.setvalue(key, redfreq + redwidth)
+
         if showblue:
+            bluefreq  = patch.getfloat('input', 'bluefreq', default=20. / arguments_freqrange[1])
+            bluefreq  = EEGsynth.rescale(bluefreq, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
+            bluewidth = patch.getfloat('input', 'bluewidth', default=4. / arguments_freqrange[1])
+            bluewidth = EEGsynth.rescale(bluewidth, slope=scale_blue, offset=offset_blue) * arguments_freqrange[1]
+            blueleft_curr[plotnr].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
+            blueright_curr[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
             blueleft_hist[plotnr].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
             blueright_hist[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
-
-    # update labels at the vertical lines
-    if showred:
-        text_redleft.setText('%0.1f' % (redfreq - redwidth))
-        text_redleft.setPos(redfreq - redwidth, specmax_curr[0])
-        text_redright.setText('%0.1f' % (redfreq + redwidth))
-        text_redright.setPos(redfreq + redwidth, specmax_curr[0])
-
-    if showblue:
-        text_blueleft.setText('%0.1f' % (bluefreq - bluewidth))
-        text_blueleft.setPos(bluefreq - bluewidth, specmax_curr[0])
-        text_blueright.setText('%0.1f' % (bluefreq + bluewidth))
-        text_blueright.setPos(bluefreq + bluewidth, specmax_curr[0])
-
-    if showred:
-        text_redleft_hist.setText('%0.1f' % (redfreq - redwidth))
-        text_redleft_hist.setPos(redfreq - redwidth, specmax_hist[0])
-        text_redright_hist.setText('%0.1f' % (redfreq + redwidth))
-        text_redright_hist.setPos(redfreq + redwidth, specmax_hist[0])
-
-    if showblue:
-        text_blueleft_hist.setText('%0.1f' % (bluefreq - bluewidth))
-        text_blueleft_hist.setPos(bluefreq - bluewidth, specmax_hist[0])
-        text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
-        text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
-
-    if showred:
-        key = "%s.%s.%s" % (prefix, 'redband', 'low')
-        patch.setvalue(key, redfreq - redwidth)
-        key = "%s.%s.%s" % (prefix, 'redband', 'high')
-        patch.setvalue(key, redfreq + redwidth)
-
-    if showblue:
-        key = "%s.%s.%s" % (prefix, 'blueband', 'low')
-        patch.setvalue(key, bluefreq - bluewidth)
-        key = "%s.%s.%s" % (prefix, 'blueband', 'high')
-        patch.setvalue(key, bluefreq + bluewidth)
+            # update labels at the vertical lines
+            text_blueleft_curr.setText('%0.1f' % (bluefreq - bluewidth))
+            text_blueleft_curr.setPos(bluefreq - bluewidth, specmax_curr[0])
+            text_blueright_curr.setText('%0.1f' % (bluefreq + bluewidth))
+            text_blueright_curr.setPos(bluefreq + bluewidth, specmax_curr[0])
+            text_blueleft_hist.setText('%0.1f' % (bluefreq - bluewidth))
+            text_blueleft_hist.setPos(bluefreq - bluewidth, specmax_hist[0])
+            text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
+            text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
+            # write the positions of the lines to Redis
+            key = "%s.%s.%s" % (prefix, 'blueband', 'low')
+            patch.setvalue(key, bluefreq - bluewidth)
+            key = "%s.%s.%s" % (prefix, 'blueband', 'high')
+            patch.setvalue(key, bluefreq + bluewidth)
 
 
 def _loop_forever():
