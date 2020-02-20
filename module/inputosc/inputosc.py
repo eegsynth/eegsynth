@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,26 +37,33 @@ else:
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -65,7 +72,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -83,12 +90,11 @@ def python2_message_handler(addr, tags, data, source):
     global output_scale
     global output_offset
 
-    if debug > 1:
-        print("---")
-        print("source %s" % OSC.getUrlStr(source))
-        print("addr   %s" % addr)
-        print("tags   %s" % tags)
-        print("data   %s" % data)
+    monitor.debug("---")
+    monitor.debug("source %s" % OSC.getUrlStr(source))
+    monitor.debug("addr   %s" % addr)
+    monitor.debug("tags   %s" % tags)
+    monitor.debug("data   %s" % data)
 
     if addr[0] != '/':
         # ensure it starts with a slash
@@ -114,15 +120,13 @@ def python3_message_handler(addr, data):
     global output_scale
     global output_offset
 
-    if debug > 1:
-        print("addr   %s" % addr)
-        print("data   %s" % data)
+    monitor.debug("addr   %s" % addr)
+    monitor.debug("data   %s" % data)
 
     # assume that it is a single scalar value
     key = prefix + addr.replace('/', '.')
     val = EEGsynth.rescale(data, slope=output_scale, offset=output_offset)
     patch.setvalue(key, val)
-
 
 try:
     if sys.version_info < (3,6):
@@ -131,9 +135,9 @@ try:
         # s.addMsgHandler("/1/faderA", test_handler)
         s.addDefaultHandlers()
         # just checking which handlers we have added
-        print("Registered Callback functions are :")
+        monitor.info("Registered Callback functions are :")
         for addr in s.getOSCAddressSpace():
-            print(addr)
+            monitor.info(addr)
         # start the server thread
         st = threading.Thread(target=s.serve_forever)
         st.start()
@@ -142,11 +146,10 @@ try:
         # dispatcher.map("/1/faderA", test_handler)
         dispatcher.set_default_handler(python3_message_handler)
         server = osc_server.ThreadingOSCUDPServer((osc_address, osc_port), dispatcher)
-        print("Serving on {}".format(server.server_address))
+        monitor.info("Serving on {}".format(server.server_address))
         # the following is blocking
         server.serve_forever()
-    if debug > 0:
-        print("Started OSC server")
+    monitor.success("Started OSC server")
 except:
     raise RuntimeError("cannot start OSC server")
 
@@ -161,8 +164,8 @@ try:
         output_offset   = patch.getfloat('output', 'offset', default=0)
 
 except KeyboardInterrupt:
-    print("\nClosing module.")
+    monitor.success("\nClosing module.")
     s.close()
-    print("Waiting for OSC server thread to finish.")
+    monitor.info("Waiting for OSC server thread to finish.")
     st.join()
-    print("Done.")
+    monitor.success("Done.")

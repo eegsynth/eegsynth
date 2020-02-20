@@ -21,9 +21,9 @@
 
 from pyqtgraph.Qt import QtGui, QtCore
 import configparser
+import redis
 import argparse
 import os
-import redis
 import sys
 import time
 import signal
@@ -32,50 +32,24 @@ import numpy as np
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
-
-# get the options from the configuration file
-debug           = patch.getint('general', 'debug')
-delay           = patch.getfloat('general', 'delay')
-winx            = patch.getfloat('display', 'xpos')
-winy            = patch.getfloat('display', 'ypos')
-winwidth        = patch.getfloat('display', 'width')
-winheight       = patch.getfloat('display', 'height')
-
-# get the input options
-input_name, input_variable = list(zip(*config.items('input')))
-
-if debug>0:
-    for name,variable in zip(input_name, input_variable):
-        print("%s = %s" % (name, variable))
 
 class Window(QtGui.QWidget):
     def __init__(self):
@@ -114,8 +88,7 @@ class Window(QtGui.QWidget):
             val = patch.getfloat('input', name, default=np.nan)
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-            if debug>0:
-                monitor.update(name, val)
+            monitor.update(name, val)
 
             threshold = patch.getfloat('threshold', name, default=1)
             threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)
@@ -148,21 +121,101 @@ class Window(QtGui.QWidget):
         qp.end()
         self.show()
 
-def sigint_handler(*args):
-    # close the application cleanly
-    QApplication.quit()
 
-if __name__ == '__main__':
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
+
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # get the options from the configuration file
+    delay           = patch.getfloat('general', 'delay')
+    winx            = patch.getfloat('display', 'xpos')
+    winy            = patch.getfloat('display', 'ypos')
+    winwidth        = patch.getfloat('display', 'width')
+    winheight       = patch.getfloat('display', 'height')
+
+    # get the input options
+    input_name, input_variable = list(zip(*config.items('input')))
+
+    for name,variable in zip(input_name, input_variable):
+        monitor.info("%s = %s" % (name, variable))
+
+    # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
-    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGINT, _stop)
 
-    ex = Window()
-    ex.show()
+    window = Window()
+    window.show()
 
     # Set timer for update
     timer = QtCore.QTimer()
-    timer.timeout.connect(ex.update)
+    timer.timeout.connect(_loop_once)
     timer.setInterval(10)            # timeout in milliseconds
     timer.start(int(delay * 1000))   # in milliseconds
 
-    sys.exit(app.exec_())
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global monitor, window
+
+    monitor.loop()
+    window.update()
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    QtGui.QApplication.instance().exec_()
+
+
+def _stop(*args):
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    QtGui.QApplication.quit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

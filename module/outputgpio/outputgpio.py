@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2018-2019, Robert Oostenveld for the EEGsynth project, http://www.eegsynth.org
+# Copyright (C) 2018-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,12 +31,19 @@ import wiringpi
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
@@ -44,14 +51,14 @@ import EEGsynth
 import EDF
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -60,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # make a dictionary that maps GPIOs to the WiringPi number
 pin = {
@@ -97,8 +104,7 @@ lock = threading.Lock()
 
 def SetGPIO(gpio, val=1):
     lock.acquire()
-    if debug > 1:
-        print(gpio, pin[gpio], val)
+    monitor.debug(gpio, pin[gpio], val)
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
 
@@ -129,7 +135,7 @@ class TriggerThread(threading.Thread):
                     scale = patch.getfloat('scale', self.gpio, default=100)
                     offset = patch.getfloat('offset', self.gpio, default=0)
                     # switch to the PWM value specified in the event
-                    val = item['data']
+                    val = float(item['data'])
                     val = EEGsynth.rescale(val, slope=scale, offset=offset)
                     val = int(val)
                     SetGPIO(self.gpio, val)
@@ -149,7 +155,7 @@ wiringpi.wiringPiSetup()
 # set up PWM for the control channels
 previous_val = {}
 for gpio, channel in config.items('control'):
-    print("control", channel, gpio)
+    monitor.info("control", channel, gpio)
     wiringpi.softPwmCreate(pin[gpio], 0, 100)
     # control values are only relevant when different from the previous value
     previous_val[gpio] = None
@@ -160,15 +166,15 @@ for gpio, channel in config.items('trigger'):
     wiringpi.pinMode(pin[gpio], 1)
     duration = patch.getstring('duration', gpio)
     trigger.append(TriggerThread(channel, gpio, duration))
-    print("trigger", channel, gpio)
+    monitor.info("trigger", channel, gpio)
 
 # start the thread for each of the triggers
 for thread in trigger:
     thread.start()
 
-
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         for gpio, channel in config.items('control'):
@@ -190,7 +196,7 @@ try:
             lock.release()
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTGPIO_UNBLOCK', 1)

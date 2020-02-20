@@ -31,26 +31,33 @@ import signal
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -59,7 +66,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug           = patch.getint('general', 'debug')
@@ -102,8 +109,10 @@ class Window(QtGui.QWidget):
                     val = int(3. * val / 127.)
                 elif item[1]=='toggle4':
                     val = int(4. * val / 127.)
-                if debug>0:
-                    print('%s = %g' % (key, val))
+                elif item[1]=='text':
+                    # text has an internal value identical to the external value
+                    val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
+                monitor.info('%s = %g' % (key, val))
             except:
                 # set the default initial value to 0
                 val = 0
@@ -118,7 +127,7 @@ class Window(QtGui.QWidget):
                 t = QtGui.QLineEdit()
                 t.name = item[0]
                 t.type = item[1]
-                t.setText("%d" % val)
+                t.setText("%g" % val)
                 t.setAlignment(QtCore.Qt.AlignHCenter)
                 t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
                 t.editingFinished.connect(self.changevalue)
@@ -263,8 +272,10 @@ class Window(QtGui.QWidget):
         self.setcolor(target)
         if send:
             key = '%s.%s' % (prefix, target.name)
-            val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-            patch.setvalue(key, val, debug=debug)
+            if target.type!='text':
+                # text has an internal value identical to the external value
+                val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
+            patch.setvalue(key, val)
 
     def setcolor(self, target):
         # see https://www.w3schools.com/css/css3_buttons.asp
@@ -321,18 +332,18 @@ class Window(QtGui.QWidget):
 
 def sigint_handler(*args):
     # close the application cleanly
-    QApplication.quit()
+    QtGui.QApplication.quit()
 
-if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
-    signal.signal(signal.SIGINT, sigint_handler)
+# start the graphical user interface
+app = QtGui.QApplication(sys.argv)
+signal.signal(signal.SIGINT, sigint_handler)
 
-    # Let the interpreter run every 200 ms
-    # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
-    timer = QtCore.QTimer()
-    timer.start(400)
-    timer.timeout.connect(lambda: None)
+# Let the interpreter run every 200 ms
+# see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
+timer = QtCore.QTimer()
+timer.start(400)
+timer.timeout.connect(lambda: None)
 
-    ex = Window()
-    ex.show()
-    sys.exit(app.exec_())
+ex = Window()
+ex.show()
+sys.exit(app.exec_())

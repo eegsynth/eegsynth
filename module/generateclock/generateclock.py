@@ -2,7 +2,7 @@
 
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2018 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,26 +32,33 @@ import time
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -60,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug        = patch.getint('general', 'debug')
@@ -101,8 +108,7 @@ class ClockThread(threading.Thread):
     def run(self):
         slip = 0
         while self.running:
-            if debug>1:
-                print('clock beat')
+            monitor.debug('clock beat')
             start  = time.time()
             delay  = 60/self.rate   # the rate is in bpm
             delay -= slip           # correct for the slip from the previous iteration
@@ -131,8 +137,7 @@ class MidiThread(threading.Thread):
         msg = mido.Message('clock')
         while self.running:
             if self.enabled and midiport:
-                if debug>1:
-                    print('midi beat')
+                monitor.debug('midi beat')
                 for tick in clock:
                     tick.wait()
                     midiport.send(msg)
@@ -153,16 +158,14 @@ class RedisThread(threading.Thread):
         if ppqn != self.ppqn:
             with lock:
                 self.ppqn = ppqn
-                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
-                if debug>0:
-                    print("redis select =", self.clock)
+                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24).astype(int)
+                monitor.info("redis select =", self.clock)
     def setShift(self, shift):
         if shift != self.shift:
             with lock:
                 self.shift = shift
-                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24)
-                if debug>0:
-                    print("redis select =", self.clock)
+                self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24).astype(int)
+                monitor.info("redis select =", self.clock)
     def setEnabled(self, enabled):
         self.enabled = enabled
     def stop(self):
@@ -171,8 +174,7 @@ class RedisThread(threading.Thread):
     def run(self):
         while self.running:
             if self.enabled:
-                if debug>1:
-                    print('redis beat')
+                monitor.debug('redis beat')
                 for tick in [clock[indx] for indx in self.clock]:
                     tick.wait()
                     patch.setvalue(self.key, 1.)
@@ -201,11 +203,10 @@ previous_redis_play  = None
 
 try: # FIXME do we need this or can we catch errors before?
     while True:
+        monitor.loop()
+
         # measure the time to correct for the slip
         start = time.time()
-
-        if debug>3:
-            print('loop')
 
         redis_play  = patch.getint('redis', 'play')
         midi_play   = patch.getint('midi', 'play')
@@ -227,8 +228,7 @@ try: # FIXME do we need this or can we catch errors before?
             mididevice = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
             try:
                 outputport = mido.open_output(mididevice)
-                if debug>0:
-                    print("Connected to MIDI output")
+                monitor.success('Connected to MIDI output')
             except:
                 raise RuntimeError("cannot connect to MIDI output")
 
@@ -270,14 +270,13 @@ try: # FIXME do we need this or can we catch errors before?
         ppqn  = EEGsynth.rescale(ppqn, slope=scale_ppqn, offset=offset_ppqn)
         ppqn  = find_nearest_value([1, 2, 3, 4, 6, 8, 12, 24], ppqn)
 
-        if debug>0:
-            # show the parameters whose value has changed
-            monitor.update("redis_play",    redis_play)
-            monitor.update("midi_play",     midi_play)
-            monitor.update("midi_start",    midi_start)
-            monitor.update("rate",          rate)
-            monitor.update("shift",         shift)
-            monitor.update("ppqn",          ppqn)
+        # show the parameters whose value has changed
+        monitor.update("redis_play",    redis_play)
+        monitor.update("midi_play",     midi_play)
+        monitor.update("midi_start",    midi_start)
+        monitor.update("rate",          rate)
+        monitor.update("shift",         shift)
+        monitor.update("ppqn",          ppqn)
 
         # update the clock and redis
         clockthread.setRate(rate)
@@ -287,12 +286,11 @@ try: # FIXME do we need this or can we catch errors before?
         elapsed = time.time() - start
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime>0:
-            if debug>3:
-                print("naptime =", naptime)
+            monitor.trace("naptime =", naptime)
             time.sleep(naptime)
 
 except (KeyboardInterrupt, RuntimeError) as e:
-    print("Closing threads")
+    monitor.success('Closing threads')
     midithread.stop()
     midithread.join()
     redisthread.stop()

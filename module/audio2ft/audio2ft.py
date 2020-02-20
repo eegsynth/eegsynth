@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2018-2019 EEGsynth project
+# Copyright (C) 2018-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,12 +31,19 @@ import pyaudio
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
@@ -44,14 +51,14 @@ import EEGsynth
 import FieldTrip
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -60,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -70,38 +77,35 @@ blocksize   = patch.getint('audio', 'blocksize', default=1024)
 nchans      = patch.getint('audio', 'nchans', default=2)
 
 try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
+    ft_host = patch.getstring('fieldtrip', 'hostname')
+    ft_port = patch.getint('fieldtrip', 'port')
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
+    ft_output.connect(ft_host, ft_port)
+    monitor.success('Connected to output FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-if debug > 0:
-    print("rate", rate)
-    print("nchans", nchans)
-    print("blocksize", blocksize)
+monitor.info("rate", rate)
+monitor.info("nchans", nchans)
+monitor.info("blocksize", blocksize)
 
 p = pyaudio.PyAudio()
 
-print('------------------------------------------------------------------')
+monitor.info('------------------------------------------------------------------')
 info = p.get_host_api_info_by_index(0)
-print(info)
-print('------------------------------------------------------------------')
+monitor.info(info)
+monitor.info('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-print('------------------------------------------------------------------')
+        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+monitor.info('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-print("Selected device is", devinfo['name'])
-print(devinfo)
-print('------------------------------------------------------------------')
+monitor.info("Selected device is", devinfo['name'])
+monitor.info(devinfo)
+monitor.info('------------------------------------------------------------------')
 
 stream = p.open(format=pyaudio.paInt16,
                 channels=nchans,
@@ -131,10 +135,10 @@ while True:
     countfeedback += blocksize
 
     if debug > 1:
-        print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
+        monitor.print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
     elif debug > 0 and countfeedback >= rate:
         # this gets printed approximately once per second
-        print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
         startfeedback = time.time()
         countfeedback = 0
 

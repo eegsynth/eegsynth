@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,95 +36,131 @@ from scipy.signal import butter, lfilter
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
-import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# get the options from the configuration file
-debug = patch.getint('general', 'debug')
-delay       = patch.getfloat('general', 'delay')
-historysize = patch.getfloat('general', 'window') # in seconds
-secwindow   = patch.getfloat('general', 'window')
-winx        = patch.getfloat('display', 'xpos')
-winy        = patch.getfloat('display', 'ypos')
-winwidth    = patch.getfloat('display', 'width')
-winheight   = patch.getfloat('display', 'height')
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-historysize = int(historysize/delay) # in steps
 
-input_name, input_variable = list(zip(*config.items('input')))
-ylim_name, ylim_value = list(zip(*config.items('ylim')))
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor
+    global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
 
-# count total number of curves to be drawm
-curve_nrs = 0
-for i in range(len(input_name)):
-    temp = input_variable[i].split(",")
-    for ii in range(len(temp)):
-        curve_nrs += 1
+    # get the options from the configuration file
+    delay       = patch.getfloat('general', 'delay')
+    historysize = patch.getfloat('general', 'window') # in seconds
+    secwindow   = patch.getfloat('general', 'window')
+    winx        = patch.getfloat('display', 'xpos')
+    winy        = patch.getfloat('display', 'ypos')
+    winwidth    = patch.getfloat('display', 'width')
+    winheight   = patch.getfloat('display', 'height')
 
-# initialize graphical window
-app = QtGui.QApplication([])
-win = pg.GraphicsWindow(title="EEGsynth plotcontrol")
-win.setWindowTitle('EEGsynth plotcontrol')
-win.setGeometry(winx, winy, winwidth, winheight)
+    historysize = int(historysize/delay) # in steps
 
-# Enable antialiasing for prettier plots
-pg.setConfigOptions(antialias=True)
+    input_name, input_variable = list(zip(*config.items('input')))
+    ylim_name, ylim_value = list(zip(*config.items('ylim')))
 
-# Initialize variables
-inputhistory = np.ones((curve_nrs, historysize))
-inputplot    = []
-inputcurve   = []
+    # count total number of curves to be drawm
+    curve_nrs = 0
+    for i in range(len(input_name)):
+        temp = input_variable[i].split(",")
+        for ii in range(len(temp)):
+            curve_nrs += 1
 
-# Create panels for each channel
-for iplot in range(len(input_name)):
+    # initialize graphical window
+    app = QtGui.QApplication([])
+    win = pg.GraphicsWindow(title="EEGsynth plotcontrol")
+    win.setWindowTitle('EEGsynth plotcontrol')
+    win.setGeometry(winx, winy, winwidth, winheight)
 
-    inputplot.append(win.addPlot(title="%s" % (input_name[iplot])))
-    inputplot[iplot].setLabel('bottom', text = 'Time (s)')
-    inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
+    # Enable antialiasing for prettier plots
+    pg.setConfigOptions(antialias=True)
 
-    ylim = patch.getfloat('ylim', input_name[iplot], multiple=True, default=None)
-    if ylim==None:
-        print("No Ylim giving, will let it flow")
-    else:
-        print("Setting Ylim according to specified range")
-        inputplot[iplot].setYRange(ylim[0], ylim[1])
+    # Initialize variables
+    inputhistory = np.ones((curve_nrs, historysize))
+    inputplot    = []
+    inputcurve   = []
 
-    temp = input_variable[iplot].split(",")
-    for icurve in range(len(temp)):
-        inputcurve.append(inputplot[iplot].plot(pen='w'))
+    # Create panels for each channel
+    for iplot, name in enumerate(input_name):
 
-    win.nextRow()
+        inputplot.append(win.addPlot(title="%s" % name))
+        inputplot[iplot].setLabel('bottom', text = 'Time (s)')
+        inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
 
-def update():
-    global inputhistory
+        ylim = patch.getfloat('ylim', name, multiple=True, default=None)
+        if ylim==[] or ylim==None:
+            monitor.info("Ylim empty, will let it flow")
+        else:
+            monitor.info("Setting Ylim according to specified range")
+            inputplot[iplot].setYRange(ylim[0], ylim[1])
+
+        variable = input_variable[iplot].split(",")
+        linecolor = patch.getstring('linecolor', name, multiple=True, default='w,'*len(variable))
+        for icurve in range(len(variable)):
+            inputcurve.append(inputplot[iplot].plot(pen=linecolor[icurve]))
+
+        win.nextRow()
+
+        signal.signal(signal.SIGINT, _stop)
+
+        # Set timer for update
+        timer = QtCore.QTimer()
+        timer.timeout.connect(_loop_once)
+        timer.setInterval(10)            # timeout in milliseconds
+        timer.start(int(delay * 1000))   # in milliseconds
+
+
+def _loop_once():
+    '''Update the main figure once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor
+    global delay, historysize, secwindow, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, curve_nrs, i, temp, ii, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer
+    global counter, input_variable_list, ivar, timeaxis
+
+    monitor.loop()
 
     # shift all historic data with one sample
     inputhistory = np.roll(inputhistory, -1, axis=1)
@@ -149,18 +185,22 @@ def update():
             counter += 1
 
 
-# keyboard interrupt handling
-def sigint_handler(*args):
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    QtGui.QApplication.instance().exec_()
+
+
+def _stop(*args):
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
     QtGui.QApplication.quit()
 
 
-signal.signal(signal.SIGINT, sigint_handler)
-
-# Set timer for update
-timer = QtCore.QTimer()
-timer.timeout.connect(update)
-timer.setInterval(10)            # timeout in milliseconds
-timer.start(int(delay * 1000))   # in milliseconds
-
-# Start
-QtGui.QApplication.instance().exec_()
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

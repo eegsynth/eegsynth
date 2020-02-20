@@ -5,11 +5,11 @@ import time
 import threading
 import math
 import numpy as np
-from scipy.signal import (firwin, decimate, lfilter, lfilter_zi, lfiltic,
-                          iirnotch, butter)
+from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
+from loguru import logger
 
 ###################################################################################################
-def printkeyval(key, val):
+def formatkeyval(key, val):
     if sys.version_info < (3,0):
         # this works in Python 2, but fails in Python 3
         isstring = isinstance(val, basestring)
@@ -17,13 +17,14 @@ def printkeyval(key, val):
         # this works in Python 3, but fails for unicode strings in Python 2
         isstring = isinstance(val, str)
     if val is None:
-        print("%s = None" % (key))
+        output = "%s = None" % (key)
     elif isinstance(val, list):
-        print("%s = %s" % (key, str(val)))
+        output = "%s = %s" % (key, str(val))
     elif isstring:
-        print("%s = %s" % (key, val))
+        output = "%s = %s" % (key, val)
     else:
-        print("%s = %g" % (key, val))
+        output = "%s = %g" % (key, val)
+    return output
 
 ###################################################################################################
 def trimquotes(option):
@@ -43,16 +44,36 @@ def trimquotes(option):
 class monitor():
     """Class to monitor control values and print them to screen when they have changed. It also
     prints a boilerplate license upon startup.
+
+    monitor.loop()           - to be called on every iteration of the loop
+    monitor.update(key, val) - to be used to check whether values change
+
+    monitor.error(...)     - shows always
+    monitor.warning(...)   - shows always
+    monitor.success(...)   - debug level 0
+    monitor.info(...)      - debug level 1
+    monitor.debug(...)     - debug level 2
+    monitor.trace(...)     - debug level 3
     """
 
-    def __init__(self):
+    def __init__(self, name=None, debug=0):
         self.previous_value = {}
         self.loop_time = None
+        # the prefis is added to the rest of the message, which is also a tuple
+        if name!=None:
+            self.prefix = name + ":"
+        else:
+            self.prefix = ""
+
+        logger.remove()
+        level = ['SUCCESS', 'INFO', 'DEBUG', 'TRACE']
+        logger.add(sys.stdout, format="{message}", level=level[debug])
+
         print("""
 ##############################################################################
 # This software is part of the EEGsynth, see <http://www.eegsynth.org>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,38 +92,62 @@ class monitor():
 Press Ctrl-C to stop this module.
         """)
 
-    def loop(self, debug=True):
+    def loop(self):
         now = time.time()
         if self.loop_time is None:
-            if debug:
-                print("Starting loop...")
+            self.success("starting loop...")
             self.loop_time = now
             self.loop_count = 0
         else:
             self.loop_count += 1
         elapsed = now - self.loop_time
         if elapsed>=1:
-            if debug:
-                print("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
+            self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
 
-    def update(self, key, val, debug=True):
+    def update(self, key, val):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
             try:
                 # the comparison returns false in case both are nan
                 a = math.isnan(self.previous_value[key])
                 b = math.isnan(val)
                 if (a and b):
-                    debug = False
+                    return False
             except:
                 pass
-            if debug:
-                printkeyval(key, val)
+            self.info(formatkeyval(key, val))
             self.previous_value[key] = val
             return True
         else:
             return False
+
+    def error(self, *args):
+        args = (self.prefix, ) + args
+        logger.error(" ".join(map(format, args)))
+
+    def warning(self, *args):
+        args = (self.prefix, ) + args
+        logger.warning(" ".join(map(format, args)))
+
+    def success(self, *args):
+        args = (self.prefix, ) + args
+        logger.success(" ".join(map(format, args)))
+
+    def info(self, *args):
+        args = (self.prefix, ) + args
+        logger.info(" ".join(map(format, args)))
+
+    def debug(self, *args):
+        args = (self.prefix, ) + args
+        logger.debug(" ".join(map(format, args)))
+
+    def trace(self, *args):
+        args = (self.prefix, ) + args
+        logger.trace(" ".join(map(format, args)))
+
+    def print(self, *args):
+        print(self.prefix, *args)
 
 ###################################################################################################
 class patch():
@@ -111,14 +156,14 @@ class patch():
 
     The formatting of the item in the ini file should be like this
       item=1            this returns 1
-      item=key          get the value of the key from redis
+      item=key          get the value of the key from Redis
     or if multiple is True
       item=1-20         this returns [1,20]
       item=1,2,3        this returns [1,2,3]
       item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
-      item=key1,key2    get the value of key1 and key2 from redis
-      item=key1,5       get the value of key1 from redis
-      item=0,key2       get the value of key2 from redis
+      item=key1,key2    get the value of key1 and key2 from Redis
+      item=key1,5       get the value of key1 from Redis
+      item=0,key2       get the value of key2 from Redis
     """
 
     def __init__(self, c, r):
@@ -126,7 +171,7 @@ class patch():
         self.redis  = r
 
     ####################################################################
-    def getfloat(self, section, item, multiple=False, default=None, debug=False):
+    def getfloat(self, section, item, multiple=False, default=None):
         if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
@@ -176,9 +221,6 @@ class patch():
             elif multiple == False and default != None:
                 val = float(default)
 
-        if debug:
-            printkeyval(item, val)
-
         if multiple:
             # return it as list
             return val
@@ -190,7 +232,7 @@ class patch():
                 return val
 
     ####################################################################
-    def getint(self, section, item, multiple=False, default=None, debug=False):
+    def getint(self, section, item, multiple=False, default=None):
         if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
@@ -240,9 +282,6 @@ class patch():
             elif multiple == False and default != None:
                 val = int(default)
 
-        if debug:
-            printkeyval(item, val)
-
         if multiple:
             # return it as list
             return val
@@ -254,7 +293,7 @@ class patch():
                 return val
 
     ####################################################################
-    def getstring(self, section, item, default=None, multiple=False, debug=False):
+    def getstring(self, section, item, default=None, multiple=False):
         # get all items from the ini file, there might be one or multiple
         try:
             val = self.config.get(section, item)
@@ -279,9 +318,6 @@ class patch():
                 val = squeeze(separator, val)  # remove double separators
                 val = val.split(separator)     # split on the separator
 
-        if debug:
-            printkeyval(item, val)
-
         if multiple:
             # return it as list
             return val
@@ -298,11 +334,9 @@ class patch():
         return self.config.has_option(section, item)
 
     ####################################################################
-    def setvalue(self, item, val, debug=False, duration=0):
+    def setvalue(self, item, val, duration=0):
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
-        if debug:
-            print("%s = %g" % (item, val))
         if duration > 0:
             # switch off after a certain amount of time
             threading.Timer(duration, self.setvalue, args=[item, 0.]).start()
@@ -500,3 +534,108 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1,
 def online_filter(b, a, x, axis=-1, zi=[]):
     y, zo = lfilter(b, a, x, axis=axis, zi=zi)
     return y, zo
+
+####################################################################
+def butter_bandpass(lowcut, highcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+####################################################################
+def butter_lowpass(lowcut, fs, order=9):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    b, a = butter(order, low, btype='lowpass')
+    return b, a
+
+####################################################################
+def butter_highpass(highcut, fs, order=9):
+    nyq = 0.5 * fs
+    high = highcut / nyq
+    b, a = butter(order, high, btype='highpass')
+    return b, a
+
+####################################################################
+def notch(f0, fs, Q=30):
+    # Q = Quality factor
+    w0 = f0 / (fs / 2)  # Normalized Frequency
+    b, a = iirnotch(w0, Q)
+    return b, a
+
+####################################################################
+def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_lowpass_filter(dat, lowcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_lowpass(lowcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def butter_highpass_filter(dat, highcut, fs, order=9):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    '''
+    b, a = butter_highpass(highcut, fs, order=order)
+    y = lfilter(b, a, dat)
+    return y
+
+####################################################################
+def notch_filter(dat, f0, fs, Q=30, dir='onepass'):
+    '''
+    This filter does not retain state and is not optimal for online filtering.
+    The fiter direction can be specified as
+        'onepass'         forward filter only
+        'onepass-reverse' reverse filter only, i.e. backward in time
+        'twopass'         zero-phase forward and reverse filter
+        'twopass-reverse' zero-phase reverse and forward filter
+        'twopass-average' average of the twopass and the twopass-reverse
+    '''
+
+    b, a = notch(f0, fs, Q=Q)
+    if dir=='onepass':
+        y = lfilter(b, a, dat)
+    elif dir=='onepass-reverse':
+        y = dat
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+    elif dir=='twopass':
+        y = dat
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+    elif dir=='twopass-reverse':
+        y = dat
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+        y = np.flip(y, 1)
+        y = lfilter(b, a, y)
+    elif dir=='twopass-average':
+        # forward
+        y1 = dat
+        y1 = lfilter(b, a, y1)
+        y1 = np.flip(y1, 1)
+        y1 = lfilter(b, a, y1)
+        y1 = np.flip(y1, 1)
+        # reverse
+        y2 = dat
+        y2 = np.flip(y2, 1)
+        y2 = lfilter(b, a, y2)
+        y2 = np.flip(y2, 1)
+        y2 = lfilter(b, a, y2)
+        # average
+        y = (y1 + y2)/2
+    return y

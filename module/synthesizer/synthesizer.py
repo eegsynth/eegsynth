@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,26 +33,33 @@ import time
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -61,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug = patch.getint('general', 'debug')
@@ -74,20 +81,20 @@ blocksize = patch.getint('audio', 'blocksize')
 nchans = 1
 format = p.get_format_from_width(2)  # the desired sample width in bytes (1, 2, 3, or 4)
 
-print('------------------------------------------------------------------')
+monitor.info('------------------------------------------------------------------')
 info = p.get_host_api_info_by_index(0)
-print(info)
-print('------------------------------------------------------------------')
+monitor.info(info)
+monitor.info('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        print("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-print('------------------------------------------------------------------')
+        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+monitor.info('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-print("Selected device is", devinfo['name'])
-print(devinfo)
-print('------------------------------------------------------------------')
+monitor.info("Selected device is", devinfo['name'])
+monitor.info(devinfo)
+monitor.info('------------------------------------------------------------------')
 
 stream = p.open(format=format,
                 channels=nchans,
@@ -99,9 +106,8 @@ lock = threading.Lock()
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, r):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.r = r
         self.running = True
         lock.acquire()
         self.time = 0
@@ -112,23 +118,22 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = self.r.pubsub()
+        pubsub = r.pubsub()
         pubsub.subscribe('SYNTHESIZER_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(patch.getstring('control', 'adsr_gate'))
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                print(item['channel'], "=", item['data'])
+                monitor.debug(item['channel'], "=", item['data'])
                 lock.acquire()
                 self.last = self.time
                 lock.release()
 
 
 class ControlThread(threading.Thread):
-    def __init__(self, r):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.r = r
         self.running = True
         lock.acquire()
         self.vco_pitch = 0
@@ -218,28 +223,28 @@ class ControlThread(threading.Thread):
             self.adsr_release = adsr_release
             self.vca_envelope = vca_envelope
             lock.release()
-            if debug > 2:
-                print('----------------------------------')
-                print('vco_pitch      =', vco_pitch)
-                print('vco_sin        =', vco_sin)
-                print('vco_tri        =', vco_tri)
-                print('vco_saw        =', vco_saw)
-                print('vco_sqr        =', vco_sqr)
-                print('lfo_depth      =', lfo_depth)
-                print('lfo_frequency  =', lfo_frequency)
-                print('adsr_attack    =', adsr_attack)
-                print('adsr_decay     =', adsr_decay)
-                print('adsr_sustain   =', adsr_sustain)
-                print('adsr_release   =', adsr_release)
-                print('vca_envelope   =', vca_envelope)
+
+            monitor.trace('----------------------------------')
+            monitor.trace('vco_pitch      =', vco_pitch)
+            monitor.trace('vco_sin        =', vco_sin)
+            monitor.trace('vco_tri        =', vco_tri)
+            monitor.trace('vco_saw        =', vco_saw)
+            monitor.trace('vco_sqr        =', vco_sqr)
+            monitor.trace('lfo_depth      =', lfo_depth)
+            monitor.trace('lfo_frequency  =', lfo_frequency)
+            monitor.trace('adsr_attack    =', adsr_attack)
+            monitor.trace('adsr_decay     =', adsr_decay)
+            monitor.trace('adsr_sustain   =', adsr_sustain)
+            monitor.trace('adsr_release   =', adsr_release)
+            monitor.trace('vca_envelope   =', vca_envelope)
 
 
 # start the background thread that deals with control value changes
-control = ControlThread(r)
+control = ControlThread()
 control.start()
 
 # start the background thread that deals with triggers
-trigger = TriggerThread(r)
+trigger = TriggerThread()
 trigger.start()
 
 block = 0
@@ -247,6 +252,8 @@ offset = 0
 
 try:
     while True:
+        monitor.loop()
+
         ################################################################################
         # this is constantly generating the output signal
         ################################################################################
@@ -315,7 +322,7 @@ try:
         offset = offset + blocksize
 
 except KeyboardInterrupt:
-    print("Closing threads")
+    monitor.success('Closing threads')
     control.stop()
     control.join()
     trigger.stop()

@@ -29,7 +29,7 @@ Each script is prefaced with a commented text explaining it's functionality, as 
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -104,8 +104,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
     response = r.client_list()
 except redis.ConnectionError:
-    print "Error: cannot connect to redis server"
-    exit()
+    raise RuntimeError("'cannot connect to Redis server")
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
@@ -143,8 +142,7 @@ try:
     if debug>0:
         print("Connected to MIDI output")
 except:
-    print("Error: cannot connect to MIDI output")
-    exit()
+    raise RuntimeError("cannot connect to MIDI output")
 ```
 
 (From [generateclock.py](../module/generateclock/generateclock.py))
@@ -170,16 +168,15 @@ try:
     if debug>0:
         print 'Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port)
 
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
+    ft_input = FieldTrip.Client()
+    ft_input.connect(ftc_host, ftc_port)
 
     if debug>0:
         print "Connected to FieldTrip buffer"
 
 except:
-    print "Error: cannot connect to FieldTrip buffer"
-    exit()
-```
+    raise RuntimeError("cannot connect to FieldTrip buffer")
+
 
 To wait until there is _any_ data we can wait until the data header is available:
 
@@ -193,21 +190,19 @@ while hdr_input is None:
         print "Waiting for data to arrive..."
 
     if (time.time()-start)>timeout:
-        print "Error: timeout while waiting for data"
-        raise SystemExit
+        raise RuntimeError("timeout while waiting for data")
 
-    hdr_input = ftc.getHeader()
+    hdr_input = ft_input.getHeader()
     time.sleep(0.2)
 ```
 
 We can also use the _nSamples_ field in the header to wait for a specified number of samples:
 
 ```
-hdr_input = ftc.getHeader()
+hdr_input = ft_input.getHeader()
 
 if (hdr_input.nSamples-1)<endsample:
-    print "Error: buffer reset detected"
-    raise SystemExit
+    raise RuntimeError("buffer reset detected")
 
 endsample = hdr_input.nSamples - 1
 
@@ -292,8 +287,7 @@ patch.setvalue(key, val[0])
 
 ### ADVANCED: Using multithreading
 
-The above way of iterating through the main code assumes two things: time is not of essence, and all the code can be executed sequentially. This is by far the easiest way to think and code. However, sometimes it is necessary to have several processes running at the same time, especially when time is of the essence, and the code should respond to an event as soon as it happens,
-without waiting for other code to finish. In such cases it one should probably first try to see whether the intended scenario cannot be accomplished with two separate modules. If not, one might want to use threads.
+The above way of iterating through the main code assumes two things: time is not of essence, and all the code can be executed sequentially. This is by far the easiest way to think and code. However, sometimes it is necessary to have several processes running at the same time, especially when time is of the essence, and the code should respond to an event as soon as it happens, without waiting for other code to finish. In such cases it one should probably first try to see whether the intended scenario cannot be accomplished with two separate modules. If not, one might want to use threads.
 
 Threads are started before the main loop, which then often only has to be there to allow those threads to remain active and permit keyboard interrupts (CTRL+C) to be able to stop the code:
 

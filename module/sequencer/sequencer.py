@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2018 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,26 +32,33 @@ import time
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -60,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug   = patch.getint('general', 'debug')
@@ -147,8 +154,7 @@ class SequenceThread(threading.Thread):
                             # send it also as sequencer.noteXXX with value 1.0
                             key = '%s%03d' % (self.key, val)
                             patch.setvalue(key, 1., duration=self.duration*self.steptime)
-                        if debug>0:
-                            print("step %2d :" % (self.step + 1), self.key, "=", val)
+                        monitor.info("step %2d :" % (self.step + 1), self.key, "=", val)
                         # increment to the next step
                         self.step = (self.step + 1) % len(self.sequence)
 
@@ -160,23 +166,21 @@ key = "{}.note".format(prefix)
 sequencethread = SequenceThread(clock, key)
 sequencethread.start()
 
-if debug > 0:
-    monitor.update('scale_active',     scale_active)
-    monitor.update('scale_transpose',  scale_transpose)
-    monitor.update('scale_note',       scale_note)
-    monitor.update('scale_duration',   scale_duration)
-    monitor.update('offset_active',    offset_active)
-    monitor.update('offset_transpose', offset_transpose)
-    monitor.update('offset_note',      offset_note)
-    monitor.update('offset_duration',  offset_duration)
+monitor.update('scale_active',     scale_active)
+monitor.update('scale_transpose',  scale_transpose)
+monitor.update('scale_note',       scale_note)
+monitor.update('scale_duration',   scale_duration)
+monitor.update('offset_active',    offset_active)
+monitor.update('offset_transpose', offset_transpose)
+monitor.update('offset_note',      offset_note)
+monitor.update('offset_duration',  offset_duration)
 
 try:
     while True:
+        monitor.loop()
+
         # measure the time to correct for the slip
         start = time.time()
-
-        if debug > 1:
-            print('loop')
 
         # the active sequence is specified as an integer between 0 and 127
         active = patch.getfloat('sequence', 'active', default=0)
@@ -197,12 +201,11 @@ try:
             # a duration of 0 or less means that the note will not switch off
             duration = EEGsynth.limit(duration, 0.1, 0.9)
 
-        if debug > 0:
-            # show the parameters whose value has changed
-            monitor.update("active",    active)
-            monitor.update("sequence",  sequence)
-            monitor.update("transpose", transpose)
-            monitor.update("duration",  duration)
+        # show the parameters whose value has changed
+        monitor.update("active",    active)
+        monitor.update("sequence",  sequence)
+        monitor.update("transpose", transpose)
+        monitor.update("duration",  duration)
 
         sequencethread.setSequence(sequence)
         sequencethread.setTranspose(transpose)
@@ -215,11 +218,11 @@ try:
 
 except KeyboardInterrupt:
     try:
-        print("Disabling last note")
+        monitor.success("Disabling last note")
         patch.setvalue(key, 0.)
     except:
         pass
-    print("Closing threads")
+    monitor.success('Closing threads')
     sequencethread.stop()
     r.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()

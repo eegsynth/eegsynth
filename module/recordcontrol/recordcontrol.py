@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project, http://www.eegsynth.org
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,32 +32,34 @@ import wave
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import EDF
 
-MININT16 = -np.power(2., 15)
-MAXINT16 =  np.power(2., 15) - 1
-MININT32 = -np.power(2., 31)
-MAXINT32 =  np.power(2., 31) - 1
-
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -66,7 +68,12 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+
+MININT16 = -np.power(2., 15)
+MAXINT16 =  np.power(2., 15) - 1
+MININT32 = -np.power(2., 31)
+MAXINT32 =  np.power(2., 31) - 1
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -90,15 +97,13 @@ while True:
     start = time.time()
 
     if recording and not patch.getint('recording', 'record'):
-        if debug > 0:
-            print("Recording disabled - closing", fname)
+        monitor.info("Recording disabled - closing", fname)
         f.close()
         recording = False
         continue
 
     if not recording and not patch.getint('recording', 'record'):
-        if debug > 0:
-            print("Recording is not enabled")
+        monitor.info("Recording is not enabled")
         time.sleep(1)
 
     if not recording and patch.getint('recording', 'record'):
@@ -122,19 +127,18 @@ while True:
 
         # search-and-replace to reduce the length of the channel labels
         for replace in config.items('replace'):
-            print(replace)
+            monitor.debug(replace)
             for i in range(len(channelz)):
                 channelz[i] = channelz[i].replace(replace[0], replace[1])
         for s, z in zip(channels, channelz):
-            print("Writing control value", s, "as channel", z)
+            monitor.info("Writing control value", s, "as channel", z)
 
         # these are required for mapping floating point values onto 16 bit integers
         physical_min = patch.getfloat('recording', 'physical_min')
         physical_max = patch.getfloat('recording', 'physical_max')
 
         # write the header to file
-        if debug > 0:
-            print("Opening", fname)
+        monitor.info("Opening", fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -181,11 +185,7 @@ while True:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, sample)
 
-
-        if debug > 1:
-            print("Writing", D)
-        elif debug > 0:
-            print("Writing sample", sample, "as", np.shape(D))
+        monitor.info("Writing sample", sample, "as", np.shape(D))
 
         if fileformat == 'edf':
             f.writeBlock(D)

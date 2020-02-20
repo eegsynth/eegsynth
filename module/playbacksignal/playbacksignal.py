@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,12 +32,19 @@ import struct
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path,'../../lib'))
@@ -46,14 +53,14 @@ import FieldTrip
 import EDF
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -62,7 +69,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general','debug')
@@ -74,18 +81,15 @@ if fileformat is None:
     name, ext = os.path.splitext(filename)
     fileformat = ext[1:]
 
-if debug>0:
-    print("Reading data from", filename)
+monitor.info("Reading data from", filename)
 
 try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
-    if debug>0:
-        print("Connected to FieldTrip buffer")
+    ft_host = patch.getstring('fieldtrip','hostname')
+    ft_port = patch.getint('fieldtrip','port')
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+    ft_output = FieldTrip.Client()
+    ft_output.connect(ft_host, ft_port)
+    monitor.success('Connected to FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
 
@@ -116,7 +120,7 @@ if fileformat=='edf':
     # read all the data from the file
     A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
     for chanindx in range(H.nChannels):
-        print("reading channel", chanindx)
+        monitor.info("reading channel", chanindx)
         A[:,chanindx] = f.readSignal(chanindx)
     f.close()
 
@@ -159,13 +163,12 @@ elif fileformat=='wav':
 else:
     raise NotImplementedError('unsupported file format')
 
-if debug>1:
-    print("nChannels", H.nChannels)
-    print("nSamples", H.nSamples)
-    print("fSample", H.fSample)
-    print("labels", labels)
+monitor.debug("nChannels", H.nChannels)
+monitor.debug("nSamples", H.nSamples)
+monitor.debug("fSample", H.fSample)
+monitor.debug("labels", labels)
 
-ftc.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
+ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
 
 blocksize = int(patch.getfloat('playback', 'blocksize')*H.fSample)
 begsample = 0
@@ -176,42 +179,37 @@ while True:
     monitor.loop()
 
     if endsample>H.nSamples-1:
-        if debug>0:
-            print("End of file reached, jumping back to start")
+        monitor.info("End of file reached, jumping back to start")
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if patch.getint('playback', 'rewind', default=0):
-        if debug>0:
-            print("Rewind pressed, jumping back to start of file")
+        monitor.info("Rewind pressed, jumping back to start of file")
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if not patch.getint('playback', 'play', default=1):
-        if debug>0:
-            print("Stopped")
+        monitor.info("Stopped")
         time.sleep(0.1);
         continue
 
     if patch.getint('playback', 'pause', default=0):
-        if debug>0:
-            print("Paused")
+        monitor.info("Paused")
         time.sleep(0.1);
         continue
 
     # measure the time to correct for the slip
     start = time.time()
 
-    if debug>0:
-        print("Playing block", block, 'from', begsample, 'to', endsample)
+    monitor.info("Playing block", block, 'from', begsample, 'to', endsample)
 
     # copy the selected samples from the in-memory data
     D = A[begsample:endsample+1,:]
 
     # write the data to the output buffer
-    ftc.putData(D)
+    ft_output.putData(D)
 
     begsample += blocksize
     endsample += blocksize
@@ -226,5 +224,4 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    if debug>0:
-        print("played", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("played", blocksize, "samples in", (time.time()-start)*1000, "ms")

@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,26 +32,33 @@ import time
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -60,7 +67,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug      = patch.getint('general', 'debug')
@@ -69,15 +76,14 @@ mididevice = EEGsynth.trimquotes(mididevice)
 mididevice = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
 
 # this is only for debugging, check which MIDI devices are accessible
-print('------ OUTPUT ------')
+monitor.info('------ OUTPUT ------')
 for port in mido.get_output_names():
-  print(port)
-print('-------------------------')
+  monitor.info(port)
+monitor.info('-------------------------')
 
 try:
     outputport = mido.open_output(mididevice)
-    if debug>0:
-        print("Connected to MIDI output")
+    monitor.success('Connected to MIDI output')
 except:
     raise RuntimeError("cannot connect to MIDI output")
 
@@ -101,15 +107,13 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    if debug>0:
-                        print(item)
+                    monitor.info(item)
                     if int(float(item['data']))>0:
                         pitch = int(8191)
                     else:
                         pitch = int(0)
                     msg = mido.Message('pitchwheel', pitch=pitch, channel=self.midichannel)
-                    if debug>1:
-                        print(msg)
+                    monitor.debug(msg)
                     lock.acquire()
                     outputport.send(msg)
                     lock.release()
@@ -117,7 +121,7 @@ class TriggerThread(threading.Thread):
                     time.sleep(patch.getfloat('general','pulselength'))
 
 # each of the gates that can be triggered is mapped onto a different message
-gate = []
+trigger = []
 for channel in range(0, 16):
 
     # channels are one-offset in the ini file, zero-offset in the code
@@ -126,12 +130,11 @@ for channel in range(0, 16):
 
         # start the background thread that deals with this channel
         this = TriggerThread(patch.getstring('gate', name), channel)
-        gate.append(this)
-        if debug>1:
-            print(name, 'OK')
+        trigger.append(this)
+        monitor.debug(name, 'OK')
 
 # start the thread for each of the notes
-for thread in gate:
+for thread in trigger:
     thread.start()
 
 # control values are only relevant when different from the previous value
@@ -144,6 +147,7 @@ for channel in range(0, 16):
 
 try:
     while True:
+        monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))
 
         # loop over the control values
@@ -155,14 +159,12 @@ try:
 
             if val is None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print(name, 'not available')
+                monitor.trace(name, 'not available')
                 continue
 
             if port_val is None:
                 # the value is not present in Redis, skip it
-                if debug > 2:
-                    print(name, 'not available')
+                monitor.trace(name, 'not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -185,15 +187,14 @@ try:
                 val = EEGsynth.limit(val, lo=-8192, hi=8191)
                 val = int(val)
             else:
-                print('No output mode (note or pitchbend) specified!')
+                monitor.info('No output mode (note or pitchbend) specified!')
                 break
 
             if val != previous_val[name] or not val: # it should be skipped when identical to the previous value
 
                 previous_val[name] = val
 
-                if debug > 0:
-                    print(name, val, port_val)
+                monitor.info(name, val, port_val)
 
                 # midi channels in the inifile are 1-16, in the code 0-15
                 midichannel = channel
@@ -203,8 +204,7 @@ try:
                 elif patch.getstring('general', 'mode') == 'note':
                     msg = mido.Message('note_on', note=val, velocity=127, time=0, channel=midichannel)
 
-                if debug > 1:
-                    print(msg)
+                monitor.debug(msg)
 
                 lock.acquire()
                 outputport.send(msg)
@@ -216,13 +216,12 @@ try:
             if port_val != previous_port_val[name] and patch.getstring('general', 'mode') != 'note' or not port_val : # it should be skipped when identical to the previous value
                 previous_port_val[name] = port_val
 
-                if debug > 0:
-                    print(name, val, port_val)
+                monitor.info(name, val, port_val)
 
                 # CC#5 sets portamento
-                msg = mido.Message('control_change', control=5, value=port_val, channel=midichannel)
-                if debug > 1:
-                    print(msg)
+                msg = mido.Message('control_change', control=5, value=int(port_val), channel=midichannel)
+
+                monitor.debug(msg)
 
                 lock.acquire()
                 outputport.send(msg)
@@ -232,10 +231,10 @@ try:
                 time.sleep(patch.getfloat('general', 'pulselength'))
 
 except KeyboardInterrupt:
-    print('Closing threads')
-    for thread in gate:
+    monitor.success('Closing threads')
+    for thread in trigger:
         thread.stop()
     r.publish('ENDORPHINES_UNBLOCK', 1)
-    for thread in gate:
+    for thread in trigger:
         thread.join()
     sys.exit()

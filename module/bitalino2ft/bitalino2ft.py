@@ -4,7 +4,7 @@
 #
 # This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
-# Copyright (C) 2018-2019 EEGsynth project
+# Copyright (C) 2018-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,12 +32,19 @@ from bitalino import BITalino
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
@@ -45,14 +52,14 @@ import EEGsynth
 import FieldTrip
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
 config.read(args.inifile)
 
 try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
     raise RuntimeError("cannot connect to Redis server")
@@ -61,7 +68,7 @@ except redis.ConnectionError:
 patch = EEGsynth.patch(config, r)
 
 # this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
 # get the options from the configuration file
 debug       = patch.getint('general', 'debug')
@@ -76,21 +83,18 @@ nchans = len(channels)
 for i in range(nchans):
     channels[i] -= 1
 
-if debug > 0:
-    print("fsample", fsample)
-    print("channels", channels)
-    print("nchans", nchans)
-    print("blocksize", blocksize)
+monitor.info("fsample", fsample)
+monitor.info("channels", channels)
+monitor.info("nchans", nchans)
+monitor.info("blocksize", blocksize)
 
 try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
+    ft_host = patch.getstring('fieldtrip', 'hostname')
+    ft_port = patch.getint('fieldtrip', 'port')
+    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
     ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
+    ft_output.connect(ft_host, ft_port)
+    monitor.success('Connected to output FieldTrip buffer')
 except:
     raise RuntimeError("cannot connect to output FieldTrip buffer")
 
@@ -100,11 +104,9 @@ ft_output.putHeader(nchans, float(fsample), datatype)
 try:
     # Connect to BITalino
     device = BITalino(device)
+    monitor.success((device.version()))
 except:
     raise RuntimeError("cannot connect to BITalino")
-
-# Read BITalino version
-print((device.version()))
 
 # Set battery threshold
 device.battery(batterythreshold)
@@ -135,10 +137,10 @@ while True:
     countfeedback += blocksize
 
     if debug > 1:
-        print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
+        monitor.print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
     elif debug > 0 and countfeedback >= fsample:
         # this gets printed approximately once per second
-        print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
         startfeedback = time.time()
         countfeedback = 0
 
