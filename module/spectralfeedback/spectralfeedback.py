@@ -163,19 +163,11 @@ def update():
     dat *= np.hanning(window_downsamp)
 
     # compute AR coefficients
-<<<<<<< HEAD
-    AR, rho, _ = arburg(dat, order=16)
-    # use coefficients to compute spectral estimate
-    psd = arma2psd(AR, rho=rho, NFFT=window_downsamp)
-    # select only positive frequencies
-    psd = np.flip(psd[int(np.rint(window_downsamp / 2)) - 1:])
-=======
     AR, rho, _ = arburg(dat, order=6)
     # use coefficients to compute spectral estimate
     psd = arma2psd(AR, rho=rho, NFFT=window_downsamp)
     # select only positive frequencies
-    psd = np.flip(psd[int(np.rint(window_downsamp / 2) - 1):])
->>>>>>> 0ff392cd926d3412e1b04aba1a1d676211e65444
+    psd = np.flip(psd[int(np.rint(window_downsamp / 2) - 1):]
 
 #    psd = abs(rfft(dat))
     
