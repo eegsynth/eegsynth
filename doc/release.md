@@ -36,6 +36,12 @@ twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 pip install --extra-index-url https://test.pypi.org/simple/ eegsynth
 ```
 
+It is possible to test the `setup.py` file by doing an install from the local repository like this:
+
+```bash
+pip install -e .
+```
+
 ## Version numbering
 
 We use [semantic versioning](https://semver.org) for the releases.
