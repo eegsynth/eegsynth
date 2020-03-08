@@ -52,12 +52,13 @@ class ColoredFormatter(Formatter):
 
     def __init__(self, name=None):
         self.name = name
-        # add reverse and bright colors
-        for color in termcolor.COLORS.keys():
+        colors = list(termcolor.COLORS.keys()) # prevent RuntimeError: dictionary changed size during iteration
+        # add reverse and bright color
+        for color in colors:
             termcolor.COLORS['reverse_'+color] = termcolor.COLORS[color]+10
             termcolor.COLORS['bright_'+color] = termcolor.COLORS[color]+60
-        for color in termcolor.COLORS.keys():
-            print(colored(color, color))
+        # for color in termcolor.COLORS.keys():
+        #     print(colored(color, color))
 
     def format(self, record):
         colors = {
