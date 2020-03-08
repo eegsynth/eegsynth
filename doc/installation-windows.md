@@ -15,6 +15,7 @@ conda install numpy
 conda install scipy
 conda install pyqtgraph
 conda install python-levenshtein
+conda install portaudio
 
 pip install configparser
 pip install mido
