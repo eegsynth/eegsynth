@@ -17,10 +17,13 @@ conda install scipy
 conda install pyqtgraph
 conda install python-levenshtein
 conda install portaudio
+conda install pyaudio
+
+pip install eegsynth
 
 pip install configparser
-pip install mido
 pip install python-rtmidi
+pip install mido
 pip install pyserial
 pip install python-osc # for Python >= 3.6
 pip install pyOSC      # for Python <= 3.5
