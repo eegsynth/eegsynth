@@ -72,15 +72,15 @@ monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 debug    = patch.getint('general','debug')
 filename = patch.getstring('playback', 'file')
 
-monitor.info("Reading data from", filename)
+monitor.info("Reading data from " + filename)
 
 f = EDF.EDFReader()
 f.open(filename)
 
-monitor.info("NSignals", f.getNSignals())
-monitor.info("SignalFreqs", f.getSignalFreqs())
-monitor.info("NSamples", f.getNSamples())
-monitor.info("SignalTextLabels", f.getSignalTextLabels())
+monitor.info("NSignals = " + str(f.getNSignals()))
+monitor.info("SignalFreqs = " + str(f.getSignalFreqs()))
+monitor.info("NSamples = " + str(f.getNSamples()))
+monitor.info("SignalTextLabels = " + str(f.getSignalTextLabels()))
 
 for chanindx in range(f.getNSignals()):
     if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
@@ -100,7 +100,7 @@ for replace in config.items('replace'):
     for i in range(len(channelz)):
         channelz[i] = channelz[i].replace(replace[0], replace[1])
 for s,z in zip(channels, channelz):
-    monitor.info("Writing channel", s, "as control value", z)
+    monitor.info("Writing channel " + s + " as control value " + z)
 
 # this should write data in one-sample blocks
 blocksize = 1
@@ -156,4 +156,4 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info("played", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("played + str(blocksize) + " samples in " + str((time.time()-start)*1000) + " ms")

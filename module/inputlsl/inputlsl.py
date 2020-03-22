@@ -102,8 +102,8 @@ while len(selected)<1:
             monitor.info('-------- STREAM(*) ------')
         else:
             monitor.info('-------- STREAM ---------')
-        monitor.info("name", name)
-        monitor.info("type", type)
+        monitor.info("name = " + name)
+        monitor.info("type = " + type)
     monitor.info('-------------------------')
 
 # create a new inlet from the first (and hopefully only) selected stream

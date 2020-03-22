@@ -119,13 +119,13 @@ while True:
     hdr_input = ft_input.getHeader()
 
     if recording and hdr_input is None:
-        monitor.info("Header is empty - closing", fname)
+        monitor.info("Header is empty - closing " + fname)
         f.close()
         recording = False
         continue
 
     if recording and not patch.getint('recording', 'record'):
-        monitor.info("Recording disabled - closing", fname)
+        monitor.info("Recording disabled - closing " + fname)
         f.close()
         recording = False
         continue
@@ -151,7 +151,7 @@ while True:
         physical_max = patch.getfloat('recording', 'physical_max')
 
         # write the header to file
-        monitor.info("Opening", fname)
+        monitor.info("Opening " + fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -194,7 +194,7 @@ while True:
         startsample = begsample
 
     if recording and hdr_input.nSamples < begsample - 1:
-        monitor.info("Header was reset - closing", fname)
+        monitor.info("Header was reset - closing " + fname)
         f.close()
         recording = False
         continue
@@ -211,7 +211,7 @@ while True:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, endsample - startsample + 1)
         dat = ft_input.getData([begsample, endsample]).astype(np.float64)
-        monitor.info("Writing sample", begsample, "to", endsample, "as", np.shape(dat))
+        monitor.info("Writing sample " + str(begsample) + " to " + str(endsample) " as " + str(np.shape(dat)))
         if fileformat == 'edf':
             # the scaling is done in the EDF writer
             f.writeBlock(np.transpose(dat))

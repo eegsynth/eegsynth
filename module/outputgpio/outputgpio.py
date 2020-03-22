@@ -155,7 +155,7 @@ wiringpi.wiringPiSetup()
 # set up PWM for the control channels
 previous_val = {}
 for gpio, channel in config.items('control'):
-    monitor.info("control", channel, gpio)
+    monitor.info("control " + channel + " " + gpio)
     wiringpi.softPwmCreate(pin[gpio], 0, 100)
     # control values are only relevant when different from the previous value
     previous_val[gpio] = None
@@ -166,7 +166,7 @@ for gpio, channel in config.items('trigger'):
     wiringpi.pinMode(pin[gpio], 1)
     duration = patch.getstring('duration', gpio)
     trigger.append(TriggerThread(channel, gpio, duration))
-    monitor.info("trigger", channel, gpio)
+    monitor.info("trigger " + channel + " " + gpio)
 
 # start the thread for each of the triggers
 for thread in trigger:

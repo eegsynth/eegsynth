@@ -53,7 +53,7 @@ import FieldTrip
 import EDF
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+parser.add_argument('-i', '--inifile', default=os.path.join(path, name + '.ini'), help='name of the configuration file')
 args = parser.parse_args()
 
 config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -63,7 +63,7 @@ try:
     r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
     response = r.client_list()
 except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    raise RuntimeError('cannot connect to Redis server')
 
 # combine the patching from the configuration file and Redis
 patch = EEGsynth.patch(config, r)
@@ -81,7 +81,7 @@ if fileformat is None:
     name, ext = os.path.splitext(filename)
     fileformat = ext[1:]
 
-monitor.info("Reading data from", filename)
+monitor.info('Reading data from ' + filename)
 
 try:
     ft_host = patch.getstring('fieldtrip','hostname')
@@ -91,7 +91,7 @@ try:
     ft_output.connect(ft_host, ft_port)
     monitor.success('Connected to FieldTrip buffer')
 except:
-    raise RuntimeError("cannot connect to FieldTrip buffer")
+    raise RuntimeError('cannot connect to FieldTrip buffer')
 
 H = FieldTrip.Header()
 
@@ -120,7 +120,7 @@ if fileformat=='edf':
     # read all the data from the file
     A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
     for chanindx in range(H.nChannels):
-        monitor.info("reading channel", chanindx)
+        monitor.info('reading channel ' + str(chanindx))
         A[:,chanindx] = f.readSignal(chanindx)
     f.close()
 
@@ -149,11 +149,11 @@ elif fileformat=='wav':
     f.close()
     # convert and calibrate
     if resolution==2:
-        x = struct.unpack_from ("%dh" % f.getnframes()*f.getnchannels(), x)
+        x = struct.unpack_from ('%dh' % f.getnframes()*f.getnchannels(), x)
         x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
         y = x / float(MAXINT16)
     elif resolution==4:
-        x = struct.unpack_from ("%di" % f.getnframes()*f.getnchannels(), x)
+        x = struct.unpack_from ('%di' % f.getnframes()*f.getnchannels(), x)
         x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
         y = x / float(MAXINT32)
     else:
@@ -163,10 +163,10 @@ elif fileformat=='wav':
 else:
     raise NotImplementedError('unsupported file format')
 
-monitor.debug("nChannels", H.nChannels)
-monitor.debug("nSamples", H.nSamples)
-monitor.debug("fSample", H.fSample)
-monitor.debug("labels", labels)
+monitor.debug('nChannels = ' + str(H.nChannels))
+monitor.debug('nSamples = ' + str(H.nSamples))
+monitor.debug('fSample = '+ str(H.fSample))
+monitor.debug('labels = ' + str(labels))
 
 ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
 
@@ -179,31 +179,31 @@ while True:
     monitor.loop()
 
     if endsample>H.nSamples-1:
-        monitor.info("End of file reached, jumping back to start")
+        monitor.info('End of file reached, jumping back to start')
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if patch.getint('playback', 'rewind', default=0):
-        monitor.info("Rewind pressed, jumping back to start of file")
+        monitor.info('Rewind pressed, jumping back to start of file')
         begsample = 0
         endsample = blocksize-1
         block     = 0
 
     if not patch.getint('playback', 'play', default=1):
-        monitor.info("Stopped")
+        monitor.info('Stopped')
         time.sleep(0.1);
         continue
 
     if patch.getint('playback', 'pause', default=0):
-        monitor.info("Paused")
+        monitor.info('Paused')
         time.sleep(0.1);
         continue
 
     # measure the time to correct for the slip
     start = time.time()
 
-    monitor.info("Playing block", block, 'from', begsample, 'to', endsample)
+    monitor.info('Playing block ' + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
 
     # copy the selected samples from the in-memory data
     D = A[begsample:endsample+1,:]
@@ -224,4 +224,4 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info("played", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info('played ' + str(blocksize) + ' samples in ' str((time.time()-start)*1000) + ' ms')

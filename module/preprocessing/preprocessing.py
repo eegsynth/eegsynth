@@ -295,8 +295,8 @@ def _loop_once():
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
 
-    monitor.info("preprocessed", window_new, "samples in", (time.time()-start)*1000, "ms")
-    monitor.trace("wrote       ", window_new, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("preprocessed " + str(window_new) + " samples in " + str((time.time()-start)*1000) + " ms")
+    monitor.trace("wrote       " + str(window_new) + " samples in " + str((time.time()-start)*1000) + " ms")
 
     # increment the counters for the next loop
     begsample += window

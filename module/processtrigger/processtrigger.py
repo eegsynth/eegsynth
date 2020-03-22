@@ -120,11 +120,11 @@ for item in config.items('trigger'):
 
 monitor.info('===== input variables =====')
 for name,variable in zip(input_name, input_variable):
-    monitor.info(name, '=', variable)
+    monitor.info(name + ' = ' + variable)
 for item in config.items('trigger'):
     monitor.info('===== output equations for %s =====' % item[0])
     for name,equation in zip(output_name[item[0]], output_equation[item[0]]):
-        monitor.info(name, '=', equation)
+        monitor.info(name + ' = ' + equation)
 monitor.info('============================')
 
 # this is to prevent two triggers from being processed at the same time

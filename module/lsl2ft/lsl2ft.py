@@ -130,8 +130,8 @@ def _start():
                 monitor.success('-------- STREAM(*) ------')
             else:
                 monitor.success('-------- STREAM ---------')
-            monitor.info("name", name)
-            monitor.info("type", type)
+            monitor.info("name = " + name)
+            monitor.info("type = " + type)
         monitor.success('-------------------------')
 
     # create a new inlet from the first (and hopefully only) selected stream

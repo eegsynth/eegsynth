@@ -136,7 +136,7 @@ try:
         time.sleep(patch.getfloat('general', 'delay'))
 
         if recording and not patch.getint('recording', 'record'):
-            monitor.info("Recording disabled - closing", fname)
+            monitor.info("Recording disabled - closing " + fname)
             f.close()
             recording = False
             continue
@@ -152,7 +152,7 @@ try:
             if len(ext) == 0:
                 ext = '.' + fileformat
             fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
-            monitor.info("Recording enabled - opening", fname)
+            monitor.info("Recording enabled - opening " + fname)
             f = open(fname, 'w')
             f.write("event\tvalue\ttimestamp\n")
             f.flush()

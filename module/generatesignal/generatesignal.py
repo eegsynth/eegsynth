@@ -247,7 +247,8 @@ def _loop_once():
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info("generated", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("generated " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
+
 
 
 def _loop_forever():
@@ -261,7 +262,7 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_output
-    
+
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
 

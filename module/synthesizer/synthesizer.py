@@ -87,12 +87,12 @@ monitor.info(info)
 monitor.info('------------------------------------------------------------------')
 for i in range(info.get('deviceCount')):
     if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Input  Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get('name'))
     if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        monitor.info("Output Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get('name'))
 monitor.info('------------------------------------------------------------------')
 devinfo = p.get_device_info_by_index(device)
-monitor.info("Selected device is", devinfo['name'])
+monitor.info("Selected device is " + devinfo['name'])
 monitor.info(devinfo)
 monitor.info('------------------------------------------------------------------')
 

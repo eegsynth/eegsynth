@@ -83,10 +83,10 @@ nchans = len(channels)
 for i in range(nchans):
     channels[i] -= 1
 
-monitor.info("fsample", fsample)
-monitor.info("channels", channels)
-monitor.info("nchans", nchans)
-monitor.info("blocksize", blocksize)
+monitor.info("fsample = " + str(fsample))
+monitor.info("channels = " + str(channels))
+monitor.info("nchans = " + str(nchans))
+monitor.info("blocksize = " + str(blocksize))
 
 try:
     ft_host = patch.getstring('fieldtrip', 'hostname')

@@ -150,7 +150,7 @@ try:
 
             # only update if the value has changed
             if dmxframe[chanindx] != chanval:
-                monitor.info("DMX channel%03d" % chanindx, '=', chanval)
+                monitor.info("DMX channel%03d = %g" % (chanindx, chanval))
                 dmxframe[chanindx] = chanval
                 update = True
 

@@ -191,8 +191,8 @@ def _start():
     scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
     offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
-    monitor.info("audio nchans", nchans)
-    monitor.info("audio rate", outputrate)
+    monitor.info("audio nchans = " + str(nchans))
+    monitor.info("audio rate = " + str(outputrate))
 
     p = pyaudio.PyAudio()
 
@@ -202,12 +202,12 @@ def _start():
     monitor.info('------------------------------------------------------------------')
     for i in range(info.get('deviceCount')):
         if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-            monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+            monitor.info("Input  Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get('name'))
         if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-            monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+            monitor.info("Output Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get('name'))
     monitor.info('------------------------------------------------------------------')
     devinfo = p.get_device_info_by_index(device)
-    monitor.info("Selected device is", devinfo['name'])
+    monitor.info("Selected device is " + devinfo['name'])
     monitor.info(devinfo)
     monitor.info('------------------------------------------------------------------')
 
@@ -307,7 +307,7 @@ def _loop_once():
         if old/new > 0.1 or old/new < 10:
             inputrate = (1 - lrate) * old + lrate * new
 
-    monitor.info("read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration)
+    monitor.info("read " + str(endsample-begsample+1) " samples from " + str(begsample) + " to " + str(endsample) + " in " str(duration))
 
     monitor.update("inputrate", int(inputrate))
     monitor.update("outputrate", int(outputrate))

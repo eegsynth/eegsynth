@@ -159,13 +159,13 @@ class RedisThread(threading.Thread):
             with lock:
                 self.ppqn = ppqn
                 self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24).astype(int)
-                monitor.info("redis select =", self.clock)
+                monitor.info("redis select = " + str(self.clock))
     def setShift(self, shift):
         if shift != self.shift:
             with lock:
                 self.shift = shift
                 self.clock = np.mod(np.arange(0, 24, 24/self.ppqn) + self.shift, 24).astype(int)
-                monitor.info("redis select =", self.clock)
+                monitor.info("redis select = " + str(self.clock))
     def setEnabled(self, enabled):
         self.enabled = enabled
     def stop(self):

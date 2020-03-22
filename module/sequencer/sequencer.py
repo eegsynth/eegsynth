@@ -154,7 +154,7 @@ class SequenceThread(threading.Thread):
                             # send it also as sequencer.noteXXX with value 1.0
                             key = '%s%03d' % (self.key, val)
                             patch.setvalue(key, 1., duration=self.duration*self.steptime)
-                        monitor.info("step %2d :" % (self.step + 1), self.key, "=", val)
+                        monitor.info("step %2d : %s = %g" % (self.step + 1, self.key, val))
                         # increment to the next step
                         self.step = (self.step + 1) % len(self.sequence)
 

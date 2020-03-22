@@ -312,7 +312,7 @@ def _loop_once():
     ft_output.putData(dat_output)
 
     monitor.debug('time to write data to buffer: ' + str((time.time() - write_time) * 1000))
-    monitor.info("processed", window, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("processed " + str(window) + " samples in " + str((time.time()-start)*1000) + " ms")
 
     # increment the counters for the next loop
     begsample += window

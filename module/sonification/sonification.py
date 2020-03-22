@@ -231,10 +231,10 @@ def _start():
             lowpass = None
         right_b[i], right_a[i], right_zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, highpass, lowpass, f_order, dat_output)
 
-    monitor.info("left audio channels", left)
-    monitor.info("left audio frequencies", left_f)
-    monitor.info("right audio channels", right)
-    monitor.info("right audio frequencies", right_f)
+    monitor.info("left audio channels = " + str(left))
+    monitor.info("left audio frequencies = " + str(left_f))
+    monitor.info("right audio channels = " + str(right))
+    monitor.info("right audio frequencies = " + str(right_f))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -346,7 +346,7 @@ def _loop_once():
     #        nOutput *= 1.002
     #    nOutput = int(round(nOutput))
 
-    monitor.info("wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms")
+    monitor.info("wrote " + str(nInput)  " -> " + str(nOutput) + " samples in " + str(duration*1000) + " ms")
 
     # shift to the next block of data
     begsample += nInput

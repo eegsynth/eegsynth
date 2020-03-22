@@ -161,4 +161,4 @@ while True:
         time.sleep(naptime)
 
     sample += 1
-    monitor.info("generated sample", sample, "in", (time.time() - start) * 1000, "ms")
+    monitor.info("generated sample " + str(sample) + " in " + str((time.time() - start) * 1000) + " ms")

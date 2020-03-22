@@ -136,10 +136,10 @@ def _start():
 
     monitor.info('===== input variables =====')
     for name,variable in zip(input_name, input_variable):
-        monitor.info(name, '=', variable)
+        monitor.info(name + ' = ' + variable)
     monitor.info('===== output equations =====')
     for name,equation in zip(output_name, output_equation):
-        monitor.info(name, '=', equation)
+        monitor.info(name ' = ' + equation)
     monitor.info('============================')
 
     # there should not be any local variables in this function, they should all be global
