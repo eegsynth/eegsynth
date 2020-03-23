@@ -20,7 +20,11 @@ conda install portaudio
 conda install pyaudio
 
 pip install eegsynth
+```
 
+The following should not be needed, as these are all dependencies of the `eegsynth` package.
+
+```
 pip install configparser
 pip install python-rtmidi
 pip install mido
