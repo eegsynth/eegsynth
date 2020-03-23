@@ -180,14 +180,14 @@ def _start():
         if patch.hasitem('trigger', chanstr):
             redischannel = patch.getstring('trigger', chanstr)
             trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-            monitor.info("configured " + redischannel + " on " str(chanindx))
+            monitor.info("configured " + redischannel + " on " + str(chanindx))
     # configure the trigger threads for the gates
     for chanindx in range(1, 5):
         chanstr = "gate%d" % chanindx
         if patch.hasitem('trigger', chanstr):
             redischannel = patch.getstring('trigger', chanstr)
             trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-            monitor.info("configured " + redischannel + " on " str(chanindx))
+            monitor.info("configured " + redischannel + " on " + str(chanindx))
 
     # start the thread for each of the triggers
     for thread in trigger:

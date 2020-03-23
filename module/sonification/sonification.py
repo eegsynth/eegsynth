@@ -346,7 +346,7 @@ def _loop_once():
     #        nOutput *= 1.002
     #    nOutput = int(round(nOutput))
 
-    monitor.info("wrote " + str(nInput)  " -> " + str(nOutput) + " samples in " + str(duration*1000) + " ms")
+    monitor.info("wrote " + str(nInput) + " -> " + str(nOutput) + " samples in " + str(duration*1000) + " ms")
 
     # shift to the next block of data
     begsample += nInput

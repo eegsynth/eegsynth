@@ -307,7 +307,7 @@ def _loop_once():
         if old/new > 0.1 or old/new < 10:
             inputrate = (1 - lrate) * old + lrate * new
 
-    monitor.info("read " + str(endsample-begsample+1) " samples from " + str(begsample) + " to " + str(endsample) + " in " str(duration))
+    monitor.info("read " + str(endsample-begsample+1) + " samples from " + str(begsample) + " to " + str(endsample) + " in " + str(duration))
 
     monitor.update("inputrate", int(inputrate))
     monitor.update("outputrate", int(outputrate))
