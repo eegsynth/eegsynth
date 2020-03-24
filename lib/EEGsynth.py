@@ -10,6 +10,7 @@ import numpy as np
 from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 import logging
 from logging import Formatter
+import colorama
 import termcolor
 from termcolor import colored
 
@@ -97,6 +98,9 @@ class monitor():
     def __init__(self, name=None, debug=0):
         self.previous_value = {}
         self.loop_time = None
+
+        # If using Windows,this  will cause anything sent to stdout or stderr will have ANSI color codes converted to the Windows versions
+        colorama.init()
 
         logger = logging.getLogger(__name__)
         handler = logging.StreamHandler()
