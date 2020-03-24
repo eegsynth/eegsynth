@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# OutputOSC sends redis data according to OSC protocol
-#
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2017-2019 EEGsynth project
@@ -27,6 +25,8 @@ import sys
 import time
 import numpy as np
 from sklearn.preprocessing import QuantileTransformer
+import warnings
+warnings.simplefilter("ignore", UserWarning)
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -42,76 +42,72 @@ else:
 sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
-
-# get the options from the configuration file
-debug = patch.getint('general','debug')
-duration = patch.getint('general', 'duration')
-delay = patch.getfloat('general', 'delay')
-
-# get suffixe string from the configuration file
-suffixe = patch.getstring('output', 'suffixe')
-
-# keys should be present in both the input and output section of the *.ini file
-list_input  = config.items('input')
-list_output = config.items('output')
-
-list1 = [] # the key name that matches in the input andlist3 = [] # the key name in OSC output section of the *.ini file
-list2 = [] # the key name in Redis
-
-for i in range(len(list_input)):
-    list1.append(list_input[i][0])
-    list2.append(list_input[i][1])
-
-def baseline_norm(datum, bl_mean, bl_std):
-    bl_corrected_datum = (datum-bl_mean)/bl_std
-    return bl_corrected_datum
-
-baseline_computed = False
-
-bl_values = dict()
-
-
-for key in list2:
-    bl_values[key] = []
-
-qt = QuantileTransformer(n_quantiles=1000, output_distribution='normal')
-
 def baseline_norm(bl_values, datum, qt):
     bl_corrected_datum = qt.fit_transform(np.append(bl_values, datum).reshape(-1,1))[-1]
     return bl_corrected_datum
 
-input('Press enter to start recording baseline for {} seconds.'.format(str(duration)))
-while True:
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, debug, duration, delay, suffixe, list_input, key_name, red_name, baseline_computed, bl_values, qt
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
+    args = parser.parse_args()
+
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor()
+
+    # get the options from the configuration file
+    debug = patch.getint('general','debug')
+    duration = patch.getint('general', 'duration')
+    delay = patch.getfloat('general', 'delay')
+
+    # get suffixe string from the configuration file
+    suffixe = patch.getstring('output', 'suffixe')
+
+    # keys should be present in the input section of the *.ini file
+    list_input  = config.items('input')
+
+    key_name = [] # the key name that matches in the input
+    red_name = [] # the key name in Redis
+    for i in range(len(list_input)):
+        key_name.append(list_input[i][0])
+        red_name.append(list_input[i][1])
+
+    bl_values = dict()
+    for key in red_name:
+        bl_values[key] = []
+
+    qt = QuantileTransformer(n_quantiles=1000, output_distribution='normal')
+    baseline_computed = False
+
+
+def _loop_once():
+    global parser, args, config, r, response, patch, monitor, debug, duration, delay, suffixe, list_input, key_name, red_name, baseline_computed, bl_values, qt
     monitor.loop()
     time.sleep(delay)
 
     if baseline_computed == False:
-        for key1, key2 in zip(list1,list2):
+        for key1, key2 in zip(key_name,red_name):
             val = patch.getfloat('input', key1, multiple=True)
             bl_values[key2].append(val)
             if len(bl_values[key2]) == int(duration/delay): # Check if enough values are accumulated
                 baseline_computed = True # If True, stop accumulating
-
     else:
-        for key1,key2 in zip(list1,list2):
+        for key1,key2 in zip(key_name,red_name):
             val = patch.getfloat('input', key1, multiple=True)
             if any(item is None for item in val):
                 # the control value is not present in redis, skip it
@@ -120,6 +116,17 @@ while True:
                 val = [float(x) for x in val]
 
             val_norm = baseline_norm(bl_values[key2], val, qt)
-            print(val_norm)
             redis_key = key2 + '.' + suffixe
             patch.setvalue(redis_key, np.float(val_norm))
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    while True:
+        _loop_once()
+
+
+if __name__ == '__main__':
+    _setup()
+    input('Press enter to start recording baseline for {} seconds.'.format(str(duration)))
+    _loop_forever()
