@@ -224,4 +224,4 @@ while True:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info('played ' + str(blocksize) + ' samples in ' str((time.time()-start)*1000) + ' ms')
+    monitor.info('played ' + str(blocksize) + ' samples in ' + str((time.time()-start)*1000) + ' ms')
