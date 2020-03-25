@@ -143,7 +143,7 @@ def _start():
             # start the background thread that deals with this channel
             this = TriggerThread(patch.getstring('gate', name), i)
             trigger.append(this)
-            monitor.info(name, 'OK')
+            monitor.info(name + ' is OK')
     if len(trigger)==0:
         monitor.warning('no gates were specified in the ini file')
 

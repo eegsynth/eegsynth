@@ -118,7 +118,7 @@ def _start():
         channame.append(item[0])
         chanindx.append(patch.getint('input', item[0])-1)
 
-    monitor.info(channame, chanindx)
+    monitor.info(str(channame) + " " + str(chanindx))
 
     prefix = patch.getstring('output', 'prefix')
 

@@ -106,7 +106,7 @@ def sendMidi(name, code, val):
         SetNoteOn(code, val)
         return
 
-    monitor.info(name, code, val)
+    monitor.info(str(name) + " " + str(code) + " " str(val))
 
     if name.startswith('control'):
         if midichannel is None:

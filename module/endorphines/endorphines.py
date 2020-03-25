@@ -159,12 +159,12 @@ try:
 
             if val is None:
                 # the value is not present in Redis, skip it
-                monitor.trace(name, 'not available')
+                monitor.trace(name + ' is not available')
                 continue
 
             if port_val is None:
                 # the value is not present in Redis, skip it
-                monitor.trace(name, 'not available')
+                monitor.trace(name + ' is not available')
                 continue
 
             # the scale and offset options are channel specific
@@ -191,10 +191,7 @@ try:
                 break
 
             if val != previous_val[name] or not val: # it should be skipped when identical to the previous value
-
                 previous_val[name] = val
-
-                monitor.info(name, val, port_val)
 
                 # midi channels in the inifile are 1-16, in the code 0-15
                 midichannel = channel
@@ -215,8 +212,6 @@ try:
 
             if port_val != previous_port_val[name] and patch.getstring('general', 'mode') != 'note' or not port_val : # it should be skipped when identical to the previous value
                 previous_port_val[name] = port_val
-
-                monitor.info(name, val, port_val)
 
                 # CC#5 sets portamento
                 msg = mido.Message('control_change', control=5, value=int(port_val), channel=midichannel)

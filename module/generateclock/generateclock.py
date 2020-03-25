@@ -286,7 +286,7 @@ try: # FIXME do we need this or can we catch errors before?
         elapsed = time.time() - start
         naptime = patch.getfloat('general', 'delay') - elapsed
         if naptime>0:
-            monitor.trace("naptime =", naptime)
+            monitor.trace("naptime = " + str(naptime))
             time.sleep(naptime)
 
 except (KeyboardInterrupt, RuntimeError) as e:

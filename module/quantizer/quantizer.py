@@ -110,7 +110,7 @@ while True:
     for channel, name in zip(input_channel, input_name):
         val = patch.getfloat('input', channel)
         if val is None:
-            monitor.info(name, 'not found')
+            monitor.info(name + ' not found')
             pass
         else:
             # map the Redis values to the internally used values

@@ -273,7 +273,7 @@ class TriggerThread(threading.Thread):
 # create the background threads that deal with the triggers
 trigger = []
 for channel, sample in zip(input_channel, input_sample):
-    monitor.info(channel, sample)
+    monitor.info(str(channel) + " " + str(sample))
     trigger.append(TriggerThread(channel, sample))
 
 for thread in trigger:
