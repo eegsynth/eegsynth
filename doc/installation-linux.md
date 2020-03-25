@@ -1,5 +1,9 @@
 # Installation instructions for Linux
 
+NOTE: the general installation instructions using Anaconda should cover most of the installation, the notes below are older notes and probably not needed any more.
+
+## Raspberry Pi
+
 For Linux we are specifically targetting [Raspbian](http://www.raspbian.org), which is a free Debian-based operating system optimized for the [Raspberry Pi](https://www.raspberrypi.org) hardware. This allows to build a dedicated EEGsynth on the low-cost Raspberry Pi platform.
 
 ## Installation instructions for Raspbian

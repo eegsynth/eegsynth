@@ -76,7 +76,6 @@ setuptools.setup(
         "mido",
         "nilearn",
         "numpy",
-        "numpy",
         "paho-mqtt",
         "pyaudio",
         "pylsl",

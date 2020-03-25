@@ -40,7 +40,7 @@ else
   echo Downloading $ARCH binaries for $OS on $MACHINE
 fi
 
-for NAME in buffer openbci2ft jaga2ft ; do
+for NAME in buffer openbci2ft ; do
   URL=https://github.com/fieldtrip/fieldtrip/raw/master/realtime/bin/$ARCH/$NAME$EXT
   echo ------------------------------------------------------------------------------
   echo Downloading binary from $URL
