@@ -70,7 +70,7 @@ setuptools.setup(
         "bitalino",
         "colorama",
         "configparser",
-        "fuzzywuzzy[speedup]",
+        "rapidfuzz",
         "matplotlib",
         "mido",
         "mido",

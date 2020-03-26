@@ -140,7 +140,7 @@ sudo pip install pyOSC      # for Python <= 3.5
 sudo pip install pyqtgraph
 sudo pip install matplotlib
 sudo pip install bitalino
-sudo pip install fuzzywuzzy[speedup]
+sudo pip install rapidfuzz
 sudo pip install nilearn
 sudo pip install sklearn
 sudo pip install neurokit

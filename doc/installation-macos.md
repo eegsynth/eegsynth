@@ -98,7 +98,7 @@ pip install pyOSC      # for Python <= 3.5
 pip install pyqtgraph
 pip install matplotlib
 pip install bitalino
-pip install fuzzywuzzy[speedup]
+pip install rapidfuzz
 pip install nilearn
 pip install sklearn
 pip install neurokit

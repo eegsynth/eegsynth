@@ -21,7 +21,7 @@ import configparser
 import argparse
 import math
 import mido
-from fuzzywuzzy import process
+from rapidfuzz import process
 import numpy as np
 import os
 import redis

@@ -22,7 +22,7 @@
 import configparser
 import argparse
 import mido
-from fuzzywuzzy import process
+from rapidfuzz import process
 import os
 import redis
 import sys
