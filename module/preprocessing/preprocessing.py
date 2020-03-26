@@ -208,7 +208,7 @@ def _loop_once():
     dat_output = dat_input
 
     monitor.trace("------------------------------------------------------------")
-    monitor.trace("read        ", window, "samples in", (time.time()-start)*1000, "ms")
+    monitor.trace("read        " + str(window) + " samples in " + str((time.time()-start)*1000) + " ms")
 
     # Online bandpass filtering
     highpassfilter = patch.getfloat('processing', 'highpassfilter', default=None)

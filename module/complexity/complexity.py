@@ -131,7 +131,7 @@ def _start():
         channame.append(item[0])
         chanindx.append(patch.getint('input', item[0])-1)
 
-    monitor.info(channame, chanindx)
+    monitor.info(str(channame) + " " + str(chanindx))
 
     shannon     = patch.getint('metrics', 'shannon',     default=0) != 0
     sampen      = patch.getint('metrics', 'sampen',      default=0) != 0
@@ -152,8 +152,8 @@ def _start():
     taper       = np.hanning(window)
     frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 
-    monitor.trace('taper     = ', taper)
-    monitor.trace('frequency = ', frequency)
+    monitor.trace('taper     = ' + str(taper))
+    monitor.trace('frequency = ' + str(frequency))
 
     begsample = -1
     endsample = -1

@@ -216,7 +216,7 @@ def _loop_once():
 
         if chanval == None:
             # the value is not present in Redis, skip it
-            monitor.trace(chanstr, 'not available')
+            monitor.trace(chanstr + ' is not available')
             continue
 
         # the scale and offset options are channel specific
@@ -238,7 +238,7 @@ def _loop_once():
 
         if chanval == None:
             # the value is not present in Redis, skip it
-            monitor.trace(chanstr, 'not available')
+            monitor.trace(chanstr + 'is not available')
             continue
 
         # the scale and offset options are channel specific
