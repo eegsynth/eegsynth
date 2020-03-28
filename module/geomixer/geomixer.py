@@ -183,12 +183,12 @@ while True:
                 channel_val[next] = 1. - clip01(input)
         patch.setvalue(channel_name[this], channel_val[this])
 
-    if debug > 0:
-        # print them all on a single line, this is Python 2 specific
-        monitor.print(('edge=%2d' % edge), end=' ')
+    if debug>0:
+        # construct a string with all details on a single line
+        str = 'edge=%2d' % (edge)
         for key, val in zip(channel_name, channel_val):
-            monitor.print((' %s = %0.2f' % (key, val)), end=' ')
-        monitor.print('')  # force a newline
+            str += ' %s = %0.2f' % (key, val)
+        monitor.info(str)
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl

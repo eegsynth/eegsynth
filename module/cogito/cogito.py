@@ -166,12 +166,12 @@ def _start():
     output_channel = tmp
 
     if debug > 0:
-        monitor.print('===== input channels =====')
+        monitor.info('===== input channels =====')
         for number, channel in zip(input_number, input_channel):
-            monitor.print(number, '=', channel)
-        monitor.print('===== output channels =====')
+            monitor.info(str(number) + ' = ' + channel)
+        monitor.info('===== output channels =====')
         for number, channel in zip(output_number, output_channel):
-            monitor.print(number, '=', channel)
+            monitor.info(str(number) + ' = ' + channel)
 
     sample_rate         = patch.getfloat('cogito', 'sample_rate')
     window              = patch.getfloat('cogito', 'window')

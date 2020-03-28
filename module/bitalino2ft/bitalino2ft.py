@@ -136,11 +136,10 @@ while True:
 
     countfeedback += blocksize
 
-    if debug > 1:
-        monitor.print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
-    elif debug > 0 and countfeedback >= fsample:
+    monitor.trace("streamed " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
+    if countfeedback >= fsample:
         # this gets printed approximately once per second
-        monitor.print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.debug("streamed " + str(countfeedback) + " samples in " + str((time.time() - startfeedback) * 1000) + " ms")
         startfeedback = time.time()
         countfeedback = 0
 

@@ -207,9 +207,6 @@ Press Ctrl-C to stop this module.
     def trace(self, *args):
         self.logger.log(logging.TRACE, *args)
 
-    def print(self, *args):
-        print(self.prefix, *args)
-
 ###################################################################################################
 class patch():
     """Class to provide a generalized interface for patching modules using
