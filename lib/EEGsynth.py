@@ -187,25 +187,46 @@ Press Ctrl-C to stop this module.
             return False
 
     def critical(self, *args):
-        self.logger.log(logging.CRITICAL, *args)
+        if len(args)==1:
+            self.logger.log(logging.CRITICAL, *args)
+        else:
+            self.logger.log(logging.CRITICAL, " ".join(map(format, args)))
 
     def error(self, *args):
-        self.logger.log(logging.ERROR, *args)
+        if len(args)==1:
+            self.logger.log(logging.ERROR, *args)
+        else:
+            self.logger.log(logging.ERROR, " ".join(map(format, args)))
 
     def warning(self, *args):
-        self.logger.log(logging.WARNING, *args)
+        if len(args)==1:
+            self.logger.log(logging.WARNING, *args)
+        else:
+            self.logger.log(logging.WARNING, " ".join(map(format, args)))
 
     def success(self, *args):
-        self.logger.log(logging.SUCCESS, *args)
+        if len(args)==1:
+            self.logger.log(logging.SUCCESS, *args)
+        else:
+            self.logger.log(logging.SUCCESS, " ".join(map(format, args)))
 
     def info(self, *args):
-        self.logger.log(logging.INFO, *args)
+        if len(args)==1:
+            self.logger.log(logging.INFO, *args)
+        else:
+            self.logger.log(logging.INFO, " ".join(map(format, args)))
 
     def debug(self, *args):
-        self.logger.log(logging.DEBUG, *args)
+        if len(args)==1:
+            self.logger.log(logging.DEBUG, *args)
+        else:
+            self.logger.log(logging.DEBUG, " ".join(map(format, args)))
 
     def trace(self, *args):
-        self.logger.log(logging.TRACE, *args)
+        if len(args)==1:
+            self.logger.log(logging.TRACE, *args)
+        else:
+            self.logger.log(logging.TRACE, " ".join(map(format, args)))
 
 ###################################################################################################
 class patch():
