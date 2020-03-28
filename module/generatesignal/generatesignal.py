@@ -133,9 +133,9 @@ def _start():
     elif datatype == 'float64':
         ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_FLOAT64)
 
-    monitor.debug("nchannels", nchannels)
-    monitor.debug("fsample", fsample)
-    monitor.debug("blocksize", blocksize)
+    monitor.debug("nchannels = " + str(nchannels))
+    monitor.debug("fsample = " + str(fsample))
+    monitor.debug("blocksize = " + str(locksize))
 
     block     = 0
     begsample = 0
@@ -178,7 +178,7 @@ def _loop_once():
     # measure the time to correct for the slip
     start = time.time();
 
-    monitor.debug("Generating block", block, 'from', begsample, 'to', endsample)
+    monitor.debug("Generating block " + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
 
     frequency = patch.getfloat('signal', 'frequency', default=10)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.8)

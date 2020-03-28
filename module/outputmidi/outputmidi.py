@@ -159,7 +159,7 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    monitor.debug(item['channel'], '=', item['data'])
+                    monitor.debug(item['channel'] + ' = ' + item['data'])
                     # map the Redis values to MIDI values
                     val = float(item['data'])
                     # the scale and offset options are channel specific and can be changed on the fly
@@ -281,7 +281,7 @@ def _start():
             # start the background thread that deals with this note
             this = TriggerThread(patch.getstring('trigger', name), name, code)
             trigger.append(this)
-            monitor.debug(name, 'trigger configured')
+            monitor.debug(name + ' trigger configured')
 
     # start the thread for each of the triggers
     for thread in trigger:

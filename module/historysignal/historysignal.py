@@ -122,8 +122,8 @@ def _start():
         time.sleep(0.1)
         hdr_input = ft_input.getHeader()
 
-    monitor.debug("input nsample", hdr_input.nSamples)
-    monitor.debug("input nchan", hdr_input.nChannels)
+    monitor.debug("input nsample = " + str(hdr_input.nSamples))
+    monitor.debug("input nchan = " + str(hdr_input.nChannels))
 
     # get the options from the configuration file
     inputlist   = patch.getint('input', 'channels', multiple=True)
@@ -197,7 +197,7 @@ def _loop_once():
         if (time.time()-start) > timeout:
             raise RuntimeError("timeout while waiting for data")
 
-    monitor.debug("reading samples", begsample, "to", endsample)
+    monitor.debug("reading samples " + str(begsample) + " to " + str(endsample))
 
     # get the input data, sample vector and time vector
     dat_input = ft_input.getData([begsample, endsample]).astype(np.double)
@@ -254,7 +254,7 @@ def _stop():
 
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
-    
+
 
 if __name__ == '__main__':
     _setup()

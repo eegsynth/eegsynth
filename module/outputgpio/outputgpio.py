@@ -104,7 +104,7 @@ lock = threading.Lock()
 
 def SetGPIO(gpio, val=1):
     lock.acquire()
-    monitor.debug(gpio, pin[gpio], val)
+    monitor.debug(str(gpio) + " " + str(pin[gpio]) + " " + str(val))
     wiringpi.digitalWrite(pin[gpio], val)
     lock.release()
 

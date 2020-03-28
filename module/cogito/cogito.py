@@ -198,9 +198,9 @@ def _start():
     val = (val - val.min())/(val.max()-val.min())*definition
     positions = np.round(val).astype(int)
 
-    monitor.debug("nsample", hdr_input.nSamples)
-    monitor.debug("nchan", hdr_input.nChannels)
-    monitor.debug("window", window)
+    monitor.debug("nsample = " + str(hdr_input.nSamples))
+    monitor.debug("nchan = " + str(hdr_input.nChannels))
+    monitor.debug("window = " + str(window))
 
     inputscaling = 0
     outputscaling = 0

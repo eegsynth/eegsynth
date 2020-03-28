@@ -140,7 +140,7 @@ def _loop_once():
         if dmxdata[chanindx-1]!=chanval:
             # update the DMX value for this channel
             dmxdata[chanindx-1] = chanval
-            monitor.debug("DMX channel%03d" % chanindx, '=', chanval)
+            monitor.debug("DMX channel%03d = %g" % (chanindx, chanval))
             artnet.broadcastDMX(dmxdata,address)
         elif (time.time()-prevtime)>1:
             # send a maintenance packet now and then

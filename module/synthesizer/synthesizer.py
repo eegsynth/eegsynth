@@ -125,7 +125,7 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                monitor.debug(item['channel'], "=", item['data'])
+                monitor.debug(item['channel'] + ' = ' + item['data'])
                 lock.acquire()
                 self.last = self.time
                 lock.release()

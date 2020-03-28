@@ -214,7 +214,7 @@ for name, code in zip(note_name, note_code):
         pitch    = code
         duration = None
         trigger.append(TriggerThread(onset, velocity, pitch, duration))
-        monitor.debug(name, 'OK')
+        monitor.debug(name + ' = OK')
 
 try:
     # the keyboard notes can also be controlled using a single trigger

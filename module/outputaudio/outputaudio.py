@@ -172,8 +172,8 @@ def _start():
         hdr_input = ft_input.getHeader()
 
     monitor.info('Data arrived')
-    monitor.debug("buffer nchans", hdr_input.nChannels)
-    monitor.debug("buffer rate", hdr_input.fSample)
+    monitor.debug("buffer nchans = " + str(hdr_input.nChannels))
+    monitor.debug("buffer rate = " + str(hdr_input.fSample))
 
     # get the options from the configuration file
     device  = patch.getint('audio', 'device')

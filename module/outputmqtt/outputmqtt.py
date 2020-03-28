@@ -132,7 +132,7 @@ trigger = []
 for key1, key2, key3 in zip(list1, list2, list3):
     this = TriggerThread(key2, key1, key3)
     trigger.append(this)
-    monitor.debug('trigger configured for ' + key1)
+    monitor.debug(key1 + " trigger configured")
 
 # start the thread for each of the triggers
 for thread in trigger:

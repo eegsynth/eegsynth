@@ -154,7 +154,7 @@ while True:
         dwelltime = 0
     else:
         dwelltime += delay
-        monitor.debug('dwelling for', dwelltime)
+        monitor.debug('dwelling for ' + str(dwelltime))
     previous = change
 
     # is the dwelltime long enough?
@@ -168,7 +168,7 @@ while True:
         # send the edge number as an integer value to Redis
         key = '%s.%s.edge' % (prefix, patch.getstring('input', 'channel'))
         patch.setvalue(key, edge)
-        monitor.debug('switch to edge', edge)
+        monitor.debug('switch to edge ' + str(edge))
 
     channel_val = [0. for i in range(number)]
     for this in range(number):

@@ -155,7 +155,7 @@ def _start():
             # start the background thread that deals with this channel
             this = TriggerThread(patch.getstring('gate', name), channel)
             trigger.append(this)
-            monitor.debug(name + ' = OK')
+            monitor.debug(name + ' trigger configured')
 
     # start the thread for each of the notes
     for thread in trigger:

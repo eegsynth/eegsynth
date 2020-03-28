@@ -124,7 +124,7 @@ class TriggerThread(threading.Thread):
                     val = EEGsynth.rescale(item['data'], slope=scale, offset=offset)
                     val = EEGsynth.limit(val, 0, 127)
                     val = int(val)
-                    monitor.debug(item['channel'], "=", val)
+                    monitor.update(item['channel'] , val)
                     msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
                     lock.acquire()
                     outputport.send(msg)
@@ -137,7 +137,7 @@ for name, code in zip(note_name, note_code):
         # start the background thread that deals with this note
         this = TriggerThread(patch.getstring('note', name), code)
         trigger.append(this)
-        monitor.debug(name, 'OK')
+        monitor.debug(name + ' trigger configured')
 
 # start the thread for each of the notes
 for thread in trigger:

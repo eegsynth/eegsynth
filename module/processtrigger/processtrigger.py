@@ -198,7 +198,7 @@ trigger = []
 monitor.debug("Setting up threads for each trigger")
 for item in config.items('trigger'):
         trigger.append(TriggerThread(item[0], item[1]))
-        monitor.debug(item[0], item[1], 'OK')
+        monitor.debug(item[0] + " " + item[1] + " OK")
 
 # start the thread for each of the triggers
 for thread in trigger:

@@ -305,7 +305,7 @@ def _loop_once():
                 if status in list(state0value.keys()):
                     val = state0value[status]
 
-            monitor.debug(status, val)
+            monitor.debug(str(status) + " " + str(val))
 
             if not val is None:
                 # prefix.noteXXX=value
