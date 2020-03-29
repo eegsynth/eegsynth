@@ -135,7 +135,7 @@ def _setup():
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
-    debug  = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug')
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')

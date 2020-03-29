@@ -162,7 +162,7 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response
+    global parser, args, config, r, response, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -177,6 +177,9 @@ def _setup():
     except redis.ConnectionError:
         raise RuntimeError("cannot connect to Redis server")
 
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print("LOCALS: " + ", ".join(locals().keys()))
@@ -186,15 +189,11 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, name
-    global patch, monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(
-        name=name, debug=patch.getint('general', 'debug'))
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')

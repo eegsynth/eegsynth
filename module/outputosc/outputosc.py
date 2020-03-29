@@ -122,6 +122,9 @@ def _setup():
     except redis.ConnectionError:
         raise RuntimeError("cannot connect to Redis server")
 
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print('LOCALS: ' + ', '.join(locals().keys()))
@@ -133,9 +136,6 @@ def _start():
     '''
     global parser, args, config, r, response, patch, name
     global monitor, debug, s, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))

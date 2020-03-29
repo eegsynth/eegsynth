@@ -59,7 +59,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response
+    global parser, args, config, r, response, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -77,6 +77,9 @@ def _setup():
     except redis.ConnectionError:
         raise RuntimeError("cannot connect to Redis server")
 
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print('LOCALS: ' + ', '.join(locals().keys()))
@@ -86,11 +89,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response
-    global patch, monitor, push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
-
-    # combine the patching from the command-line options, the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    global parser, args, config, r, response, patch
+    global monitor, push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))

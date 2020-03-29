@@ -55,7 +55,7 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response
+    global parser, args, config, r, response, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -93,11 +93,9 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
+    global parser, args, config, r, response, patch
+    global monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
 
-    # combine the patching from the command-line options, the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
