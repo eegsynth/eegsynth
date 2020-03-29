@@ -317,9 +317,6 @@ def _loop_once():
     global parser, args, config, r, response, patch
     global debug, mididevice, port, previous_note, UpdateVelocity, UpdateDuration, TriggerThread, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, SetNoteOff, SetNoteOn, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, sendMidi, velocity_note
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     UpdateVelocity()
     UpdateDuration()
 
@@ -343,8 +340,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():

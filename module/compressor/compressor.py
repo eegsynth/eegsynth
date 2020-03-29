@@ -110,8 +110,6 @@ def _loop_once():
     global parser, args, config, r, response
     global patch, monitor, debug, delay, prefix, input_name, input_variable
 
-    monitor.loop()
-
     if patch.getint('processing', 'enable', default=1):
         # the compressor/expander applies to all channels and must exist as float or redis key
         scale = patch.getfloat('scale', 'lo', default=1.)
@@ -151,8 +149,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
-    global patch
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
         time.sleep(patch.getfloat('general', 'delay'))
 

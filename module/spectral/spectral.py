@@ -134,9 +134,6 @@ def _loop_once():
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
     global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     scale_window = patch.getfloat('scale', 'window', default=1.)
     offset_window = patch.getfloat('offset', 'window', default=0.)
     window = patch.getfloat('processing', 'window', default=2)
@@ -211,8 +208,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():

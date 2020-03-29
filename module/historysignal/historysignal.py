@@ -163,7 +163,6 @@ def _loop_once():
     global timeout, hdr_input, start, inputlist, prefix, enable, stepsize, window, numhistory, numchannel, history, historic, begsample, endsample
     global prev_enable, dat_input, chanindx, operation, key, val
 
-    monitor.loop()
     # determine the start of the actual processing
     start = time.time()
 
@@ -243,7 +242,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

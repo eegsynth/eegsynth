@@ -249,8 +249,6 @@ def _loop_once():
     global timeout, hdr_input, start, sample_rate, f_shift, f_offset, f_order, window, sideband, left, right, scaling, scaling_method, scale_scaling, offset_scaling, default_scale, scale_lowpass, scale_highpass, offset_lowpass, offset_highpass, scale_filterorder, offset_filterorder, hdr_output, nInput, nOutput, begsample, endsample, dat_output, left_f, left_b, left_a, left_zi, right_f, right_b, right_a, right_zi, i, highpass, lowpass
     global dat_input, begtime, endtime, tim_input, tim_output, chan, vec_output, highpassfilter, lowpassfilter, filterorder, change, b, a, zi, duration, desired
 
-    monitor.loop()
-
     # determine when we start polling for available data
     start = time.time()
 
@@ -360,7 +358,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

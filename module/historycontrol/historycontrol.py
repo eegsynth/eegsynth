@@ -137,8 +137,6 @@ def _loop_once():
     global parser, args, config, r, response
     global patch, monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
-    monitor.loop()
-
     # measure the time to correct for the slip
     start = time.time()
 
@@ -229,7 +227,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

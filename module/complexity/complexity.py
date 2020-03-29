@@ -167,9 +167,6 @@ def _loop_once():
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
     global dat, meandat, chan, sample, metrics, timeseries, metric_names, metric, shortmetric, key, val
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples - 1) < endsample:
         raise RuntimeError("buffer reset detected")
@@ -230,8 +227,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():

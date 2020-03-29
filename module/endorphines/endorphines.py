@@ -182,8 +182,6 @@ def _loop_once():
     global patch, monitor, debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
     global name, val, port_val, scale, offset, midichannel, msg
 
-    monitor.loop()
-
     # loop over the control values
     for channel in range(0, 16):
         # channels are one-offset in the ini file, zero-offset in the code
@@ -268,8 +266,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
-    global patch
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
         time.sleep(patch.getfloat('general', 'delay'))
 

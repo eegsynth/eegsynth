@@ -145,9 +145,6 @@ def _loop_once():
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, window, begsample, endsample
     global dat, rms, i, chanvec, chanval, name, val, key
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples - 1) < endsample:
         raise RuntimeError("buffer reset detected")
@@ -185,15 +182,18 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input
-    
+
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
 

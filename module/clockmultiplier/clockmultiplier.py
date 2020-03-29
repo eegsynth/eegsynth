@@ -178,9 +178,7 @@ def _loop_once():
     global parser, args, config, r, response
     global patch, monitor, debug, channels, multipliers, lrate, count, triggers, channel, multiplier, thread
 
-    monitor.loop()
     monitor.update("count", count / len(multipliers))
-    time.sleep(1)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -190,8 +188,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(1)
 
 
 def _stop():

@@ -148,8 +148,6 @@ def _loop_once():
     global monitor, delay, timeout, lsl_name, lsl_type, lsl_format, output_prefix, start, selected, streams, stream, inlet, type, source_id, match, lsl_id
     global sample, timestamp
 
-    monitor.loop()
-
     sample, timestamp = inlet.pull_sample(timeout=delay)
     if not sample == None:
 
@@ -181,7 +179,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

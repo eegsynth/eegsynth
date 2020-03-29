@@ -120,8 +120,6 @@ def _loop_once():
     global patch, monitor, debug, stepsize, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
     global start, frequency, amplitude, offset, noise, dutycycle, key, val, desired, elapsed, naptime
 
-    monitor.loop()
-
     if patch.getint('signal', 'rewind', default=0):
         monitor.info("Rewind pressed, jumping back to start of signal")
         # the sample number and phase should be 0 upon the start of the signal
@@ -207,7 +205,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

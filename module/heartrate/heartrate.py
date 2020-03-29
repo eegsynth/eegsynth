@@ -148,9 +148,6 @@ def _loop_once():
     global timeout, hdr_input, start, channel, window, threshold, lrate, debounce, key_beat, key_rate, curvemin, curvemean, curvemax, prev, begsample, endsample
     global dat, negrange, posrange, thresh, prevsample, sample, last, bpm, duration, duration_scale, duration_offset
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general','delay'))
-
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
         raise RuntimeError("buffer reset detected")
@@ -229,8 +226,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general','delay'))
 
 
 def _stop():

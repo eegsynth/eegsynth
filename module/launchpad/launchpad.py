@@ -229,9 +229,6 @@ def _loop_once():
     global parser, args, config, r, response, patch
     global monitor, debug, push, toggle1, toggle2, toggle3, toggle4, slap, model, scale_note, scale_control, offset_note, offset_control, port, mididevice_input, mididevice_output, inputport, Off, Red_Full, Amber_Full, Yellow_Full, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general','delay'))
-
     for msg in inputport.iter_pending():
         if midichannel is None:
             try:
@@ -317,12 +314,19 @@ def _loop_once():
                 val = msg.note
                 patch.setvalue(key, val)
 
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
 
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general','delay'))
 
 
 def _stop():

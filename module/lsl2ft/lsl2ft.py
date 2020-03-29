@@ -165,8 +165,6 @@ def _loop_once():
     global parser, args, config, r, response, patch, name
     global monitor, timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
 
-    monitor.loop()
-
     chunk, timestamps = inlet.pull_chunk()
     if timestamps:
         dat = np.asarray(chunk, dtype=np.float32)
@@ -183,7 +181,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

@@ -205,9 +205,6 @@ def _loop_once():
     global parser, args, config, r, response, patch
     global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     # loop over the control voltages
     for chanindx in range(1, 5):
         chanstr = "cv%d" % chanindx
@@ -256,8 +253,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():

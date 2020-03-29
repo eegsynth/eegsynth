@@ -114,9 +114,6 @@ def _loop_once():
     global monitor, debug, address, artnet, dmxdata, prevtime
     global chanindx, chanstr, chanval, scale, offset
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     # loop over the control values, these are 1-offset in the ini file
     for chanindx in range(1, 512):
         chanstr = "channel%03d" % chanindx
@@ -156,8 +153,11 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():

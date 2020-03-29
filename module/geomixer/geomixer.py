@@ -134,8 +134,6 @@ def _loop_once():
     global patch, monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
     global start, switch_time, switch_precision, input, lower_treshold, upper_treshold, change, str, key, channel_val, this, next, val, desired, elapsed, naptime
 
-    monitor.loop()
-
     # measure the time to correct for the slip
     start = time.time()
 
@@ -241,7 +239,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

@@ -218,9 +218,6 @@ def _loop_once():
     global parser, args, config, r, response
     global patch, monitor, push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     for msg in inputport.iter_pending():
         if midichannel is None:
             # specify the MIDI channel on the basis of the first incoming message
@@ -312,17 +309,23 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    pass
+    sys.exit()
 
 
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()

@@ -257,8 +257,6 @@ def _loop_once():
     global timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
     global dat, now, old, new, duration
 
-    monitor.loop()
-
     # measure the time that it takes
     start = time.time()
 
@@ -329,7 +327,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

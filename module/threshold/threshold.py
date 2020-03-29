@@ -154,8 +154,6 @@ def _loop_once():
     global timeout, hdr_input, start, rectify, invert, prefix, window, scale_threshold, offset_threshold, scale_interval, offset_interval, channels, previous, begsample, endsample
     global dat_input, threshold, interval, channel, maxind, maxval, sample, key
 
-    monitor.loop()
-
     # determine when we start polling for available data
     start = time.time()
 
@@ -207,7 +205,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

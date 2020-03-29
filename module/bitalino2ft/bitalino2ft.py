@@ -164,8 +164,6 @@ def _loop_once():
     global patch, monitor, debug, device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
     global start, dat
 
-    monitor.loop()
-
     # measure the time that it takes
     start = time.time()
 
@@ -193,7 +191,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

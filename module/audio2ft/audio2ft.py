@@ -167,8 +167,6 @@ def _loop_once():
     global patch, startfeedback, countfeedback
     global start, data
 
-    monitor.loop()
-
     # measure the time that it takes
     start = time.time()
 
@@ -196,7 +194,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 

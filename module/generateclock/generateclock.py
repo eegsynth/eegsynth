@@ -246,8 +246,6 @@ def _loop_once():
     global patch, monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
     global start, redis_play, midi_play, midi_start, rate, shift, ppqn, elapsed, naptime
 
-    monitor.loop()
-
     # measure the time to correct for the slip
     start = time.time()
 
@@ -340,7 +338,9 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
