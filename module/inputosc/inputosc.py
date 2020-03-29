@@ -177,7 +177,7 @@ def _start():
             server.serve_forever() # this is blocking
         monitor.success("Started OSC server")
     except:
-        raise RuntimeError("cannot start OSC server")
+        raise RuntimeError("Cannot start OSC server")
 
 
     # there should not be any local variables in this function, they should all be global

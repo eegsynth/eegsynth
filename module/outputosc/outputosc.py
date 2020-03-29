@@ -151,7 +151,7 @@ def _start():
             s = udp_client.SimpleUDPClient(patch.getstring('osc','hostname'), patch.getint('osc','port'))
         monitor.success('Connected to OSC server')
     except:
-        raise RuntimeError("cannot connect to OSC server")
+        raise RuntimeError("Cannot connect to OSC server")
 
     # keys should be present in both the input and output section of the *.ini file
     list_input  = config.items('input')
