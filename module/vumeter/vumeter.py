@@ -195,7 +195,6 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global monitor, window
-
     monitor.loop()
     window.update()
 

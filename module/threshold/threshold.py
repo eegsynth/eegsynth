@@ -214,8 +214,7 @@ def _loop_forever():
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, ft_input
-
+    global ft_input, monitor
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
 
@@ -223,4 +222,7 @@ def _stop():
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()
