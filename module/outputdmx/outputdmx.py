@@ -51,21 +51,13 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
-def sendframe(s):
-    packet = [
-        START_VAL,
-        TX_DMX_PACKET,
-        ((len(dmxframe) + 1) >> 0) & 0xFF,
-        ((len(dmxframe) + 1) >> 8) & 0xFF,
-        FRAME_PAD
-    ]
-    packet.extend(dmxframe)
-    packet.append(END_VAL)
+def sendframe(s, dmxframe):
+    # See http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
+    # See https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
+    # See https://github.com/itsb/DmxPy
+    packet = [0x7E, 0x06, ((len(dmxframe) + 1) >> 0) & 0xFF, ((len(dmxframe) + 1) >> 8) & 0xFF, 0x00] + dmxframe + [0xE7]
     monitor.debug(packet)
-    packet = map(chr, packet)
-    packet = ''.join(packet)
-    packet = packet.encode()
-    s.write(packet)
+    s.write(bytearray(packet))
 
 
 def _setup():
@@ -136,14 +128,6 @@ def _start():
     # make an empty frame
     dmxframe = [0] * dmxsize
 
-    # See http://agreeabledisagreements.blogspot.nl/2012/10/a-beginners-guide-to-dmx512-in-python.html
-    # See https://www.enttec.com/docs/dmx_usb_pro_api_spec.pdf
-
-    START_VAL = 0x7E
-    END_VAL = 0xE7
-    TX_DMX_PACKET = 0x06
-    FRAME_PAD = 0x00
-
     # keep a timer to send a packet every now and then
     prevtime = time.time()
 
@@ -157,8 +141,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch
-    global monitor, debug, serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime, START_VAL, END_VAL, TX_DMX_PACKET, FRAME_PAD
-    global update, chanval
+    global monitor, debug, serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime
+    global update, chanval, scale, offset
 
     update = False
     for chanindx in range(0, dmxsize):
@@ -186,12 +170,12 @@ def _loop_once():
             update = True
 
     if update:
-        sendframe(s)
+        sendframe(s, dmxframe)
         prevtime = time.time()
 
     elif (time.time() - prevtime) > 0.5:
         # send a maintenance frame every 0.5 seconds
-        sendframe(s)
+        sendframe(s, dmxframe)
         prevtime = time.time()
 
     # there should not be any local variables in this function, they should all be global
@@ -216,7 +200,7 @@ def _stop():
     monitor.success("Closing...")
     # blank out everything
     dmxframe = [0] * 512
-    sendframe(s)
+    sendframe(s, dmxframe)
     sys.exit()
 
 
