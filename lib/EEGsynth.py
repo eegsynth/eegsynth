@@ -128,7 +128,6 @@ class monitor():
         elif debug==3:
             logger.setLevel(logging.TRACE)
 
-
         print("""
 ##############################################################################
 # This software is part of the EEGsynth, see <http://www.eegsynth.org>.
