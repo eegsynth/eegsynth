@@ -1,5 +1,7 @@
 # Ableton Loop
 
+_This patch was implemented for the 2020 Ableton Loop event, which had to be canceled due to the corona pandemic. We expect to use this patch for the 2021 Loop event and will continue to develop it._
+
 This directory contains some of the patches for the workshop at [Ableton Loop](https://loop.ableton.com/) in Berlin, April 24–26 2020. During the workshop we combine electrophysiological signals from the brain, muscle, eye and heart with electronic music and analog synthesizers.
 
 # Technical details

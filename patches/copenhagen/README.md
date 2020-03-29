@@ -1,5 +1,9 @@
 # Copenhagen recording session
 
+_This patch was implemented for the March 2020 recording session at Huhta home studio
+in Copenhagen. Due to the corona pandemic, the recording session had to be canceled.
+We expect to use this patch for a future session._
+
 This patch provides the alpha power of the two occipital electrodes as two control
 voltages on the Doepfer A-190-3 module.
 
