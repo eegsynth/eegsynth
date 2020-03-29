@@ -32,11 +32,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -46,9 +46,10 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
-import EEGsynth
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import FieldTrip
+import EEGsynth
+
 
 def _setup():
     '''Initialize the module
@@ -73,14 +74,14 @@ def _setup():
     patch = EEGsynth.patch(config, r)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
-    debug = patch.getint('general','debug')
+    debug = patch.getint('general', 'debug')
 
     try:
-        ft_host = patch.getstring('fieldtrip','hostname')
-        ft_port = patch.getint('fieldtrip','port')
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
         monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_output = FieldTrip.Client()
         ft_output.connect(ft_host, ft_port)
@@ -97,24 +98,25 @@ def _start():
     global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, timevec, phasevec
 
     # get the options from the configuration file
-    nchannels         = patch.getint('generate', 'nchannels')
-    fsample           = patch.getfloat('generate', 'fsample')
-    shape             = patch.getstring('signal', 'shape') # sin, square, triangle, sawtooth or dc
+    nchannels = patch.getint('generate', 'nchannels')
+    fsample = patch.getfloat('generate', 'fsample')
+    # sin, square, triangle, sawtooth or dc
+    shape = patch.getstring('signal', 'shape')
 
     # the scale and offset are used to map the Redis values to internal values
-    scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
-    scale_amplitude   = patch.getfloat('scale', 'amplitude', default=1)
-    scale_offset      = patch.getfloat('scale', 'offset', default=1)
-    scale_noise       = patch.getfloat('scale', 'noise', default=1)
-    scale_dutycycle   = patch.getfloat('scale', 'dutycycle', default=1)
-    offset_frequency  = patch.getfloat('offset', 'frequency', default=0)
-    offset_amplitude  = patch.getfloat('offset', 'amplitude', default=0)
-    offset_offset     = patch.getfloat('offset', 'offset', default=0)
-    offset_noise      = patch.getfloat('offset', 'noise', default=0)
-    offset_dutycycle  = patch.getfloat('offset', 'dutycycle', default=0)
+    scale_frequency = patch.getfloat('scale', 'frequency', default=1)
+    scale_amplitude = patch.getfloat('scale', 'amplitude', default=1)
+    scale_offset = patch.getfloat('scale', 'offset', default=1)
+    scale_noise = patch.getfloat('scale', 'noise', default=1)
+    scale_dutycycle = patch.getfloat('scale', 'dutycycle', default=1)
+    offset_frequency = patch.getfloat('offset', 'frequency', default=0)
+    offset_amplitude = patch.getfloat('offset', 'amplitude', default=0)
+    offset_offset = patch.getfloat('offset', 'offset', default=0)
+    offset_noise = patch.getfloat('offset', 'noise', default=0)
+    offset_dutycycle = patch.getfloat('offset', 'dutycycle', default=0)
 
     blocksize = int(round(patch.getfloat('generate', 'window') * fsample))
-    datatype  = 'float32'
+    datatype = 'float32'
 
     if datatype == 'uint8':
         ft_output.putHeader(nchannels, fsample, FieldTrip.DATATYPE_UINT8)
@@ -135,14 +137,14 @@ def _start():
 
     monitor.debug("nchannels = " + str(nchannels))
     monitor.debug("fsample = " + str(fsample))
-    monitor.debug("blocksize = " + str(locksize))
+    monitor.debug("blocksize = " + str(blocksize))
 
-    block     = 0
+    block = 0
     begsample = 0
-    endsample = blocksize-1
+    endsample = blocksize - 1
 
     # the time axis per block remains the same, the phase linearly increases
-    timevec  = np.arange(1, blocksize+1) / fsample
+    timevec = np.arange(1, blocksize + 1) / fsample
     phasevec = np.zeros(1)
 
 
@@ -164,7 +166,7 @@ def _loop_once():
 
     if not patch.getint('signal', 'play', default=1):
         monitor.info("Stopped")
-        time.sleep(0.1);
+        time.sleep(0.1)
         # the sample number and phase should be 0 upon the start of the signal
         sample = 0
         phase = 0
@@ -172,25 +174,26 @@ def _loop_once():
 
     if patch.getint('signal', 'pause', default=0):
         monitor.info("Paused")
-        time.sleep(0.1);
+        time.sleep(0.1)
         return
 
     # measure the time to correct for the slip
-    start = time.time();
+    start = time.time()
 
     monitor.debug("Generating block " + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
 
     frequency = patch.getfloat('signal', 'frequency', default=10)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.8)
-    offset    = patch.getfloat('signal', 'offset', default=0)           # the DC component of the output signal
-    noise     = patch.getfloat('signal', 'noise', default=0.1)
+    # the DC component of the output signal
+    offset = patch.getfloat('signal', 'offset', default=0)
+    noise = patch.getfloat('signal', 'noise', default=0.1)
     dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)      # for the square wave
 
     # map the Redis values to signal parameters
     frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
     amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
-    offset    = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
-    noise     = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
+    offset = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
+    noise = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
     dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
     monitor.update("frequency", frequency)
@@ -201,20 +204,20 @@ def _loop_once():
 
     # compute the phase of each sample in this block
     phasevec = 2 * np.pi * frequency * timevec + phasevec[-1]
-    if shape=='sin':
+    if shape == 'sin':
         signal = np.sin(phasevec) * amplitude + offset
-    elif shape=='square':
+    elif shape == 'square':
         signal = sp.square(phasevec, dutycycle) * amplitude + offset
-    elif shape=='triangle':
+    elif shape == 'triangle':
         signal = sp.sawtooth(phasevec, 0.5) * amplitude + offset
-    elif shape=='sawtooth':
+    elif shape == 'sawtooth':
         signal = sp.sawtooth(phasevec, 1) * amplitude + offset
-    elif shape=='dc':
+    elif shape == 'dc':
         signal = phasevec * 0. + offset
 
     dat_output = np.random.randn(blocksize, nchannels) * noise
     for chan in range(nchannels):
-        dat_output[:,chan] += signal
+        dat_output[:, chan] += signal
 
     # write the data to the output buffer
     if datatype == 'uint8':
@@ -240,15 +243,14 @@ def _loop_once():
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize/fsample
-    elapsed = time.time()-start
+    desired = blocksize / fsample
+    elapsed = time.time() - start
     naptime = desired - elapsed
-    if naptime>0:
+    if naptime > 0:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
     monitor.info("generated " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
-
 
 
 def _loop_forever():
@@ -265,9 +267,13 @@ def _stop():
 
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()
