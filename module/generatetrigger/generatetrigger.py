@@ -52,23 +52,25 @@ import EEGsynth
 
 
 def trigger(send=True):
-    global patch, t
+    global patch, t, lock, rate, spread
     if send:
         # send the current trigger
         key = patch.getstring('output', 'prefix') + '.note'
         patch.setvalue(key, 1.)
 
-    # the rate is in bpm, i.e. quarter notes per minute
-    if rate - spread > 0:
-        mintime = 60 / (rate - spread)
-    else:
-        mintime = 0
-    # it should have at least some miminum time
-    mintime = max(mintime, patch.getfloat('general', 'delay'))
-    if rate + spread > 0:
-        maxtime = 60 / (rate + spread)
-    else:
-        maxtime = 0
+    with lock:
+        # the rate is in bpm, i.e. quarter notes per minute
+        if rate - spread > 0:
+            mintime = 60 / (rate - spread)
+        else:
+            mintime = 0
+        # it should have at least some miminum time
+        mintime = max(mintime, patch.getfloat('general', 'delay'))
+        if rate + spread > 0:
+            maxtime = 60 / (rate + spread)
+        else:
+            maxtime = 0
+
     # it should have at least some miminum time
     maxtime = max(maxtime, patch.getfloat('general', 'delay'))
     # compute a random duration which is uniform between mintime and maxtime
@@ -111,7 +113,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, t
+    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -131,6 +133,9 @@ def _start():
     rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
     spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
 
+    # this is to prevent the trigger function from accessing the parameters while they are being updated
+    lock = threading.Lock()
+
     # make an initial timer object, this is needed in case parameters are updated prior to the execution of the first trigger
     t = threading.Timer(0, None)
 
@@ -147,13 +152,14 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global parser, args, config, r, response
-    global patch, monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, t
+    global patch, monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
     global change
 
-    rate = patch.getfloat('interval', 'rate', default=60)
-    spread = patch.getfloat('interval', 'spread', default=10)
-    rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-    spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
+    with lock:
+        rate = patch.getfloat('interval', 'rate', default=60)
+        spread = patch.getfloat('interval', 'spread', default=10)
+        rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+        spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
 
     change = monitor.update('rate', rate)
     change = monitor.update('spread', spread) or change
