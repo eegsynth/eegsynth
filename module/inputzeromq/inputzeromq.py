@@ -175,7 +175,7 @@ def _stop():
     monitor.success("Closing module...")
     socket.close()
     context.destroy()
-    monitor.success("done.")
+    monitor.success("Done.")
     sys.exit()
 
 

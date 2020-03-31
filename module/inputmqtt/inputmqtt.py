@@ -181,7 +181,7 @@ def _stop():
     global monitor, client
     monitor.success("Closing module...")
     client.loop_stop(force=False)
-    monitor.success("done.")
+    monitor.success("Done.")
     sys.exit()
 
 
