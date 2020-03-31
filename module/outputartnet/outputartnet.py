@@ -164,7 +164,7 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, artnet
-    monitor.success("Closing...")
+    monitor.success("Closing module...")
     # blank out
     dmxdata = [0] * 512
     artnet.broadcastDMX(dmxdata,address)

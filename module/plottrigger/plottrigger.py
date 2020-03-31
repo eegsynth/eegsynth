@@ -233,7 +233,6 @@ def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, trigger, r
-
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()

@@ -336,9 +336,12 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
+    global monitor, stream, p, trigger
+    monitor.success("Closing stream")
     stream.stop_stream()
     stream.close()
     p.terminate()
+    monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('SAMPLER_UNBLOCK', 1)

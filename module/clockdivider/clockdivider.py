@@ -30,11 +30,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -114,12 +114,12 @@ def _start():
     global monitor, debug, channels, dividers, count, triggers, channel, divider, thread
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug')
-    channels    = patch.getstring('clock', 'channel', multiple=True)
-    dividers    = patch.getint('clock', 'rate', multiple=True)
+    debug = patch.getint('general', 'debug')
+    channels = patch.getstring('clock', 'channel', multiple=True)
+    dividers = patch.getint('clock', 'rate', multiple=True)
 
     # keep track of the number of received triggers
     count = 0
@@ -167,7 +167,6 @@ def _stop():
     '''Stop and clean up and stop on SystemExit, KeyboardInterrupt
     '''
     global monitor, triggers, r
-
     monitor.success('Closing threads')
     for thread in triggers:
         thread.stop()

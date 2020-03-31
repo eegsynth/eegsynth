@@ -196,7 +196,7 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, s
-    monitor.success("Closing...")
+    monitor.success("Closing module...")
     # blank out everything
     dmxframe = [0] * 512
     sendframe(s, dmxframe)
