@@ -34,11 +34,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -53,68 +53,97 @@ import EEGsynth
 import FieldTrip
 import EDF
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-MININT16 = -0xffff/2 - 1
-MAXINT16 =  0xffff/2 - 1
-MININT32 = -0xffffffff/2 - 1
-MAXINT32 =  0xffffffff/2 - 1
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-timeout     = patch.getfloat('fieldtrip', 'timeout', default=30)
-filename    = patch.getstring('recording', 'file')
-fileformat  = patch.getstring('recording', 'format')
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
-if fileformat is None:
-    # determine the file format from the file name
-    name, ext = os.path.splitext(filename)
-    fileformat = ext[1:]
 
-try:
-    ft_host = patch.getstring('fieldtrip', 'hostname')
-    ft_port = patch.getint('fieldtrip', 'port')
-    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-    ft_input = FieldTrip.Client()
-    ft_input.connect(ft_host, ft_port)
-    monitor.success('Connected to FieldTrip buffer')
-except:
-    raise RuntimeError("cannot connect to FieldTrip buffer")
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording
 
-hdr_input = None
-start = time.time()
-while hdr_input is None:
-    monitor.info('Waiting for data to arrive...')
-    if (time.time() - start) > timeout:
-        raise RuntimeError("timeout while waiting for data")
-    time.sleep(0.1)
-    hdr_input = ft_input.getHeader()
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-monitor.info('Data arrived')
-monitor.debug(hdr_input)
-monitor.debug(hdr_input.labels)
+    MININT16 = -0xffff / 2 - 1
+    MAXINT16 = 0xffff / 2 - 1
+    MININT32 = -0xffffffff / 2 - 1
+    MAXINT32 = 0xffffffff / 2 - 1
 
-recording = False
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+    timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
+    filename = patch.getstring('recording', 'file')
+    fileformat = patch.getstring('recording', 'format')
 
-while True:
-    monitor.loop()
+    if fileformat is None:
+        # determine the file format from the file name
+        name, ext = os.path.splitext(filename)
+        fileformat = ext[1:]
+
+    try:
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        monitor.success('Connected to FieldTrip buffer')
+    except:
+        raise RuntimeError("cannot connect to FieldTrip buffer")
+
+    hdr_input = None
+    start = time.time()
+    while hdr_input is None:
+        monitor.info('Waiting for data to arrive...')
+        if (time.time() - start) > timeout:
+            raise RuntimeError("timeout while waiting for data")
+        time.sleep(0.1)
+        hdr_input = ft_input.getHeader()
+
+    monitor.info('Data arrived')
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
+
+    recording = False
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording
+    global fname, f, ext, blocksize, synchronize, physical_min, physical_max, meas_info, chan_info, now, begsample, endsample, startsample, dat, key
 
     hdr_input = ft_input.getHeader()
 
@@ -122,13 +151,13 @@ while True:
         monitor.info("Header is empty - closing " + fname)
         f.close()
         recording = False
-        continue
+        return
 
     if recording and not patch.getint('recording', 'record'):
         monitor.info("Recording disabled - closing " + fname)
         f.close()
         recording = False
-        continue
+        return
 
     if not recording and not patch.getint('recording', 'record'):
         monitor.info("Recording is not enabled")
@@ -184,7 +213,7 @@ while True:
             raise NotImplementedError('unsupported file format')
 
         # determine the starting point for recording
-        if hdr_input.nSamples<blocksize:
+        if hdr_input.nSamples < blocksize:
             begsample = 0
             endsample = blocksize - 1
         else:
@@ -197,13 +226,13 @@ while True:
         monitor.info("Header was reset - closing " + fname)
         f.close()
         recording = False
-        continue
+        return
 
     if recording and endsample > hdr_input.nSamples - 1:
         # the data is not yet available
         monitor.debug("Waiting for data", endsample, hdr_input.nSamples)
         time.sleep((endsample - hdr_input.nSamples) / hdr_input.fSample)
-        continue
+        return
 
     if recording:
         # the data is available, send a synchronization trigger prior to reading the data
@@ -211,7 +240,7 @@ while True:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, endsample - startsample + 1)
         dat = ft_input.getData([begsample, endsample]).astype(np.float64)
-        monitor.info("Writing sample " + str(begsample) + " to " + str(endsample) " as " + str(np.shape(dat)))
+        monitor.info("Writing sample " + str(begsample) + " to " + str(endsample) + " as " + str(np.shape(dat)))
         if fileformat == 'edf':
             # the scaling is done in the EDF writer
             f.writeBlock(np.transpose(dat))
@@ -224,6 +253,34 @@ while True:
                 y = y * ((float(MAXINT32) - float(MININT32)) / 2)
                 # convert them to packed binary data
                 z = [int(item) for item in y]
-                f.writeframesraw(wave.struct.pack('i'*len(z), *z))
+                f.writeframesraw(wave.struct.pack('i' * len(z), *z))
         begsample += blocksize
         endsample += blocksize
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop(*args):
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    pass
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

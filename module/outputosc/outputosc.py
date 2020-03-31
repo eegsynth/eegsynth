@@ -190,7 +190,6 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    # everything is executed in the TriggerThread
     pass
 
 

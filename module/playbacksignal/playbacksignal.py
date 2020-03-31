@@ -33,11 +33,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -47,158 +47,179 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 import EDF
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-i', '--inifile', default=os.path.join(path, name + '.ini'), help='name of the configuration file')
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError('cannot connect to Redis server')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--inifile', default=os.path.join(path, name + '.ini'), help='name of the configuration file')
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-# get the options from the configuration file
-debug       = patch.getint('general','debug')
-filename    = patch.getstring('playback', 'file')
-fileformat  = patch.getstring('playback', 'format')
-
-if fileformat is None:
-    # determine the file format from the file name
-    name, ext = os.path.splitext(filename)
-    fileformat = ext[1:]
-
-monitor.info('Reading data from ' + filename)
-
-try:
-    ft_host = patch.getstring('fieldtrip','hostname')
-    ft_port = patch.getint('fieldtrip','port')
-    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ft_host, ft_port)
-    monitor.success('Connected to FieldTrip buffer')
-except:
-    raise RuntimeError('cannot connect to FieldTrip buffer')
-
-H = FieldTrip.Header()
-
-MININT8  = -np.power(2.,7)
-MAXINT8  =  np.power(2.,7)-1
-MININT16 = -np.power(2.,15)
-MAXINT16 =  np.power(2.,15)-1
-MININT32 = -np.power(2.,31)
-MAXINT32 =  np.power(2.,31)-1
-
-if fileformat=='edf':
-    f = EDF.EDFReader()
-    f.open(filename)
-    for chanindx in range(f.getNSignals()):
-        if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
-            raise AssertionError('unequal SignalFreqs')
-        if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
-            raise AssertionError('unequal NSamples')
-    H.nChannels = len(f.getSignalFreqs())
-    H.fSample   = f.getSignalFreqs()[0]
-    H.nSamples  = f.getNSamples()[0]
-    H.nEvents   = 0
-    H.dataType  = FieldTrip.DATATYPE_FLOAT32
-    # the channel labels will be written to the buffer
-    labels = f.getSignalTextLabels()
-    # read all the data from the file
-    A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
-    for chanindx in range(H.nChannels):
-        monitor.info('reading channel ' + str(chanindx))
-        A[:,chanindx] = f.readSignal(chanindx)
-    f.close()
-
-elif fileformat=='wav':
     try:
-        physical_min = patch.getfloat('playback', 'physical_min')
-    except:
-        physical_min = -1
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError('cannot connect to Redis server')
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+    filename = patch.getstring('playback', 'file')
+    fileformat = patch.getstring('playback', 'format')
+
+    if fileformat is None:
+        # determine the file format from the file name
+        name, ext = os.path.splitext(filename)
+        fileformat = ext[1:]
+
+    monitor.info('Reading data from ' + filename)
+
     try:
-        physical_max = patch.getfloat('playback', 'physical_max')
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        monitor.success('Connected to FieldTrip buffer')
     except:
-        physical_max =  1
-    f = wave.open(filename, 'r')
-    resolution = f.getsampwidth() # 1, 2 or 4
-    # 8-bit samples are stored as unsigned bytes, ranging from 0 to 255.
-    # 16-bit samples are stored as signed integers in 2's-complement.
-    H.nChannels = f.getnchannels()
-    H.fSample   = f.getframerate()
-    H.nSamples  = f.getnframes()
-    H.nEvents   = 0
-    H.dataType  = FieldTrip.DATATYPE_FLOAT32
-    # there are no channel labels
-    labels = None
-    # read all the data from the file
-    x = f.readframes(f.getnframes()*f.getnchannels())
-    f.close()
-    # convert and calibrate
-    if resolution==2:
-        x = struct.unpack_from ('%dh' % f.getnframes()*f.getnchannels(), x)
-        x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
-        y = x / float(MAXINT16)
-    elif resolution==4:
-        x = struct.unpack_from ('%di' % f.getnframes()*f.getnchannels(), x)
-        x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
-        y = x / float(MAXINT32)
+        raise RuntimeError('cannot connect to FieldTrip buffer')
+
+    H = FieldTrip.Header()
+
+    MININT8 = -np.power(2., 7)
+    MAXINT8 = np.power(2., 7) - 1
+    MININT16 = -np.power(2., 15)
+    MAXINT16 = np.power(2., 15) - 1
+    MININT32 = -np.power(2., 31)
+    MAXINT32 = np.power(2., 31) - 1
+
+    if fileformat == 'edf':
+        f = EDF.EDFReader()
+        f.open(filename)
+        for chanindx in range(f.getNSignals()):
+            if f.getSignalFreqs()[chanindx] != f.getSignalFreqs()[0]:
+                raise AssertionError('unequal SignalFreqs')
+            if f.getNSamples()[chanindx] != f.getNSamples()[0]:
+                raise AssertionError('unequal NSamples')
+        H.nChannels = len(f.getSignalFreqs())
+        H.fSample = f.getSignalFreqs()[0]
+        H.nSamples = f.getNSamples()[0]
+        H.nEvents = 0
+        H.dataType = FieldTrip.DATATYPE_FLOAT32
+        # the channel labels will be written to the buffer
+        labels = f.getSignalTextLabels()
+        # read all the data from the file
+        A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
+        for chanindx in range(H.nChannels):
+            monitor.info('reading channel ' + str(chanindx))
+            A[:, chanindx] = f.readSignal(chanindx)
+        f.close()
+
+    elif fileformat == 'wav':
+        try:
+            physical_min = patch.getfloat('playback', 'physical_min')
+        except:
+            physical_min = -1
+        try:
+            physical_max = patch.getfloat('playback', 'physical_max')
+        except:
+            physical_max = 1
+        f = wave.open(filename, 'r')
+        resolution = f.getsampwidth()  # 1, 2 or 4
+        # 8-bit samples are stored as unsigned bytes, ranging from 0 to 255.
+        # 16-bit samples are stored as signed integers in 2's-complement.
+        H.nChannels = f.getnchannels()
+        H.fSample = f.getframerate()
+        H.nSamples = f.getnframes()
+        H.nEvents = 0
+        H.dataType = FieldTrip.DATATYPE_FLOAT32
+        # there are no channel labels
+        labels = None
+        # read all the data from the file
+        x = f.readframes(f.getnframes() * f.getnchannels())
+        f.close()
+        # convert and calibrate
+        if resolution == 2:
+            x = struct.unpack_from('%dh' % f.getnframes() * f.getnchannels(), x)
+            x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
+            y = x / float(MAXINT16)
+        elif resolution == 4:
+            x = struct.unpack_from('%di' % f.getnframes() * f.getnchannels(), x)
+            x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
+            y = x / float(MAXINT32)
+        else:
+            raise NotImplementedError('unsupported resolution')
+        A = y * ((physical_max - physical_min) / 2)
+
     else:
-        raise NotImplementedError('unsupported resolution')
-    A = y * ((physical_max-physical_min)/2)
+        raise NotImplementedError('unsupported file format')
 
-else:
-    raise NotImplementedError('unsupported file format')
+    monitor.debug('nChannels = ' + str(H.nChannels))
+    monitor.debug('nSamples = ' + str(H.nSamples))
+    monitor.debug('fSample = ' + str(H.fSample))
+    monitor.debug('labels = ' + str(labels))
 
-monitor.debug('nChannels = ' + str(H.nChannels))
-monitor.debug('nSamples = ' + str(H.nSamples))
-monitor.debug('fSample = '+ str(H.fSample))
-monitor.debug('labels = ' + str(labels))
+    ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
 
-ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
+    blocksize = int(patch.getfloat('playback', 'blocksize') * H.fSample)
+    begsample = 0
+    endsample = blocksize - 1
+    block = 0
 
-blocksize = int(patch.getfloat('playback', 'blocksize')*H.fSample)
-begsample = 0
-endsample = blocksize-1
-block     = 0
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-while True:
-    monitor.loop()
-
-    if endsample>H.nSamples-1:
+    if endsample > H.nSamples - 1:
         monitor.info('End of file reached, jumping back to start')
         begsample = 0
-        endsample = blocksize-1
-        block     = 0
+        endsample = blocksize - 1
+        block = 0
 
     if patch.getint('playback', 'rewind', default=0):
         monitor.info('Rewind pressed, jumping back to start of file')
         begsample = 0
-        endsample = blocksize-1
-        block     = 0
+        endsample = blocksize - 1
+        block = 0
 
     if not patch.getint('playback', 'play', default=1):
         monitor.info('Stopped')
-        time.sleep(0.1);
-        continue
+        time.sleep(0.1)
+        return
 
     if patch.getint('playback', 'pause', default=0):
         monitor.info('Paused')
-        time.sleep(0.1);
-        continue
+        time.sleep(0.1)
+        return
 
     # measure the time to correct for the slip
     start = time.time()
@@ -206,7 +227,7 @@ while True:
     monitor.info('Playing block ' + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
 
     # copy the selected samples from the in-memory data
-    D = A[begsample:endsample+1,:]
+    D = A[begsample:endsample + 1, :]
 
     # write the data to the output buffer
     ft_output.putData(D)
@@ -217,11 +238,39 @@ while True:
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize/(H.fSample*patch.getfloat('playback', 'speed'))
-    elapsed = time.time()-start
+    desired = blocksize / (H.fSample * patch.getfloat('playback', 'speed'))
+    elapsed = time.time() - start
     naptime = desired - elapsed
-    if naptime>0:
+    if naptime > 0:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info('played ' + str(blocksize) + ' samples in ' + str((time.time()-start)*1000) + ' ms')
+    monitor.info('played ' + str(blocksize) + ' samples in ' + str((time.time() - start) * 1000) + ' ms')
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    pass
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

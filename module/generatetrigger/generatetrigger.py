@@ -52,7 +52,7 @@ import EEGsynth
 
 
 def trigger(send=True):
-    global patch, t, lock, rate, spread
+    global patch, lock, rate, spread, t
     if send:
         # send the current trigger
         key = patch.getstring('output', 'prefix') + '.note'
