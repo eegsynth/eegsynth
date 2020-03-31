@@ -80,7 +80,7 @@ def sanitize(equation):
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, trigger, redischannel):
+    def __init__(self, redischannel, trigger):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
         self.trigger = trigger
@@ -222,7 +222,7 @@ def _start():
     trigger = []
     monitor.debug("Setting up threads for each trigger")
     for item in config.items('trigger'):
-        trigger.append(TriggerThread(item[0], item[1]))
+        trigger.append(TriggerThread(item[1], item[0]))
         monitor.debug(item[0] + " " + item[1] + " OK")
 
     # start the thread for each of the triggers

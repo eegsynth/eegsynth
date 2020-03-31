@@ -59,7 +59,7 @@ def randomStringDigits(stringLength=6):
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, trigger, redischannel):
+    def __init__(self, redischannel, trigger):
         threading.Thread.__init__(self)
         self.redischannel = redischannel
         self.name = trigger
@@ -147,7 +147,7 @@ def _start():
     trigger = []
     monitor.info("Setting up threads for each trigger")
     for item in config.items('trigger'):
-        trigger.append(TriggerThread(item[0], item[1]))
+        trigger.append(TriggerThread(item[1], item[0]))
         monitor.debug(str(item[0]) + " " + str(item[1]) + " OK")
 
     # this is to prevent two messages from being sent at the same time
@@ -159,8 +159,8 @@ def _start():
 
     previous_val = {}
     for item in config.items('control'):
-        name = item[0]
-        previous_val[name] = None
+        key = item[0]
+        previous_val[key] = None
 
 
     # there should not be any local variables in this function, they should all be global
@@ -178,25 +178,25 @@ def _loop_once():
 
     # loop over the control values
     for item in config.items('control'):
-        name = item[0]
+        key = item[0]
 
-        val = patch.getfloat('control', name)
+        val = patch.getfloat('control', key)
         if val is None:
             continue  # it should be skipped when not present in the ini or Redis
-        if val == previous_val[name]:
+        if val == previous_val[key]:
             continue  # it should be skipped when identical to the previous value
-        previous_val[name] = val
+        previous_val[key] = val
 
         if lsl_format == 'value':
             # map the Redis values to LSL marker values
             # the scale and offset options are control channel specific and can be changed on the fly
-            scale = patch.getfloat('scale', name, default=127)
-            offset = patch.getfloat('offset', name, default=0)
+            scale = patch.getfloat('scale', key, default=127)
+            offset = patch.getfloat('offset', key, default=0)
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
             # format the value as a string
             marker = '%g' % (val)
         else:
-            marker = name
+            marker = key
         with lock:
             monitor.debug(marker)
             outlet.push_sample([marker])
