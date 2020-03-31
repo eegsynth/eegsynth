@@ -90,7 +90,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, window, channel_items, channel_name, channel_indx, item, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer

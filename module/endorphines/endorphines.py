@@ -177,8 +177,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, monitor, debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
+    global parser, args, config, r, response, patch
+    global monitor, debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
     global name, val, port_val, scale, offset, midichannel, msg
 
     # loop over the control values

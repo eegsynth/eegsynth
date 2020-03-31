@@ -282,7 +282,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, debug, p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
     global BUFFER, t, last, vco_pitch, vco_sin, vco_tri, vco_saw, vco_sqr, lfo_depth, lfo_frequency, adsr_attack, adsr_decay, adsr_sustain, adsr_release, vca_envelope, frequency, period, wave_sin, wave_tri, wave_saw, wave_sqr, waveform, lfo_envelope, adsr_envelope
 

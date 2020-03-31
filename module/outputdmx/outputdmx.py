@@ -91,7 +91,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime, START_VAL, END_VAL, TX_DMX_PACKET, FRAME_PAD
 
     # this can be used to show parameters that have changed

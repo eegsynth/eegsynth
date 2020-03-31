@@ -204,7 +204,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, debug, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
     global start, active, sequence, transpose, duration, elapsed, naptime
 

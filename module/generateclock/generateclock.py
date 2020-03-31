@@ -241,8 +241,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
+    global parser, args, config, r, response, patch
+    global monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
     global start, redis_play, midi_play, midi_start, rate, shift, ppqn, elapsed, naptime
 
     # measure the time to correct for the slip

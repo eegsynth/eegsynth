@@ -121,7 +121,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread, context, socket
 
     # this can be used to show parameters that have changed
@@ -174,7 +174,6 @@ def _start():
 
 def _loop_once():
     '''Run the main loop once
-    This uses the global variables from setup and start, and adds a set of global variables
     '''
     pass
 

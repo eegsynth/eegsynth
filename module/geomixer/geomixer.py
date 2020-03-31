@@ -129,8 +129,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+    global parser, args, config, r, response, patch
+    global monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
     global start, switch_time, switch_precision, input, lower_treshold, upper_treshold, change, str, key, channel_val, this, next, val, desired, elapsed, naptime
 
     # measure the time to correct for the slip

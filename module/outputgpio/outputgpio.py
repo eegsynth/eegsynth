@@ -136,7 +136,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, pin, debug, delay, scale_duration, offset_duration, lock, trigger
 
     # this can be used to show parameters that have changed

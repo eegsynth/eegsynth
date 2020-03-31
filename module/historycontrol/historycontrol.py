@@ -88,7 +88,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
     # this can be used to show parameters that have changed
@@ -134,8 +134,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response
-    global patch, monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
+    global parser, args, config, r, response, patch
+    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
     # measure the time to correct for the slip
     start = time.time()

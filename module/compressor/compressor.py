@@ -106,8 +106,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, monitor, debug, delay, prefix, input_name, input_variable
+    global parser, args, config, r, response, patch
+    global monitor, debug, delay, prefix, input_name, input_variable
 
     if patch.getint('processing', 'enable', default=1):
         # the compressor/expander applies to all channels and must exist as float or redis key

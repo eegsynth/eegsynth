@@ -332,7 +332,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset
 
     # this can be used to show parameters that have changed

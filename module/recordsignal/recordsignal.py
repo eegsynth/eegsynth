@@ -141,7 +141,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording
     global fname, f, ext, blocksize, synchronize, physical_min, physical_max, meas_info, chan_info, now, begsample, endsample, startsample, dat, key
 

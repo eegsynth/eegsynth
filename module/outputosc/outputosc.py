@@ -188,7 +188,6 @@ def _start():
 
 def _loop_once():
     '''Run the main loop once
-    This uses the global variables from setup and start, and adds a set of global variables
     '''
     pass
 

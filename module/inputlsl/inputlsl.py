@@ -143,7 +143,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, delay, timeout, lsl_name, lsl_type, lsl_format, output_prefix, start, selected, streams, stream, inlet, type, source_id, match, lsl_id
     global sample, timestamp
 

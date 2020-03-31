@@ -93,7 +93,7 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
 
 
@@ -161,8 +161,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, startfeedback, countfeedback
+    global parser, args, config, r, response, patch
+    global startfeedback, countfeedback
     global start, data
 
     # measure the time that it takes

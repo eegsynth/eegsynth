@@ -151,8 +151,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response
-    global patch, monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+    global parser, args, config, r, response, patch
+    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
     global change
 
     with lock:

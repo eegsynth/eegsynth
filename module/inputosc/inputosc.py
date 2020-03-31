@@ -189,7 +189,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, use_old_version, output_scale, output_offset
+    global parser, args, config, r, response, patch
+    global use_old_version, output_scale, output_offset
 
     # keep looping while incoming OSC messages are being handled
     if use_old_version:

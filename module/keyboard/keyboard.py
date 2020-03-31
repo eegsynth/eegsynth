@@ -266,7 +266,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, note_name, note_code, debug, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
 
     for msg in inputport.iter_pending():

@@ -89,7 +89,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
     # this can be used to show parameters that have changed
@@ -215,8 +215,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response
-    global patch, monitor, push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
+    global parser, args, config, r, response, patch
+    global monitor, push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
     for msg in inputport.iter_pending():
         if midichannel is None:

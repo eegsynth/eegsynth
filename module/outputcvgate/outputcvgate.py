@@ -149,7 +149,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
 
     # this can be used to show parameters that have changed

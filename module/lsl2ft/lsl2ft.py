@@ -162,7 +162,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
 
     chunk, timestamps = inlet.pull_chunk()

@@ -130,10 +130,10 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
     global channel, val, idx, qname, qvalue, key
-    
+
     monitor.info('----------------------------------------')
 
     for channel, name in zip(input_channel, input_name):

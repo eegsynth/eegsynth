@@ -172,7 +172,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, debug, lsl_name, lsl_type, lsl_id, lsl_format, info, outlet, trigger, item, lock, thread, previous_val
     global val, marker
 

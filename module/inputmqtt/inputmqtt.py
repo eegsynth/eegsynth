@@ -118,7 +118,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, client
+    global parser, args, config, r, response, patch, client, name
     global monitor, debug, prefix, output_scale, output_offset, input_channels, channel
 
     # this can be used to show parameters that have changed
@@ -152,7 +152,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, client
     global monitor, debug, prefix, output_scale, output_offset, input_channels, channel
     global output_scale, output_offset
 
