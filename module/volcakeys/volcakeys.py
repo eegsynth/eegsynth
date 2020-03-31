@@ -78,9 +78,8 @@ class TriggerThread(threading.Thread):
                     val = int(val)
                     monitor.update(item['channel'], val)
                     msg = mido.Message('note_on', note=self.note, velocity=val, channel=midichannel)
-                    lock.acquire()
-                    outputport.send(msg)
-                    lock.release()
+                    with lock:
+                        outputport.send(msg)
 
 
 def _setup():
@@ -202,9 +201,8 @@ def _loop_once():
         val = int(val)
         msg = mido.Message('control_change', control=cmd, value=val, channel=midichannel)
         monitor.debug(cmd, val, name)
-        lock.acquire()
-        outputport.send(msg)
-        lock.release()
+        with lock:
+            outputport.send(msg)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):

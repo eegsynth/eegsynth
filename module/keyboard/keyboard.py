@@ -53,10 +53,10 @@ import EEGsynth
 
 # this is used to send direct and delayed messages
 def SendMessage(msg):
-    lock.acquire()
-    monitor.info(msg)
-    outputport.send(msg)
-    lock.release()
+    global lock
+    with lock:
+        monitor.info(msg)
+        outputport.send(msg)
 
 
 class TriggerThread(threading.Thread):

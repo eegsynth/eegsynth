@@ -59,10 +59,9 @@ import EEGsynth
 
 def SetGPIO(gpio, val=1):
     global lock, monitor
-    lock.acquire()
-    monitor.debug(str(gpio) + " " + str(pin[gpio]) + " " + str(val))
-    wiringpi.digitalWrite(pin[gpio], val)
-    lock.release()
+    with lock:
+        wiringpi.digitalWrite(pin[gpio], val)
+        monitor.debug(str(gpio) + " " + str(pin[gpio]) + " " + str(val))
 
 
 class TriggerThread(threading.Thread):
@@ -222,9 +221,8 @@ def _loop_once():
         val = EEGsynth.rescale(val, slope=scale, offset=offset)
         val = EEGsynth.limit(val, 0, 100)
         val = int(val)
-        lock.acquire()
-        wiringpi.softPwmWrite(pin[gpio], val)
-        lock.release()
+        with lock:
+            wiringpi.softPwmWrite(pin[gpio], val)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):

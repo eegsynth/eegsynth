@@ -71,12 +71,11 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     monitor.info(item)
-                    lock.acquire()
                     now = time.time()
                     val = float(item['data'])
-                    # append the time and value as a tuple
-                    data[self.number].append((now, val))
-                    lock.release()
+                    with lock:
+                        # append the time and value as a tuple
+                        data[self.number].append((now, val))
 
 
 def _setup():

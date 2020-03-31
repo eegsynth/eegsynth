@@ -56,10 +56,9 @@ class TriggerThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
-        lock.acquire()
-        self.time = 0
-        self.last = 0
-        lock.release()
+        with lock:
+            self.time = 0
+            self.last = 0
 
     def stop(self):
         self.running = False
@@ -73,29 +72,27 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 monitor.trace(item)
-                lock.acquire()
-                self.last = self.time
-                lock.release()
+                with lock:
+                    self.last = self.time
 
 
 class ControlThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
-        lock.acquire()
-        self.vco_pitch = 0
-        self.vco_sin = 0
-        self.vco_tri = 0
-        self.vco_saw = 0
-        self.vco_sqr = 0
-        self.lfo_depth = 0
-        self.lfo_frequency = 0
-        self.adsr_attack = 0
-        self.adsr_decay = 0
-        self.adsr_sustain = 0
-        self.adsr_release = 0
-        self.vca_envelope = 0
-        lock.release()
+        with lock:
+            self.vco_pitch = 0
+            self.vco_sin = 0
+            self.vco_tri = 0
+            self.vco_saw = 0
+            self.vco_sqr = 0
+            self.lfo_depth = 0
+            self.lfo_frequency = 0
+            self.adsr_attack = 0
+            self.adsr_decay = 0
+            self.adsr_sustain = 0
+            self.adsr_release = 0
+            self.vca_envelope = 0
 
     def stop(self):
         self.running = False
@@ -160,20 +157,19 @@ class ControlThread(threading.Thread):
             ################################################################################
             # store the control values in the local object
             ################################################################################
-            lock.acquire()
-            self.vco_pitch = vco_pitch
-            self.vco_sin = vco_sin
-            self.vco_tri = vco_tri
-            self.vco_saw = vco_saw
-            self.vco_sqr = vco_sqr
-            self.lfo_depth = lfo_depth
-            self.lfo_frequency = lfo_frequency
-            self.adsr_attack = adsr_attack
-            self.adsr_decay = adsr_decay
-            self.adsr_sustain = adsr_sustain
-            self.adsr_release = adsr_release
-            self.vca_envelope = vca_envelope
-            lock.release()
+            with lock:
+                self.vco_pitch = vco_pitch
+                self.vco_sin = vco_sin
+                self.vco_tri = vco_tri
+                self.vco_saw = vco_saw
+                self.vco_sqr = vco_sqr
+                self.lfo_depth = lfo_depth
+                self.lfo_frequency = lfo_frequency
+                self.adsr_attack = adsr_attack
+                self.adsr_decay = adsr_decay
+                self.adsr_sustain = adsr_sustain
+                self.adsr_release = adsr_release
+                self.vca_envelope = vca_envelope
 
             # these get printed when they change
             monitor.update('vco_pitch    ', vco_pitch)
@@ -294,22 +290,21 @@ def _loop_once():
     for t in range(offset, offset + blocksize):
         # update the time for the trigger detection
 
-        lock.acquire()
-        trigger.time = t
-        last = trigger.last
-        vco_pitch = control.vco_pitch
-        vco_sin = control.vco_sin
-        vco_tri = control.vco_tri
-        vco_saw = control.vco_saw
-        vco_sqr = control.vco_sqr
-        lfo_depth = control.lfo_depth
-        lfo_frequency = control.lfo_frequency
-        adsr_attack = control.adsr_attack
-        adsr_decay = control.adsr_decay
-        adsr_sustain = control.adsr_sustain
-        adsr_release = control.adsr_release
-        vca_envelope = control.vca_envelope
-        lock.release()
+        with lock:
+            trigger.time = t
+            last = trigger.last
+            vco_pitch = control.vco_pitch
+            vco_sin = control.vco_sin
+            vco_tri = control.vco_tri
+            vco_saw = control.vco_saw
+            vco_sqr = control.vco_sqr
+            lfo_depth = control.lfo_depth
+            lfo_frequency = control.lfo_frequency
+            adsr_attack = control.adsr_attack
+            adsr_decay = control.adsr_decay
+            adsr_sustain = control.adsr_sustain
+            adsr_release = control.adsr_release
+            vca_envelope = control.vca_envelope
 
         # compose the VCO waveform
         if vco_pitch > 0:

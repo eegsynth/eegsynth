@@ -53,15 +53,15 @@ import EEGsynth
 
 
 def SetControl(chanindx, chanval):
-    lock.acquire()
-    s.write(b'*c%dv%04d#' % (chanindx, chanval))
-    lock.release()
+    global lock
+    with lock:
+        s.write(b'*c%dv%04d#' % (chanindx, chanval))
 
 
 def SetGate(chanindx, chanval):
-    lock.acquire()
-    s.write(b'*g%dv%d#' % (chanindx, chanval))
-    lock.release()
+    global lock
+    with lock:
+        s.write(b'*g%dv%d#' % (chanindx, chanval))
 
 
 class TriggerThread(threading.Thread):

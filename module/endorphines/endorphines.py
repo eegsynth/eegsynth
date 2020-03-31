@@ -77,9 +77,8 @@ class TriggerThread(threading.Thread):
                         pitch = int(0)
                     msg = mido.Message('pitchwheel', pitch=pitch, channel=self.midichannel)
                     monitor.debug(msg)
-                    lock.acquire()
-                    outputport.send(msg)
-                    lock.release()
+                    with lock:
+                        outputport.send(msg)
                     # keep it at the present value for a minimal amount of time
                     time.sleep(patch.getfloat('general', 'pulselength'))
 
@@ -234,9 +233,8 @@ def _loop_once():
 
             monitor.debug(msg)
 
-            lock.acquire()
-            outputport.send(msg)
-            lock.release()
+            with lock:
+                outputport.send(msg)
 
             # keep it at the present value for a minimal amount of time
             time.sleep(patch.getfloat('general', 'pulselength'))
@@ -250,9 +248,8 @@ def _loop_once():
 
             monitor.debug(msg)
 
-            lock.acquire()
-            outputport.send(msg)
-            lock.release()
+            with lock:
+                outputport.send(msg)
 
             # keep it at the present value for a minimal amount of time
             time.sleep(patch.getfloat('general', 'pulselength'))
