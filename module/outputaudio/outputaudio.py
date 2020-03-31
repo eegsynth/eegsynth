@@ -337,10 +337,10 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global stream, p
-
     stream.stop_stream()
     stream.close()
     p.terminate()
+    sys.exit()
 
 
 if __name__ == '__main__':

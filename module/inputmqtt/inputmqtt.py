@@ -182,6 +182,7 @@ def _stop():
     monitor.success("Closing module...")
     client.loop_stop(force=False)
     monitor.success("done.")
+    sys.exit()
 
 
 if __name__ == '__main__':

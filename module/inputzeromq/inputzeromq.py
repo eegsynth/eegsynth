@@ -176,6 +176,7 @@ def _stop():
     socket.close()
     context.destroy()
     monitor.success("done.")
+    sys.exit()
 
 
 if __name__ == '__main__':

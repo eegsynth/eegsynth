@@ -375,6 +375,7 @@ def _stop(*args):
     stream.stop_stream()
     stream.close()
     p.terminate()
+    sys.exit()
 
 
 if __name__ == '__main__':

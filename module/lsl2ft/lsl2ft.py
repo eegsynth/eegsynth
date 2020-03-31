@@ -191,9 +191,9 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_output
-
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

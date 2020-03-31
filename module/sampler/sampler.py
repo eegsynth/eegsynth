@@ -347,6 +347,7 @@ def _stop(*args):
     r.publish('SAMPLER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
+    sys.exit()
 
 
 if __name__ == '__main__':

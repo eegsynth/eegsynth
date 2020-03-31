@@ -319,6 +319,7 @@ def _stop():
     monitor.success('Disconnected from input FieldTrip buffer')
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

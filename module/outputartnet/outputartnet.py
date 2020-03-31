@@ -180,6 +180,7 @@ def _stop():
     artnet.broadcastDMX(dmxdata,address)
     time.sleep(0.1) # this seems to take some time
     artnet.close()
+    sys.exit()
 
 
 if __name__ == '__main__':

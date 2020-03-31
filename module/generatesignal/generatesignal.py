@@ -89,6 +89,10 @@ def _setup():
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
 
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
 
 def _start():
     '''Start the module
@@ -146,6 +150,10 @@ def _start():
     # the time axis per block remains the same, the phase linearly increases
     timevec = np.arange(1, blocksize + 1) / fsample
     phasevec = np.zeros(1)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
 
 
 def _loop_once():
@@ -250,6 +258,10 @@ def _loop_once():
 
     monitor.info("generated " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
 
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
 
 def _loop_forever():
     '''Run the main loop forever
@@ -264,7 +276,6 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_output
-
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
     sys.exit()

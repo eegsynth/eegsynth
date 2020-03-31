@@ -204,6 +204,7 @@ def _stop():
     # Stop acquisition and close connection
     device.stop()
     device.close()
+    sys.exit()
 
 
 if __name__ == "__main__":

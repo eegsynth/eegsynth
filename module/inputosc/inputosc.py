@@ -222,6 +222,7 @@ def _stop():
         monitor.info("Waiting for OSC server thread to finish.")
         st.join()
         monitor.success("Done.")
+    sys.exit()
 
 
 if __name__ == '__main__':

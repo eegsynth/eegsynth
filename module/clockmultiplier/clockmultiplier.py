@@ -206,6 +206,7 @@ def _stop():
     r.publish('CLOCKMULTIPLIER_UNBLOCK', 1)
     for thread in triggers:
         thread.join()
+    sys.exit()
 
 
 if __name__ == '__main__':

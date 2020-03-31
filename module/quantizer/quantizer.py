@@ -178,7 +178,7 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    pass
+    sys.exit()
 
 
 if __name__ == '__main__':

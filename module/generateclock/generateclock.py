@@ -76,7 +76,7 @@ class ClockThread(threading.Thread):
             monitor.debug('clock beat')
             start = time.time()
             delay = 60 / self.rate   # the rate is in bpm
-            delay -= slip           # correct for the slip from the previous iteration
+            delay -= slip            # correct for the slip from the previous iteration
             jiffy = delay / 24
             for tick in range(24):
                 clock[tick].set()
@@ -119,7 +119,7 @@ class RedisThread(threading.Thread):
         self.running = True
         self.enabled = False
         self.ppqn = 1      # this determines how many messages are sent per quarter note
-        self.shift = 0      # this determines by how many ticks the Redis message is shifted
+        self.shift = 0     # this determines by how many ticks the Redis message is shifted
         # it will send a message on the selected clock ticks
         self.clock = [0]
         self.key = "{}.note".format(patch.getstring('output', 'prefix'))
@@ -205,6 +205,7 @@ def _start():
     offset_shift = patch.getfloat('offset', 'shift')
     scale_ppqn = patch.getfloat('scale', 'ppqn')
     offset_ppqn = patch.getfloat('offset', 'ppqn')
+    
     # this is to prevent two threads accesing a variable at the same time
     lock = threading.Lock()
 

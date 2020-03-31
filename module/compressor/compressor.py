@@ -55,8 +55,7 @@ def _setup():
     global parser, args, config, r, response, patch
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'),
-                        help="name of the configuration file")
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
     args = parser.parse_args()
 
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -158,7 +157,7 @@ def _loop_forever():
 def _stop():
     """Stop and clean up on SystemExit, KeyboardInterrupt
     """
-    pass
+    sys.exit()
 
 
 if __name__ == "__main__":

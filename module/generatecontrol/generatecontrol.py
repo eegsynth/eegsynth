@@ -143,7 +143,6 @@ def _loop_once():
 
     frequency = patch.getfloat('signal', 'frequency', default=0.2)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.3)
-    # the DC component of the output signal
     offset = patch.getfloat('signal', 'offset', default=0.5)
     noise = patch.getfloat('signal', 'noise', default=0.1)
     dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)   # for the square wave
@@ -214,6 +213,7 @@ def _stop():
     """Stop and clean up on SystemExit, KeyboardInterrupt
     """
     sys.exit()
+
 
 if __name__ == "__main__":
     _setup()
