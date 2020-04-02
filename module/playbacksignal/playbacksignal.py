@@ -84,7 +84,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch, name, monitor, endsample, H, blocksize, A, ft_output
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -197,7 +197,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, monitor, endsample, H, blocksize, A, ft_output
 
     if endsample > H.nSamples - 1:
         monitor.info('End of file reached, jumping back to start')
@@ -270,7 +270,8 @@ def _stop():
 if __name__ == '__main__':
     _setup()
     _start()
-    try:
-        _loop_forever()
+    _loop_forever()
+    '''try:
     except:
         _stop()
+'''
