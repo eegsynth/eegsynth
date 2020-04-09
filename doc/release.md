@@ -17,6 +17,7 @@ pip install twine
 edit setup.py     # insert the correct version number
 git commit -a     # commit the version number change
 git tag -a x.y.z  # tag this commit with the correct version number, see below
+git push --tags
 
 python setup.py sdist bdist_wheel
 twine upload dist/*

@@ -91,7 +91,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -118,7 +118,7 @@ def _start():
         channame.append(item[0])
         chanindx.append(patch.getint('input', item[0])-1)
 
-    monitor.info(channame, chanindx)
+    monitor.info(str(channame) + " " + str(chanindx))
 
     prefix = patch.getstring('output', 'prefix')
 
@@ -133,9 +133,6 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
     global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
-
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
 
     scale_window = patch.getfloat('scale', 'window', default=1.)
     offset_window = patch.getfloat('offset', 'window', default=0.)
@@ -211,17 +208,20 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input
-
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

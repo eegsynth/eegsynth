@@ -71,12 +71,11 @@ class TriggerThread(threading.Thread):
                     break
                 if item['channel']==self.redischannel:
                     monitor.info(item)
-                    lock.acquire()
                     now = time.time()
                     val = float(item['data'])
-                    # append the time and value as a tuple
-                    data[self.number].append((now, val))
-                    lock.release()
+                    with lock:
+                        # append the time and value as a tuple
+                        data[self.number].append((now, val))
 
 
 def _setup():
@@ -143,7 +142,7 @@ def _start():
             # start the background thread that deals with this channel
             this = TriggerThread(patch.getstring('gate', name), i)
             trigger.append(this)
-            monitor.info(name, 'OK')
+            monitor.info(name + ' trigger configured')
     if len(trigger)==0:
         monitor.warning('no gates were specified in the ini file')
 
@@ -234,7 +233,6 @@ def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, trigger, r
-
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()

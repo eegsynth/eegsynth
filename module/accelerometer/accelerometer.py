@@ -90,7 +90,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, window, channel_items, channel_name, channel_indx, item, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -133,9 +133,6 @@ def _loop_once():
     global timeout, hdr_input, start, window, channel_items, channel_name, channel_indx, item, begsample, endsample
     global dat, channame, chanindx, key, val
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples - 1) < endsample:
         raise RuntimeError("buffer reset detected")
@@ -159,17 +156,21 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input
-    
+
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

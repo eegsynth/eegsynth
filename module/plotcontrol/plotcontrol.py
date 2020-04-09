@@ -54,7 +54,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor
+    global parser, args, config, r, response, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -72,16 +72,16 @@ def _setup():
     # combine the patching from the configuration file and Redis
     patch = EEGsynth.patch(config, r)
 
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
-
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor
-    global delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
+    global parser, args, config, r, response, patch, name
+    global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     delay       = patch.getfloat('general', 'delay')
@@ -151,8 +151,8 @@ def _loop_once():
     '''Update the main figure once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor
-    global delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
+    global parser, args, config, r, response, patch
+    global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     monitor.loop()
 

@@ -97,7 +97,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, rectify, invert, prefix, window, scale_threshold, offset_threshold, scale_interval, offset_interval, channels, previous, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -154,8 +154,6 @@ def _loop_once():
     global timeout, hdr_input, start, rectify, invert, prefix, window, scale_threshold, offset_threshold, scale_interval, offset_interval, channels, previous, begsample, endsample
     global dat_input, threshold, interval, channel, maxind, maxval, sample, key
 
-    monitor.loop()
-
     # determine when we start polling for available data
     start = time.time()
 
@@ -207,20 +205,25 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, ft_input
-
+    global ft_input, monitor
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()

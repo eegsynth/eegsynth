@@ -32,11 +32,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -46,52 +46,79 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug      = patch.getint('general','debug')
-mididevice = patch.getstring('midi', 'device')
-mididevice = EEGsynth.trimquotes(mididevice)
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# the scale and offset are used to map MIDI values to Redis values
-output_scale    = patch.getfloat('output', 'scale', default=1./127) # MIDI values are from 0 to 127
-output_offset   = patch.getfloat('output', 'offset', default=0.)    # MIDI values are from 0 to 127
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
-# this is only for debugging, check which MIDI devices are accessible
-monitor.info('------ INPUT ------')
-for port in mido.get_input_names():
-  monitor.info(port)
-monitor.info('-------------------------')
 
-try:
-    inputport = mido.open_input(mididevice)
-    monitor.success('Connected to MIDI input')
-except:
-    raise RuntimeError("cannot connect to MIDI input")
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, mididevice, output_scale, output_offset, port, inputport
 
-while True:
-    monitor.loop()
-    time.sleep(patch.getfloat('general','delay'))
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+    mididevice = patch.getstring('midi', 'device')
+    mididevice = EEGsynth.trimquotes(mididevice)
+
+    # the scale and offset are used to map MIDI values to Redis values
+    output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # MIDI values are from 0 to 127
+    output_offset = patch.getfloat('output', 'offset', default=0.)    # MIDI values are from 0 to 127
+
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------ INPUT ------')
+    for port in mido.get_input_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+
+    try:
+        inputport = mido.open_input(mididevice)
+        monitor.success('Connected to MIDI input')
+    except:
+        raise RuntimeError("Cannot connect to MIDI input")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, debug, mididevice, output_scale, output_offset, port, inputport
 
     for msg in inputport.iter_pending():
         monitor.debug(msg)
@@ -106,9 +133,38 @@ while True:
 
         elif hasattr(msg, "note"):
             # prefix.noteXXX=value
-            key = "{}.note{:0>3d}".format(patch.getstring('output','prefix'), msg.note)
+            key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
             val = msg.velocity
             patch.setvalue(key, val)
-            key = "{}.note".format(patch.getstring('output','prefix'))
+            key = "{}.note".format(patch.getstring('output', 'prefix'))
             val = msg.note
             patch.setvalue(key, val)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
+
+
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

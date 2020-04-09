@@ -25,6 +25,7 @@
 import sys
 import os
 import argparse
+from glob import glob
 from multiprocessing import Process
 
 if hasattr(sys, 'frozen'):
@@ -63,6 +64,10 @@ def _main():
 
     # start with an empty list of files
     inifiles = []
+
+    # the first results in a list of lists, the second flattens it
+    args.inifile = [glob(x) for x in args.inifile]
+    args.inifile = [item for sublist in args.inifile for item in sublist]
 
     for file_or_dir in args.inifile:
         if os.path.isfile(file_or_dir):

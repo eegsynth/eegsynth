@@ -36,8 +36,7 @@ try:
     from neurokit.signal import complexity
 except ImportError:
     # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: neurokit is required for the complexity module')
-    print('Warning: please intall it with "pip install neurokit"')
+    print('Warning: neurokit is required for the complexity module, please install it with "pip install neurokit"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -76,7 +75,7 @@ def _setup():
     config.read(args.inifile)
 
     try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0)
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
         response = r.client_list()
     except redis.ConnectionError:
         raise RuntimeError("cannot connect to Redis server")
@@ -105,7 +104,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -132,7 +131,7 @@ def _start():
         channame.append(item[0])
         chanindx.append(patch.getint('input', item[0])-1)
 
-    monitor.info(channame, chanindx)
+    monitor.info(str(channame) + " " + str(chanindx))
 
     shannon     = patch.getint('metrics', 'shannon',     default=0) != 0
     sampen      = patch.getint('metrics', 'sampen',      default=0) != 0
@@ -153,8 +152,8 @@ def _start():
     taper       = np.hanning(window)
     frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 
-    monitor.trace('taper     = ', taper)
-    monitor.trace('frequency = ', frequency)
+    monitor.trace('taper     = ' + str(taper))
+    monitor.trace('frequency = ' + str(frequency))
 
     begsample = -1
     endsample = -1
@@ -167,9 +166,6 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
     global dat, meandat, chan, sample, metrics, timeseries, metric_names, metric, shortmetric, key, val
-
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples - 1) < endsample:
@@ -231,17 +227,20 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input
-
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

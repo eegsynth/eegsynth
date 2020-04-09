@@ -33,11 +33,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -50,80 +50,116 @@ else:
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-# get the options from the configuration file
-debug = patch.getint('general', 'debug')
-
-# the scale and offset are used to map the Redis values to internal values
-scale_rate     = patch.getfloat('scale', 'rate', default=1)
-scale_spread   = patch.getfloat('scale', 'spread', default=1)
-offset_rate    = patch.getfloat('offset', 'rate', default=0)
-offset_spread  = patch.getfloat('offset', 'spread', default=0)
-
-# read them once, they will be constantly updated in the main loop
-rate   = patch.getfloat('interval', 'rate', default=60)
-spread = patch.getfloat('interval', 'spread', default=10)
-rate   = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
-spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
-
-# make an initial timer object, this is needed in case parameters are updated prior to the execution of the first trigger
-t = threading.Timer(0, None)
 
 def trigger(send=True):
-    global t
+    global patch, lock, rate, spread, t
     if send:
         # send the current trigger
         key = patch.getstring('output', 'prefix') + '.note'
         patch.setvalue(key, 1.)
 
-    # the rate is in bpm, i.e. quarter notes per minute
-    if rate-spread>0:
-        mintime = 60/(rate-spread)
-    else:
-        mintime = 0
-    mintime = max(mintime, patch.getfloat('general', 'delay')) # it should have at least some miminum time
-    if rate+spread>0:
-        maxtime = 60/(rate+spread)
-    else:
-        maxtime = 0
-    maxtime = max(maxtime, patch.getfloat('general', 'delay')) # it should have at least some miminum time
+    with lock:
+        # the rate is in bpm, i.e. quarter notes per minute
+        if rate - spread > 0:
+            mintime = 60 / (rate - spread)
+        else:
+            mintime = 0
+        # it should have at least some miminum time
+        mintime = max(mintime, patch.getfloat('general', 'delay'))
+        if rate + spread > 0:
+            maxtime = 60 / (rate + spread)
+        else:
+            maxtime = 0
+
+    # it should have at least some miminum time
+    maxtime = max(maxtime, patch.getfloat('general', 'delay'))
     # compute a random duration which is uniform between mintime and maxtime
-    duration = mintime + float(random.rand(1)) * (maxtime-mintime)
+    duration = mintime + float(random.rand(1)) * (maxtime - mintime)
     # schedule the next trigger
     monitor.debug('scheduling next trigger after %g seconds' % (duration))
     t = threading.Timer(duration, trigger)
     t.start()
 
 
-# start the chain of triggers, the first one does not have to be sent
-trigger(send=False)
+def _setup():
+    """Initialize the module
+    This adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
 
-while True:
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-    rate   = patch.getfloat('interval', 'rate', default=60)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _start():
+    """Start the module
+    This uses the global variables from setup and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+
+    # the scale and offset are used to map the Redis values to internal values
+    scale_rate = patch.getfloat('scale', 'rate', default=1)
+    scale_spread = patch.getfloat('scale', 'spread', default=1)
+    offset_rate = patch.getfloat('offset', 'rate', default=0)
+    offset_spread = patch.getfloat('offset', 'spread', default=0)
+
+    # read them once, they will be constantly updated in the main loop
+    rate = patch.getfloat('interval', 'rate', default=60)
     spread = patch.getfloat('interval', 'spread', default=10)
-    rate   = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+    rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
     spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
+
+    # this is to prevent the trigger function from accessing the parameters while they are being updated
+    lock = threading.Lock()
+
+    # make an initial timer object, this is needed in case parameters are updated prior to the execution of the first trigger
+    t = threading.Timer(0, None)
+
+    # start the chain of triggers, the first one does not have to be sent
+    trigger(send=False)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_once():
+    """Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
+    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+    global change
+
+    with lock:
+        rate = patch.getfloat('interval', 'rate', default=60)
+        spread = patch.getfloat('interval', 'spread', default=10)
+        rate = EEGsynth.rescale(rate, slope=scale_rate, offset=offset_rate)
+        spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
 
     change = monitor.update('rate', rate)
     change = monitor.update('spread', spread) or change
@@ -132,3 +168,32 @@ while True:
         monitor.debug('canceling previously scheduled trigger')
         t.cancel()
         trigger(send=False)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_forever():
+    """Run the main loop forever
+    """
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
+
+
+def _stop():
+    """Stop and clean up on SystemExit, KeyboardInterrupt
+    """
+    sys.exit()
+
+
+if __name__ == "__main__":
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

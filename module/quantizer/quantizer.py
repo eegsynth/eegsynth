@@ -31,11 +31,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -45,72 +45,101 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-# get the options from the configuration file
-debug = patch.getint('general','debug')
-
-# the input scale and offset are used to map Redis values to internal values
-input_scale  = patch.getfloat('input', 'scale', default=127)
-input_offset = patch.getfloat('input', 'offset', default=0)
-# the output scale and offset are used to map internal values to Redis values
-output_scale  = patch.getfloat('output', 'scale', default=1./127)
-output_offset = patch.getfloat('output', 'offset', default=0)
-
-# get the input and output options
-input_channel, input_name = list(map(list, list(zip(*config.items('input')))))
-output_name, output_value = list(map(list, list(zip(*config.items('quantization')))))
-
-# remove the scale and offset from the input list
-del input_channel[input_channel.index('scale')]
-del input_channel[input_channel.index('offset')]
-
-# get the list of values for each of the input values for quantization
-for i,name in enumerate(output_name):
-    output_value[i] = patch.getfloat('quantization', name, multiple=True)
-
-# find the input value to which the data is to be quantized
-index       =  output_name.index('value')
-input_value =  output_value[index]
-# remove the value from the output list
-del output_name[index]
-del output_value[index]
-
-def find_nearest_idx(array,value):
+def find_nearest_idx(array, value):
     # find the index of the array element that is the nearest to the value
-    idx = (np.abs(np.asarray(array)-value)).argmin()
+    idx = (np.abs(np.asarray(array) - value)).argmin()
     return idx
 
-while True:
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
+
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
+
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+
+    # the input scale and offset are used to map Redis values to internal values
+    input_scale = patch.getfloat('input', 'scale', default=127)
+    input_offset = patch.getfloat('input', 'offset', default=0)
+    # the output scale and offset are used to map internal values to Redis values
+    output_scale = patch.getfloat('output', 'scale', default=1. / 127)
+    output_offset = patch.getfloat('output', 'offset', default=0)
+
+    # get the input and output options
+    input_channel, input_name = list(map(list, list(zip(*config.items('input')))))
+    output_name, output_value = list(map(list, list(zip(*config.items('quantization')))))
+
+    # remove the scale and offset from the input list
+    del input_channel[input_channel.index('scale')]
+    del input_channel[input_channel.index('offset')]
+
+    # get the list of values for each of the input values for quantization
+    for i, name in enumerate(output_name):
+        output_value[i] = patch.getfloat('quantization', name, multiple=True)
+
+    # find the input value to which the data is to be quantized
+    index = output_name.index('value')
+    input_value = output_value[index]
+    # remove the value from the output list
+    del output_name[index]
+    del output_value[index]
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
+    global channel, val, idx, qname, qvalue, key
 
     monitor.info('----------------------------------------')
 
     for channel, name in zip(input_channel, input_name):
         val = patch.getfloat('input', channel)
         if val is None:
-            monitor.info(name, 'not found')
+            monitor.info(name + ' not found')
             pass
         else:
             # map the Redis values to the internally used values
@@ -120,7 +149,7 @@ while True:
             idx = find_nearest_idx(input_value, val)
             for qname, qvalue in zip(output_name, output_value):
                 key = '{}.{}'.format(name, qname)
-                if idx<len(qvalue):
+                if idx < len(qvalue):
                     # look up the corresponding output value
                     val = qvalue[idx]
                 else:
@@ -130,3 +159,32 @@ while True:
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                 patch.setvalue(key, val)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
+
+
+def _stop(*args):
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

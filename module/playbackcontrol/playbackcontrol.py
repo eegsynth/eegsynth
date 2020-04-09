@@ -31,11 +31,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -45,93 +45,122 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import EDF
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug    = patch.getint('general','debug')
-filename = patch.getstring('playback', 'file')
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-monitor.info("Reading data from", filename)
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
-f = EDF.EDFReader()
-f.open(filename)
 
-monitor.info("NSignals", f.getNSignals())
-monitor.info("SignalFreqs", f.getSignalFreqs())
-monitor.info("NSamples", f.getNSamples())
-monitor.info("SignalTextLabels", f.getSignalTextLabels())
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
 
-for chanindx in range(f.getNSignals()):
-    if f.getSignalFreqs()[chanindx]!=f.getSignalFreqs()[0]:
-        raise AssertionError('unequal SignalFreqs')
-    if f.getNSamples()[chanindx]!=f.getNSamples()[0]:
-        raise AssertionError('unequal NSamples')
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-channels = f.getSignalTextLabels()
-channelz = f.getSignalTextLabels()
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+    filename = patch.getstring('playback', 'file')
 
-fSample = f.getSignalFreqs()[0]
-nSamples = f.getNSamples()[0]
+    monitor.info("Reading data from " + filename)
 
-# search-and-replace to reduce the length of the channel labels
-for replace in config.items('replace'):
-    monitor.debug(replace)
-    for i in range(len(channelz)):
-        channelz[i] = channelz[i].replace(replace[0], replace[1])
-for s,z in zip(channels, channelz):
-    monitor.info("Writing channel", s, "as control value", z)
+    f = EDF.EDFReader()
+    f.open(filename)
 
-# this should write data in one-sample blocks
-blocksize = 1
-begsample = 0
-endsample = blocksize-1
-block     = 0
+    monitor.info("NSignals = " + str(f.getNSignals()))
+    monitor.info("SignalFreqs = " + str(f.getSignalFreqs()))
+    monitor.info("NSamples = " + str(f.getNSamples()))
+    monitor.info("SignalTextLabels = " + str(f.getSignalTextLabels()))
 
-while True:
-    monitor.loop()
+    for chanindx in range(f.getNSignals()):
+        if f.getSignalFreqs()[chanindx] != f.getSignalFreqs()[0]:
+            raise AssertionError('unequal SignalFreqs')
+        if f.getNSamples()[chanindx] != f.getNSamples()[0]:
+            raise AssertionError('unequal NSamples')
 
-    if endsample>nSamples-1:
+    channels = f.getSignalTextLabels()
+    channelz = f.getSignalTextLabels()
+
+    fSample = f.getSignalFreqs()[0]
+    nSamples = f.getNSamples()[0]
+
+    # search-and-replace to reduce the length of the channel labels
+    for replace in config.items('replace'):
+        monitor.debug(replace)
+        for i in range(len(channelz)):
+            channelz[i] = channelz[i].replace(replace[0], replace[1])
+    for s, z in zip(channels, channelz):
+        monitor.info("Writing channel " + s + " as control value " + z)
+
+    # this should write data in one-sample blocks
+    blocksize = 1
+    begsample = 0
+    endsample = blocksize - 1
+    block = 0
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, debug, filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
+    global start, indx, val, desired, elapsed, naptime
+
+    if endsample > nSamples - 1:
         monitor.info("End of file reached, jumping back to start")
         begsample = 0
-        endsample = blocksize-1
-        block     = 0
+        endsample = blocksize - 1
+        block = 0
 
     if patch.getint('playback', 'rewind', default=0):
         monitor.info("Rewind pressed, jumping back to start of file")
         begsample = 0
-        endsample = blocksize-1
-        block     = 0
+        endsample = blocksize - 1
+        block = 0
 
     if not patch.getint('playback', 'play', default=1):
         monitor.info("Stopped")
-        time.sleep(0.1);
-        continue
+        time.sleep(0.1)
+        return
 
     if patch.getint('playback', 'pause', default=0):
         monitor.info("Paused")
-        time.sleep(0.1);
-        continue
+        time.sleep(0.1)
+        return
 
     # measure the time to correct for the slip
     start = time.time()
@@ -149,11 +178,39 @@ while True:
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize/(fSample*patch.getfloat('playback', 'speed'))
-    elapsed = time.time()-start
+    desired = blocksize / (fSample * patch.getfloat('playback', 'speed'))
+    elapsed = time.time() - start
     naptime = desired - elapsed
-    if naptime>0:
+    if naptime > 0:
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info("played", blocksize, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("played" + str(blocksize) + " samples in " + str((time.time()-start)*1000) + " ms")
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

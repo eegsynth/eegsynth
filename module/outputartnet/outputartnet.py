@@ -81,7 +81,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, address, artnet, dmxdata, prevtime
 
     # this can be used to show parameters that have changed
@@ -114,9 +114,6 @@ def _loop_once():
     global monitor, debug, address, artnet, dmxdata, prevtime
     global chanindx, chanstr, chanval, scale, offset
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     # loop over the control values, these are 1-offset in the ini file
     for chanindx in range(1, 512):
         chanstr = "channel%03d" % chanindx
@@ -125,7 +122,7 @@ def _loop_once():
 
         if chanval==None:
             # the value is not present in Redis, skip it
-            monitor.trace(chanstr, 'not available')
+            monitor.trace(chanstr + ' is not available')
             continue
 
         # the scale and offset options are channel specific
@@ -140,7 +137,7 @@ def _loop_once():
         if dmxdata[chanindx-1]!=chanval:
             # update the DMX value for this channel
             dmxdata[chanindx-1] = chanval
-            monitor.debug("DMX channel%03d" % chanindx, '=', chanval)
+            monitor.debug("DMX channel%03d = %g" % (chanindx, chanval))
             artnet.broadcastDMX(dmxdata,address)
         elif (time.time()-prevtime)>1:
             # send a maintenance packet now and then
@@ -156,17 +153,18 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, artnet
-
-    monitor.success("closing...")
-
+    monitor.success("Closing module...")
     # blank out
     dmxdata = [0] * 512
     artnet.broadcastDMX(dmxdata,address)
@@ -182,6 +180,7 @@ def _stop():
     artnet.broadcastDMX(dmxdata,address)
     time.sleep(0.1) # this seems to take some time
     artnet.close()
+    sys.exit()
 
 
 if __name__ == '__main__':

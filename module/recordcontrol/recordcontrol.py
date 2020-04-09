@@ -33,11 +33,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -51,56 +51,85 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import EDF
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-MININT16 = -np.power(2., 15)
-MAXINT16 =  np.power(2., 15) - 1
-MININT32 = -np.power(2., 31)
-MAXINT32 =  np.power(2., 31) - 1
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-delay       = patch.getfloat('general', 'delay')
-filename    = patch.getstring('recording', 'file')
-fileformat  = patch.getstring('recording', 'format')
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
-if fileformat is None:
-    # determine the file format from the file name
-    name, ext = os.path.splitext(filename)
-    fileformat = ext[1:]
 
-filenumber = 0
-recording = False
-adjust = 1
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
 
-while True:
-    monitor.loop()
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    MININT16 = -np.power(2., 15)
+    MAXINT16 = np.power(2., 15) - 1
+    MININT32 = -np.power(2., 31)
+    MAXINT32 = np.power(2., 31) - 1
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+    delay = patch.getfloat('general', 'delay')
+    filename = patch.getstring('recording', 'file')
+    fileformat = patch.getstring('recording', 'format')
+
+    if fileformat is None:
+        # determine the file format from the file name
+        name, ext = os.path.splitext(filename)
+        fileformat = ext[1:]
+
+    filenumber = 0
+    recording = False
+    adjust = 1
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
+    global start, fname, f, ext, blocksize, synchronize, channels, channelz, nchans, sample, replace, i, s, z, physical_min, physical_max, meas_info, chan_info, recstart, D, chan, xval, elapsed
 
     # measure the time to correct for the slip
     start = time.time()
 
     if recording and not patch.getint('recording', 'record'):
-        monitor.info("Recording disabled - closing", fname)
+        monitor.info("Recording disabled - closing " + fname)
         f.close()
         recording = False
-        continue
+        return
 
     if not recording and not patch.getint('recording', 'record'):
         monitor.info("Recording is not enabled")
@@ -115,7 +144,7 @@ while True:
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         # the blocksize is always 1
         blocksize = 1
-        synchronize = int(patch.getfloat('recording', 'synchronize') / delay )
+        synchronize = int(patch.getfloat('recording', 'synchronize') / delay)
         assert (synchronize % blocksize) == 0, "synchronize should be multiple of blocksize"
 
         # get the details from Redis
@@ -131,14 +160,14 @@ while True:
             for i in range(len(channelz)):
                 channelz[i] = channelz[i].replace(replace[0], replace[1])
         for s, z in zip(channels, channelz):
-            monitor.info("Writing control value", s, "as channel", z)
+            monitor.info("Writing control value " + s + " as channel " + z)
 
         # these are required for mapping floating point values onto 16 bit integers
         physical_min = patch.getfloat('recording', 'physical_min')
         physical_max = patch.getfloat('recording', 'physical_max')
 
         # write the header to file
-        monitor.info("Opening", fname)
+        monitor.info("Opening " + fname)
         if fileformat == 'edf':
             # construct the header
             meas_info = {}
@@ -185,7 +214,7 @@ while True:
             key = "{}.synchronize".format(patch.getstring('prefix', 'synchronize'))
             patch.setvalue(key, sample)
 
-        monitor.info("Writing sample", sample, "as", np.shape(D))
+        monitor.info("Writing sample " + str(sample) + " as " + str(np.shape(D)))
 
         if fileformat == 'edf':
             f.writeBlock(D)
@@ -193,7 +222,7 @@ while True:
             D = np.asarray(D)
             for x in D:
                 # scale the floating point values between -1 and 1
-                y = x / ((physical_max - physical_min) / 2. )
+                y = x / ((physical_max - physical_min) / 2.)
                 # scale the floating point values between MININT32 and MAXINT32
                 y = y * ((float(MAXINT32) - float(MININT32)) / 2.)
                 # convert them to packed binary data
@@ -206,3 +235,31 @@ while True:
         # adjust the relative delay for the next iteration
         # the adjustment factor should only change a little per iteration
         adjust = 0.1 * delay / elapsed + 0.9 * adjust
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop(*args):
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

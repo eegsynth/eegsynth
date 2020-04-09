@@ -49,6 +49,7 @@ sys.path.insert(0, os.path.join(path,'../../lib'))
 import FieldTrip
 import EEGsynth
 
+
 def _setup():
     '''Initialize the module
     This adds a set of global variables
@@ -96,7 +97,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, channel, window, threshold, lrate, debounce, key_beat, key_rate, curvemin, curvemean, curvemax, prev, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -146,9 +147,6 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel, window, threshold, lrate, debounce, key_beat, key_rate, curvemin, curvemean, curvemax, prev, begsample, endsample
     global dat, negrange, posrange, thresh, prevsample, sample, last, bpm, duration, duration_scale, duration_offset
-
-    monitor.loop()
-    time.sleep(patch.getfloat('general','delay'))
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
@@ -228,20 +226,26 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general','delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input
-
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except:
+        _stop()

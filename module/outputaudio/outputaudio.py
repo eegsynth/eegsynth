@@ -135,7 +135,7 @@ def _setup():
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
-    debug  = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug')
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -156,7 +156,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -172,8 +172,8 @@ def _start():
         hdr_input = ft_input.getHeader()
 
     monitor.info('Data arrived')
-    monitor.debug("buffer nchans", hdr_input.nChannels)
-    monitor.debug("buffer rate", hdr_input.fSample)
+    monitor.debug("buffer nchans = " + str(hdr_input.nChannels))
+    monitor.debug("buffer rate = " + str(hdr_input.fSample))
 
     # get the options from the configuration file
     device  = patch.getint('audio', 'device')
@@ -191,8 +191,8 @@ def _start():
     scale_scaling  = patch.getfloat('scale', 'scaling', default=1)
     offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
-    monitor.info("audio nchans", nchans)
-    monitor.info("audio rate", outputrate)
+    monitor.info("audio nchans = " + str(nchans))
+    monitor.info("audio rate = " + str(outputrate))
 
     p = pyaudio.PyAudio()
 
@@ -202,12 +202,12 @@ def _start():
     monitor.info('------------------------------------------------------------------')
     for i in range(info.get('deviceCount')):
         if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-            monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+            monitor.info("Input  Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get('name'))
         if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-            monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+            monitor.info("Output Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get('name'))
     monitor.info('------------------------------------------------------------------')
     devinfo = p.get_device_info_by_index(device)
-    monitor.info("Selected device is", devinfo['name'])
+    monitor.info("Selected device is " + devinfo['name'])
     monitor.info(devinfo)
     monitor.info('------------------------------------------------------------------')
 
@@ -257,8 +257,6 @@ def _loop_once():
     global timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
     global dat, now, old, new, duration
 
-    monitor.loop()
-
     # measure the time that it takes
     start = time.time()
 
@@ -307,7 +305,7 @@ def _loop_once():
         if old/new > 0.1 or old/new < 10:
             inputrate = (1 - lrate) * old + lrate * new
 
-    monitor.info("read", endsample-begsample+1, "samples from", begsample, "to", endsample, "in", duration)
+    monitor.info("read " + str(endsample-begsample+1) + " samples from " + str(begsample) + " to " + str(endsample) + " in " + str(duration))
 
     monitor.update("inputrate", int(inputrate))
     monitor.update("outputrate", int(outputrate))
@@ -329,7 +327,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
@@ -337,10 +337,10 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global stream, p
-
     stream.stop_stream()
     stream.close()
     p.terminate()
+    sys.exit()
 
 
 if __name__ == '__main__':

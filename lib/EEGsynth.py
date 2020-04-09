@@ -10,6 +10,9 @@ import numpy as np
 from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 import logging
 from logging import Formatter
+import colorama
+import termcolor
+from termcolor import colored
 
 ###################################################################################################
 def formatkeyval(key, val):
@@ -50,40 +53,29 @@ class ColoredFormatter(Formatter):
 
     def __init__(self, name=None):
         self.name = name
-
-    def colored(self, text, color):
-        colors = {
-            'black': 30,
-            'red': 31,
-            'green': 32,
-            'yellow': 33,
-            'blue': 34,
-            'magenta': 35,
-            'cyan': 36,
-            'white': 37,
-            'bgred': 41,
-            'bggrey': 100
-        }
-        clr = colors[color]
-        prefix = '\033['
-        suffix = '\033[0m'
-        return (prefix+'%dm%s'+suffix) % (clr, text)
+        colors = list(termcolor.COLORS.keys()) # prevent RuntimeError: dictionary changed size during iteration
+        # add reverse and bright color
+        for color in colors:
+            termcolor.COLORS['reverse_'+color] = termcolor.COLORS[color]+10
+            termcolor.COLORS['bright_'+color] = termcolor.COLORS[color]+60
+        # for color in termcolor.COLORS.keys():
+        #     print(colored(color, color))
 
     def format(self, record):
-        mapping = {
-            'CRITICAL': 'bgred',
+        colors = {
+            'CRITICAL': 'reverse_red',
             'ERROR': 'red',
             'WARNING': 'yellow',
             'SUCCESS': 'green',
             'INFO': 'cyan',
-            'DEBUG': 'bggrey',
-            'TRACE': 'blue',
+            'DEBUG': 'bright_grey',
+            'TRACE': 'reverse_white',
         }
-        color = mapping.get(record.levelname, 'white')
+        color = colors.get(record.levelname, 'white')
         if self.name:
-            return self.colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
+            return colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
         else:
-            return self.colored(record.levelname, color) + ': ' + record.getMessage()
+            return colored(record.levelname, color) + ': ' + record.getMessage()
 
 
 ###################################################################################################
@@ -94,6 +86,7 @@ class monitor():
     monitor.loop()           - to be called on every iteration of the loop
     monitor.update(key, val) - to be used to check whether values change
 
+    monitor.critical(...)  - shows always
     monitor.error(...)     - shows always
     monitor.warning(...)   - shows always
     monitor.success(...)   - debug level 0
@@ -105,6 +98,9 @@ class monitor():
     def __init__(self, name=None, debug=0):
         self.previous_value = {}
         self.loop_time = None
+
+        # If using Windows,this  will cause anything sent to stdout or stderr will have ANSI color codes converted to the Windows versions
+        colorama.init()
 
         logger = logging.getLogger(__name__)
         handler = logging.StreamHandler()
@@ -131,7 +127,6 @@ class monitor():
             logger.setLevel(logging.DEBUG)
         elif debug==3:
             logger.setLevel(logging.TRACE)
-
 
         print("""
 ##############################################################################
@@ -190,26 +185,47 @@ Press Ctrl-C to stop this module.
         else:
             return False
 
+    def critical(self, *args):
+        if len(args)==1:
+            self.logger.log(logging.CRITICAL, *args)
+        else:
+            self.logger.log(logging.CRITICAL, " ".join(map(format, args)))
+
     def error(self, *args):
-        self.logger.log(logging.ERROR, *args)
+        if len(args)==1:
+            self.logger.log(logging.ERROR, *args)
+        else:
+            self.logger.log(logging.ERROR, " ".join(map(format, args)))
 
     def warning(self, *args):
-        self.logger.log(logging.WARNING, *args)
+        if len(args)==1:
+            self.logger.log(logging.WARNING, *args)
+        else:
+            self.logger.log(logging.WARNING, " ".join(map(format, args)))
 
     def success(self, *args):
-        self.logger.log(logging.SUCCESS, *args)
+        if len(args)==1:
+            self.logger.log(logging.SUCCESS, *args)
+        else:
+            self.logger.log(logging.SUCCESS, " ".join(map(format, args)))
 
     def info(self, *args):
-        self.logger.log(logging.INFO, *args)
+        if len(args)==1:
+            self.logger.log(logging.INFO, *args)
+        else:
+            self.logger.log(logging.INFO, " ".join(map(format, args)))
 
     def debug(self, *args):
-        self.logger.log(logging.DEBUG, *args)
+        if len(args)==1:
+            self.logger.log(logging.DEBUG, *args)
+        else:
+            self.logger.log(logging.DEBUG, " ".join(map(format, args)))
 
     def trace(self, *args):
-        self.logger.log(logging.TRACE, *args)
-
-#    def print(self, *args):
-#        print(self.prefix, *args)
+        if len(args)==1:
+            self.logger.log(logging.TRACE, *args)
+        else:
+            self.logger.log(logging.TRACE, " ".join(map(format, args)))
 
 ###################################################################################################
 class patch():

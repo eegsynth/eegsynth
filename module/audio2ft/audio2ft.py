@@ -28,17 +28,17 @@ import sys
 import time
 import pyaudio
 
-if hasattr(sys, 'frozen'):
+if hasattr(sys, "frozen"):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == "__main__" and sys.argv[0] != "":
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
-    path = os.path.abspath('')
-    file = os.path.split(path)[-1] + '.py'
+elif __name__ == "__main__":
+    path = os.path.abspath("")
+    file = os.path.split(path)[-1] + ".py"
     name = os.path.splitext(file)[0]
 else:
     path = os.path.split(__file__)[0]
@@ -46,81 +46,124 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path, '../../lib'))
+sys.path.insert(0, os.path.join(path, "../../lib"))
 import EEGsynth
 import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    """Initialize the module
+    This adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-i",
+        "--inifile",
+        default=os.path.join(path, name + ".ini"),
+        help="name of the configuration file",
+    )
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    try:
+        r = redis.StrictRedis(
+            host=config.get("redis", "hostname"),
+            port=config.getint("redis", "port"),
+            db=0,
+            charset="utf-8",
+            decode_responses=True,
+        )
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-device      = patch.getint('audio', 'device')
-rate        = patch.getint('audio', 'rate', default=44100)
-blocksize   = patch.getint('audio', 'blocksize', default=1024)
-nchans      = patch.getint('audio', 'nchans', default=2)
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-try:
-    ft_host = patch.getstring('fieldtrip', 'hostname')
-    ft_port = patch.getint('fieldtrip', 'port')
-    monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ft_host, ft_port)
-    monitor.success('Connected to output FieldTrip buffer')
-except:
-    raise RuntimeError("cannot connect to output FieldTrip buffer")
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
 
-monitor.info("rate", rate)
-monitor.info("nchans", nchans)
-monitor.info("blocksize", blocksize)
 
-p = pyaudio.PyAudio()
+def _start():
+    """Start the module
+    This uses the global variables from setup and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
 
-monitor.info('------------------------------------------------------------------')
-info = p.get_host_api_info_by_index(0)
-monitor.info(info)
-monitor.info('------------------------------------------------------------------')
-for i in range(info.get('deviceCount')):
-    if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-        monitor.info("Input  Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-    if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-        monitor.info("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-monitor.info('------------------------------------------------------------------')
-devinfo = p.get_device_info_by_index(device)
-monitor.info("Selected device is", devinfo['name'])
-monitor.info(devinfo)
-monitor.info('------------------------------------------------------------------')
 
-stream = p.open(format=pyaudio.paInt16,
-                channels=nchans,
-                rate=rate,
-                input=True,
-                input_device_index=device,
-                frames_per_buffer=blocksize)
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
 
-ft_output.putHeader(nchans, float(rate), FieldTrip.DATATYPE_INT16)
+    # get the options from the configuration file
+    debug = patch.getint("general", "debug")
+    device = patch.getint("audio", "device")
+    rate = patch.getint("audio", "rate", default=44100)
+    blocksize = patch.getint("audio", "blocksize", default=1024)
+    nchans = patch.getint("audio", "nchans", default=2)
 
-startfeedback = time.time()
-countfeedback = 0
+    try:
+        ft_host = patch.getstring("fieldtrip", "hostname")
+        ft_port = patch.getint("fieldtrip", "port")
+        monitor.success("Trying to connect to buffer on %s:%i ..." % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        monitor.success("Connected to output FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-while True:
-    monitor.loop()
+    monitor.info("rate = %g" % rate)
+    monitor.info("nchans = %g" % nchans)
+    monitor.info("blocksize = %g" % blocksize)
+
+    p = pyaudio.PyAudio()
+
+    monitor.info("------------------------------------------------------------------")
+    info = p.get_host_api_info_by_index(0)
+    monitor.info(info)
+    monitor.info("------------------------------------------------------------------")
+    for i in range(info.get("deviceCount")):
+        if p.get_device_info_by_host_api_device_index(0, i).get("maxInputChannels") > 0:
+            monitor.info("Input  Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get("name"))
+        if (p.get_device_info_by_host_api_device_index(0, i).get("maxOutputChannels") > 0):
+            monitor.info("Output Device id " + str(i) + " - " + p.get_device_info_by_host_api_device_index(0, i).get("name"))
+    monitor.info("------------------------------------------------------------------")
+    devinfo = p.get_device_info_by_index(device)
+    monitor.info("Selected device is " + devinfo["name"])
+    monitor.info(devinfo)
+    monitor.info("------------------------------------------------------------------")
+
+    stream = p.open(
+        format=pyaudio.paInt16,
+        channels=nchans,
+        rate=rate,
+        input=True,
+        input_device_index=device,
+        frames_per_buffer=blocksize,
+    )
+
+    ft_output.putHeader(nchans, float(rate), FieldTrip.DATATYPE_INT16)
+
+    startfeedback = time.time()
+    countfeedback = 0
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_once():
+    """Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
+    global startfeedback, countfeedback
+    global start, data
 
     # measure the time that it takes
     start = time.time()
@@ -134,14 +177,41 @@ while True:
 
     countfeedback += blocksize
 
-    if debug > 1:
-        monitor.print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
-    elif debug > 0 and countfeedback >= rate:
+    monitor.trace("streamed " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
+    if countfeedback >= rate:
         # this gets printed approximately once per second
-        monitor.print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.debug("streamed " + str(countfeedback) + " samples in " + str((time.time() - startfeedback) * 1000) + " ms")
         startfeedback = time.time()
         countfeedback = 0
 
-stream.stop_stream()
-stream.close()
-p.terminate()
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_forever():
+    """Run the main loop forever
+    """
+    global monitor
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop():
+    """Stop and clean up on SystemExit, KeyboardInterrupt
+    """
+    global stream, p
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+    sys.exit()
+
+
+if __name__ == "__main__":
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

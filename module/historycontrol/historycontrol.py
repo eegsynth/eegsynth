@@ -61,7 +61,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response
+    global parser, args, config, r, response, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -76,6 +76,9 @@ def _setup():
     except redis.ConnectionError:
         raise RuntimeError("cannot connect to Redis server")
 
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print('LOCALS: ' + ', '.join(locals().keys()))
@@ -85,11 +88,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response
-    global patch, monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -134,10 +134,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response
-    global patch, monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
-
-    monitor.loop()
+    global parser, args, config, r, response, patch
+    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
     # measure the time to correct for the slip
     start = time.time()
@@ -229,14 +227,16 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    pass
+    sys.exit()
 
 
 if __name__ == '__main__':

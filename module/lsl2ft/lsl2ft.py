@@ -130,8 +130,8 @@ def _start():
                 monitor.success('-------- STREAM(*) ------')
             else:
                 monitor.success('-------- STREAM ---------')
-            monitor.info("name", name)
-            monitor.info("type", type)
+            monitor.info("name = " + name)
+            monitor.info("type = " + type)
         monitor.success('-------------------------')
 
     # create a new inlet from the first (and hopefully only) selected stream
@@ -162,10 +162,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, r, response, patch
     global monitor, timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
-
-    monitor.loop()
 
     chunk, timestamps = inlet.pull_chunk()
     if timestamps:
@@ -183,7 +181,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
@@ -191,9 +191,9 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_output
-
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

@@ -36,8 +36,7 @@ try:
     import pandas as pd
 except ImportError:
     # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: pandas is required for the cogito module')
-    print('Warning: please intall it with "pip install pandas"')
+    print('Warning: pandas is required for the cogito module, please install it with "pip install pandas"')
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -115,7 +114,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
     global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -167,12 +166,12 @@ def _start():
     output_channel = tmp
 
     if debug > 0:
-        monitor.print('===== input channels =====')
+        monitor.info('===== input channels =====')
         for number, channel in zip(input_number, input_channel):
-            monitor.print(number, '=', channel)
-        monitor.print('===== output channels =====')
+            monitor.info(str(number) + ' = ' + channel)
+        monitor.info('===== output channels =====')
         for number, channel in zip(output_number, output_channel):
-            monitor.print(number, '=', channel)
+            monitor.info(str(number) + ' = ' + channel)
 
     sample_rate         = patch.getfloat('cogito', 'sample_rate')
     window              = patch.getfloat('cogito', 'window')
@@ -199,9 +198,9 @@ def _start():
     val = (val - val.min())/(val.max()-val.min())*definition
     positions = np.round(val).astype(int)
 
-    monitor.debug("nsample", hdr_input.nSamples)
-    monitor.debug("nchan", hdr_input.nChannels)
-    monitor.debug("window", window)
+    monitor.debug("nsample = " + str(hdr_input.nSamples))
+    monitor.debug("nchan = " + str(hdr_input.nChannels))
+    monitor.debug("window = " + str(window))
 
     inputscaling = 0
     outputscaling = 0
@@ -222,8 +221,6 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
     global dat_input, tmpvar, ch, chan_time, original, t, fourier, mask, convert, signal_time, signal, dat_output, write_time
-
-    monitor.loop()
 
     # determine when we start polling for available data
     start = time.time()
@@ -313,7 +310,7 @@ def _loop_once():
     ft_output.putData(dat_output)
 
     monitor.debug('time to write data to buffer: ' + str((time.time() - write_time) * 1000))
-    monitor.info("processed", window, "samples in", (time.time()-start)*1000, "ms")
+    monitor.info("processed " + str(window) + " samples in " + str((time.time()-start)*1000) + " ms")
 
     # increment the counters for the next loop
     begsample += window
@@ -323,7 +320,9 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
@@ -331,11 +330,11 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, ft_input, ft_output
-
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
     ft_output.disconnect()
     monitor.success('Disconnected from output FieldTrip buffer')
+    sys.exit()
 
 
 if __name__ == '__main__':

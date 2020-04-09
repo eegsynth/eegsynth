@@ -53,15 +53,15 @@ import EEGsynth
 
 
 def SetControl(chanindx, chanval):
-    lock.acquire()
-    s.write(b'*c%dv%04d#' % (chanindx, chanval))
-    lock.release()
+    global lock
+    with lock:
+        s.write(b'*c%dv%04d#' % (chanindx, chanval))
 
 
 def SetGate(chanindx, chanval):
-    lock.acquire()
-    s.write(b'*g%dv%d#' % (chanindx, chanval))
-    lock.release()
+    global lock
+    with lock:
+        s.write(b'*g%dv%d#' % (chanindx, chanval))
 
 
 class TriggerThread(threading.Thread):
@@ -149,7 +149,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
 
     # this can be used to show parameters that have changed
@@ -180,14 +180,14 @@ def _start():
         if patch.hasitem('trigger', chanstr):
             redischannel = patch.getstring('trigger', chanstr)
             trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-            monitor.info("configured", redischannel, "on", chanindx)
+            monitor.info("configured " + redischannel + " on " + str(chanindx))
     # configure the trigger threads for the gates
     for chanindx in range(1, 5):
         chanstr = "gate%d" % chanindx
         if patch.hasitem('trigger', chanstr):
             redischannel = patch.getstring('trigger', chanstr)
             trigger.append(TriggerThread(redischannel, chanindx, chanstr))
-            monitor.info("configured", redischannel, "on", chanindx)
+            monitor.info("configured " + redischannel + " on " + str(chanindx))
 
     # start the thread for each of the triggers
     for thread in trigger:
@@ -205,9 +205,6 @@ def _loop_once():
     global parser, args, config, r, response, patch
     global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
 
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
-
     # loop over the control voltages
     for chanindx in range(1, 5):
         chanstr = "cv%d" % chanindx
@@ -216,7 +213,7 @@ def _loop_once():
 
         if chanval == None:
             # the value is not present in Redis, skip it
-            monitor.trace(chanstr, 'not available')
+            monitor.trace(chanstr + ' is not available')
             continue
 
         # the scale and offset options are channel specific
@@ -238,7 +235,7 @@ def _loop_once():
 
         if chanval == None:
             # the value is not present in Redis, skip it
-            monitor.trace(chanstr, 'not available')
+            monitor.trace(chanstr + 'is not available')
             continue
 
         # the scale and offset options are channel specific
@@ -256,21 +253,24 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
+        monitor.loop()
         _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, trigger, r
-
     monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
     r.publish('OUTPUTCVGATE_UNBLOCK', 1)
     for thread in trigger:
             thread.join()
+    sys.exit()
 
 
 if __name__ == '__main__':

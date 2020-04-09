@@ -33,11 +33,11 @@ if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -50,57 +50,88 @@ else:
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-# get the options from the configuration file
-debug   = patch.getint('general', 'debug')
-delay   = patch.getfloat('general', 'delay')
-number  = patch.getint('switch', 'number', default=3)
-prefix  = patch.getstring('output', 'prefix')
-
-# the scale and offset are used to map the Redis values to internal values
-scale_input      = patch.getfloat('scale', 'input', default=1.)
-scale_time       = patch.getfloat('scale', 'time', default=1.)
-scale_precision  = patch.getfloat('scale', 'precision', default=1.)
-offset_input     = patch.getfloat('offset', 'input', default=0.)
-offset_time      = patch.getfloat('offset', 'time', default=0.)
-offset_precision = patch.getfloat('offset', 'precision', default=0.)
-
-channel_name = []
-for vertex in range(number):
-    # each vertex of the geometry has an output value
-    # the output names are like "geomixer.spectral.channel1.alpha.vertex1"
-    channel_name.append('%s.%s.vertex%d' % (prefix, patch.getstring('input', 'channel'), vertex+1))
 
 def even(val):
     return not(val % 2)
 
+
 def clip01(val):
-    return min(max(val,0),1)
+    return min(max(val, 0), 1)
 
-dwelltime = 0.
-edge = 0
-previous = 'no'
 
-while True:
-    monitor.loop()
+def _setup():
+    """Initialize the module
+    This adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
+
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
+
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _start():
+    """Start the module
+    This uses the global variables from setup and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
+    delay = patch.getfloat('general', 'delay')
+    number = patch.getint('switch', 'number', default=3)
+    prefix = patch.getstring('output', 'prefix')
+
+    # the scale and offset are used to map the Redis values to internal values
+    scale_input = patch.getfloat('scale', 'input', default=1.)
+    scale_time = patch.getfloat('scale', 'time', default=1.)
+    scale_precision = patch.getfloat('scale', 'precision', default=1.)
+    offset_input = patch.getfloat('offset', 'input', default=0.)
+    offset_time = patch.getfloat('offset', 'time', default=0.)
+    offset_precision = patch.getfloat('offset', 'precision', default=0.)
+
+    channel_name = []
+    for vertex in range(number):
+        # each vertex of the geometry has an output value
+        # the output names are like "geomixer.spectral.channel1.alpha.vertex1"
+        channel_name.append('%s.%s.vertex%d' % (prefix, patch.getstring('input', 'channel'), vertex + 1))
+
+    dwelltime = 0.
+    edge = 0
+    previous = 'no'
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_once():
+    """Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
+    global monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+    global start, switch_time, switch_precision, input, lower_treshold, upper_treshold, change, str, key, channel_val, this, next, val, desired, elapsed, naptime
 
     # measure the time to correct for the slip
     start = time.time()
@@ -154,7 +185,7 @@ while True:
         dwelltime = 0
     else:
         dwelltime += delay
-        monitor.debug('dwelling for', dwelltime)
+        monitor.debug('dwelling for ' + str(dwelltime))
     previous = change
 
     # is the dwelltime long enough?
@@ -168,7 +199,7 @@ while True:
         # send the edge number as an integer value to Redis
         key = '%s.%s.edge' % (prefix, patch.getstring('input', 'channel'))
         patch.setvalue(key, edge)
-        monitor.debug('switch to edge', edge)
+        monitor.debug('switch to edge ' + str(edge))
 
     channel_val = [0. for i in range(number)]
     for this in range(number):
@@ -184,11 +215,11 @@ while True:
         patch.setvalue(channel_name[this], channel_val[this])
 
     if debug > 0:
-        # print them all on a single line, this is Python 2 specific
-        monitor.print(('edge=%2d' % edge), end=' ')
+        # construct a string with all details on a single line
+        str = 'edge=%2d' % (edge)
         for key, val in zip(channel_name, channel_val):
-            monitor.print((' %s = %0.2f' % (key, val)), end=' ')
-        monitor.print('')  # force a newline
+            str += ' %s = %0.2f' % (key, val)
+        monitor.info(str)
 
     # this is a short-term approach, estimating the sleep for every block
     # this code is shared between generatesignal, playback and playbackctrl
@@ -198,3 +229,31 @@ while True:
     if naptime > 0:
         # this approximates the desired delay for each iteration
         time.sleep(naptime)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_forever():
+    """Run the main loop forever
+    """
+    global monitor
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop():
+    """Stop and clean up on SystemExit, KeyboardInterrupt
+    """
+    sys.exit()
+
+
+if __name__ == "__main__":
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

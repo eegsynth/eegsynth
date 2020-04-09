@@ -107,7 +107,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
     global timeout, hdr_input, start, sample_rate, f_shift, f_offset, f_order, window, sideband, left, right, scaling, scaling_method, scale_scaling, offset_scaling, default_scale, scale_lowpass, scale_highpass, offset_lowpass, offset_highpass, scale_filterorder, offset_filterorder, hdr_output, nInput, nOutput, begsample, endsample, dat_output, left_f, left_b, left_a, left_zi, right_f, right_b, right_a, right_zi, i, highpass, lowpass
 
     # this is the timeout for the FieldTrip buffer
@@ -231,10 +231,10 @@ def _start():
             lowpass = None
         right_b[i], right_a[i], right_zi[i] = EEGsynth.initialize_online_filter(hdr_output.fSample, highpass, lowpass, f_order, dat_output)
 
-    monitor.info("left audio channels", left)
-    monitor.info("left audio frequencies", left_f)
-    monitor.info("right audio channels", right)
-    monitor.info("right audio frequencies", right_f)
+    monitor.info("left audio channels = " + str(left))
+    monitor.info("left audio frequencies = " + str(left_f))
+    monitor.info("right audio channels = " + str(right))
+    monitor.info("right audio frequencies = " + str(right_f))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -248,8 +248,6 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, sample_rate, f_shift, f_offset, f_order, window, sideband, left, right, scaling, scaling_method, scale_scaling, offset_scaling, default_scale, scale_lowpass, scale_highpass, offset_lowpass, offset_highpass, scale_filterorder, offset_filterorder, hdr_output, nInput, nOutput, begsample, endsample, dat_output, left_f, left_b, left_a, left_zi, right_f, right_b, right_a, right_zi, i, highpass, lowpass
     global dat_input, begtime, endtime, tim_input, tim_output, chan, vec_output, highpassfilter, lowpassfilter, filterorder, change, b, a, zi, duration, desired
-
-    monitor.loop()
 
     # determine when we start polling for available data
     start = time.time()
@@ -346,7 +344,7 @@ def _loop_once():
     #        nOutput *= 1.002
     #    nOutput = int(round(nOutput))
 
-    monitor.info("wrote", nInput, "->", nOutput, "samples in", duration*1000, "ms")
+    monitor.info("wrote " + str(nInput) + " -> " + str(nOutput) + " samples in " + str(duration*1000) + " ms")
 
     # shift to the next block of data
     begsample += nInput
@@ -360,14 +358,16 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor
     while True:
+        monitor.loop()
         _loop_once()
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    pass
+    sys.exit()
 
 
 if __name__ == '__main__':
