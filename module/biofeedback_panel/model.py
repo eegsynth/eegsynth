@@ -174,20 +174,20 @@ class Model(QObject):
         
         super().__init__()
         
-        self._window = 10
+        self._window = 30
         self._channel = 0
         self._fthost = "localhost"
         self._ftport = 1973
         self._psd = None
         self._freqs = None
         self._biofeedback = 0
-        self._biofeedbackmapping = "exponential"
-        self._biofeedbacktarget = 3
+        self._biofeedbackmapping = "linear"
+        self._biofeedbacktarget = 1.5
         self._rewardratio = 0
-        self._lowreward = 0.06
-        self._upreward = 0.14
+        self._lowreward = 0.07
+        self._upreward = 0.21
         self._lowtotal = 0
-        self._uptotal = 0.5
+        self._uptotal = 1
         self._data = []
         self._sfreq = 10
 

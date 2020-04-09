@@ -106,10 +106,8 @@ class TriggerThread(threading.Thread):
                 print(item)
                 if item['channel'].decode("UTF-8")==self.redischannel:
                     # the trigger value should be saved
-<<<<<<< HEAD
                     val = item['data'].decode("UTF-8")
-=======
->>>>>>> 71c0d3df8c6df126a86dc2ac9929dc17977a9f1c
+
                     if input_scale!=None or input_offset!=None:
                         try:
                             # convert it to a number and apply the scaling and the offset
