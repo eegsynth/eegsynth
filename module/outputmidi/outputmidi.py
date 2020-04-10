@@ -51,14 +51,10 @@ sys.path.insert(0, os.path.join(path,'../../lib'))
 import EEGsynth
 
 
-def UpdateVelocity():
-    global patch, velocity_note, scale_velocity, offset_velocity
+def UpdateParameters():
+    global patch, velocity_note, scale_velocity, offset_velocity, duration_note, scale_duration, offset_duration
     velocity_note = patch.getfloat('velocity', 'note', default=64)
     velocity_note = int(EEGsynth.rescale(velocity_note, slope=scale_velocity, offset=offset_velocity))
-
-
-def UpdateDuration():
-    global patch, duration_note, scale_duration, offset_duration
     duration_note = patch.getfloat('duration', 'note', default=None)
     if duration_note != None:
         duration_note = EEGsynth.rescale(duration_note, slope=scale_duration, offset=offset_duration)
@@ -260,8 +256,7 @@ def _start():
     duration_note = None
 
     # call them once at the start
-    UpdateVelocity()
-    UpdateDuration()
+    UpdateParameters()
 
     trigger_name = []
     trigger_code = []
@@ -319,8 +314,7 @@ def _loop_once():
     global parser, args, config, r, response, patch
     global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
-    UpdateVelocity()
-    UpdateDuration()
+    UpdateParameters()
 
     for name, code in zip(control_name, control_code):
         # loop over the control values
