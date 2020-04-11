@@ -117,6 +117,5 @@ When using brew and Python2, the bindings between Python and Qt can be installed
 
 ```
 brew tap cartr/qt4
-brew tap-pin cartr/qt4
-brew install cartr/qt4/pyqt
+brew install qt@4
 ```
