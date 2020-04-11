@@ -85,7 +85,7 @@ setuptools.setup(
         "scipy",
         "sklearn",
         "termcolor",
-        "zmq",
+        "pyzmq",
     ],
     python_requires=">=2.7",
     extras_require={
