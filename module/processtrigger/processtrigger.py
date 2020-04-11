@@ -186,11 +186,12 @@ def _start():
     # get the options from the configuration file
     prefix = patch.getstring('output', 'prefix')
 
-    # assign the initial values
-    for item in config.items('initial'):
-        val = patch.getfloat('initial', item[0])
-        patch.setvalue(item[0], val)
-        monitor.update(item[0], val)
+    if 'initial' in config.sections():
+        # assign the initial values
+        for item in config.items('initial'):
+            val = patch.getfloat('initial', item[0])
+            patch.setvalue(item[0], val)
+            monitor.update(item[0], val)
 
     # get the input variables
     if len(config.items('input')):
