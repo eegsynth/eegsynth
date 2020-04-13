@@ -185,7 +185,7 @@ def _loop_once():
         # this approximates the real time streaming speed
         time.sleep(naptime)
 
-    monitor.info("played" + str(blocksize) + " samples in " + str((time.time()-start)*1000) + " ms")
+    monitor.info("played " + str(blocksize) + " samples in " + str((time.time()-start)*1000) + " ms")
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
