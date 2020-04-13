@@ -236,5 +236,5 @@ if __name__ == '__main__':
     _start()
     try:
         _loop_forever()
-    except:
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
