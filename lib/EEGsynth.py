@@ -128,9 +128,14 @@ class monitor():
         elif debug==3:
             logger.setLevel(logging.TRACE)
 
+        if name == None:
+            fullname = 'This software'
+        else:
+            fullname = 'The %s module' % (name)
+
         print("""
 ##############################################################################
-# This software is part of the EEGsynth, see <http://www.eegsynth.org>.
+# %s is part of EEGsynth, see <http://www.eegsynth.org>.
 #
 # Copyright (C) 2017-2020 EEGsynth project
 #
@@ -149,7 +154,7 @@ class monitor():
 ##############################################################################
 
 Press Ctrl-C to stop this module.
-        """)
+        """ % (fullname))
 
     def loop(self, duration=None):
         now = time.time()
