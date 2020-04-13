@@ -156,13 +156,13 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, desired, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
+    global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
-    desired = patch.getfloat('general', 'delay')
+    stepsize = patch.getfloat('general', 'delay')
     clock = patch.getstring('sequence', 'clock')  # the clock signal for the sequence
     prefix = patch.getstring('output', 'prefix')
 
@@ -205,11 +205,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch
-    global monitor, desired, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
-    global start, active, sequence, transpose, duration, elapsed, naptime
-
-    # measure the time to correct for the slip
-    start = time.time()
+    global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
+    global active, sequence, transpose, duration, elapsed, naptime
 
     # the active sequence is specified as an integer between 0 and 127
     active = patch.getfloat('sequence', 'active', default=0)
@@ -240,11 +237,6 @@ def _loop_once():
     sequencethread.setTranspose(transpose)
     sequencethread.setDuration(duration)
 
-    elapsed = time.time() - start
-    naptime = desired - elapsed
-    if naptime > 0:
-        time.sleep(naptime)
-
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print('LOCALS: ' + ', '.join(locals().keys()))
@@ -255,8 +247,18 @@ def _loop_forever():
     '''
     global monitor, patch
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        # correct for the slip
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime > 0:
+            monitor.trace("naptime = " + str(naptime))
+            time.sleep(naptime)
 
 
 def _stop(*args):

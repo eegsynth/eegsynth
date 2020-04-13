@@ -91,14 +91,14 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+    global monitor, debug, stepsize, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
-    delay = patch.getfloat('general', 'delay')
+    stepsize = patch.getfloat('general', 'delay')
     number = patch.getint('switch', 'number', default=3)
     prefix = patch.getstring('output', 'prefix')
 
@@ -130,17 +130,15 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global parser, args, config, r, response, patch
-    global monitor, debug, delay, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
-    global start, switch_time, switch_precision, input, lower_treshold, upper_treshold, change, str, key, channel_val, this, next, val, desired, elapsed, naptime
-
-    # measure the time to correct for the slip
-    start = time.time()
+    global monitor, debug, stepsize, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+    global switch_time, switch_precision, input, lower_treshold, upper_treshold, change, key, channel_val, this, next, val, desired, elapsed, naptime, s
 
     # these can change on the fly
     switch_time = patch.getfloat('switch', 'time', default=1.0)
     switch_time = EEGsynth.rescale(switch_time, slope=scale_time, offset=offset_time)
     switch_precision = patch.getfloat('switch', 'precision', default=0.1)
     switch_precision = EEGsynth.rescale(switch_precision, slope=scale_precision, offset=offset_precision)
+
     monitor.update('time', switch_time)
     monitor.update('precision', switch_precision)
 
@@ -184,7 +182,7 @@ def _loop_once():
     if change == 'no' or change != previous:
         dwelltime = 0
     else:
-        dwelltime += delay
+        dwelltime += stepsize
         monitor.debug('dwelling for ' + str(dwelltime))
     previous = change
 
@@ -216,19 +214,10 @@ def _loop_once():
 
     if debug > 0:
         # construct a string with all details on a single line
-        str = 'edge=%2d' % (edge)
+        s = 'edge=%2d' % (edge)
         for key, val in zip(channel_name, channel_val):
-            str += ' %s = %0.2f' % (key, val)
-        monitor.info(str)
-
-    # this is a short-term approach, estimating the sleep for every block
-    # this code is shared between generatesignal, playback and playbackctrl
-    desired = delay
-    elapsed = time.time() - start
-    naptime = desired - elapsed
-    if naptime > 0:
-        # this approximates the desired delay for each iteration
-        time.sleep(naptime)
+            s += ' %s = %0.2f' % (key, val)
+        monitor.info(s)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -238,10 +227,21 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
-    global monitor
+    global monitor, stepsize
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        # correct for the slip
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime > 0:
+            monitor.trace("naptime = " + str(naptime))
+            time.sleep(naptime)
+
 
 
 def _stop():

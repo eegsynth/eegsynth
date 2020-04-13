@@ -84,13 +84,13 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name, monitor, endsample, H, blocksize, A, ft_output
+    global parser, args, config, r, response, patch, name
+    global monitor, filename, fileformat, ext, ft_host, ft_port, ft_output, H, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, f, chanindx, labels, A, blocksize, begsample, endsample, block
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
     filename = patch.getstring('playback', 'file')
     fileformat = patch.getstring('playback', 'format')
 
@@ -193,11 +193,18 @@ def _start():
     endsample = blocksize - 1
     block = 0
 
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
 def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, endsample, H, blocksize, A, ft_output
+    global parser, args, config, r, response, patch
+    global monitor, H, A, ft_output, blocksize, begsample, endsample, block
+    global D, stepsize
 
     if endsample > H.nSamples - 1:
         monitor.info('End of file reached, jumping back to start')
@@ -221,9 +228,6 @@ def _loop_once():
         time.sleep(0.1)
         return
 
-    # measure the time to correct for the slip
-    start = time.time()
-
     monitor.info('Playing block ' + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
 
     # copy the selected samples from the in-memory data
@@ -232,20 +236,10 @@ def _loop_once():
     # write the data to the output buffer
     ft_output.putData(D)
 
+    stepsize = blocksize / (H.fSample * patch.getfloat('playback', 'speed'))
     begsample += blocksize
     endsample += blocksize
     block += 1
-
-    # this is a short-term approach, estimating the sleep for every block
-    # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize / (H.fSample * patch.getfloat('playback', 'speed'))
-    elapsed = time.time() - start
-    naptime = desired - elapsed
-    if naptime > 0:
-        # this approximates the real time streaming speed
-        time.sleep(naptime)
-
-    monitor.info('played ' + str(blocksize) + ' samples in ' + str((time.time() - start) * 1000) + ' ms')
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -255,10 +249,19 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor
+    global monitor, stepsize
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime > 0:
+            # this approximates the real time streaming speed
+            time.sleep(naptime)
 
 
 def _stop():
