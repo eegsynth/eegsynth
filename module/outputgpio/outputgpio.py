@@ -27,12 +27,9 @@ import sys
 import time
 import threading
 
-try:
-    # This only works on a Raspberry Pi
-    import wiringpi
-except ImportError:
-    # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: outputgpio only works on a Raspberry Pi')
+# The wiringpi package only works on a Raspberry Pi
+# It is only used inside this specific EEGsynth module, hence it might not be installed by default
+import wiringpi
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

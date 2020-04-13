@@ -30,13 +30,9 @@ import sys
 import threading
 import time
 
-try:
-    # Neurokit is a rather large Python package with a lot of extra dependencies.
-    # It is only used inside this specific EEGsynth module, hence it is not installed automatically
-    from neurokit.signal import complexity
-except ImportError:
-    # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: neurokit is required for the complexity module, please install it with "pip install neurokit"')
+# Neurokit is a rather large Python package with a lot of extra dependencies.
+# It is only used inside this specific EEGsynth module, hence it might not be installed by default
+from neurokit.signal import complexity
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

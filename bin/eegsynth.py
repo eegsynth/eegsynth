@@ -27,6 +27,7 @@ import os
 import argparse
 from glob import glob
 from multiprocessing import Process
+from importlib import import_module
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -47,7 +48,6 @@ else:
 
 # eegsynth/module contains the modules
 sys.path.insert(0, os.path.join(path, '..'))
-from module import *
 
 # the module starts as soon as it is instantiated
 # optional command-line arguments can be passed to specify the ini file
@@ -91,11 +91,13 @@ def _main():
         module = module.split('-')[0]           # remove whatever comes after a "-" separator
         module = module.split('_')[0]           # remove whatever comes after a "_" separator
 
-        # convert the string in a reference to the corresponding Module class
-        # as soon as the object is instantiated, the module will start
-        module = eval(module + '.Executable')
+        # import the class that implements the specific module from eegsynth/module
+        object = import_module('module.' + module)
+
+        # convert the string in a reference to the corresponding class
+        # as soon as an object of the class is instantiated, the module will start
         file = os.path.join(os.getcwd(), file)
-        process.append(Process(target=_start, args=(module, ['--inifile', file])))
+        process.append(Process(target=_start, args=(object.Executable, ['--inifile', file])))
 
     for p in process:
         p.start()
