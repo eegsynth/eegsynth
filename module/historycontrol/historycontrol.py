@@ -89,7 +89,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
+    global monitor, debug, inputlist, enable, desired, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -98,8 +98,8 @@ def _start():
     debug       = patch.getint('general', 'debug')
     inputlist   = patch.getstring('input', 'channels', multiple=True)
     enable      = patch.getint('history', 'enable', default=1)
-    stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
-    window      = patch.getfloat('history', 'window')                   # in seconds
+    desired     = patch.getfloat('history', 'stepsize')                 # desired stepize in seconds
+    window      = patch.getfloat('history', 'window')                   # length of sliding window in seconds
 
     metrics_iqr     = patch.getint('metrics', 'iqr',     default=1) != 0
     metrics_mad     = patch.getint('metrics', 'mad',     default=1) != 0
@@ -117,7 +117,7 @@ def _start():
     metrics_std     = patch.getint('metrics', 'std',     default=1) != 0
 
     numchannel  = len(inputlist)
-    numhistory  = int(round(window/stepsize))
+    numhistory  = int(round(window/desired))
 
     # this will contain the full list of historic values
     history = np.empty((numchannel, numhistory)) * np.NAN
@@ -135,7 +135,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch
-    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
+    global monitor, debug, inputlist, enable, desired, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
 
     # measure the time to correct for the slip
     start = time.time()
@@ -218,7 +218,7 @@ def _loop_once():
                 monitor.debug('%s = %g' % (key, val))
 
         elapsed = time.time() - start
-        naptime = stepsize - elapsed
+        naptime = desired - elapsed
         if naptime>0:
             # this approximates the desired update speed
             time.sleep(naptime)
