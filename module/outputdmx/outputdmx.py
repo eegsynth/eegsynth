@@ -118,7 +118,7 @@ def _start():
         chanstr = "channel%03d" % (chanindx + 1)
         if chanstr in chanlist:
             # the last channel determines the size
-            dmxsize = chanindx
+            dmxsize = chanindx + 1
 
     # my fixture won't work if the frame size is too small
     dmxsize = max(dmxsize, 16)
@@ -126,6 +126,8 @@ def _start():
 
     # make an empty frame
     dmxframe = [0] * dmxsize
+    # blank out
+    sendframe(s, dmxframe)
 
     # keep a timer to send a packet every now and then
     prevtime = time.time()
@@ -144,6 +146,8 @@ def _loop_once():
     global update, chanval, scale, offset
 
     update = False
+
+    # loop over the control values, these are 1-offset in the ini file
     for chanindx in range(0, dmxsize):
         chanstr = "channel%03d" % (chanindx + 1)
         # this returns None when the channel is not present
