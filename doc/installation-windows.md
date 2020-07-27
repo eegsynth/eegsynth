@@ -1,17 +1,11 @@
 # Installation instructions for Windows
 
-Since we don't have a Windows setup to develop and test it on, we cannot provide detailled installation instructions. We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in the Linux and/or macOS installation instruction for the dependencies that you need to install.
+When using [Anaconda](https://www.anaconda.com), you would mostly follow the general installation instructions.
 
-## Using Anaconda
+## Redis
 
-When using [Anaconda](https://www.anaconda.com), this is more or less how to get started with the installation.
+The only dependency that you would install specifically for Windows is the Redis server. That can be installed using `conda install` like this:
 
 ```
-conda create -n eegsynth python=3.7 anaconda
-conda activate eegsynth
-conda install redis-server
-conda install redis-py
-conda install python numpy scipy
-pip install mido
+conda install -c binstar redis-server # see https://anaconda.org/binstar/redis-server
 ```
-

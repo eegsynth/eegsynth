@@ -4,7 +4,7 @@
 #
 # This module is part of the EEGsynth project (https://github.com/eegsynth/eegsynth)
 #
-# Copyright (C) 2018-2019 EEGsynth project
+# Copyright (C) 2018-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,98 +29,140 @@ import time
 from scipy import signal as sp
 from bitalino import BITalino
 
-if hasattr(sys, 'frozen'):
+if hasattr(sys, "frozen"):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__ == "__main__" and sys.argv[0] != "":
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
+    name = os.path.splitext(file)[0]
+elif __name__ == "__main__":
+    path = os.path.abspath("")
+    file = os.path.split(path)[-1] + ".py"
+    name = os.path.splitext(file)[0]
 else:
-    path = os.path.abspath('')
-    file = os.path.split(path)[-1] + '.py'
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path, '../../lib'))
+sys.path.insert(0, os.path.join(path, "../../lib"))
 import EEGsynth
 import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    """Initialize the module
+    This adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-i",
+        "--inifile",
+        default=os.path.join(path, name + ".ini"),
+        help="name of the configuration file",
+    )
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+    try:
+        r = redis.StrictRedis(
+            host=config.get("redis", "hostname"),
+            port=config.getint("redis", "port"),
+            db=0,
+            charset="utf-8",
+            decode_responses=True,
+        )
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-device      = patch.getstring('bitalino', 'device')
-fsample     = patch.getfloat('bitalino', 'fsample', default=1000)
-blocksize   = patch.getint('bitalino', 'blocksize', default=10)
-channels    = patch.getint('bitalino', 'channels', multiple=True)  # these should be one-offset
-batterythreshold = patch.getint('bitalino', 'batterythreshold', default=30)
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# switch from one-offset to zero-offset
-nchans = len(channels)
-for i in range(nchans):
-    channels[i] -= 1
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
 
-if debug > 0:
-    print("fsample", fsample)
-    print("channels", channels)
-    print("nchans", nchans)
-    print("blocksize", blocksize)
 
-try:
-    ftc_host = patch.getstring('fieldtrip', 'hostname')
-    ftc_port = patch.getint('fieldtrip', 'port')
-    if debug > 0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ft_output = FieldTrip.Client()
-    ft_output.connect(ftc_host, ftc_port)
-    if debug > 0:
-        print("Connected to output FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to output FieldTrip buffer")
+def _start():
+    """Start the module
+    This uses the global variables from setup and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch, name
+    global  monitor, debug, device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
 
-datatype = FieldTrip.DATATYPE_FLOAT32
-ft_output.putHeader(nchans, float(fsample), datatype)
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
 
-try:
-    # Connect to BITalino
-    device = BITalino(device)
-except:
-    raise RuntimeError("cannot connect to BITalino")
+    # get the options from the configuration file
+    debug = patch.getint("general", "debug")
+    device = patch.getstring("bitalino", "device")
+    fsample = patch.getfloat("bitalino", "fsample", default=1000)
+    blocksize = patch.getint("bitalino", "blocksize", default=10)
+    channels = patch.getint("bitalino", "channels", multiple=True)  # these should be one-offset
+    batterythreshold = patch.getint("bitalino", "batterythreshold", default=30)
 
-# Read BITalino version
-print((device.version()))
+    # switch from one-offset to zero-offset
+    nchans = len(channels)
+    for i in range(nchans):
+        channels[i] -= 1
 
-# Set battery threshold
-device.battery(batterythreshold)
+    monitor.info("fsample = " + str(fsample))
+    monitor.info("channels = " + str(channels))
+    monitor.info("nchans = " + str(nchans))
+    monitor.info("blocksize = " + str(blocksize))
 
-# Start Acquisition
-device.start(fsample, channels)
+    try:
+        ft_host = patch.getstring("fieldtrip", "hostname")
+        ft_port = patch.getint("fieldtrip", "port")
+        monitor.success("Trying to connect to buffer on %s:%i ..." % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        monitor.success("Connected to output FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-# Turn BITalino led on
-digitalOutput = [1, 1]
-device.trigger(digitalOutput)
+    datatype = FieldTrip.DATATYPE_FLOAT32
+    ft_output.putHeader(nchans, float(fsample), datatype)
 
-startfeedback = time.time()
-countfeedback = 0
+    try:
+        # Connect to BITalino
+        device = BITalino(device)
+        monitor.success((device.version()))
+    except:
+        raise RuntimeError("cannot connect to BITalino")
 
-while True:
-    monitor.loop()
+    # Set battery threshold
+    device.battery(batterythreshold)
+
+    # Start Acquisition
+    device.start(fsample, channels)
+
+    # Turn BITalino led on
+    digitalOutput = [1, 1]
+    device.trigger(digitalOutput)
+
+    startfeedback = time.time()
+    countfeedback = 0
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
+
+
+def _loop_once():
+    """Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    """
+    global parser, args, config, r, response, patch
+    global monitor, debug, device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
+    global start, dat
 
     # measure the time that it takes
     start = time.time()
@@ -134,16 +176,41 @@ while True:
 
     countfeedback += blocksize
 
-    if debug > 1:
-        print("streamed", blocksize, "samples in", (time.time() - start) * 1000, "ms")
-    elif debug > 0 and countfeedback >= fsample:
+    monitor.trace("streamed " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
+    if countfeedback >= fsample:
         # this gets printed approximately once per second
-        print("streamed", countfeedback, "samples in", (time.time() - startfeedback) * 1000, "ms")
+        monitor.debug("streamed " + str(countfeedback) + " samples in " + str((time.time() - startfeedback) * 1000) + " ms")
         startfeedback = time.time()
         countfeedback = 0
 
-# Stop acquisition
-device.stop()
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print("LOCALS: " + ", ".join(locals().keys()))
 
-# Close connection
-device.close()
+
+def _loop_forever():
+    """Run the main loop forever
+    """
+    global monitor
+    while True:
+        monitor.loop()
+        _loop_once()
+
+
+def _stop():
+    """Stop and clean up on SystemExit, KeyboardInterrupt
+    """
+    global device
+    # Stop acquisition and close connection
+    device.stop()
+    device.close()
+    sys.exit()
+
+
+if __name__ == "__main__":
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

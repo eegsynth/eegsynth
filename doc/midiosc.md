@@ -26,7 +26,7 @@ sudo apt-get install jackd2
 
 ## Getting MidoOSC running on macOS
 
-I am using [macports](https://www.macports.org) as package manager on macOS.
+When using [macports](https://www.macports.org) as package manager on macOS, you can do the following.
 
 ```
 sudo port install liblo

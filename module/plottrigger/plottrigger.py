@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2018-2019 EEGsynth project
+# Copyright (C) 2018-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,52 +34,24 @@ import signal
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
-import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
-
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
-
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
-
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
-
-# get the options from the configuration file
-debug       = patch.getint('general', 'debug')
-delay       = patch.getfloat('general', 'delay')            # in seconds
-window      = patch.getfloat('general', 'window')           # in seconds
-value       = patch.getint('general', 'value', default=0)   # boolean
-winx        = patch.getfloat('display', 'xpos')
-winy        = patch.getfloat('display', 'ypos')
-winwidth    = patch.getfloat('display', 'width')
-winheight   = patch.getfloat('display', 'height')
-
-# Initialize variables
-data = {}
-
-# this is to prevent two messages from being sent at the same time
-lock = threading.Lock()
 
 class TriggerThread(threading.Thread):
     def __init__(self, redischannel, number):
@@ -98,50 +70,116 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    if debug>1:
-                        print(item)
-                    lock.acquire()
+                    monitor.info(item)
                     now = time.time()
                     val = float(item['data'])
-                    # append the time and value as a tuple
-                    data[self.number].append((now, val))
-                    lock.release()
-
-gate = []
-number = []
-# each of the gates that can be triggered is mapped onto a different message
-for i in range(1, 17):
-    name = 'channel{}'.format(i)
-    if config.has_option('gate', name):
-        number.append(i)
-        data[i] = []
-        # start the background thread that deals with this channel
-        this = TriggerThread(patch.getstring('gate', name), i)
-        gate.append(this)
-        if debug>1:
-            print(name, 'OK')
-
-# start the thread for each of the notes
-for thread in gate:
-    thread.start()
+                    with lock:
+                        # append the time and value as a tuple
+                        data[self.number].append((now, val))
 
 
-# initialize graphical window
-app = QtGui.QApplication([])
-win = pg.GraphicsWindow(title="EEGsynth plottrigger")
-win.setWindowTitle('EEGsynth plottrigger')
-win.setGeometry(winx, winy, winwidth, winheight)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
 
-# Enable antialiasing for prettier plots
-pg.setConfigOptions(antialias=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-plot = win.addPlot()
-plot.setLabel('left', text='Channel')
-plot.setLabel('bottom', text='Time (s)')
-plot.setXRange(-window, 0)
-plot.setYRange(0.5, len(gate)+0.5)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-def update():
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
+
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, name
+    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
+
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+
+    # get the options from the configuration file
+    debug       = patch.getint('general', 'debug')
+    delay       = patch.getfloat('general', 'delay')            # in seconds
+    window      = patch.getfloat('general', 'window')           # in seconds
+    value       = patch.getint('general', 'value', default=0)   # boolean
+    winx        = patch.getfloat('display', 'xpos')
+    winy        = patch.getfloat('display', 'ypos')
+    winwidth    = patch.getfloat('display', 'width')
+    winheight   = patch.getfloat('display', 'height')
+
+    # Initialize variables
+    data = {}
+
+    # this is to prevent two messages from being sent at the same time
+    lock = threading.Lock()
+
+    trigger = []
+    number = []
+    # each of the gates that can be triggered is mapped onto a different message
+    for i in range(1, 17):
+        name = 'channel{}'.format(i)
+        if config.has_option('gate', name):
+            number.append(i)
+            data[i] = []
+            # start the background thread that deals with this channel
+            this = TriggerThread(patch.getstring('gate', name), i)
+            trigger.append(this)
+            monitor.info(name + ' trigger configured')
+    if len(trigger)==0:
+        monitor.warning('no gates were specified in the ini file')
+
+    # start the thread for each of the notes
+    for thread in trigger:
+        thread.start()
+
+
+    # initialize graphical window
+    app = QtGui.QApplication([])
+    win = pg.GraphicsWindow(title="EEGsynth plottrigger")
+    win.setWindowTitle('EEGsynth plottrigger')
+    win.setGeometry(winx, winy, winwidth, winheight)
+
+    # Enable antialiasing for prettier plots
+    pg.setConfigOptions(antialias=True)
+
+    plot = win.addPlot()
+    plot.setLabel('left', text='Channel')
+    plot.setLabel('bottom', text='Time (s)')
+    plot.setXRange(-window, 0)
+    plot.setYRange(0.5, len(trigger)+0.5)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch
+    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
+
+    monitor.loop()
+
     now = time.time()
     plot.clear()
     for y in number:
@@ -172,24 +210,42 @@ def update():
                 text.setPos(x, y)
                 plot.addItem(text)
 
-# keyboard interrupt handling
-def sigint_handler(*args):
+    signal.signal(signal.SIGINT, _stop)
+
+    # Set timer for update
+    timer = QtCore.QTimer()
+    timer.timeout.connect(_loop_once)
+    timer.setInterval(10)                     # timeout in milliseconds
+    timer.start(int(round(delay * 1000)))     # in milliseconds
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    QtGui.QApplication.instance().exec_()
+
+
+def _stop(*args):
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    global monitor, trigger, r
+    monitor.success('Closing threads')
+    for thread in trigger:
+        thread.stop()
+    r.publish('PLOTTRIGGER_UNBLOCK', 1)
+    for thread in trigger:
+        thread.join()
     QtGui.QApplication.quit()
 
-signal.signal(signal.SIGINT, sigint_handler)
 
-# Set timer for update
-timer = QtCore.QTimer()
-timer.timeout.connect(update)
-timer.setInterval(10)                     # timeout in milliseconds
-timer.start(int(round(delay * 1000)))     # in milliseconds
-
-# Start
-QtGui.QApplication.instance().exec_()
-
-print('Closing threads')
-for thread in gate:
-    thread.stop()
-r.publish('PLOTTRIGGER_UNBLOCK', 1)
-for thread in gate:
-    thread.join()
+if __name__ == '__main__':
+    _setup()
+    _start()
+    try:
+        _loop_forever()
+    except:
+        _stop()

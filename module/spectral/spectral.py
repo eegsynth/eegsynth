@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2019 EEGsynth project
+# Copyright (C) 2017-2020 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,111 +21,129 @@
 
 import configparser
 import argparse
-import math
-import multiprocessing
 import numpy as np
 import os
 import redis
 import sys
-import threading
 import time
+from scipy.signal import detrend
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import FieldTrip
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-config.read(args.inifile)
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
 
-try:
-    r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("cannot connect to Redis server")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    args = parser.parse_args()
 
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+    config.read(args.inifile)
 
-# this can be used to show parameters that have changed
-monitor = EEGsynth.monitor()
+    try:
+        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+        response = r.client_list()
+    except redis.ConnectionError:
+        raise RuntimeError("cannot connect to Redis server")
 
-# get the options from the configuration file
-debug = patch.getint('general','debug')
+    # combine the patching from the configuration file and Redis
+    patch = EEGsynth.patch(config, r)
 
-# this is the timeout for the FieldTrip buffer
-timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
+    # this can be used to show parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
-try:
-    ftc_host = patch.getstring('fieldtrip','hostname')
-    ftc_port = patch.getint('fieldtrip','port')
-    if debug>0:
-        print('Trying to connect to buffer on %s:%i ...' % (ftc_host, ftc_port))
-    ftc = FieldTrip.Client()
-    ftc.connect(ftc_host, ftc_port)
-    if debug>0:
-        print("Connected to FieldTrip buffer")
-except:
-    raise RuntimeError("cannot connect to FieldTrip buffer")
+    try:
+        ft_host = patch.getstring('fieldtrip','hostname')
+        ft_port = patch.getint('fieldtrip','port')
+        monitor.info('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        monitor.info("Connected to FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to FieldTrip buffer")
 
-hdr_input = None
-start = time.time()
-while hdr_input is None:
-    if debug>0:
-        print("Waiting for data to arrive...")
-    if (time.time()-start)>timeout:
-        print("Error: timeout while waiting for data")
-        raise SystemExit
-    hdr_input = ftc.getHeader()
-    time.sleep(0.1)
 
-if debug>0:
-    print("Data arrived")
-if debug>1:
-    print(hdr_input)
-    print(hdr_input.labels)
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input, name
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
 
-channel_items = config.items('input')
-channame = []
-chanindx = []
-for item in channel_items:
-    # channel numbers are one-offset in the ini file, zero-offset in the code
-    channame.append(item[0])
-    chanindx.append(patch.getint('input', item[0])-1)
+    # this is the timeout for the FieldTrip buffer
+    timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
 
-if debug>0:
-    print(channame, chanindx)
+    hdr_input = None
+    start = time.time()
+    while hdr_input is None:
+        monitor.info("Waiting for data to arrive...")
+        if (time.time()-start)>timeout:
+            raise RuntimeError("timeout while waiting for data")
+        time.sleep(0.1)
+        hdr_input = ft_input.getHeader()
 
-prefix      = patch.getstring('output', 'prefix')
-window      = patch.getfloat('processing','window')  # in seconds
-window      = int(round(window * hdr_input.fSample)) # in samples
-taper       = np.hanning(window)
-frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
+    monitor.info("Data arrived")
+    monitor.debug(hdr_input)
+    monitor.debug(hdr_input.labels)
 
-if debug>2:
-    print('taper     = ', taper)
-    print('frequency = ', frequency)
+    channel_items = config.items('input')
+    channame = []
+    chanindx = []
+    for item in channel_items:
+        # channel numbers are one-offset in the ini file, zero-offset in the code
+        channame.append(item[0])
+        chanindx.append(patch.getint('input', item[0])-1)
 
-begsample = -1
-endsample = -1
+    monitor.info(str(channame) + " " + str(chanindx))
 
-while True:
-    monitor.loop()
-    time.sleep(patch.getfloat('general', 'delay'))
+    prefix = patch.getstring('output', 'prefix')
+
+    begsample = -1
+    endsample = -1
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
+    global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
+
+    scale_window = patch.getfloat('scale', 'window', default=1.)
+    offset_window = patch.getfloat('offset', 'window', default=0.)
+    window = patch.getfloat('processing', 'window', default=2)
+    window = EEGsynth.rescale(window, slope=scale_window, offset=offset_window)
+
+    monitor.update('window', window)
+
+    window = int(round(window * hdr_input.fSample))  # in samples
+    taper = np.hanning(window)
+    frequency = np.fft.rfftfreq(window, 1.0 / hdr_input.fSample)
 
     band_items = config.items('band')
     bandname = []
@@ -134,47 +152,36 @@ while True:
     for item in band_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
         lohi = patch.getfloat('band', item[0], multiple=True)
-        if debug>2:
-            print(item[0], lohi)
         bandname.append(item[0])
         bandlo.append(lohi[0])
         bandhi.append(lohi[1])
-    if debug>0:
-        print(bandname, bandlo, bandhi)
 
-    hdr_input = ftc.getHeader()
-    if (hdr_input.nSamples-1)<endsample:
-        print("Error: buffer reset detected")
-        raise SystemExit
+    monitor.debug(bandname, bandlo, bandhi)
+
+    hdr_input = ft_input.getHeader()
+    if (hdr_input.nSamples - 1) < endsample:
+        raise RuntimeError("buffer reset detected")
+    if hdr_input.nSamples < window:
+        # there are not yet enough samples in the buffer
+        monitor.info("Waiting for data...")
+        return
+
+    # get the most recent data segment
+    begsample = hdr_input.nSamples - window
     endsample = hdr_input.nSamples - 1
-    if endsample<window:
-        # not enough data, try again in the next iteration
-        continue
-
-    begsample = endsample-window+1
-    dat = ftc.getData([begsample, endsample]).astype(np.double)
-
-    # FIXME it should be possible to do this differently
-    power = []
-    for chan in channame:
-        for band in bandname:
-            power.append(0)
-
+    dat = ft_input.getData([begsample, endsample]).astype(np.double)
     dat = dat[:, chanindx]
-    meandat = dat.mean(0)
 
-    # FIXME use detrend just like plotspectral
-    # FIXME multiply with taper in one go
+    # demean the data to prevent spectral leakage
+    dat = detrend(dat, axis=0, type='constant')
 
-    # subtract the channel mean and apply the taper to each sample
-    for chan in range(dat.shape[1]):
-        for sample in range(dat.shape[0]):
-            dat[sample, chan] -= meandat[chan]
-            dat[sample, chan] *= taper[sample]
+    # taper the data
+    dat = dat * taper[:, np.newaxis]
 
     # compute the FFT over the sample direction
     F = np.fft.rfft(dat, axis=0)
 
+    power = [0] * len(channame) * len(bandname)
     i = 0
     for chan in range(F.shape[1]):
         for lo,hi in zip(bandlo,bandhi):
@@ -188,8 +195,7 @@ while True:
                 power[i] /= count
             i+=1
 
-    if debug>1:
-        print(power)
+    monitor.debug(power)
 
     i = 0
     for chan in channame:
@@ -197,3 +203,28 @@ while True:
             key = "%s.%s.%s" % (prefix, chan, band)
             patch.setvalue(key, power[i])
             i+=1
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
+
+
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''
+    global monitor, ft_input
+    ft_input.disconnect()
+    monitor.success('Disconnected from input FieldTrip buffer')
+    sys.exit()
+
+
+if __name__ == '__main__':
+    _setup()
+    _start()
+    _loop_forever()

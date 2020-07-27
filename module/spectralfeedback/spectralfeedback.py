@@ -167,7 +167,7 @@ def update():
     # use coefficients to compute spectral estimate
     psd = arma2psd(AR, rho=rho, NFFT=window_downsamp)
     # select only positive frequencies
-    psd = np.flip(psd[int(np.rint(window_downsamp / 2) - 1):])
+    psd = np.flip(psd[int(np.rint(window_downsamp / 2) - 1):]
 
 #    psd = abs(rfft(dat))
     

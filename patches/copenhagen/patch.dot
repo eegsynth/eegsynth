@@ -1,0 +1,24 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+  openbci_gui -> lsl2ft -> buffer1972 -> preprocessing -> buffer1973;
+
+  inputcontrol -> historycontrol;
+  inputcontrol -> slewlimiter;
+
+  buffer1973 -> plotsignal;
+  buffer1973 -> plotspectral;
+  buffer1973 -> spectral;
+
+  spectral -> postprocessing;
+  spectral -> historycontrol;
+
+  historycontrol -> postprocessing -> slewlimiter;
+
+  slewlimiter -> vumeter;
+  slewlimiter -> plotcontrol;
+  slewlimiter -> outputmidi;
+
+  postprocessing -> quantizer -> outputmidi;
+}

@@ -1,4 +1,4 @@
-fsample = 44100;
+fsample = 48000;
 duration = 0.2; % in seconds
 
 time = 0 : 1/fsample : duration;
