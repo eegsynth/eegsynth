@@ -129,11 +129,12 @@ def _start():
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-    # assign the initial values
-    for item in config.items('initial'):
-        val = patch.getfloat('initial', item[0])
-        patch.setvalue(item[0], val)
-        monitor.update(item[0], val)
+    if 'initial' in config.sections():
+        # assign the initial values
+        for item in config.items('initial'):
+            val = patch.getfloat('initial', item[0])
+            patch.setvalue(item[0], val)
+            monitor.update(item[0], val)
 
     # get the input and output options
     if len(config.items('input')):
@@ -215,4 +216,7 @@ def _stop():
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
+        _stop()

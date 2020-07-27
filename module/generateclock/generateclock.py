@@ -190,13 +190,13 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
+    global monitor, stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    stepsize = patch.getfloat('general', 'delay')
 
     # the scale and offset are used to map the Redis values to internal values
     scale_rate = patch.getfloat('scale', 'rate')
@@ -205,7 +205,7 @@ def _start():
     offset_shift = patch.getfloat('offset', 'shift')
     scale_ppqn = patch.getfloat('scale', 'ppqn')
     offset_ppqn = patch.getfloat('offset', 'ppqn')
-    
+
     # this is to prevent two threads accesing a variable at the same time
     lock = threading.Lock()
 
@@ -243,11 +243,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global parser, args, config, r, response, patch
-    global monitor, debug, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
+    global monitor, stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
     global start, redis_play, midi_play, midi_start, rate, shift, ppqn, elapsed, naptime
-
-    # measure the time to correct for the slip
-    start = time.time()
 
     redis_play = patch.getint('redis', 'play')
     midi_play = patch.getint('midi', 'play')
@@ -324,12 +321,6 @@ def _loop_once():
     redisthread.setShift(shift)
     redisthread.setPpqn(ppqn)
 
-    elapsed = time.time() - start
-    naptime = patch.getfloat('general', 'delay') - elapsed
-    if naptime > 0:
-        monitor.trace("naptime = " + str(naptime))
-        time.sleep(naptime)
-
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print("LOCALS: " + ", ".join(locals().keys()))
@@ -338,10 +329,20 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
-    global monitor
+    global monitor, stepsize
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        # correct for the slip
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime > 0:
+            monitor.trace("naptime = " + str(naptime))
+            time.sleep(naptime)
 
 
 def _stop():
@@ -364,5 +365,5 @@ if __name__ == "__main__":
     _start()
     try:
         _loop_forever()
-    except:
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()

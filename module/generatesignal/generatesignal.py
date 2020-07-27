@@ -99,7 +99,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output, name
-    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, timevec, phasevec
+    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
 
     # get the options from the configuration file
     nchannels = patch.getint('generate', 'nchannels')
@@ -146,6 +146,7 @@ def _start():
     block = 0
     begsample = 0
     endsample = blocksize - 1
+    stepsize = blocksize / fsample
 
     # the time axis per block remains the same, the phase linearly increases
     timevec = np.arange(1, blocksize + 1) / fsample
@@ -161,8 +162,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_output
-    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, timevec, phasevec
-    global start, frequency, amplitude, offset, noise, dutycycle, signal, dat_output, chan, desired, elapsed, naptime
+    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
+    global start, frequency, amplitude, offset, noise, dutycycle, signal, dat_output, chan, elapsed, naptime
 
     if patch.getint('signal', 'rewind', default=0):
         monitor.info("Rewind pressed, jumping back to start of signal")
@@ -182,9 +183,6 @@ def _loop_once():
         monitor.info("Paused")
         time.sleep(0.1)
         return
-
-    # measure the time to correct for the slip
-    start = time.time()
 
     monitor.debug("Generating block " + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
 
@@ -247,17 +245,6 @@ def _loop_once():
     endsample += blocksize
     block += 1
 
-    # this is a short-term approach, estimating the sleep for every block
-    # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize / fsample
-    elapsed = time.time() - start
-    naptime = desired - elapsed
-    if naptime > 0:
-        # this approximates the real time streaming speed
-        time.sleep(naptime)
-
-    monitor.info("generated " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
-
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print("LOCALS: " + ", ".join(locals().keys()))
@@ -266,10 +253,20 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor
+    global monitor, stepsize
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        # correct for the slip
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime > 0:
+            # this approximates the real time streaming speed
+            time.sleep(naptime)
 
 
 def _stop():
@@ -286,5 +283,5 @@ if __name__ == '__main__':
     _start()
     try:
         _loop_forever()
-    except:
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()

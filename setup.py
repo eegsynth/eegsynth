@@ -24,7 +24,7 @@ long_description = long_description.replace(
 
 setuptools.setup(
     name="eegsynth",
-    version="0.3.0",
+    version="0.3.1",
     description="Converting real-time EEG into sounds, music and visual effects",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -85,7 +85,7 @@ setuptools.setup(
         "scipy",
         "sklearn",
         "termcolor",
-        "zmq",
+        "pyzmq",
     ],
     python_requires=">=2.7",
     extras_require={

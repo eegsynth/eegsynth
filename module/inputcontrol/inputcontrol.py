@@ -69,8 +69,9 @@ class Window(QtGui.QWidget):
                 # sliders and dials have an internal value between 0 and 127
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset, reverse=True)
                 # buttons have an internal value of 0, 1, 2, 3, 4
-                if item[1] == 'slap':
-                    val = int(1. * val / 127.)
+                if item[1] == 'slap' or item[1] == 'push':
+                    # these should always start as 0, see https://github.com/eegsynth/eegsynth/issues/375
+                    val = 0
                 elif item[1] == 'toggle1':
                     val = int(1. * val / 127.)
                 elif item[1] == 'toggle2':
@@ -350,6 +351,13 @@ def _start():
     output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # internal values are from 0 to 127
     output_offset = patch.getfloat('output', 'offset', default=0.)    # internal values are from 0 to 127
 
+    if 'initial' in config.sections():
+        # assign the initial values
+        for item in config.items('initial'):
+            val = patch.getfloat('initial', item[0])
+            patch.setvalue(item[0], val)
+            monitor.update(item[0], val)
+
     # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
     signal.signal(signal.SIGINT, _stop)
@@ -388,5 +396,5 @@ if __name__ == '__main__':
     _start()
     try:
         _loop_forever()
-    except:
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()

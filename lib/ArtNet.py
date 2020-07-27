@@ -1,8 +1,9 @@
 import socket
 import struct
+import sys
 
 class ArtNet():
-    def __init__(self, ip="192.168.1.255", port=6454):
+    def __init__(self, ip='192.168.1.255', port=6454):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -14,32 +15,32 @@ class ArtNet():
     def broadcastDMX(self, dmxdata, address):
         content = []
         # Name, 7byte + 0x00
-        content.append("Art-Net\x00")
+        content.append(b'Art-Net\x00')
         # OpCode ArtDMX -> 0x5000, Low Byte first
         content.append(struct.pack('<H', 0x5000))
         # Protocol Version 14, High Byte first
         content.append(struct.pack('>H', 14))
         # Order -> nope -> 0x00
-        content.append("\x00")
+        content.append(b'\x00')
         # Eternity Port
-        content.append(chr(1))
+        content.append(b'\x01')
         # Address
         net, subnet, universe = address
         content.append(struct.pack('<H', net << 8 | subnet << 4 | universe))
         # Length of DMX Data, High Byte First
         content.append(struct.pack('>H', len(dmxdata)))
-        # DMX Data
+        # append the actual DMX Data
         for d in dmxdata:
-            content.append(chr(d))
-        # stitch together
-        content = "".join(content)
+            content.append(struct.pack('B', d))
+        # stitch it together
+        content = b''.join(content)
         # send
         self.s.sendto(content, (self.ip, self.port))
 
     def close(self):
         self.s.close()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 	import time
 	artnet = ArtNet()
 	address = [0, 0, 1]

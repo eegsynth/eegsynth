@@ -82,7 +82,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, debug, address, artnet, dmxdata, prevtime
+    global monitor, debug, address, artnet, dmxsize, dmxframe, prevtime
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -94,9 +94,23 @@ def _start():
     address = [0, 0, patch.getint('artnet','universe')]
     artnet = ArtNet.ArtNet(ip=patch.getstring('artnet','broadcast'), port=patch.getint('artnet','port'))
 
+    # determine the size of the universe
+    dmxsize = 0
+    chanlist, chanvals = list(map(list, list(zip(*config.items('input')))))
+    for chanindx in range(0, 512):
+        chanstr = "channel%03d" % (chanindx + 1)
+        if chanstr in chanlist:
+            # the last channel determines the size
+            dmxsize = chanindx + 1
+
+    # FIXME the artnet code fails if the size is smaller than 512
+    dmxsize = 512
+    monitor.info("universe size = %d" % dmxsize)
+
+    # make an empty frame
+    dmxframe = [0] * dmxsize
     # blank out
-    dmxdata = [0] * 512
-    artnet.broadcastDMX(dmxdata,address)
+    artnet.broadcastDMX(dmxframe, address)
 
     # keep a timer to send a packet every now and then
     prevtime = time.time()
@@ -111,22 +125,23 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch
-    global monitor, debug, address, artnet, dmxdata, prevtime
-    global chanindx, chanstr, chanval, scale, offset
+    global monitor, debug, address, artnet, dmxsize, dmxframe, prevtime
+    global update, chanindx, chanstr, chanval, scale, offset
+
+    update = False
 
     # loop over the control values, these are 1-offset in the ini file
-    for chanindx in range(1, 512):
-        chanstr = "channel%03d" % chanindx
+    for chanindx in range(0, dmxsize):
+        chanstr = "channel%03d" % (chanindx + 1)
         # this returns None when the channel is not present
         chanval = patch.getfloat('input', chanstr)
 
-        if chanval==None:
+        if chanval == None:
             # the value is not present in Redis, skip it
-            monitor.trace(chanstr + ' is not available')
             continue
 
         # the scale and offset options are channel specific
-        scale  = patch.getfloat('scale', chanstr, default=255)
+        scale = patch.getfloat('scale', chanstr, default=255)
         offset = patch.getfloat('offset', chanstr, default=0)
         # apply the scale and offset
         chanval = EEGsynth.rescale(chanval, slope=scale, offset=offset)
@@ -134,16 +149,20 @@ def _loop_once():
         chanval = EEGsynth.limit(chanval, lo=0, hi=255)
         chanval = int(chanval)
 
-        if dmxdata[chanindx-1]!=chanval:
-            # update the DMX value for this channel
-            dmxdata[chanindx-1] = chanval
-            monitor.debug("DMX channel%03d = %g" % (chanindx, chanval))
-            artnet.broadcastDMX(dmxdata,address)
-        elif (time.time()-prevtime)>1:
-            # send a maintenance packet now and then
-            artnet.broadcastDMX(dmxdata,address)
-            prevtime = time.time()
+        # only update if the value has changed
+        if dmxframe[chanindx] != chanval:
+            monitor.info("DMX channel%03d = %g" % (chanindx, chanval))
+            dmxframe[chanindx] = chanval
+            update = True
 
+    if update:
+        artnet.broadcastDMX(dmxframe, address)
+        prevtime = time.time()
+
+    elif (time.time() - prevtime) > 0.5:
+        # send a maintenance frame every 0.5 seconds
+        artnet.broadcastDMX(dmxframe, address)
+        prevtime = time.time()
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -166,18 +185,18 @@ def _stop():
     global monitor, artnet
     monitor.success("Closing module...")
     # blank out
-    dmxdata = [0] * 512
-    artnet.broadcastDMX(dmxdata,address)
+    dmxframe = [0] * 512
+    artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
-    artnet.broadcastDMX(dmxdata,address)
+    artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
-    artnet.broadcastDMX(dmxdata,address)
+    artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
-    artnet.broadcastDMX(dmxdata,address)
+    artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
-    artnet.broadcastDMX(dmxdata,address)
+    artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
-    artnet.broadcastDMX(dmxdata,address)
+    artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
     artnet.close()
     sys.exit()
@@ -188,5 +207,5 @@ if __name__ == '__main__':
     _start()
     try:
         _loop_forever()
-    except:
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()

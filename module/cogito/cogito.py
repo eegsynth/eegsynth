@@ -30,13 +30,9 @@ import time
 import redis
 from copy import copy
 
-try:
-    # Pandas is a rather large Python package.
-    # It is only used inside this specific EEGsynth module, hence it is not installed automatically
-    import pandas as pd
-except ImportError:
-    # give a warning, not an error, so that eegsynth.py does not fail as a whole
-    print('Warning: pandas is required for the cogito module, please install it with "pip install pandas"')
+# Pandas is a rather large Python package with a lot of extra dependencies.
+# It is only used inside this specific EEGsynth module, hence it might not be installed by default
+import pandas as pd
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -340,4 +336,7 @@ def _stop():
 if __name__ == '__main__':
     _setup()
     _start()
-    _loop_forever()
+    try:
+        _loop_forever()
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
+        _stop()

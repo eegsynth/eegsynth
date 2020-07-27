@@ -89,17 +89,16 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
+    global monitor, inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
 
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug')
     inputlist   = patch.getstring('input', 'channels', multiple=True)
     enable      = patch.getint('history', 'enable', default=1)
-    stepsize    = patch.getfloat('history', 'stepsize')                 # in seconds
-    window      = patch.getfloat('history', 'window')                   # in seconds
+    stepsize    = patch.getfloat('history', 'stepsize')                 # stepize in seconds
+    window      = patch.getfloat('history', 'window')                   # length of sliding window in seconds
 
     metrics_iqr     = patch.getint('metrics', 'iqr',     default=1) != 0
     metrics_mad     = patch.getint('metrics', 'mad',     default=1) != 0
@@ -135,10 +134,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch
-    global monitor, debug, inputlist, enable, stepsize, window, numchannel, numhistory, history, historic, metrics_iqr, metrics_mad , metrics_max , metrics_max_att , metrics_mean , metrics_median , metrics_min , metrics_min_att , metrics_p03 , metrics_p16 , metrics_p84 , metrics_p97 , metrics_range , metrics_std
-
-    # measure the time to correct for the slip
-    start = time.time()
+    global monitor, inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
+    global prev_enable, channel, history_att, operation, key, val
 
     # update the enable status
     prev_enable = enable
@@ -155,82 +152,89 @@ def _loop_once():
 
     if not enable:
         time.sleep(0.1)
+        return
 
-    else:
-        # shift data to next sample
-        history[:, :-1] = history[:, 1:]
+    # shift data to next sample
+    history[:, :-1] = history[:, 1:]
 
-        # update with current data
+    # update with current data
+    for channel in range(numchannel):
+        history[channel, numhistory-1] = r.get(inputlist[channel])
+
+    if metrics_mean or metrics_max_att or metrics_min_att:
+        historic['mean']    = np.nanmean(history, axis=1)
+    if metrics_min or metrics_range:
+        historic['min']     = np.nanmin(history, axis=1)
+    if metrics_max or metrics_range:
+        historic['max']     = np.nanmax(history, axis=1)
+
+    # use some robust estimators
+    if metrics_median:
+        historic['median']  = np.nanmedian(history, axis=1)
+    if metrics_mad:
+        # see https://en.wikipedia.org/wiki/Median_absolute_deviation
+        historic['mad']     = mad(history, axis=1)
+
+    # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
+    if metrics_p03:
+        historic['p03']     = np.percentile(history,  3, axis=1) # mean minus 2x standard deviation
+    if metrics_p16 or metrics_iqr:
+        historic['p16']     = np.percentile(history, 16, axis=1) # mean minus 1x standard deviation
+    if metrics_p84 or metrics_iqr:
+        historic['p84']     = np.percentile(history, 84, axis=1) # mean plus 1x standard deviation
+    if metrics_p97:
+        historic['p97']     = np.percentile(history, 97, axis=1) # mean plus 2x standard deviation
+
+    if metrics_iqr:
+        # see https://en.wikipedia.org/wiki/Interquartile_range
+        historic['iqr']     = historic['p84'] - historic['p16']
+
+    if metrics_range:
+        historic['range']   = historic['max'] - historic['min']
+    if metrics_std:
+        historic['std']     = np.nanstd(history, axis=1)
+
+    if metrics_max_att or metrics_min_att:
+        # Attenuated history over time, so to diminish max/min over time
+        # NOTE: There is probably a way to do this without a for-loop:
+        history_att = history
         for channel in range(numchannel):
-            history[channel, numhistory-1] = r.get(inputlist[channel])
+            history_att[channel, :] = history_att[channel, :] - historic['mean'][channel]
+            history_att[channel, :] = history_att[channel, :] * np.linspace(0, 1, numhistory)
+            history_att[channel, :] = history_att[channel, :] + historic['mean'][channel]
 
-        if metrics_mean or metrics_max_att or metrics_min_att:
-            historic['mean']    = np.nanmean(history, axis=1)
-        if metrics_min or metrics_range:
-            historic['min']     = np.nanmin(history, axis=1)
-        if metrics_max or metrics_range:
-            historic['max']     = np.nanmax(history, axis=1)
+    if metrics_max_att or metrics_min_att:
+        historic['min_att'] = np.nanmin(history_att, axis=1)
+        historic['max_att'] = np.nanmax(history_att, axis=1)
 
-        # use some robust estimators
-        if metrics_median:
-            historic['median']  = np.nanmedian(history, axis=1)
-        if metrics_mad:
-            # see https://en.wikipedia.org/wiki/Median_absolute_deviation
-            historic['mad']     = mad(history, axis=1)
+    for operation in list(historic.keys()):
+        for channel in range(numchannel):
+            key = inputlist[channel] + "." + operation
+            val = historic[operation][channel]
+            patch.setvalue(key, val)
+            monitor.debug('%s = %g' % (key, val))
 
-        # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
-        if metrics_p03:
-            historic['p03']     = np.percentile(history,  3, axis=1) # mean minus 2x standard deviation
-        if metrics_p16 or metrics_iqr:
-            historic['p16']     = np.percentile(history, 16, axis=1) # mean minus 1x standard deviation
-        if metrics_p84 or metrics_iqr:
-            historic['p84']     = np.percentile(history, 84, axis=1) # mean plus 1x standard deviation
-        if metrics_p97:
-            historic['p97']     = np.percentile(history, 97, axis=1) # mean plus 2x standard deviation
-
-        if metrics_iqr:
-            # see https://en.wikipedia.org/wiki/Interquartile_range
-            historic['iqr']     = historic['p84'] - historic['p16']
-
-        if metrics_range:
-            historic['range']   = historic['max'] - historic['min']
-        if metrics_std:
-            historic['std']     = np.nanstd(history, axis=1)
-
-        if metrics_max_att or metrics_min_att:
-            # Attenuated history over time, so to diminish max/min over time
-            # NOTE: There is probably a way to do this without a for-loop:
-            history_att = history
-            for channel in range(numchannel):
-                history_att[channel, :] = history_att[channel, :] - historic['mean'][channel]
-                history_att[channel, :] = history_att[channel, :] * np.linspace(0, 1, numhistory)
-                history_att[channel, :] = history_att[channel, :] + historic['mean'][channel]
-
-        if metrics_max_att or metrics_min_att:
-            historic['min_att'] = np.nanmin(history_att, axis=1)
-            historic['max_att'] = np.nanmax(history_att, axis=1)
-
-        for operation in list(historic.keys()):
-            for channel in range(numchannel):
-                key = inputlist[channel] + "." + operation
-                val = historic[operation][channel]
-                patch.setvalue(key, val)
-                monitor.debug('%s = %g' % (key, val))
-
-        elapsed = time.time() - start
-        naptime = stepsize - elapsed
-        if naptime>0:
-            # this approximates the desired update speed
-            time.sleep(naptime)
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor
+    global monitor, stepize
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        # correct for the slip
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime>0:
+            time.sleep(naptime)
 
 
 def _stop():

@@ -138,7 +138,7 @@ def _loop_once():
     '''
     global parser, args, config, r, response, patch
     global monitor, debug, filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
-    global start, indx, val, desired, elapsed, naptime
+    global indx, val, stepsize, elapsed, naptime
 
     if endsample > nSamples - 1:
         monitor.info("End of file reached, jumping back to start")
@@ -162,9 +162,6 @@ def _loop_once():
         time.sleep(0.1)
         return
 
-    # measure the time to correct for the slip
-    start = time.time()
-
     monitor.debug("Playing control value", block, 'from', begsample, 'to', endsample)
 
     for indx in range(len(channelz)):
@@ -172,20 +169,10 @@ def _loop_once():
         val = float(f.readSamples(indx, begsample, endsample))
         patch.setvalue(channelz[indx], val)
 
+    stepsize = blocksize / (fSample * patch.getfloat('playback', 'speed'))
     begsample += blocksize
     endsample += blocksize
     block += 1
-
-    # this is a short-term approach, estimating the sleep for every block
-    # this code is shared between generatesignal, playback and playbackctrl
-    desired = blocksize / (fSample * patch.getfloat('playback', 'speed'))
-    elapsed = time.time() - start
-    naptime = desired - elapsed
-    if naptime > 0:
-        # this approximates the real time streaming speed
-        time.sleep(naptime)
-
-    monitor.info("played" + str(blocksize) + " samples in " + str((time.time()-start)*1000) + " ms")
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -195,10 +182,19 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor
+    global monitor, stepsize
     while True:
+        # measure the time to correct for the slip
+        start = time.time()
+
         monitor.loop()
         _loop_once()
+
+        elapsed = time.time() - start
+        naptime = stepsize - elapsed
+        if naptime > 0:
+            # this approximates the real time streaming speed
+            time.sleep(naptime)
 
 
 def _stop():
@@ -212,5 +208,5 @@ if __name__ == '__main__':
     _start()
     try:
         _loop_forever()
-    except:
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
