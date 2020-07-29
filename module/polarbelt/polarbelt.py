@@ -77,20 +77,30 @@ class PolarClient:
         self.loop = asyncio.get_event_loop()
         self.ble_client = BleakClient(self.patch.getstring("input", "mac"),
                                       loop=self.loop)
+                                      
+        self.monitor = EEGsynth.monitor(name=name,
+                                        debug=self.patch.getint("general","debug"))
+
 
     async def connect(self):
+        self.monitor.success("Trying to connect to Polar belt {0}".format(self.patch.getstring("input", "mac")))
         await self.ble_client.connect()
         await self.ble_client.start_notify(self.patch.getstring("input", "hr_uuid"),
                                            self.data_handler)
+        self.monitor.success("Connected to Polar belt {0}".format(self.patch.getstring("input", "mac")))
+
 
     def start(self):
         asyncio.ensure_future(self.connect())
         self.loop.run_forever()
 
-    async def stop(self):
-        await self.ble_client.stop_notify(self.patch.getstring("input", "hr_uuid"),
-                                          self.data_handler)
-        await self.ble_client.disconnect()
+
+    def stop(self):
+        asyncio.ensure_future(self.ble_client.stop_notify(self.patch.getstring("input", "hr_uuid")))
+        asyncio.ensure_future(self.ble_client.disconnect())
+        self.monitor.success("Disconnected from Polar belt {0}".format(self.patch.getstring("input", "mac")))
+        sys.exit()
+
 
     def data_handler(self, sender, data):
         # data has up to 6 bytes:
@@ -103,24 +113,32 @@ class PolarClient:
         # byte 7 and 8: IBI3 (if present)
         # etc.
 
-        # Polar H10 Heart Rate Characteristics (UUID: 00002a37-0000-1000-8000-00805f9b34fb)
+        # Polar H10 Heart Rate Characteristics
+        # (UUID: 00002a37-0000-1000-8000-00805f9b34fb):
         # + Energy expenditure is not transmitted
-        # + HR only transmitted as uint8, no need to check if HR is transmitted as uint8 or uint16 (would be necessary for bpm > 255)
+        # + HR only transmitted as uint8, no need to check if HR is
+        #   transmitted as uint8 or uint16 (necessary for bpm > 255)
         # Acceleration and raw ECG only available via Polar SDK
         bytes = list(data)
         hr = None
         ibis = []
         if bytes[0] == 00:
-            hr = {data[1]}
+            hr = data[1]
         if bytes[0] == 16:
-            hr = {data[1]}
+            hr = data[1]
             for i in range(2, len(bytes), 2):
                 ibis.append(data[i] + 256 * data[i + 1])
-        self.patch.setvalue(self.patch.getstring("output", "key_hr"), hr)
-        self.patch.setvalue(self.patch.getstring("output", "key_ibi"), ibis)
+        if ibis:
+            for ibi in ibis:
+                self.patch.setvalue(self.patch.getstring("output", "key_ibi"), ibi)
+        if hr:
+            self.patch.setvalue(self.patch.getstring("output", "key_hr"), hr)
+        print("Received HR={0}, IBI(s)={1}".format(hr, ibis))
 
 
 if __name__ == "__main__":
-    polar = PolarClient(path, name).start()
-    if (SystemExit, KeyboardInterrupt, RuntimeError):
+    polar = PolarClient(path, name)
+    try:
+        polar.start()
+    except (SystemExit, KeyboardInterrupt, RuntimeError):
         polar.stop()
