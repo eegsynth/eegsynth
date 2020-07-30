@@ -113,8 +113,8 @@ class BreathingFeedback:
         self.freq_idcs = freqs < 60 / 60    # only consider breathing rates smaller than 60 bpm
         freqs = freqs[self.freq_idcs]
         self.target_range = np.logical_and(freqs >= 4 / 60, freqs <= 12 / 60)
-        self.nontarget_range = np.logical_xor(np.logical_and(freqs >= 0, freqs <= 4 / 60),
-                                              freqs >= 12 / 60)
+        self.nontarget_range = np.logical_xor(np.logical_and(freqs >= 0, freqs < 4 / 60),
+                                              freqs > 12 / 60)
         self.hanning_window = np.hanning(self.window)
         self.biofeedback_target = self.patch.getfloat("biofeedback", "target")
         self.delay = self.patch.getfloat("general", "delay")
@@ -183,6 +183,7 @@ class BreathingFeedback:
 
         # Publish the biofeedback value on the Redis channel.
         self.patch.setvalue(self.key_biofeedback, biofeedback)
+        print("Biofeedback={0}".format(biofeedback))
 
 
 if __name__ == "__main__":
