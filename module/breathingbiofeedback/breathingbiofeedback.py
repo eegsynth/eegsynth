@@ -196,6 +196,7 @@ class BreathingBiofeedback:
 
         # Publish the biofeedback value on the Redis channel.
         self.patch.setvalue(self.key_biofeedback, biofeedback)
+        print("Biofeedback={0}".format(biofeedback))
 
         self.begsample += self.stride
         self.endsample += self.stride
