@@ -24,19 +24,18 @@ import redis
 import sys
 import time
 import numpy as np
-from scipy.signal import detrend
-from spectrum import arburg, arma2psd
+from scipy.signal import lfilter_zi, lfilter
 
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__' and sys.argv[0] != '':
+elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
     name = os.path.splitext(file)[0]
-elif __name__=='__main__':
+elif __name__ == '__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
     name = os.path.splitext(file)[0]
@@ -46,12 +45,13 @@ else:
     name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+sys.path.insert(0, os.path.join(path, '../../lib'))
 import FieldTrip
 import EEGsynth
+EEGsynth import butter_highpass, butter_bandpass
 
 
-class BreathingFeedback:
+class BreathingBiofeedback:
 
     def __init__(self, path, name):
 
@@ -78,7 +78,7 @@ class BreathingFeedback:
 
         # Monitor.
         self.monitor = EEGsynth.monitor(name=name,
-                                        debug=self.patch.getint('general','debug'))
+                                        debug=self.patch.getint('general', 'debug'))
 
         # FieldTrip.
         try:
@@ -105,26 +105,36 @@ class BreathingFeedback:
 
         self.monitor.info("Data arrived.")
 
-        self.window = int(np.rint(hdr_input.fSample * self.patch.getfloat("input", "window")))
-        self.endsample = -1
-        freqs = np.fft.rfftfreq(self.window, 1 / hdr_input.fSample)
-        # Limits of breathing ranges are hardcoded to avoid accidental changes in inifile.
-        # For more intuitive understanding, frequencies are expressed as breathing rate / 60.
-        self.freq_idcs = freqs < 60 / 60    # only consider breathing rates smaller than 60 bpm
-        freqs = freqs[self.freq_idcs]
-        self.target_range = np.logical_and(freqs >= 4 / 60, freqs <= 12 / 60)
-        self.nontarget_range = np.logical_xor(np.logical_and(freqs >= 0, freqs <= 4 / 60),
-                                              freqs >= 12 / 60)
-        self.hanning_window = np.hanning(self.window)
+        sfreq = hdr_input.fSample
+
+        self.window = int(np.rint(sfreq * self.patch.getfloat("input", "window")))    # must be a multiple of stride
+        self.stride = int(np.rint(sfreq * self.patch.getfloat("input", "stride")))
+
+        if hdr_input.nSamples < self.stride:
+            self.begsample = 0
+            self.endsample = self.stride - 1
+        else:
+            self.begsample = hdr_input.nSamples - self.stride
+            self.endsample = hdr_input.nSamples - 1
+
         self.biofeedback_target = self.patch.getfloat("biofeedback", "target")
-        self.delay = self.patch.getfloat("general", "delay")
         self.channel = self.patch.getint("input", "channel")
         self.key_biofeedback = self.patch.getstring("output", "key_biofeedback")
+
+        self.reward_buffer = np.zeros(self.window)
+        self.nonreward_buffer = np.zeros(self.window)
+
+        # Initialize filters (hardcode frequencies to prevent accidental changes
+        # in inifile, and express them as bpm / 60 for readability)
+        self.b_hp, self.a_hp = butter_highpass(15 / 60, sfreq, 6)
+        self.zi_hp = lfilter_zi(self.b_hp, self.a_hp)
+
+        self.b_bp, self.a_bp = butter_bandpass(4 / 60, 10 / 60, sfreq, 4)
+        self.zi_bp = lfilter_zi(self.b_bp, self.a_bp)
 
         while True:
             self.monitor.loop()
             self.compute_biofeedback()
-            time.sleep(self.delay)
 
 
     def stop(self):
@@ -159,34 +169,40 @@ class BreathingFeedback:
     def compute_biofeedback(self):
 
         hdr_input = self.ft_input.getHeader()
-        if (hdr_input.nSamples - 1) < self.endsample:
+        if (hdr_input.nSamples - 1) < self.begsample:
             raise RuntimeError("Buffer reset detected.")
-        if hdr_input.nSamples < self.window:
+        if (hdr_input.nSamples - 1) < self.endsample:
             self.monitor.info("Waiting for data to arrive.")    # there are not yet enough samples in the buffer
             return
 
-        begsample = hdr_input.nSamples - self.window
-        self.endsample = hdr_input.nSamples - 1
-        dat = self.ft_input.getData([begsample, self.endsample]).astype(np.double)
-        dat = dat[:, self.channel]
+        data = self.ft_input.getData([self.begsample, self.endsample]).astype(np.double)
+        data = data[:, self.channel]
 
-        # Compute PSD.
-        dat = detrend(dat)
-        dat = dat * self.hanning_window
-        AR, rho, _ = arburg(dat, order=12)
-        psd = arma2psd(AR, rho=rho, NFFT=self.window)    # use coefficients to compute spectral estimate.
-        psd = np.flip(psd[int(np.rint(self.window / 2) - 1):])[self.freq_idcs]    # select only positive frequencies.
+        self.monitor.info("Processing sample {0} to {1}".format(self.begsample, self.endsample))
 
-        # Compute biofeedback based on the PSD
-        biofeedback = psd[self.target_range].sum() / psd[self.nontarget_range].sum()
+        reward, self.zi_bp = lfilter(self.b_bp, self.a_bp, data, zi=self.zi_bp)
+        self.reward_buffer = np.roll(self.reward_buffer, -self.stride)
+        self.reward_buffer[-self.stride:] = reward
+
+        nonreward, self.zi_hp = lfilter(self.b_hp, self.a_hp, data, zi=self.zi_hp)
+        self.nonreward_buffer = np.roll(self.nonreward_buffer, -self.stride)
+        self.nonreward_buffer[-self.stride:] = nonreward
+
+        amp_reward = np.sum(np.abs(self.reward_buffer)**2)    # Lotte et al. (2011), 10.1109/CCMB.2011.5952105
+        amp_nonreward = np.sum(np.abs(self.nonreward_buffer)**2)
+
+        biofeedback = amp_reward / amp_nonreward
         biofeedback = self.biofeedback_function(biofeedback)
 
         # Publish the biofeedback value on the Redis channel.
         self.patch.setvalue(self.key_biofeedback, biofeedback)
 
+        self.begsample += self.stride
+        self.endsample += self.stride
+
 
 if __name__ == "__main__":
-    biofeedbackloop = BreathingFeedback(path, name)
+    biofeedbackloop = BreathingBiofeedback(path, name)
     try:
         biofeedbackloop.start()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
