@@ -48,7 +48,7 @@ else:
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import FieldTrip
 import EEGsynth
-EEGsynth import butter_highpass, butter_bandpass
+from EEGsynth import butter_highpass, butter_bandpass
 
 
 class BreathingBiofeedback:
@@ -169,11 +169,10 @@ class BreathingBiofeedback:
     def compute_biofeedback(self):
 
         hdr_input = self.ft_input.getHeader()
-        if (hdr_input.nSamples - 1) < self.begsample:
+        if (hdr_input.nSamples - 1) < self.begsample - self.stride:
             raise RuntimeError("Buffer reset detected.")
         if (hdr_input.nSamples - 1) < self.endsample:
-            self.monitor.info("Waiting for data to arrive.")    # there are not yet enough samples in the buffer
-            return
+            return    # there are not yet enough samples in the buffer
 
         data = self.ft_input.getData([self.begsample, self.endsample]).astype(np.double)
         data = data[:, self.channel]
