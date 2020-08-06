@@ -126,10 +126,10 @@ class BreathingBiofeedback:
 
         # Initialize filters (hardcode frequencies to prevent accidental changes
         # in inifile, and express them as bpm / 60 for readability)
-        self.b_hp, self.a_hp = butter_highpass(15 / 60, sfreq, 6)
+        self.b_hp, self.a_hp = butter_highpass(15 / 60, sfreq, 12)
         self.zi_hp = lfilter_zi(self.b_hp, self.a_hp)
 
-        self.b_bp, self.a_bp = butter_bandpass(4 / 60, 10 / 60, sfreq, 4)
+        self.b_bp, self.a_bp = butter_bandpass(6 / 60, 10 / 60, sfreq, 4)
         self.zi_bp = lfilter_zi(self.b_bp, self.a_bp)
 
         while True:
