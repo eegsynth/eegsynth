@@ -24,7 +24,7 @@ import redis
 import sys
 import time
 import numpy as np
-from scipy.signal import lfilter_zi, lfilter
+from scipy.signal import sosfilt_zi, sosfilt
 
 
 if hasattr(sys, 'frozen'):
@@ -48,7 +48,7 @@ else:
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import FieldTrip
 import EEGsynth
-from EEGsynth import butter_highpass, butter_bandpass
+from EEGsynth import bessel_highpass, bessel_bandpass
 
 
 class BreathingBiofeedback:
@@ -105,10 +105,28 @@ class BreathingBiofeedback:
 
         self.monitor.info("Data arrived.")
 
+        self.channel = self.patch.getint("input", "channel")
+        self.key_biofeedback = self.patch.getstring("output", "key_biofeedback")
         sfreq = hdr_input.fSample
 
-        self.window = int(np.rint(sfreq * self.patch.getfloat("input", "window")))    # must be a multiple of stride
-        self.stride = int(np.rint(sfreq * self.patch.getfloat("input", "stride")))
+        self.stride = self.patch.getint("input", "stride")
+
+        self.window_biofeedback = self.patch.getint("input", "window_biofeedback")    # seconds
+        if self.stride >= self.window_biofeedback:
+            raise RuntimeError("stride must be shorter than window_biofeedback.")
+        self.window_biofeedback = int(np.ceil(self.window_biofeedback / self.stride))    # blocks of size stride
+
+        self.window_target = self.patch.getint("input", "window_target")    # seconds
+        if self.stride >= self.window_target:
+            raise RuntimeError("stride must be shorter than window_target.")
+        self.window_target = int(np.ceil(self.window_target / self.stride))    # blocks of size stride
+
+        if self.window_biofeedback >= self.window_target:
+            raise RuntimeError("window_biofeedback must be shorter than window_target.")
+
+        self.buffer = np.zeros(self.window_target)
+
+        self.stride = int(np.ceil(self.stride * sfreq))    # convert to samples for indexing
 
         if hdr_input.nSamples < self.stride:
             self.begsample = 0
@@ -117,20 +135,13 @@ class BreathingBiofeedback:
             self.begsample = hdr_input.nSamples - self.stride
             self.endsample = hdr_input.nSamples - 1
 
-        self.biofeedback_target = self.patch.getfloat("biofeedback", "target")
-        self.channel = self.patch.getint("input", "channel")
-        self.key_biofeedback = self.patch.getstring("output", "key_biofeedback")
-
-        self.reward_buffer = np.zeros(self.window)
-        self.nonreward_buffer = np.zeros(self.window)
-
         # Initialize filters (hardcode frequencies to prevent accidental changes
         # in inifile, and express them as bpm / 60 for readability)
-        self.b_hp, self.a_hp = butter_highpass(15 / 60, sfreq, 12)
-        self.zi_hp = lfilter_zi(self.b_hp, self.a_hp)
+        self.sos_hp = bessel_highpass(15 / 60, sfreq, 4)
+        self.zi_hp = sosfilt_zi(self.sos_hp)
 
-        self.b_bp, self.a_bp = butter_bandpass(6 / 60, 10 / 60, sfreq, 4)
-        self.zi_bp = lfilter_zi(self.b_bp, self.a_bp)
+        self.sos_bp = bessel_bandpass(4 / 60, 12 / 60, sfreq, 2)
+        self.zi_bp = sosfilt_zi(self.sos_bp)
 
         while True:
             self.monitor.loop()
@@ -143,26 +154,30 @@ class BreathingBiofeedback:
         sys.exit()
 
 
-    def biofeedback_function(self, x):
-        """
+    def biofeedback_function(self, x, target):
+        """Hill equation.
+
+        https://en.wikipedia.org/wiki/Hill_equation_(biochemistry). Biofeedback
+        target is equivalent to K parameter.
+
         Parameters
         ----------
         x : float
-            Physiological input value.
+            Input value.
+        target : float
+            The value of x at which half of the maximum reward is obtained. In
+            units of x.
         Returns
         -------
         y : float
             Biofeedback value in the range [0, 1].
         """
-        x0 = 1e-5
-        x1 = self.biofeedback_target
-        y0 = 1e-5
-        y1 = 1
+        if x < 0:
+            return 0
 
-        if x >= x1:
-            return y1    # cap at target
-        y = y0 + (x - x0) * ((y1 - y0) / (x1 - x0))    # linear mapping
-
+        Vmax = 1    # Upper limit of y values
+        n = 3    # Hill coefficient, determines steepness of curve
+        y = Vmax * x**n / (target**n + x**n)
         return y
 
 
@@ -179,23 +194,21 @@ class BreathingBiofeedback:
 
         self.monitor.info("Processing sample {0} to {1}".format(self.begsample, self.endsample))
 
-        reward, self.zi_bp = lfilter(self.b_bp, self.a_bp, data, zi=self.zi_bp)
-        self.reward_buffer = np.roll(self.reward_buffer, -self.stride)
-        self.reward_buffer[-self.stride:] = reward
+        reward, self.zi_bp = sosfilt(self.sos_bp, data, zi=self.zi_bp)
+        nonreward, self.zi_hp = sosfilt(self.sos_hp, data, zi=self.zi_hp)
 
-        nonreward, self.zi_hp = lfilter(self.b_hp, self.a_hp, data, zi=self.zi_hp)
-        self.nonreward_buffer = np.roll(self.nonreward_buffer, -self.stride)
-        self.nonreward_buffer[-self.stride:] = nonreward
+        self.buffer = np.roll(self.buffer, -1)    # shift elements in buffer on index to the left
+        current_biofeedback = np.sum(np.abs(reward)**2 - np.abs(nonreward)**2)
+        self.buffer[-1] = current_biofeedback    # replace buffer element that rolled over after shift (from first to last position)
 
-        amp_reward = np.sum(np.abs(self.reward_buffer)**2)    # Lotte et al. (2011), 10.1109/CCMB.2011.5952105
-        amp_nonreward = np.sum(np.abs(self.nonreward_buffer)**2)
+        target = np.percentile(self.buffer, 95)    # use entire buffer to track median (over window_target blocks of stride seconds)
+        biofeedback = np.sum(self.buffer[-self.window_biofeedback:])    # use last window_biofeedback blocks of stride seconds for computation of current biofeedback score
 
-        biofeedback = amp_reward / amp_nonreward
-        biofeedback = self.biofeedback_function(biofeedback)
+        biofeedback_score = self.biofeedback_function(biofeedback, target)
 
         # Publish the biofeedback value on the Redis channel.
-        self.patch.setvalue(self.key_biofeedback, biofeedback)
-        print("Biofeedback={0}".format(biofeedback))
+        self.patch.setvalue(self.key_biofeedback, biofeedback_score)
+        print("Biofeedback={0}".format(biofeedback_score))
 
         self.begsample += self.stride
         self.endsample += self.stride
