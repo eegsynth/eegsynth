@@ -142,6 +142,8 @@ class BreathingBiofeedback:
 
         self.sos_bp = bessel_bandpass(4 / 60, 12 / 60, sfreq, 2)
         self.zi_bp = sosfilt_zi(self.sos_bp)
+        
+        # self.previoustime = time.time()    # use to debug/monitor timing of calls to compute_biofeedback()
 
         while True:
             self.monitor.loop()
@@ -187,6 +189,7 @@ class BreathingBiofeedback:
         if (hdr_input.nSamples - 1) < self.begsample - self.stride:
             raise RuntimeError("Buffer reset detected.")
         if (hdr_input.nSamples - 1) < self.endsample:
+            time.sleep(.1)
             return    # there are not yet enough samples in the buffer
 
         data = self.ft_input.getData([self.begsample, self.endsample]).astype(np.double)
@@ -209,7 +212,11 @@ class BreathingBiofeedback:
         # Publish the biofeedback value on the Redis channel.
         self.patch.setvalue(self.key_biofeedback, biofeedback_score)
         print("Biofeedback={0}".format(biofeedback_score))
-
+        
+        #t = time.time()
+        #print(t - self.previoustime)
+        #self.previoustime = t
+        
         self.begsample += self.stride
         self.endsample += self.stride
 
