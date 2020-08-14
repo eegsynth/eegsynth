@@ -196,6 +196,7 @@ class TriggerThread(threading.Thread):
                             # send a trigger to indicate that the sample started playing
                             patch.setvalue("%s.%s" % (started, current_channel), current_value)
 
+
 def _setup():
     '''Initialize the module
     This adds a set of global variables

@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy import random
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod, random
 import configparser
 import argparse
@@ -78,19 +77,6 @@ def sanitize(equation):
     equation = ' '.join(equation.split())
     return equation
 
-
-# get the input and output options
-input_name, input_variable = list(zip(*config.items('input')))
-output_name, output_equation = list(zip(*config.items('output')))
-
-if len(config.items('input')):
-    input_name, input_variable = list(zip(*config.items('input')))
-else:
-    input_name, input_variable = ([], [])
-if len(config.items('output')):
-    output_name, output_equation = list(zip(*config.items('output')))
-else:
-    output_name, output_equation = ([], [])
 
 def _setup():
     '''Initialize the module

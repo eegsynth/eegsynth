@@ -29,7 +29,6 @@ import time
 import numpy as np
 from copy import copy
 from numpy.matlib import repmat
-from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -230,11 +229,7 @@ def _loop_once():
         # update the filter parameters
         filterorder = int(filterorder)                     # ensure it is an integer
         filterorder = filterorder + (filterorder%2 ==0)    # ensure it is odd
-        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample,
-                                                     highpassfilter,
-                                                     lowpassfilter,
-                                                     filterorder, dat_output,
-                                                     axis=0, kind='fir')
+        b, a, zi = EEGsynth.initialize_online_filter(hdr_input.fSample, highpassfilter, lowpassfilter, filterorder, dat_output, axis=0)
 
     if not(highpassfilter is None) or not(lowpassfilter is None):
         # apply the filter to the data
@@ -263,11 +258,11 @@ def _loop_once():
 
     # Differentiate
     if differentiate:
-        dat_output, d_zi = EEGsynth.online_filter([1, -1], [1], dat_output, axis=0, zi=differentiate_zi)
+        dat_output, d_zi = EEGsynth.online_filter([1, -1], 1, dat_output, axis=0, zi=differentiate_zi)
 
     # Integrate
     if integrate:
-        dat_output, i_zi = EEGsynth.online_filter([1], [1, -1], dat_output, axis=-1, zi=integrate_zi)
+        dat_output, i_zi = EEGsynth.online_filter(1, [1, -1], dat_output, axis=0, zi=integrate_zi)
 
     # Rectifying
     if rectify:
