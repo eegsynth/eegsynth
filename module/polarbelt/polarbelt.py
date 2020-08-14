@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #

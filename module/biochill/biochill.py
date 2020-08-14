@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
@@ -142,7 +142,7 @@ class BreathingBiofeedback:
 
         self.sos_bp = bessel_bandpass(4 / 60, 12 / 60, sfreq, 2)
         self.zi_bp = sosfilt_zi(self.sos_bp)
-        
+
         # self.previoustime = time.time()    # use to debug/monitor timing of calls to compute_biofeedback()
 
         while True:
@@ -212,11 +212,11 @@ class BreathingBiofeedback:
         # Publish the biofeedback value on the Redis channel.
         self.patch.setvalue(self.key_biofeedback, biofeedback_score)
         print("Biofeedback={0}".format(biofeedback_score))
-        
+
         #t = time.time()
         #print(t - self.previoustime)
         #self.previoustime = t
-        
+
         self.begsample += self.stride
         self.endsample += self.stride
 
