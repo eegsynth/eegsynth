@@ -98,52 +98,52 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                if item['channel']==self.redischannel:
-                        with lock:
-                            monitor.debug('----- %s ----- ' % (self.redischannel))
-                            input_value = []
-                            for name in input_name:
-                                # get the values of the input variables
-                                val = patch.getfloat('input', name)
-                                monitor.update(name, val)
-                                input_value.append(val)
+                if item['channel'] == self.redischannel:
+                    with lock:
+                        monitor.debug('----- %s ----- ' % (self.redischannel))
+                        input_value = []
+                        for name in input_name:
+                            # get the values of the input variables
+                            val = patch.getfloat('input', name)
+                            monitor.update(name, val)
+                            input_value.append(val)
 
-                            if patch.getint('conditional', self.trigger, default=1)==0:
-                                continue
+                        if patch.getint('conditional', self.trigger, default=1) == 0:
+                            continue
 
-                            for key, equation in zip(output_name[self.trigger], output_equation[self.trigger]):
+                        for key, equation in zip(output_name[self.trigger], output_equation[self.trigger]):
 
-                                # replace the variable names in the equation by the values
-                                for name, value in zip(input_name, input_value):
-                                    if value is None and equation.count(name)>0:
-                                        monitor.error('Undefined value: %s' % (name))
-                                    else:
-                                        equation = equation.replace(name, str(value))
-
-                                # also replace the variable name for the trigger by its value
-                                name  = self.trigger
-                                value = float(item['data'])
-                                if value is None and equation.count(name)>0:
+                            # replace the variable names in the equation by the values
+                            for name, value in zip(input_name, input_value):
+                                if value is None and equation.count(name) > 0:
                                     monitor.error('Undefined value: %s' % (name))
                                 else:
                                     equation = equation.replace(name, str(value))
 
-                                # try to evaluate each equation
-                                try:
-                                    val = eval(equation)
-                                    val = float(val) # deal with True/False
-                                    monitor.debug('%s = %s = %g' % (key, equation, val))
-                                    patch.setvalue(key, val)
-                                except ZeroDivisionError:
-                                    # division by zero is not a serious error
-                                    patch.setvalue(equation[0], np.NaN)
-                                except:
-                                    monitor.error('Error in evaluation: %s = %s' % (key, equation))
+                            # also replace the variable name for the trigger by its value
+                            name = self.trigger
+                            value = float(item['data'])
+                            if value is None and equation.count(name) > 0:
+                                monitor.error('Undefined value: %s' % (name))
+                            else:
+                                equation = equation.replace(name, str(value))
 
-                            # send a copy of the original trigger with the given prefix
-                            key = '%s.%s' % (prefix, item['channel'])
-                            val = float(item['data'])
-                            patch.setvalue(key, val)
+                            # try to evaluate each equation
+                            try:
+                                val = eval(equation)
+                                val = float(val)  # deal with True/False
+                                monitor.debug('%s = %s = %g' % (key, equation, val))
+                                patch.setvalue(key, val)
+                            except ZeroDivisionError:
+                                # division by zero is not a serious error
+                                patch.setvalue(equation[0], np.NaN)
+                            except:
+                                monitor.error('Error in evaluation: %s = %s' % (key, equation))
+
+                        # send a copy of the original trigger with the given prefix
+                        key = '%s.%s' % (prefix, item['channel'])
+                        val = float(item['data'])
+                        patch.setvalue(key, val)
 
 
 def _setup():
