@@ -77,9 +77,9 @@ class PolarClient:
         self.loop = asyncio.get_event_loop()
         self.ble_client = BleakClient(self.patch.getstring("input", "mac"),
                                       loop=self.loop)
-                                      
+
         self.monitor = EEGsynth.monitor(name=name,
-                                        debug=self.patch.getint("general","debug"))
+                                        debug=self.patch.getint("general", "debug"))
 
 
     async def connect(self):
@@ -102,23 +102,25 @@ class PolarClient:
         sys.exit()
 
 
-    def data_handler(self, sender, data):
-        # data has up to 6 bytes:
-        # byte 1: flags
-        #   00 = only HR
-        #   16 = HR and IBI(s)
-        # byte 2: HR
-        # byte 3 and 4: IBI1
-        # byte 5 and 6: IBI2 (if present)
-        # byte 7 and 8: IBI3 (if present)
-        # etc.
+    def data_handler(self, sender, data):    # sender (UUID) unused but required by Bleak API
+        """
+        data has up to 6 bytes:
+        byte 1: flags
+            00 = only HR
+            16 = HR and IBI(s)
+        byte 2: HR
+        byte 3 and 4: IBI1
+        byte 5 and 6: IBI2 (if present)
+        byte 7 and 8: IBI3 (if present)
+        etc.
 
-        # Polar H10 Heart Rate Characteristics
-        # (UUID: 00002a37-0000-1000-8000-00805f9b34fb):
-        # + Energy expenditure is not transmitted
-        # + HR only transmitted as uint8, no need to check if HR is
-        #   transmitted as uint8 or uint16 (necessary for bpm > 255)
-        # Acceleration and raw ECG only available via Polar SDK
+        Polar H10 Heart Rate Characteristics
+        (UUID: 00002a37-0000-1000-8000-00805f9b34fb):
+            + Energy expenditure is not transmitted
+            + HR only transmitted as uint8, no need to check if HR is
+              transmitted as uint8 or uint16 (necessary for bpm > 255)
+        Acceleration and raw ECG only available via Polar SDK
+        """
         bytes = list(data)
         hr = None
         ibis = []
