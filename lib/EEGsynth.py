@@ -546,34 +546,30 @@ def initialize_online_notchfilter(fsample, fnotch, quality, x, axis=-1):
     return b, a, zi
 
 ####################################################################
-def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1,
-                             kind='fir'):
+def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
     # boxcar, triang, blackman, hamming, hann, bartlett, flattop, parzen, bohman, blackmanharris, nuttall, barthann
     filtwin = 'nuttall'
     nyquist = fsample / 2.
     ndim = len(x.shape)
     axis = axis % ndim
 
-
     if highpass != None:
         highpass = highpass/nyquist
-        if kind == 'fir':
-            if highpass < 0.001:
-                print('Warning: highpass is too low, disabling')
-                highpass = None
-            elif highpass > 0.999:
-                print('Warning: highpass is too high, disabling')
-                highpass = None
+        if highpass < 0.001:
+            print('Warning: highpass is too low, disabling')
+            highpass = None
+        elif highpass > 0.999:
+            print('Warning: highpass is too high, disabling')
+            highpass = None
 
     if lowpass != None:
         lowpass = lowpass/nyquist
-        if kind == 'fir':
-            if lowpass < 0.001:
-                print('Warning: lowpass is too low, disabling')
-                lowpass = None
-            elif lowpass > 0.999:
-                print('Warning: lowpass is too low, disabling')
-                lowpass = None
+        if lowpass < 0.001:
+            print('Warning: lowpass is too low, disabling')
+            lowpass = None
+        elif lowpass > 0.999:
+            print('Warning: lowpass is too low, disabling')
+            lowpass = None
 
     if not(highpass is None) and not(lowpass is None) and highpass>=lowpass:
         # totally blocking all signal
@@ -590,12 +586,9 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1,
         a = np.ones(1)
     elif not(highpass is None) and not(lowpass is None):
         print('using bandpass filter', [highpass, lowpass, order])
-        if kind == 'fir':
-            b = firwin(order, cutoff = [highpass, lowpass], window = filtwin,
-                       pass_zero = False)
-            a = np.ones(1)
-        elif kind == 'iir':
-            b, a = butter(2, [highpass, lowpass], btype='band')
+        b = firwin(order, cutoff = [highpass, lowpass], window = filtwin,
+                    pass_zero = False)
+        a = np.ones(1)
     else:
         # no filtering at all
         print('using IDENTITY filter', [highpass, lowpass, order])
