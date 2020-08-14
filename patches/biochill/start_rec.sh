@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-cd $HOME/eegsynth/patches/biofeedback    # make executable from anywhere
+cd $HOME/eegsynth/patches/biochill    # make executable from anywhere
 
 cmd=( mate-terminal )
 modules=( recordsignal recordtrigger )
