@@ -116,13 +116,6 @@ def sendMidi(name, code, val):
         # note_on and note_off messages are dealt with in another function
         SetNoteOn(code, val)
         return
-    elif name.startswith('note'):
-        # note_on and note_off messages are dealt with in another function
-        SetNoteOn(code, val)
-        return
-
-    if debug>0:
-        print(name, code, val)
 
     monitor.info(str(name) + " " + str(code) + " " + str(val))
 
