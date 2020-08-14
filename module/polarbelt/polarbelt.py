@@ -83,7 +83,7 @@ class PolarClient:
 
 
     async def connect(self):
-        self.monitor.success("Trying to connect to Polar belt {0}".format(self.patch.getstring("input", "mac")))
+        self.monitor.info("Trying to connect to Polar belt {0}".format(self.patch.getstring("input", "mac")))
         await self.ble_client.connect()
         await self.ble_client.start_notify(self.patch.getstring("input", "hr_uuid"),
                                            self.data_handler)
