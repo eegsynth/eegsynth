@@ -1,13 +1,11 @@
 from __future__ import print_function
 
-import configparser
-import os
 import sys
 import time
 import threading
 import math
 import numpy as np
-from scipy.signal import firwin, butter, decimate, lfilter, lfilter_zi, lfiltic, iirnotch
+from scipy.signal import firwin, butter, bessel, lfilter, lfiltic, iirnotch
 import logging
 from logging import Formatter
 import colorama
@@ -588,7 +586,8 @@ def initialize_online_filter(fsample, highpass, lowpass, order, x, axis=-1):
         a = np.ones(1)
     elif not(highpass is None) and not(lowpass is None):
         print('using bandpass filter', [highpass, lowpass, order])
-        b = firwin(order, cutoff = [highpass, lowpass], window = filtwin, pass_zero = False)
+        b = firwin(order, cutoff = [highpass, lowpass], window = filtwin,
+                    pass_zero = False)
         a = np.ones(1)
     else:
         # no filtering at all
@@ -619,6 +618,14 @@ def butter_bandpass(lowcut, highcut, fs, order=9):
     return b, a
 
 ####################################################################
+def bessel_bandpass(lowcut, highcut, fs, order):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    sos = bessel(order, [low, high], btype="bandpass", output="sos")
+    return sos
+
+####################################################################
 def butter_lowpass(lowcut, fs, order=9):
     nyq = 0.5 * fs
     low = lowcut / nyq
@@ -631,6 +638,13 @@ def butter_highpass(highcut, fs, order=9):
     high = highcut / nyq
     b, a = butter(order, high, btype='highpass')
     return b, a
+
+####################################################################
+def bessel_highpass(cutoff, fs, order):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    sos = bessel(order, normal_cutoff, btype="highpass", output="sos")
+    return sos
 
 ####################################################################
 def notch(f0, fs, Q=30):

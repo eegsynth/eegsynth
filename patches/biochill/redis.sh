@@ -17,4 +17,5 @@ else
 fi
 
 echo starting \"redis-server $CONFIG\"
-redis-server $CONFIG
+redis-cli shutdown   # kill any running servers
+redis-server $CONFIG --protected-mode no

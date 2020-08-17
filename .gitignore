@@ -13,6 +13,7 @@ interface/node_modules
 *.wav
 *.tsv
 .DS_Store
+misc/
 
 # Backup files
 *.m~
