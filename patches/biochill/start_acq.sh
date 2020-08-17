@@ -4,7 +4,7 @@
 cd $HOME/eegsynth/patches/biochill    # make executable from anywhere
 
 cmd=( mate-terminal )
-modules=( redis buffer bitalino2ft polarbelt plotsignal )
+modules=( redis buffer bitalino2ft polarbelt plotcontrol plotsignal )
 i=0
 
 for module in "${modules[@]}"
