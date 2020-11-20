@@ -1,6 +1,6 @@
 # polarbelt module
 
-The purpose of this module is to read heart rate and inter-beat-intervals from a Polar H10 ECG band and write them to Redis channels.
+The purpose of this module is to process the heart rate and the inter-beat-intervals from a Polar H9 or H10 heart-rate band and write them to Redis channels.
 
 Helpful resources on how to access data via bluetooth:
 + https://www.oreilly.com/library/view/getting-started-with/9781491900550/ch04.html
