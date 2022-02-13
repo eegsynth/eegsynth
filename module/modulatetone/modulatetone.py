@@ -169,8 +169,7 @@ def _start():
     elif mode == 'quad':
         nchans = 4
 
-    # this is now hard-coded, perhaps it should be determined on the basis of the settings
-    ntones = 8
+    ntones = len(frequencies)
     control = np.zeros((ntones, nchans), dtype=np.float32)
 
     monitor.info("audio nchans = " + str(nchans))
