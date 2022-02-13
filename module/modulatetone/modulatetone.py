@@ -64,7 +64,7 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        global frequencies, control, channame
+        global modulation, frequencies, control, channame, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency
         pubsub = r.pubsub()
         # this message unblocks the Redis listen command
         pubsub.subscribe('MODULATETONE_UNBLOCK')
@@ -77,25 +77,42 @@ class TriggerThread(threading.Thread):
                 if item['channel'] == self.redischannel:
                     chanval = float(item['data'])
                     with lock:
-                        chanval = EEGsynth.rescale(chanval, slope=scale_control, offset=offset_control)
-                        chanval = EEGsynth.limit(chanval, lo=0, hi=1)
+                        if modulation == 'am':
+                            chanval = EEGsynth.rescale(chanval, slope=scale_amplitude, offset=offset_amplitude)
+                            chanval = EEGsynth.limit(chanval, lo=0, hi=1)
+                        elif modulation == 'fm':
+                            chanval = EEGsynth.rescale(chanval, slope=scale_frequency, offset=offset_frequency)
                         control[self.tone, self.audiochannel] = chanval
                     monitor.update(channame[self.audiochannel] + " tone" + str(self.tone + 1), chanval)
 
 
 def callback(in_data, frame_count, time_info, status):
-    global rate, nchans, ntones, control, frequencies, lock, offset
+    global rate, modulation, nchans, ntones, control, frequencies, scale_amplitude, lock, offset
 
     dat = np.zeros([frame_count, nchans], dtype=np.float32)
+    time = np.arange(0, frame_count) / rate
 
-    offset += frame_count / rate
-    time = np.arange(0, frame_count) / rate + offset
+    if modulation == 'am':
+        # apply and remember the time offset, this is the same for each note
+        time += offset
+        offset += frame_count / rate
+    elif modulation == 'fm':
+        # the phase offset is different for each note and therefore handled below
+        pass
 
     with lock:
         for chan in range(0, nchans):
-            # only compute the sine for tones with a non-zero amplitude
-            for tone in np.nonzero(control[:, chan])[0]:
-                dat[:, chan] += control[tone, chan] * np.sin(2.0 * np.pi * frequencies[tone] * time)
+            if modulation == 'am':
+                # only compute tones with a non-zero amplitude
+                for tone in np.nonzero(control[:, chan])[0]:
+                    phase = 2.0 * np.pi * frequencies[tone] * time
+                    dat[:, chan] += control[tone, chan] * np.sin(phase)
+            elif modulation == 'fm':
+                # all tones will contribute and need to be computed
+                for tone in range(0, ntones):
+                    phase = 2.0 * np.pi * (frequencies[tone] + control[tone, chan]) * time + offset[tone, chan]
+                    offset[tone, chan] = phase[-1]
+                    dat[:, chan] += scale_amplitude * np.sin(phase)
 
     try:
         # this is for Python 2
@@ -147,20 +164,20 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug
-    global device, mode, rate, offset, control, scale_control, offset_control, nchans, channame, ntones, frequencies, lock, stream, trigger, thread, p
+    global device, mode, rate, modulation, offset, control, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency, nchans, channame, ntones, frequencies, lock, stream, trigger, thread, p
 
     # get the options from the configuration file
     device = patch.getint('audio', 'device')
     mode = patch.getstring('audio', 'mode', default='mono')
     rate = patch.getint('audio', 'rate', default=22050)
+    modulation = patch.getstring('audio', 'modulation', default='am')
     frequencies = patch.getfloat('audio', 'frequencies', multiple=True)
 
-    # initialize the time offset, this will be incremented by the callback
-    offset = 0.
-
-    # these are for multiplying/attenuating the control signale
-    scale_control = patch.getfloat('scale', 'control', default=0.125)
-    offset_control = patch.getfloat('offset', 'control', default=0)
+    # these are for multiplying/attenuating the amplitude
+    scale_amplitude = patch.getfloat('scale', 'amplitude', default=0.125)   # the default is for 8 controls
+    offset_amplitude = patch.getfloat('offset', 'amplitude', default=0)
+    scale_frequency = patch.getfloat('scale', 'frequency', default=100)     # the default is 100 Hz
+    offset_frequency = patch.getfloat('offset', 'frequency', default=0)
 
     if mode == 'mono':
         nchans = 1
@@ -172,9 +189,16 @@ def _start():
     ntones = len(frequencies)
     control = np.zeros((ntones, nchans), dtype=np.float32)
 
+    # initialize the time/phase offset, this will be incremented by the callback
+    if modulation == 'am':
+        offset = 0.
+    elif modulation == 'fm':
+        offset = np.zeros((ntones, nchans), dtype=np.float32)
+
     monitor.info("audio nchans = " + str(nchans))
     monitor.info("audio ntones = " + str(ntones))
     monitor.info("audio rate   = " + str(rate))
+    monitor.info("modulation   = " + modulation)
 
     # this is to prevent two triggers from being activated at the same time
     lock = threading.Lock()
@@ -226,6 +250,9 @@ def _start():
     stream.start_stream()
 
     signal.signal(signal.SIGINT, _stop)
+
+    if scale_amplitude>1/ntones:
+        monitor.warning('the amplitude scaling is too high, clipping might occur')
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
