@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Audio2ft reads data from an audio device and writes it to a FieldTrip buffer
+# This module demodulates an audio signal that is comrised of a mixture of modulated tones
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2018-2020 EEGsynth project
+# Copyright (C) 2022 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -94,7 +94,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
+    global monitor, debug, device, rate, blocksize, nchans, frequencies, ntones, key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
@@ -103,23 +103,34 @@ def _start():
     debug = patch.getint("general", "debug")
     device = patch.getint("audio", "device")
     rate = patch.getint("audio", "rate", default=44100)
-    blocksize = patch.getint("audio", "blocksize", default=1024)
     nchans = patch.getint("audio", "nchans", default=2)
+    blocksize = patch.getint("audio", "blocksize", default=1024)
 
-    try:
-        ft_host = patch.getstring("fieldtrip", "hostname")
-        ft_port = patch.getint("fieldtrip", "port")
-        monitor.success("Trying to connect to buffer on %s:%i ..." % (ft_host, ft_port))
-        ft_output = FieldTrip.Client()
-        ft_output.connect(ft_host, ft_port)
-        monitor.success("Connected to output FieldTrip buffer")
-    except:
-        raise RuntimeError("cannot connect to output FieldTrip buffer")
+    modulation = patch.getstring('audio', 'modulation', default='am')
+    frequencies = patch.getfloat('audio', 'frequencies', multiple=True)
 
-    monitor.info("rate = %g" % rate)
-    monitor.info("nchans = %g" % nchans)
-    monitor.info("blocksize = %g" % blocksize)
+    ntones = len(frequencies)
+    offset = np.zeros((ntones, ), dtype=np.float32)
 
+    monitor.info("rate       = %g" % rate)
+    monitor.info("nchans     = %g" % nchans)
+    monitor.info("blocksize  = %g" % blocksize)
+    monitor.info("modulation = " + modulation)
+
+    channame = ['left', 'right', 'chan3', 'chan4', 'chan5', 'chan6', 'chan7', 'chan8']
+    key = []
+    for chan in range(0, nchans):
+        key.append([])
+        for tone in range(0, ntones):
+            tonestr = "tone%d" % (tone + 1)
+            if patch.hasitem(channame[chan], tonestr):
+                redischannel = patch.getstring(channame[chan], tonestr)
+                key[chan].append(redischannel)
+                monitor.info("configured " + channame[chan] + " " + tonestr + " as " + redischannel)
+            else:
+                key[chan].append(None)
+                monitor.info("not configured " + channame[chan] + " " + tonestr)
+                
     p = pyaudio.PyAudio()
 
     monitor.info("------------------------------------------------------------------")
@@ -138,7 +149,7 @@ def _start():
     monitor.info("------------------------------------------------------------------")
 
     stream = p.open(
-        format=pyaudio.paInt16,
+        format=pyaudio.paFloat32,
         channels=nchans,
         rate=rate,
         input=True,
@@ -146,10 +157,9 @@ def _start():
         frames_per_buffer=blocksize,
     )
 
-    ft_output.putHeader(nchans, float(rate), FieldTrip.DATATYPE_INT16)
-
     startfeedback = time.time()
     countfeedback = 0
+    offset = 0.
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -161,18 +171,28 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global parser, args, config, r, response, patch
-    global startfeedback, countfeedback
-    global start, data
+    global rate, nchans, blocksize, frequencies, ntones, offset, startfeedback, countfeedback
+    global start, data, chan, timeaxis, tone, phase, value, Fsin, Fcos, val
 
     # measure the time that it takes
     start = time.time()
 
-    # read a block of data from the audio device
+    # read a block of data from the audio device and convert raw buffer to numpy array
     data = stream.read(blocksize)
+    data = np.reshape(np.frombuffer(data, dtype=np.float32), (blocksize, nchans))
 
-    # convert raw buffer to numpy array and write to output buffer
-    data = np.reshape(np.frombuffer(data, dtype=np.int16), (blocksize, nchans))
-    ft_output.putData(data)
+    timeaxis = np.arange(0, blocksize) / rate + offset
+    offset += blocksize / rate
+
+    for chan in range(0, nchans):
+        for tone in range(0, ntones):
+            if not key[chan][tone] == None:
+                phase = 2.0 * np.pi * frequencies[tone] * timeaxis
+                Fsin = np.dot(data[:, chan], np.sin(phase))/blocksize
+                Fcos = np.dot(data[:, chan], np.cos(phase))/blocksize
+                val = Fsin*Fsin + Fcos*Fsin
+                patch.setvalue(key[chan][tone], val)
+                monitor.update(key[chan][tone], val)
 
     monitor.trace("streamed " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
 

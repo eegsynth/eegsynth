@@ -86,16 +86,16 @@ class TriggerThread(threading.Thread):
                     monitor.update(channame[self.audiochannel] + " tone" + str(self.tone + 1), chanval)
 
 
-def callback(in_data, frame_count, time_info, status):
+def callback(in_data, blocksize, time_info, status):
     global rate, modulation, nchans, ntones, control, frequencies, scale_amplitude, lock, offset
 
-    dat = np.zeros([frame_count, nchans], dtype=np.float32)
-    time = np.arange(0, frame_count) / rate
+    dat = np.zeros([blocksize, nchans], dtype=np.float32)
+    timeaxis = np.arange(0, blocksize) / rate
 
     if modulation == 'am':
         # apply and remember the time offset, this is the same for each note
-        time += offset
-        offset += frame_count / rate
+        timeaxis += offset
+        offset += blocksize / rate
     elif modulation == 'fm':
         # the phase offset is different for each note and therefore handled below
         pass
@@ -105,12 +105,12 @@ def callback(in_data, frame_count, time_info, status):
             if modulation == 'am':
                 # only compute tones with a non-zero amplitude
                 for tone in np.nonzero(control[:, chan])[0]:
-                    phase = 2.0 * np.pi * frequencies[tone] * time
+                    phase = 2.0 * np.pi * frequencies[tone] * timeaxis
                     dat[:, chan] += control[tone, chan] * np.sin(phase)
             elif modulation == 'fm':
                 # all tones will contribute and need to be computed
                 for tone in range(0, ntones):
-                    phase = 2.0 * np.pi * (frequencies[tone] + control[tone, chan]) * time + offset[tone, chan]
+                    phase = 2.0 * np.pi * (frequencies[tone] + control[tone, chan]) * timeaxis + offset[tone, chan]
                     offset[tone, chan] = phase[-1]
                     dat[:, chan] += scale_amplitude * np.sin(phase)
 
@@ -168,8 +168,8 @@ def _start():
 
     # get the options from the configuration file
     device = patch.getint('audio', 'device')
-    mode = patch.getstring('audio', 'mode', default='mono')
     rate = patch.getint('audio', 'rate', default=22050)
+    nchans = patch.getint("audio", "nchans", default=2)
     modulation = patch.getstring('audio', 'modulation', default='am')
     frequencies = patch.getfloat('audio', 'frequencies', multiple=True)
 
@@ -178,13 +178,6 @@ def _start():
     offset_amplitude = patch.getfloat('offset', 'amplitude', default=0)
     scale_frequency = patch.getfloat('scale', 'frequency', default=100)     # the default is 100 Hz
     offset_frequency = patch.getfloat('offset', 'frequency', default=0)
-
-    if mode == 'mono':
-        nchans = 1
-    elif mode == 'stereo':
-        nchans = 2
-    elif mode == 'quad':
-        nchans = 4
 
     ntones = len(frequencies)
     control = np.zeros((ntones, nchans), dtype=np.float32)
@@ -205,7 +198,7 @@ def _start():
 
     trigger = []
     # configure the trigger threads for the control signals
-    channame = ['left', 'right', 'chan3', 'chan4']
+    channame = ['left', 'right', 'chan3', 'chan4', 'chan5', 'chan6', 'chan7', 'chan8']
     for chan in range(0, nchans):
         for tone in range(0, ntones):
             tonestr = "tone%d" % (tone + 1)
