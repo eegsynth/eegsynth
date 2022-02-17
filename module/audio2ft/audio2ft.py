@@ -96,7 +96,6 @@ def _start():
     global parser, args, config, r, response, patch, name
     global monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
 
-
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
 
@@ -175,9 +174,9 @@ def _loop_once():
     data = np.reshape(np.frombuffer(data, dtype=np.int16), (blocksize, nchans))
     ft_output.putData(data)
 
-    countfeedback += blocksize
-
     monitor.trace("streamed " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
+
+    countfeedback += blocksize
     if countfeedback >= rate:
         # this gets printed approximately once per second
         monitor.debug("streamed " + str(countfeedback) + " samples in " + str((time.time() - startfeedback) * 1000) + " ms")
