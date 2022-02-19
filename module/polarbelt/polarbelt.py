@@ -24,7 +24,7 @@ import os
 import redis
 import sys
 import asyncio
-from bleak import BleakClient
+from bleak import BleakClient, discover
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -46,6 +46,7 @@ else:
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
+
 
 
 class PolarClient:
@@ -72,22 +73,31 @@ class PolarClient:
 
         # Combine the patching from the configuration file and Redis.
         self.patch = EEGsynth.patch(config, rds)
-
+        
         # BLE client.
         self.loop = asyncio.get_event_loop()
-        self.ble_client = BleakClient(self.patch.getstring("input", "mac"),
+        
+        self.ble_client = BleakClient(self.patch.getstring("input", "uuid"),
                                       loop=self.loop)
 
         self.monitor = EEGsynth.monitor(name=name,
                                         debug=self.patch.getint("general", "debug"))
 
+        self.loop.run_until_complete(self.discover())
+
+
+    async def discover(self):
+        devices = await discover()
+        for d in devices:
+            self.monitor.info(d)
+
 
     async def connect(self):
-        self.monitor.info("Trying to connect to Polar belt {0}".format(self.patch.getstring("input", "mac")))
+        self.monitor.info("Trying to connect to Polar belt {0}".format(self.patch.getstring("input", "uuid")))
         await self.ble_client.connect()
-        await self.ble_client.start_notify(self.patch.getstring("input", "hr_uuid"),
+        await self.ble_client.start_notify(self.patch.getstring("input", "uuid"),
                                            self.data_handler)
-        self.monitor.success("Connected to Polar belt {0}".format(self.patch.getstring("input", "mac")))
+        self.monitor.success("Connected to Polar belt {0}".format(self.patch.getstring("input", "uuid")))
 
 
     def start(self):
@@ -96,9 +106,9 @@ class PolarClient:
 
 
     def stop(self):
-        asyncio.ensure_future(self.ble_client.stop_notify(self.patch.getstring("input", "hr_uuid")))
+        asyncio.ensure_future(self.ble_client.stop_notify(self.patch.getstring("input", "uuid")))
         asyncio.ensure_future(self.ble_client.disconnect())
-        self.monitor.success("Disconnected from Polar belt {0}".format(self.patch.getstring("input", "mac")))
+        self.monitor.success("Disconnected from Polar belt {0}".format(self.patch.getstring("input", "uuid")))
         sys.exit()
 
 
