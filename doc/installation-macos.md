@@ -31,6 +31,10 @@ brew install portmidi
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 ```
 
+## Give the terminal access to the microphone
+
+In order for `audio2ft` and `demodulatetone` to receive audio on macOS Monterey, you have to give the terminal access to the microphone. Go to System Preferences, Security and Privacy, Microphone, and enable Terminal.
+
 ## Redis
 
 Install the Redis server and command-line client:
