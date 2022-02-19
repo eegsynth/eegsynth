@@ -94,7 +94,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, debug, device, rate, blocksize, nchans, frequencies, ntones, key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
+    global monitor, debug, device, rate, blocksize, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
@@ -108,6 +108,12 @@ def _start():
 
     modulation = patch.getstring('audio', 'modulation', default='am')
     frequencies = patch.getfloat('audio', 'frequencies', multiple=True)
+
+    # these are for multiplying/attenuating the amplitude
+    scale_amplitude = patch.getfloat('scale', 'amplitude', default=8)       # the default is for 8 controls
+    offset_amplitude = patch.getfloat('offset', 'amplitude', default=0)
+    scale_frequency = patch.getfloat('scale', 'frequency', default=0.1)     # the default is 100 Hz
+    offset_frequency = patch.getfloat('offset', 'frequency', default=0)
 
     ntones = len(frequencies)
     offset = np.zeros((ntones, ), dtype=np.float32)
@@ -172,7 +178,7 @@ def _loop_once():
     """
     global parser, args, config, r, response, patch
     global rate, nchans, blocksize, frequencies, ntones, offset, startfeedback, countfeedback
-    global start, data, chan, timeaxis, tone, phase, value, Fsin, Fcos, val
+    global start, data, chan, timeaxis, tone, phase, value, Fsin, Fcos, chanval
 
     # measure the time that it takes
     start = time.time()
@@ -188,11 +194,12 @@ def _loop_once():
         for tone in range(0, ntones):
             if not key[chan][tone] == None:
                 phase = 2.0 * np.pi * frequencies[tone] * timeaxis
-                Fsin = np.dot(data[:, chan], np.sin(phase))/blocksize
-                Fcos = np.dot(data[:, chan], np.cos(phase))/blocksize
-                val = Fsin*Fsin + Fcos*Fsin
-                patch.setvalue(key[chan][tone], val)
-                monitor.update(key[chan][tone], val)
+                Fsin = np.dot(data[:, chan], np.sin(phase))
+                Fcos = np.dot(data[:, chan], np.cos(phase))
+                chanval = 2 * np.sqrt(Fsin*Fsin + Fcos*Fcos) / blocksize
+                chanval = EEGsynth.rescale(chanval, slope=scale_amplitude, offset=offset_amplitude)
+                patch.setvalue(key[chan][tone], chanval)
+                monitor.update(key[chan][tone], np.around(chanval,3)) # round to 3 decimals
 
     monitor.trace("streamed " + str(blocksize) + " samples in " + str((time.time() - start) * 1000) + " ms")
 
