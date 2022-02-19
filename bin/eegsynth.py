@@ -26,6 +26,7 @@ import sys
 import os
 import argparse
 from glob import glob
+import multiprocessing
 from multiprocessing import Process
 from importlib import import_module
 
@@ -98,6 +99,10 @@ def _main():
         # as soon as an object of the class is instantiated, the module will start
         file = os.path.join(os.getcwd(), file)
         process.append(Process(target=_start, args=(object.Executable, ['--inifile', file])))
+
+    # see https://stackoverflow.com/questions/64174552/what-does-the-process-has-forked-and-you-cannot-use-this-corefoundation-functio
+    if sys.version_info >= (3,0):
+        multiprocessing.set_start_method('spawn')
 
     for p in process:
         p.start()
