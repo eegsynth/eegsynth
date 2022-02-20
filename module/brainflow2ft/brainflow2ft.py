@@ -105,12 +105,22 @@ def _start():
     debug = patch.getint("general", "debug")
     delay = patch.getfloat("general", "delay")
 
+    try:
+        ft_host = patch.getstring("fieldtrip", "hostname")
+        ft_port = patch.getint("fieldtrip", "port")
+        monitor.success("Trying to connect to buffer on %s:%i ..." % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        monitor.success("Connected to output FieldTrip buffer")
+    except:
+        raise RuntimeError("cannot connect to output FieldTrip buffer")
+
     # get the options that are specific for BrainFlow
     board_id             = patch.getint("brainflow", "board_id", default=-1)
     streamer_params      = patch.getstring("brainflow", "streamer_params", default=None)
     params               = BrainFlowInputParams()
     params.ip_port       = patch.getint("brainflow", "ip_port", default=0)
-    params.serial_port   = patch.getstring("brainflow", "board_id", default="/dev/cu.usbmodem11")
+    params.serial_port   = patch.getstring("brainflow", "serial_port", default="/dev/cu.usbmodem11")
     params.mac_address   = patch.getstring("brainflow", "mac_address", default="")
     params.other_info    = patch.getstring("brainflow", "other_info", default="")
     params.serial_number = patch.getstring("brainflow", "serial_number", default="")
@@ -125,10 +135,7 @@ def _start():
     # BoardShim.enable_board_logger()
     # BoardShim.enable_dev_board_logger()
 
-    params = BrainFlowInputParams()
-    params.serial_port = '/dev/cu.usbmodem11'
-
-    board = BoardShim(1, params)
+    board = BoardShim(board_id, params)
     board.prepare_session()
     board.start_stream(45000, streamer_params)
     
@@ -139,16 +146,6 @@ def _start():
     monitor.info("fsample =", board.get_sampling_rate(board_id))
     monitor.info("nchans  =", board.get_num_rows(board_id))
 
-    try:
-        ft_host = patch.getstring("fieldtrip", "hostname")
-        ft_port = patch.getint("fieldtrip", "port")
-        monitor.success("Trying to connect to buffer on %s:%i ..." % (ft_host, ft_port))
-        ft_output = FieldTrip.Client()
-        ft_output.connect(ft_host, ft_port)
-        monitor.success("Connected to output FieldTrip buffer")
-    except:
-        raise RuntimeError("cannot connect to output FieldTrip buffer")
-    
     ft_output.putHeader(board.get_num_rows(board_id), float(board.get_sampling_rate(board_id)), FieldTrip.DATATYPE_FLOAT32)
 
     # there should not be any local variables in this function, they should all be global
