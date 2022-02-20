@@ -94,7 +94,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, debug, device, rate, blocksize, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
+    global monitor, debug, device, rate, blocksize, modulation, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
@@ -105,7 +105,6 @@ def _start():
     rate = patch.getint("audio", "rate", default=44100)
     nchans = patch.getint("audio", "nchans", default=2)
     blocksize = patch.getint("audio", "blocksize", default=1024)
-
     modulation = patch.getstring('audio', 'modulation', default='am')
     frequencies = patch.getfloat('audio', 'frequencies', multiple=True)
 
@@ -177,7 +176,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global parser, args, config, r, response, patch
-    global rate, nchans, blocksize, frequencies, ntones, offset, startfeedback, countfeedback
+    global rate, nchans, blocksize, frequencies, modulation, ntones, offset, startfeedback, countfeedback
     global start, data, chan, timeaxis, tone, phase, value, Fsin, Fcos, chanval
 
     # measure the time that it takes
@@ -188,16 +187,36 @@ def _loop_once():
     data = np.reshape(np.frombuffer(data, dtype=np.float32), (blocksize, nchans))
 
     timeaxis = np.arange(0, blocksize) / rate + offset
+    freqaxis = np.arange(0,blocksize/2) * rate/blocksize
     offset += blocksize / rate
 
     for chan in range(0, nchans):
-        for tone in range(0, ntones):
-            if not key[chan][tone] == None:
-                phase = 2.0 * np.pi * frequencies[tone] * timeaxis
-                Fsin = np.dot(data[:, chan], np.sin(phase))
-                Fcos = np.dot(data[:, chan], np.cos(phase))
-                chanval = 2 * np.sqrt(Fsin*Fsin + Fcos*Fcos) / blocksize
-                chanval = EEGsynth.rescale(chanval, slope=scale_amplitude, offset=offset_amplitude)
+        if modulation == 'am':
+            # the number of modulated tones is probably quite small, therefore
+            # this uses a discrete Fourier transform for the demodulation
+            for tone in range(0, ntones):
+                if not key[chan][tone] == None:
+                    phase = 2.0 * np.pi * frequencies[tone] * timeaxis
+                    Fsin = np.dot(data[:, chan], np.sin(phase))
+                    Fcos = np.dot(data[:, chan], np.cos(phase))
+                    chanval = 2 * np.sqrt(Fsin*Fsin + Fcos*Fcos) / blocksize
+                    chanval = EEGsynth.rescale(chanval, slope=scale_amplitude, offset=offset_amplitude)
+                    patch.setvalue(key[chan][tone], chanval)
+                    monitor.update(key[chan][tone], np.around(chanval,3)) # round to 3 decimals
+        elif modulation == 'fm':
+            F = np.abs(np.fft.fft(data[:, chan]))
+            for tone in range(0, ntones):
+                # determine the corresponding section of the amplitude spectrun
+                if tone == ntones-1:
+                    fmin = np.argmin(np.abs(freqaxis-frequencies[tone]))
+                    fmax = round(blocksize/2) # search up to the Nyquist frequency
+                else:
+                    fmin = np.argmin(np.abs(freqaxis-frequencies[tone]))
+                    fmax = np.argmin(np.abs(freqaxis-frequencies[tone+1])) # search up to the next tone
+                # find the index of the maximum in the corresponding section of the amplitude spectrun
+                fpeak = np.argmax(F[fmin:fmax]) # relative to the base frequency
+                chanval = freqaxis[fpeak]
+                chanval = EEGsynth.rescale(chanval, slope=scale_frequency, offset=offset_frequency)
                 patch.setvalue(key[chan][tone], chanval)
                 monitor.update(key[chan][tone], np.around(chanval,3)) # round to 3 decimals
 
@@ -209,10 +228,6 @@ def _loop_once():
         monitor.debug("streamed " + str(countfeedback) + " samples in " + str((time.time() - startfeedback) * 1000) + " ms")
         startfeedback = time.time()
         countfeedback = 0
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print("LOCALS: " + ", ".join(locals().keys()))
 
 
 def _loop_forever():
