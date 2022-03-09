@@ -104,6 +104,7 @@ def _start():
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
     global timeout, hdr_input, start, window, downsample, differentiate, integrate, rectify, smoothing, reference, default_scale, scale_lowpass, scale_highpass, scale_notchfilter, offset_lowpass, offset_highpass, offset_notchfilter, scale_filterorder, scale_notchquality, offset_filterorder, offset_notchquality, previous, differentiate_zi, integrate_zi, begsample, endsample
+    global montage_in, montage_out
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('input_fieldtrip', 'timeout', default=30)
@@ -131,7 +132,13 @@ def _start():
     rectify         = patch.getint('processing', 'rectify', default=0)
     downsample      = patch.getint('processing', 'downsample', default=None)
     smoothing       = patch.getfloat('processing', 'smoothing', default=None)
-    reference       = patch.getstring('processing','reference')
+    reference       = patch.getstring('processing', 'reference')
+
+    if reference == 'montage':
+        montage_out, montage_in = list(map(list, list(zip(*config.items('montage')))))
+        nChannels_out = len(montage_out)
+    else:
+        nChannels_out = hdr_input.nChannels
 
     try:
         float(config.get('processing', 'highpassfilter'))
@@ -159,12 +166,12 @@ def _start():
     offset_notchquality = patch.getfloat('offset', 'notchquality', default=0)
 
     if downsample == None:
-        ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
+        ft_output.putHeader(nChannels_out, hdr_input.fSample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
     else:
-        ft_output.putHeader(hdr_input.nChannels, hdr_input.fSample/downsample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
+        ft_output.putHeader(nChannels_out, hdr_input.fSample/downsample, FieldTrip.DATATYPE_FLOAT32, labels=hdr_input.labels)
 
     # initialize the state for the smoothing
-    previous = np.zeros((1, hdr_input.nChannels))
+    previous = np.zeros((1, nChannels_out))
 
     # initialize the state for differentiate/integrate
     differentiate_zi = np.zeros((1, hdr_input.nChannels))
@@ -186,6 +193,7 @@ def _loop_once():
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, window, downsample, differentiate, integrate, rectify, smoothing, reference, default_scale, scale_lowpass, scale_highpass, scale_notchfilter, offset_lowpass, offset_highpass, offset_notchfilter, scale_filterorder, scale_notchquality, offset_filterorder, offset_notchquality, previous, differentiate_zi, integrate_zi, begsample, endsample
     global dat_input, dat_output, highpassfilter, lowpassfilter, filterorder, change, b, a, zi, notchfilter, notchquality, nb, na, nzi, window_new, t
+    global montage_in, montage_out
 
     monitor.loop()
 
@@ -291,6 +299,14 @@ def _loop_once():
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
         monitor.debug("rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms")
+    elif reference == 'montage':
+        monitor.debug("applying montage")
+        for i, name in enumerate(montage_out):
+            montage_in[i] = patch.getfloat('montage', name, multiple=True)
+        dat_output = np.matmul(dat_output, np.transpose(np.array(montage_in), (1, 0)))
+        print("Data dimensions after montage:", dat_output.shape)
+    else:
+        monitor.debug("No rereferencing or montage applied")
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
