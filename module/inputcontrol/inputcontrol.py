@@ -360,6 +360,7 @@ def _start():
 
     # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
     # Let the interpreter run every 200 ms
