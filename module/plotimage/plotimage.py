@@ -20,8 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5 import QtGui, QtCore, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout
-
+from PyQt5.QtWidgets import QApplication, QWidget
 import configparser
 import redis
 import argparse
@@ -79,7 +78,7 @@ class TriggerThread(threading.Thread):
                     window.paintEvent(None)
                         
 
-class Window(QtWidgets.QWidget):
+class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
@@ -88,10 +87,10 @@ class Window(QtWidgets.QWidget):
         self.setWindowTitle('EEGsynth vumeter')
         self.image = None
 
-        self.label = QLabel() # this will contain the pixmap
+        self.label = QtWidgets.QLabel() # this will contain the pixmap
         self.label.setAlignment(QtCore.Qt.AlignCenter)
 
-        g = QGridLayout()
+        g = QtWidgets.QGridLayout()
         g.setContentsMargins(0,0,0,0)
         g.addWidget(self.label,0,1)
         self.setLayout(g)

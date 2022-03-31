@@ -19,7 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5.QtWidgets import QApplication, QWidget
 import configparser
 import redis
 import argparse
@@ -51,7 +52,7 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
-class Window(QtGui.QWidget):
+class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
@@ -64,8 +65,6 @@ class Window(QtGui.QWidget):
 
         green = QtGui.QColor(10, 255, 10)
         red = QtGui.QColor(255, 10, 10)
-        black = QtGui.QColor(0, 0, 0)
-        white = QtGui.QColor(255, 255, 255)
 
         w = qp.window().width()
         h = qp.window().height()
@@ -106,7 +105,7 @@ class Window(QtGui.QWidget):
                 qp.drawRect(r)
 
             r = QtCore.QRect(x, pady, barx, bary)
-            qp.setPen(white)
+            qp.setPen(QtGui.QColor('white'))
             qp.drawText(r, QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, name)
 
             # update the position for the next bar
@@ -114,7 +113,7 @@ class Window(QtGui.QWidget):
 
         # add horizontal lines every 10%
         for i in range(1,10):
-            qp.setPen(black)
+            qp.setPen(QtGui.QColor('black'))
             y = h - pady - float(i)/10 * bary
             qp.drawLine(0, y, w, y)
 
@@ -173,7 +172,7 @@ def _start():
         monitor.info("%s = %s" % (name, variable))
 
     # start the graphical user interface
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     signal.signal(signal.SIGINT, _stop)
 
     window = Window()
@@ -202,13 +201,13 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    QtGui.QApplication.instance().exec_()
+    QApplication.instance().exec_()
 
 
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    QtGui.QApplication.quit()
+    QApplication.quit()
 
 
 if __name__ == '__main__':

@@ -104,7 +104,7 @@ def _start():
             counter += 1
 
     # initialize graphical window
-    app = QtGui.QApplication([])
+    app = QtGui.QApplication(sys.argv)
     win = pg.GraphicsWindow(title="EEGsynth plotcontrol")
     win.setWindowTitle('EEGsynth plotcontrol')
     win.setGeometry(winx, winy, winwidth, winheight)

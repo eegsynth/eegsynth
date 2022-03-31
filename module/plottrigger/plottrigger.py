@@ -150,9 +150,8 @@ def _start():
     for thread in trigger:
         thread.start()
 
-
     # initialize graphical window
-    app = QtGui.QApplication([])
+    app = QtGui.QApplication(sys.argv)
     win = pg.GraphicsWindow(title="EEGsynth plottrigger")
     win.setWindowTitle('EEGsynth plottrigger')
     win.setGeometry(winx, winy, winwidth, winheight)
