@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# This module acts as a VU meter for control signals.
+# This module shows images on screen and can be used for stimulus presentation.
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2019 EEGsynth project
+# Copyright (C) 2022 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ import argparse
 import os
 import sys
 import time
+import threading
 import signal
-import numpy as np
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -52,72 +52,55 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
+class TriggerThread(threading.Thread):
+    def __init__(self, redischannel, image):
+        threading.Thread.__init__(self)
+        monitor.info("%s = %s" % (redischannel, image))
+        self.redischannel = redischannel
+        self.image = QtGui.QPixmap(image)                   # load the image from file
+        self.image = self.image.scaled(winwidth, winheight) # scale the image to the window
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    def run(self):
+        global r, patch, lock, monitor
+        pubsub = r.pubsub()
+        pubsub.subscribe('PLOTIMAGE_UNBLOCK')  # this message unblocks the redis listen command
+        pubsub.subscribe(self.redischannel)  # this message contains the trigger
+        while self.running:
+            for item in pubsub.listen():
+                if not self.running or not item['type'] == 'message':
+                    break
+                if item['channel'] == self.redischannel:
+                    window.setImage(self.image)
+                    window.paintEvent(None)
+                        
+
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
+        # self.setFixedSize(winwidth, winheight)
         self.setStyleSheet('background-color:black;');
         self.setWindowTitle('EEGsynth vumeter')
+        self.image = None
 
+        self.label = QtWidgets.QLabel() # this will contain the pixmap
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+
+        g = QtWidgets.QGridLayout()
+        g.setContentsMargins(0,0,0,0)
+        g.addWidget(self.label,0,1)
+        self.setLayout(g)
+
+    def setImage(self, image):
+        self.image = image
+        
     def paintEvent(self, e):
-        qp = QtGui.QPainter()
-        qp.begin(self)
-
-        green = QtGui.QColor(10, 255, 10)
-        red = QtGui.QColor(255, 10, 10)
-
-        w = qp.window().width()
-        h = qp.window().height()
-
-        # determine the width (x) and height (y) of each bar
-        barx = int(w/len(input_name))
-        bary = h
-        # subtract some padding from each side
-        padx = int(barx/10)
-        pady = int(h/20)
-        barx -= 2*padx
-        bary -= 2*pady
-
-        # this is the position for the first bar
-        x = padx
-
-        for name in input_name:
-            scale = patch.getfloat('scale', name, default=1)
-            offset = patch.getfloat('offset', name, default=0)
-            val = patch.getfloat('input', name, default=np.nan)
-            val = EEGsynth.rescale(val, slope=scale, offset=offset)
-
-            monitor.update(name, val)
-
-            threshold = patch.getfloat('threshold', name, default=1)
-            threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)
-
-            if val>=0 and val<=threshold:
-                qp.setBrush(green)
-                qp.setPen(green)
-            else:
-                qp.setBrush(red)
-                qp.setPen(red)
-
-            if not np.isnan(val):
-                val = EEGsynth.limit(val, 0, 1)
-                r = QtCore.QRect(x, pady + (1-val)*bary, barx, val*bary)
-                qp.drawRect(r)
-
-            r = QtCore.QRect(x, pady, barx, bary)
-            qp.setPen(QtGui.QColor('white'))
-            qp.drawText(r, QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, name)
-
-            # update the position for the next bar
-            x += 2*padx + barx
-
-        # add horizontal lines every 10%
-        for i in range(1,10):
-            qp.setPen(QtGui.QColor('black'))
-            y = h - pady - float(i)/10 * bary
-            qp.drawLine(0, y, w, y)
-
-        qp.end()
+        if not self.image == None:
+            self.label.setPixmap(self.image)
         self.show()
 
 
@@ -153,7 +136,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer
+    global monitor, delay, winx, winy, winwidth, winheight, input_channel, input_image, app, window, triggers, timer
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -166,23 +149,30 @@ def _start():
     winheight       = patch.getfloat('display', 'height')
 
     # get the input options
-    input_name, input_variable = list(zip(*config.items('input')))
-
-    for name,variable in zip(input_name, input_variable):
-        monitor.info("%s = %s" % (name, variable))
+    input_channel, input_image = list(zip(*config.items('input')))
 
     # start the graphical user interface
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
+
+    # Let the interpreter run every 400 ms
+    # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
+    timer = QtCore.QTimer()
+    timer.start(400)
+    timer.timeout.connect(lambda: None)
 
     window = Window()
     window.show()
 
-    # Set timer for update
-    timer = QtCore.QTimer()
-    timer.timeout.connect(_loop_once)
-    timer.setInterval(10)            # timeout in milliseconds
-    timer.start(int(delay * 1000))   # in milliseconds
+    triggers = []
+    # make a trigger thread for each image
+    for channel, image in zip(input_channel, input_image):
+        triggers.append(TriggerThread(channel, image))
+        
+    # start the thread for each of the triggers
+    for thread in triggers:
+        thread.start()
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -191,11 +181,8 @@ def _start():
 
 def _loop_once():
     '''Run the main loop once
-    This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global monitor, window
-    monitor.loop()
-    window.update()
+    pass
 
 
 def _loop_forever():
@@ -207,6 +194,13 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
+    global monitor, r, triggers
+    monitor.success('Closing threads')
+    for thread in triggers:
+        thread.stop()
+    r.publish('PLOTIMAGE_UNBLOCK', 1)
+    for thread in triggers:
+        thread.join()
     QApplication.quit()
 
 

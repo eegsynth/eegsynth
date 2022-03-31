@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2019 EEGsynth project
+# Copyright (C) 2022 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,72 +50,91 @@ else:
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
-
+import colormap as cm
 
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
         self.setStyleSheet('background-color:black;');
-        self.setWindowTitle('EEGsynth vumeter')
+        self.setWindowTitle('EEGsynth plottopo')
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
         qp.begin(self)
 
-        green = QtGui.QColor(10, 255, 10)
-        red = QtGui.QColor(255, 10, 10)
-
         w = qp.window().width()
         h = qp.window().height()
 
-        # determine the width (x) and height (y) of each bar
-        barx = int(w/len(input_name))
-        bary = h
-        # subtract some padding from each side
-        padx = int(barx/10)
-        pady = int(h/20)
-        barx -= 2*padx
-        bary -= 2*pady
+        cmap_rgb = np.array(getattr(cm, colormap))*255
+        cmap_len = cmap_rgb.shape[0]
 
-        # this is the position for the first bar
-        x = padx
+        scale_xpos      = patch.getfloat('scale', 'xpos', default=1)
+        scale_ypos      = patch.getfloat('scale', 'ypos', default=1)
+        scale_value     = patch.getfloat('scale', 'value', default=1)
+        scale_diameter  = patch.getfloat('scale', 'diameter', default=0.05)
+        offset_xpos     = patch.getfloat('offset', 'xpos', default=0)
+        offset_ypos     = patch.getfloat('offset', 'ypos', default=0)
+        offset_value    = patch.getfloat('offset', 'value', default=0)
+        offset_diameter = patch.getfloat('offset', 'diameter', default=0)
 
         for name in input_name:
-            scale = patch.getfloat('scale', name, default=1)
-            offset = patch.getfloat('offset', name, default=0)
-            val = patch.getfloat('input', name, default=np.nan)
-            val = EEGsynth.rescale(val, slope=scale, offset=offset)
+            val      = patch.getfloat('input', name, multiple=True)
+            xpos     = EEGsynth.rescale(val[0], slope=scale_xpos, offset=offset_xpos)
+            ypos     = EEGsynth.rescale(val[1], slope=scale_ypos, offset=offset_ypos)
+            value    = EEGsynth.rescale(val[2], slope=scale_value, offset=offset_value)
+            diameter = EEGsynth.rescale(val[3], slope=scale_diameter, offset=offset_diameter)
 
-            monitor.update(name, val)
+            monitor.update(name, value)
 
-            threshold = patch.getfloat('threshold', name, default=1)
-            threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)
+            # the position of the circle is specified as the upper left
+            x =     (xpos - diameter/2)*w
+            y = (1 - ypos - diameter/2)*h
 
-            if val>=0 and val<=threshold:
-                qp.setBrush(green)
-                qp.setPen(green)
+            if not value == None and not np.isnan(value):
+                value = EEGsynth.limit(value, 0, 1)
+                r = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,0])
+                g = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,1])
+                b = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,2])
+                qp.setBrush(QtGui.QColor(r, g, b))
+                qp.setPen(QtGui.QColor('white'))
+                qp.drawEllipse(x, y, diameter*w, diameter*h)
             else:
-                qp.setBrush(red)
-                qp.setPen(red)
+                # this is needed as fallback when labelcolor is inverse 
+                r = 0
+                g = 0
+                b = 0
 
-            if not np.isnan(val):
-                val = EEGsynth.limit(val, 0, 1)
-                r = QtCore.QRect(x, pady + (1-val)*bary, barx, val*bary)
-                qp.drawRect(r)
+            if labelcolor == 'inverse':
+                qp.setPen(QtGui.QColor(255-r, 255-g, 255-b))
+            elif labelcolor == 'none':
+                qp.setPen(QtGui.QColor('transparent'))
+            else:
+                qp.setPen(QtGui.QColor(labelcolor))
 
-            r = QtCore.QRect(x, pady, barx, bary)
-            qp.setPen(QtGui.QColor('white'))
-            qp.drawText(r, QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, name)
-
-            # update the position for the next bar
-            x += 2*padx + barx
-
-        # add horizontal lines every 10%
-        for i in range(1,10):
-            qp.setPen(QtGui.QColor('black'))
-            y = h - pady - float(i)/10 * bary
-            qp.drawLine(0, y, w, y)
+            # the initial position of the label is specified as the center
+            x =     (xpos)*w
+            y = (1 - ypos)*h
+            # this is the dispalcement for left/right/top/bottom alignment
+            d = scale_diameter*(w+h)/3
+            
+            if labelposition == 'center':
+                r = QtCore.QRect(x-100, y-100, 200, 200)
+                qp.drawText(r, QtCore.Qt.AlignCenter, name)
+            elif labelposition == 'top':
+                r = QtCore.QRect(x-100, y-200-d, 200, 200)
+                qp.drawText(r, QtCore.Qt.AlignBottom | QtCore.Qt.AlignCenter, name)
+            elif labelposition == 'bottom':
+                r = QtCore.QRect(x-100, y-100+d, 200, 200)
+                qp.drawText(r, QtCore.Qt.AlignTop | QtCore.Qt.AlignCenter, name)
+            elif labelposition == 'left':
+                r = QtCore.QRect(x-200-d, y-100, 200, 200)
+                qp.drawText(r, QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter , name)
+            elif labelposition == 'right':
+                r = QtCore.QRect(x+d, y-100, 200, 200)
+                qp.drawText(r, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter , name)
+            elif labelposition == 'none':
+                pass
 
         qp.end()
         self.show()
@@ -153,7 +172,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer
+    global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer, colormap, labelposition, labelcolor
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -164,6 +183,9 @@ def _start():
     winy            = patch.getfloat('display', 'ypos')
     winwidth        = patch.getfloat('display', 'width')
     winheight       = patch.getfloat('display', 'height')
+    colormap        = patch.getstring('display', 'colormap', default='parula')
+    labelposition   = patch.getstring('display', 'labelposition', default='center')
+    labelcolor      = patch.getstring('display', 'labelcolor', default='inverse')
 
     # get the input options
     input_name, input_variable = list(zip(*config.items('input')))
@@ -173,6 +195,7 @@ def _start():
 
     # start the graphical user interface
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
     window = Window()
@@ -191,7 +214,6 @@ def _start():
 
 def _loop_once():
     '''Run the main loop once
-    This uses the global variables from setup and start, and adds a set of global variables
     '''
     global monitor, window
     monitor.loop()

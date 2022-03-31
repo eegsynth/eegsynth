@@ -19,7 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5.QtWidgets import QApplication, QWidget
 import configparser
 import argparse
 import os
@@ -50,7 +51,7 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
-class Window(QtGui.QWidget):
+class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
@@ -89,24 +90,24 @@ class Window(QtGui.QWidget):
                 val = 0
 
             if item[1] == 'label':
-                l = QtGui.QLabel(item[0])
+                l = QtWidgets.QLabel(item[0])
                 l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 panel.addWidget(l)
 
             elif item[1] == 'text':
-                t = QtGui.QLineEdit()
+                t = QtWidgets.QLineEdit()
                 t.name = item[0]
                 t.type = item[1]
                 t.setText("%g" % val)
                 t.setAlignment(QtCore.Qt.AlignHCenter)
                 t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
                 t.editingFinished.connect(self.changevalue)
-                l = QtGui.QLabel(t.name)
+                l = QtWidgets.QLabel(t.name)
                 l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the slider
-                tl = QtGui.QVBoxLayout()
+                tl = QtWidgets.QVBoxLayout()
                 tl.addWidget(t)
                 tl.setAlignment(t, QtCore.Qt.AlignHCenter)
                 tl.addWidget(l)
@@ -114,21 +115,21 @@ class Window(QtGui.QWidget):
                 panel.addLayout(tl)
 
             elif item[1] == 'slider':
-                s = QtGui.QSlider(QtCore.Qt.Vertical)
+                s = QtWidgets.QSlider(QtCore.Qt.Vertical)
                 s.name = item[0]
                 s.type = item[1]
                 s.setMinimum(0)
                 s.setMaximum(127)  # default is 100
                 s.setValue(val)
                 s.setTickInterval(1)
-                s.setTickPosition(QtGui.QSlider.NoTicks)
+                s.setTickPosition(QtWidgets.QSlider.NoTicks)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
                 s.valueChanged.connect(self.changevalue)
-                l = QtGui.QLabel(s.name)
+                l = QtWidgets.QLabel(s.name)
                 l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the slider
-                sl = QtGui.QVBoxLayout()
+                sl = QtWidgets.QVBoxLayout()
                 sl.addWidget(s)
                 sl.setAlignment(s, QtCore.Qt.AlignHCenter)
                 sl.addWidget(l)
@@ -136,7 +137,7 @@ class Window(QtGui.QWidget):
                 panel.addLayout(sl)
 
             elif item[1] == 'dial':
-                s = QtGui.QDial()
+                s = QtWidgets.QDial()
                 s.name = item[0]
                 s.type = item[1]
                 s.setMinimum(0)
@@ -144,11 +145,11 @@ class Window(QtGui.QWidget):
                 s.setValue(val)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
                 s.valueChanged.connect(self.changevalue)
-                l = QtGui.QLabel(s.name)
+                l = QtWidgets.QLabel(s.name)
                 l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
                 # position the label under the dial
-                sl = QtGui.QVBoxLayout()
+                sl = QtWidgets.QVBoxLayout()
                 sl.addWidget(s)
                 sl.setAlignment(s, QtCore.Qt.AlignHCenter)
                 sl.addWidget(l)
@@ -156,7 +157,7 @@ class Window(QtGui.QWidget):
                 panel.addLayout(sl)
 
             elif item[1] in ['push', 'slap', 'toggle1', 'toggle2', 'toggle3', 'toggle4']:
-                b = QtGui.QPushButton(item[0])
+                b = QtWidgets.QPushButton(item[0])
                 b.name = item[0]
                 b.type = item[1]
                 b.value = val
@@ -171,9 +172,9 @@ class Window(QtGui.QWidget):
 
     def drawmain(self):
         # the left contains the rows, the right the columns
-        leftlayout = QtGui.QVBoxLayout()
-        rightlayout = QtGui.QHBoxLayout()
-        mainlayout = QtGui.QHBoxLayout()
+        leftlayout = QtWidgets.QVBoxLayout()
+        rightlayout = QtWidgets.QHBoxLayout()
+        mainlayout = QtWidgets.QHBoxLayout()
         mainlayout.addLayout(leftlayout)
         mainlayout.addLayout(rightlayout)
         self.setLayout(mainlayout)
@@ -182,14 +183,14 @@ class Window(QtGui.QWidget):
         # this is only for backward compatibility
         section = 'slider'
         if config.has_section(section):
-            sectionlayout = QtGui.QHBoxLayout()
+            sectionlayout = QtWidgets.QHBoxLayout()
             self.drawpanel(sectionlayout, config.items(section))
             leftlayout.addLayout(sectionlayout)
 
         for row in range(0, 16):
             section = 'row%d' % (row + 1)
             if config.has_section(section):
-                sectionlayout = QtGui.QHBoxLayout()
+                sectionlayout = QtWidgets.QHBoxLayout()
                 self.drawpanel(sectionlayout, config.items(section))
                 leftlayout.addLayout(sectionlayout)
 
@@ -197,14 +198,14 @@ class Window(QtGui.QWidget):
         # this is only for backward compatibility
         section = 'button'
         if config.has_section(section):
-            sectionlayout = QtGui.QVBoxLayout()
+            sectionlayout = QtWidgets.QVBoxLayout()
             self.drawpanel(sectionlayout, config.items(section))
             rightlayout.addLayout(sectionlayout)
 
         for column in range(0, 16):
             section = 'column%d' % (column + 1)
             if config.has_section(section):
-                sectionlayout = QtGui.QVBoxLayout()
+                sectionlayout = QtWidgets.QVBoxLayout()
                 self.drawpanel(sectionlayout, config.items(section))
                 rightlayout.addLayout(sectionlayout)
 
@@ -359,7 +360,8 @@ def _start():
             monitor.update(item[0], val)
 
     # start the graphical user interface
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
     # Let the interpreter run every 200 ms
@@ -382,13 +384,13 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    QtGui.QApplication.instance().exec_()
+    QApplication.instance().exec_()
 
 
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    QtGui.QApplication.quit()
+    QApplication.quit()
 
 
 if __name__ == '__main__':
