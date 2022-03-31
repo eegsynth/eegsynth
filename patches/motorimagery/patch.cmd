@@ -23,6 +23,7 @@ REM python %rootdir%\module\outputmidi\outputmidi.py -i %inidir%\outputmidi.ini 
 REM python %rootdir%\module\endorphines\endorphines.py -i %inidir%\endorphines.ini -new_console:t:"endorphines"
 REM python %rootdir%\module\inputmidi\inputmidi.py -i %inidir%\inputmidi.ini -new_console:t:"inputmidi"
 python %rootdir%\module\outputosc\outputosc.py -i %inidir%\outputosc.ini -new_console:t:"outputosc"
+python %rootdir%\module\outputosc\outputosc.py -i %inidir%\outputosc2.ini -new_console:t:"outputosc2"
 
 REM keep the command window open for debugging
 pause
