@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Processtrigger performs basic algorithms upon receiving a trigger
+# Delaytrigger sends a triggers after a certain delay
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2020 EEGsynth project
+# Copyright (C) 2022 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,11 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
-from numpy import random
 import configparser
 import argparse
-import numpy as np
 import os
 import redis
 import sys
@@ -51,39 +48,41 @@ else:
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
-# these function names can be used in the equation that gets parsed
-from EEGsynth import compress, limit, rescale, normalizerange, normalizestandard
 
 class TriggerThread(threading.Thread):
-    def __init__(self, name):
+    def __init__(self, input, delay, output):
         threading.Thread.__init__(self)
-        self.name = name
+        self.redischannel = input
+        self.delay = delay
+        self.output = output
         self.running = True
+        self.timer = []
 
     def stop(self):
+        # cancel all timers that are still running
+        monitor.debug('flushing %d timers' % len(self.timer))
+        for t in self.timer:
+            t.cancel()
+        self.timer = []
         self.running = False
 
     def run(self):
-        global r, monitor, patch
-
-        in_trigger = patch.getstring('trigger', self.name)
-
+        global r, monitor, lock
         pubsub = r.pubsub()
-        pubsub.subscribe('DELAYTRIGGER_UNBLOCK')  # this message unblocks the Redis listen command
-        pubsub.subscribe(in_trigger)              # this message triggers the event
+        pubsub.subscribe('DELAYTRIGGER_UNBLOCK')   # this message unblocks the Redis listen command
+        pubsub.subscribe(self.redischannel)        # this message triggers the event
         while self.running:
             for item in pubsub.listen():
                 if not self.running or not item['type'] == 'message':
                     break
-                if item['channel'] == in_trigger:
-                    with lock:
-                        out_trigger = patch.getstring('output', self.name)
-                        val = patch.getfloat('input', self.name)
-                        delay = patch.getfloat('delay', self.name)
-                        monitor.debug("Triggered: %s --(delay: %s seconds)--> %s (%d)" % (in_trigger, delay, out_trigger, val))
-                        time.sleep(patch.getfloat('delay', self.name))
-                        monitor.debug("Send: %s --(delay: %s seconds)--> %s (%d)" % (in_trigger, delay, out_trigger, val))
-                        patch.setvalue(out_trigger, val)
+                if item['channel'] == self.redischannel:
+                    # schedule the ouput trigger, it gets the same value as the input trigger
+                    val = item["data"]
+                    monitor.debug('scheduling %s after %g seconds' % (self.output, self.delay))
+                    t = threading.Timer(self.delay, patch.setvalue, args=[self.output, val])
+                    t.start()
+                    self.timer.append(t)
+                    
 
 def _setup():
     '''Initialize the module
@@ -122,42 +121,26 @@ def _start():
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-    # show the input trigger names
-    input_name, input_variable = list(zip(*config.items('input')))
-    monitor.info('===== Triggers =====')
-    for name, variable in zip(input_name, input_variable):
-        monitor.info(name + ' = ' + variable)
+    # get the options from the configuration file
+    debug = patch.getint('general', 'debug')
 
-    # show the delays
-    delay_name, delay_variable = list(zip(*config.items('delay')))
-    monitor.info('===== Delays =====')
-    for name, variable in zip(delay_name, delay_variable):
-        monitor.info(name + ' = ' + variable)
-
-    # show the output (delayed) trigger names
-    output_name, output_variable = list(zip(*config.items('output')))
-    monitor.info('===== Delayed Triggers =====')
-    for name, variable in zip(output_name, output_variable):
-        monitor.info(name + ' = ' + variable)
-
-    # this is to prevent two triggers from being processed at the same time
-    lock = threading.Lock()
-
-    # create the background threads that deal with the triggers
+    # create the background threads that deal with the input triggers
     trigger = []
-    monitor.debug("Setting up threads for each trigger")
-    for name in input_name:
-        input_name = patch.getstring('input', name)
-        monitor.info("Adding thread for: %s" % (input_name))
-        trigger.append(TriggerThread(name))
+    monitor.debug("Setting up threads")
+    for item in config.items('input'):
+        input = item[1]
+        delay = patch.getfloat("delay", item[0])
+        output = patch.getstring("output", item[0])
+        monitor.info(input, '->', delay, '->', output)
+        trigger.append(TriggerThread(input, delay, output))
 
     # start the thread for each of the triggers
     for thread in trigger:
         thread.start()
-
+        
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
+        print("LOCALS: " + ", ".join(locals().keys()))
 
 
 def _loop_once():
@@ -174,14 +157,14 @@ def _loop_forever():
         time.sleep(patch.getfloat('general', 'delay'))
 
 
-def _stop(*args):
+def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     global monitor, trigger, r
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('PROCESSTRIGGER_UNBLOCK', 1)
+    r.publish('DELAYTRIGGER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()
