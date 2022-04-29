@@ -36,8 +36,17 @@ Detailed information about each module can be found in the README.md included in
 - [Postprocessing](../module/postprocessing) Allows computations, algorithms and combinations on the control values
 - [Preprocessing](../module/preprocessing) Filtering and preprocessing of raw data, results get written to another raw data buffer
 - [Plottrigger](../module/plottrigger) Plot pub/sub events from Redis
+- [Processtrigger](../module/processtrigger) Allows computations, algorithms and combinations on the pub/sub events
 
-## External interfaces (open-source)
+# Modules that relate to timing and regular sequences
+
+- [Sequencer](../module/sequencer) Play a monophonic sequence as pub/sub events
+- [Generatetrigger](../module/generatetrigger) Generate pub/sub events at regular intervals
+- [Clockdivider](../module/clockdivider) Pass every N-th trigger of a regular stream of pub/sub events
+- [Clockmultiplier](../module/clockmultiplier) Generate N triggers for each trigger in a regular stream of pub/sub events
+- [Delaytrigger](../module/delaytrigger) Following a pub/sub event, generate a new trigger after a given delay.
+
+## External interfaces (generic software)
 
 - [InputMIDI](../module/inputmidi) Receive MIDI signals
 - [OutputMIDI](../module/outputmidi) Send MIDI signals
@@ -46,10 +55,8 @@ Detailed information about each module can be found in the README.md included in
 - [InputAudio](../module/InputAudio) Receive (sound) from soundcard
 - [OutputAudio](../module/outputaudio) Send (sound) to soundcard
 - [OutputArtNet](../module/outputartnet) Send data according to [Art-Net protocol](https://en.wikipedia.org/wiki/Art-Net)
-- [OutputDMX](../module/outputdmx) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
-- [OutputCVgate](../master/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](../hardware/usb2cvgate_4channel)
 
-## External interfaces (consumer)
+## External interfaces (consumer hardware)
 
 - [LaunchControl](../module/launchcontrol) Records and send data to the Novation [LaunchControl](https://global.novationmusic.com/launch/launch-control) and [LaunchControl XL](https://global.novationmusic.com/launch/launch-control-xl) MIDI controllers
 - [LaunchPad](../module/launchpad) Record and send data to the Novation [Launchpad](https://global.novationmusic.com/launch/launchpad) MIDI controller
@@ -58,6 +65,12 @@ Detailed information about each module can be found in the README.md included in
 - [VolcaKeys](../module/volcakeys) Interface with the Korg [Volca Keys](http://www.korg.com/us/products/dj/volca_keys/) synthesizer
 - [Endorphines](../module/endorphines) Interface with Endorphines’ [Shuttle Control](https://endorphin.es/endorphin.es--modules.html) MIDI to CV module
 - [Keyboard](../module/keyboard) Records MIDI keyboard note and velocity input
+- [OutputDMX](../module/outputdmx) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
+
+## External interfaces (DIY hardware)
+
+- [OutputCVgate](../master/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](../hardware/usb2cvgate_4channel)
+- [OutputGPIO](../master/module/outputgpio) Send triggers and PWM signals using the Raspberry Pi GPIO pins
 
 ## Software synthesizer modules
 
