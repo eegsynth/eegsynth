@@ -60,6 +60,11 @@ class TriggerThread(threading.Thread):
         self.timer = []
 
     def stop(self):
+        # cancel all timers that are still running
+        monitor.debug('flushing %d timers' % len(self.timer))
+        for t in self.timer:
+            t.cancel()
+        self.timer = []
         self.running = False
 
     def run(self):
