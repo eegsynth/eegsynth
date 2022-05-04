@@ -50,11 +50,12 @@ import EEGsynth
 
 
 class TriggerThread(threading.Thread):
-    def __init__(self, input, delay, output):
+    def __init__(self, input, delay, output, value):
         threading.Thread.__init__(self)
         self.redischannel = input
         self.delay = delay
         self.output = output
+        self.value = value
         self.running = True
         self.timer = []
 
@@ -76,13 +77,12 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
-                    # schedule the ouput trigger, it gets the same value as the input trigger
-                    val = item["data"]
+                    # schedule the ouput trigger, it gets the specified value
                     monitor.debug('scheduling %s after %g seconds' % (self.output, self.delay))
-                    t = threading.Timer(self.delay, patch.setvalue, args=[self.output, val])
+                    t = threading.Timer(self.delay, patch.setvalue, args=[self.output, self.value])
                     t.start()
                     self.timer.append(t)
-                    
+
 
 def _setup():
     '''Initialize the module
@@ -131,13 +131,14 @@ def _start():
         input = item[1]
         delay = patch.getfloat("delay", item[0])
         output = patch.getstring("output", item[0])
+        value = patch.getfloat("value", item[0])
         monitor.info(input, '->', delay, '->', output)
-        trigger.append(TriggerThread(input, delay, output))
+        trigger.append(TriggerThread(input, delay, output, value))
 
     # start the thread for each of the triggers
     for thread in trigger:
         thread.start()
-        
+
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print("LOCALS: " + ", ".join(locals().keys()))
