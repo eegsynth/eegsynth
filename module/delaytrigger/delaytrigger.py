@@ -79,7 +79,12 @@ class TriggerThread(threading.Thread):
                 if item['channel'] == self.redischannel:
                     # schedule the ouput trigger, it gets the specified value
                     monitor.debug('scheduling %s after %g seconds' % (self.output, self.delay))
-                    t = threading.Timer(self.delay, patch.setvalue, args=[self.output, self.value])
+                    if self.value==None:
+                        # send the value of the incoming trigger itself
+                        t = threading.Timer(self.delay, patch.setvalue, args=[self.output, item['data']])
+                    else:
+                        # send the value specified in the ini file
+                        t = threading.Timer(self.delay, patch.setvalue, args=[self.output, self.value])
                     t.start()
                     self.timer.append(t)
 
@@ -131,7 +136,7 @@ def _start():
         input = item[1]
         delay = patch.getfloat("delay", item[0])
         output = patch.getstring("output", item[0])
-        value = patch.getfloat("value", item[0])
+        value = patch.getfloat("value", item[0]) # when not specified this will return None
         monitor.info(input, '->', delay, '->', output)
         trigger.append(TriggerThread(input, delay, output, value))
 
