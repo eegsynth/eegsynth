@@ -91,10 +91,10 @@ def _start():
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-    MININT16 = -0xffff / 2 - 1
-    MAXINT16 = 0xffff / 2 - 1
-    MININT32 = -0xffffffff / 2 - 1
-    MAXINT32 = 0xffffffff / 2 - 1
+    MININT16 = -np.power(2, 15)
+    MAXINT16 = np.power(2, 15) - 1
+    MININT32 = -np.power(2., 31)
+    MAXINT32 = np.power(2., 31) - 1
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
