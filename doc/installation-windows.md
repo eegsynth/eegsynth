@@ -4,8 +4,17 @@ When using [Anaconda](https://www.anaconda.com), you would mostly follow the gen
 
 ## Redis
 
-The only dependency that you would install specifically for Windows is the Redis server. That can be installed using `conda install` like this:
+For Windows you will need to install the Redis server yourself, using `conda install` like this:
 
 ```
 conda install -c binstar redis-server # see https://anaconda.org/binstar/redis-server
 ```
+
+## rt-MIDI
+
+There  is no working conda package for rt-MIDI, so you will need to install it with pip like this:
+
+```
+pip install python-rtmidi
+```
+
