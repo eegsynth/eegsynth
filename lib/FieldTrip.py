@@ -1,7 +1,9 @@
 """
 FieldTrip buffer (V1) client in pure Python
 
-(C) 2010 S. Klanke
+(C) 2010      S. Klanke
+(C) 2010-2022 R. Oostenveld
+
 """
 
 # We need socket, struct, and numpy
@@ -9,6 +11,22 @@ import socket
 import struct
 import numpy
 import unicodedata
+
+# We need these for the server
+import time
+import selectors
+import types
+import struct
+# For the server we also need this one, which is not available by default
+try:
+    from bringbuf import bringbuf
+except Exception as e:
+    print('the FieldTrip.Server() class requires https://pypi.org/project/bringbuf/')
+
+
+##########################################################################################
+# general definitions
+##########################################################################################
 
 VERSION = 1
 
@@ -104,17 +122,8 @@ def serialize(A):
     return (DATATYPE_UNKNOWN, None)
 
 
-class Chunk:
-
-    def __init__(self):
-        self.type = 0
-        self.size = 0
-        self.buf = ''
-
-
 class Header:
-
-    """Class for storing header information in the FieldTrip buffer format"""
+    """Class for storing header information."""
 
     def __init__(self):
         self.nChannels = 0
@@ -132,8 +141,17 @@ class Header:
                    self.fSample, numpyType[self.dataType]))
 
 
+class Chunk:
+    """Class for storing additional chunks with header information."""
+
+    def __init__(self):
+        self.type = 0
+        self.size = 0
+        self.buf = ''
+
+
 class Event:
-    """Class for storing events in the FieldTrip buffer format"""
+    """Class for storing events."""
 
     def __init__(self, S=None):
         if S is None:
@@ -212,9 +230,13 @@ class Event:
         return S + type_buf + value_buf
 
 
-class Client:
+##########################################################################################
+# Class for managing a client connection
+##########################################################################################
 
-    """Class for managing a client connection to a FieldTrip buffer."""
+
+class Client:
+    """Class for managing a client connection to a FieldTrip buffer server."""
 
     def __init__(self):
         self.isConnected = False
@@ -222,9 +244,9 @@ class Client:
 
     def connect(self, hostname, port=1972):
         """
-        connect(hostname [, port]) -- make a connection, default port is
-        1972.
+        connect(hostname [, port]) -- make a connection, default port is 1972.
         """
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((hostname, port))
         self.sock.setblocking(True)
@@ -232,6 +254,7 @@ class Client:
 
     def disconnect(self):
         """disconnect() -- close a connection."""
+
         if self.isConnected:
             self.sock.close()
             self.sock = []
@@ -239,6 +262,7 @@ class Client:
 
     def sendRaw(self, request):
         """Send all bytes of the string 'request' out to socket."""
+
         if not(self.isConnected):
             raise IOError('Not connected to FieldTrip buffer')
 
@@ -300,15 +324,14 @@ class Client:
             raise IOError('Invalid HEADER packet received (too few bytes) - '
                           'disconnecting')
 
-        (nchans, nsamp, nevt, fsamp, dtype,
-         bfsiz) = struct.unpack('IIIfII', payload[0:24])
+        (nchans, nsamp, nevt, fsamp, dtype, bfsiz) = struct.unpack('IIIfII', payload[0:24])
 
         H = Header()
-        H.nChannels = nchans
-        H.nSamples = nsamp
-        H.nEvents = nevt
-        H.fSample = fsamp
-        H.dataType = dtype
+        nChannels = nchans
+        nSamples = nsamp
+        nEvents = nevt
+        fSample = fsamp
+        dataType = dtype
 
         if bfsiz > 0:
             offset = 24
@@ -318,19 +341,18 @@ class Client:
                 offset += 8
                 if offset + chunk_len > bufsize:
                     break
-                H.chunks[chunk_type] = payload[offset:offset + chunk_len]
+                chunks[chunk_type] = payload[offset:offset + chunk_len]
                 offset += chunk_len
 
-            if CHUNK_CHANNEL_NAMES in H.chunks:
-                L = H.chunks[CHUNK_CHANNEL_NAMES].split(b'\0')
+            if CHUNK_CHANNEL_NAMES in chunks:
+                L = chunks[CHUNK_CHANNEL_NAMES].split(b'\0')
                 numLab = len(L)
-                if numLab >= H.nChannels:
-                    H.labels = [x.decode('utf-8') for x in L[0:H.nChannels]]
+                if numLab >= nChannels:
+                    labels = [x.decode('utf-8') for x in L[0:nChannels]]
 
         return H
 
-    def putHeader(self, nChannels, fSample, dataType, labels=None,
-                  chunks=None, reponse=True):
+    def putHeader(self, nChannels, fSample, dataType, labels=None, chunks=None, reponse=True):
         haveLabels = False
         extras = b''
 
@@ -345,11 +367,9 @@ class Client:
             try:
                 pass
             except:
-                raise ValueError('Channels names (labels), if given,'
-                                 ' must be a list of N=numChannels strings')
+                raise ValueError('Channels names (labels), if given, must be a list of N=numChannels strings')
 
-            extras = struct.pack('II', CHUNK_CHANNEL_NAMES,
-                                 len(serLabels)) + serLabels
+            extras = struct.pack('II', CHUNK_CHANNEL_NAMES, len(serLabels)) + serLabels
             haveLabels = True
 
         if not(chunks is None):
@@ -459,6 +479,7 @@ class Client:
         whether an 'Event' object, or a list of 'Event' objects is
         given as an argument.
         """
+
         if isinstance(E, Event):
             buf = E.serialize()
         else:
@@ -516,7 +537,6 @@ class Client:
                 raise IOError('Samples could not be written.')
 
     def poll(self):
-
         request = struct.pack('HHIIII', VERSION, WAIT_DAT, 12, 0, 0, 0)
         self.sendRaw(request)
 
@@ -528,8 +548,7 @@ class Client:
         return struct.unpack('II', resp_buf[0:8])
 
     def wait(self, nsamples, nevents, timeout):
-        request = struct.pack('HHIIII', VERSION, WAIT_DAT,
-                              12, int(nsamples), int(nevents), int(timeout))
+        request = struct.pack('HHIIII', VERSION, WAIT_DAT, 12, int(nsamples), int(nevents), int(timeout))
         self.sendRaw(request)
 
         (status, bufsize, resp_buf) = self.receiveResponse()
@@ -539,50 +558,225 @@ class Client:
 
         return struct.unpack('II', resp_buf[0:8])
 
-if __name__ == "__main__":
-    # Just a small demo for testing purposes...
-    # This should be moved to a separate file at some point
-    import sys
 
-    hostname = 'localhost'
-    port = 1972
+##########################################################################################
+# Class for a FieldTrip buffer server
+##########################################################################################
 
-    if len(sys.argv) > 1:
-        hostname = sys.argv[1]
-    if len(sys.argv) > 2:
-        try:
-            port = int(sys.argv[2])
-        except:
-            print(('Error: second argument (%s) must be a valid (=integer)'
-                   ' port number' % sys.argv[2]))
-            sys.exit(1)
+class Server():
 
-    ftc = Client()
+    """Class for a FieldTrip buffer server."""
 
-    print('Trying to connect to buffer on %s:%i ...' % (hostname, port))
-    ftc.connect(hostname, port)
+    def __init__(self):
+        self.sel = None
+        self.H = None
+        self.D = None
+        self.E = None
+        self.buflen = 600 # ring buffer length in seconds
 
-    print('\nConnected - trying to read header...')
-    H = ftc.getHeader()
 
-    if H is None:
-        print('Failed!')
-    else:
-        print(H)
-        print(H.labels)
+    def connect(self, hostname='localhost', port=1972):
+        lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        lsock.bind((hostname, port))
+        lsock.listen()
+        print(f'Listening on {(hostname, port)}')
+        lsock.setblocking(False)
+        self.sel = selectors.DefaultSelector()
+        self.sel.register(lsock, selectors.EVENT_READ, data = None)
 
-        if H.nSamples > 0:
-            print('\nTrying to read last sample...')
-            index = H.nSamples - 1
-            D = ftc.getData([index, index])
-            print(D)
+    
+    def disconnect(self):
+        self.sel.close()
+        self.sel = None
 
-        if H.nEvents > 0:
-            print('\nTrying to read (all) events...')
-            E = ftc.getEvents()
-            for e in E:
-                print(e)
 
-    print(ftc.poll())
+    def accept_wrapper(self, sock):
+        conn, addr = sock.accept()  # Should be ready to read
+        print(f'Accepted connection from {addr}')
+        conn.setblocking(False)
+        data = types.SimpleNamespace(addr=addr, inb=b'', outb=b'')
+        events = selectors.EVENT_READ
+        self.sel.register(conn, events, data=data)
 
-    ftc.disconnect()
+
+    def service_request(self, key, mask):
+        sock = key.fileobj
+        data = key.data
+
+        if mask & selectors.EVENT_READ:
+            message = sock.recv(8)
+            if message:
+                (version, command, bufsize) = struct.unpack('HHI', message[0:8])
+                if version != VERSION:
+                    print(version, VERSION)
+                    raise RuntimeError('Wrong version')
+                payload = sock.recv(bufsize)
+
+                if command == PUT_HDR:
+                    self.H = Header()
+                    self.D = None  # this flushes the data
+                    self.E = None  # this flushes the events
+                    (self.H.nChannels, self.H.nSamples, self.H.nEvents, self.H.fSample, self.H.dataType, bufsize) = struct.unpack('IIIfII', payload[0:24])
+                    print('PUT_HDR')
+                    print(self.H)
+                    response = struct.pack('HHI', VERSION, PUT_OK, 0)
+                    sock.send(response)
+
+                elif command == PUT_DAT:
+                    if self.H != None:
+                        (nchans, nsamples, data_type, bufsize) = struct.unpack('IIII', payload[0:16])
+                        # print('PUT_DAT', nchans, nsamples, data_type, bufsize)
+                        if nchans != self.H.nChannels:
+                            raise RuntimeError('Incorrect number of channels')
+                        if data_type != self.H.dataType:
+                            raise RuntimeError('Incorrect data type')
+                        if self.D == None:
+                            nbytes = int(self.H.nChannels * self.H.fSample * self.buflen * wordSize[self.H.dataType])
+                            self.D = bringbuf.bRingBuf(nbytes)
+                            print('Initialized ring buffer with %d bytes' % nbytes)
+                        self.D.enqueue(payload[16:])
+                        self.H.nSamples += nsamples
+                        # print('nSamples', self.H.nSamples)
+                        response = struct.pack('HHI', VERSION, PUT_OK, 0)
+                        sock.send(response)
+                    else:
+                        response = struct.pack('HHI', VERSION, PUT_ERR, 0)
+                        sock.send(response)
+
+                elif command == PUT_EVT:
+                    print('PUT_EVT not implemented')
+                    response = struct.pack('HHI', VERSION, PUT_ERR, 0)
+                    sock.send(response)
+
+                elif command == GET_HDR:
+                    if self.H != None:
+                        # print('GET_HDR')
+                        response = struct.pack('HHI', VERSION, GET_OK, 24)
+                        response += struct.pack('IIIfII', self.H.nChannels, self.H.nSamples, self.H.nEvents, self.H.fSample, self.H.dataType, 0)
+                        sock.send(response)
+                    else:
+                        response = struct.pack('HHI', VERSION, GET_ERR, 0)
+                        sock.send(response)
+
+                elif command == GET_DAT:
+                    if self.H != None and self.D != None and bufsize == 8:
+                        (begsample, endsample) = struct.unpack('II', payload[0:8])
+                        # print('GET_DAT', begsample, endsample)
+                        nsamples = endsample - begsample + 1
+                        bufsize = self.H.nChannels * nsamples * wordSize[self.H.dataType]
+
+                        if self.H.nSamples > (self.H.fSample * self.buflen):
+                            begavailable = self.H.nSamples - 1 - (self.H.fSample * self.buflen)
+                        else:
+                            begavailable = 0
+                        endavailable = self.H.nSamples - 1
+
+                        if endsample < begsample:
+                            print('invalid selection')
+                            response = struct.pack('HHI', VERSION, GET_ERR, 0)
+                        elif begsample < begavailable or endsample < begavailable:
+                            print('selection too early')
+                            response = struct.pack('HHI', VERSION, GET_ERR, 0)
+                        elif begsample > endavailable or endsample > endavailable:
+                            print('selection too late')
+                            response = struct.pack('HHI', VERSION, GET_ERR, 0)
+                        else:
+                            # print('returning samples', begsample, endsample)
+                            while begsample > self.H.fSample * self.buflen:
+                                begsample -= self.H.fSample * self.buflen
+                            while endsample > self.H.fSample * self.buflen:
+                                endsample -= self.H.fSample * self.buflen
+
+                            response = struct.pack('HHI', VERSION, GET_OK, 16 + bufsize)
+                            response += struct.pack('IIII', self.H.nChannels, nsamples, self.H.dataType, bufsize)
+
+                            if endsample > begsample:
+                                begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
+                                endbyte = int((endsample + 1) * self.H.nChannels * wordSize[self.H.dataType])
+                                nbytes = endbyte - begbyte
+                                # print('returning bytes', begbyte, endbyte, nbytes)
+                                response += self.D.read(nbytes, begbyte)
+                            else:
+                                # the selection wraps around the end of the buffer
+                                begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
+                                endbyte = int(self.H.nChannels * self.H.fSample * self.buflen * wordSize[self.H.dataType])
+                                nbytes = endbyte - begbyte
+                                # print('returning bytes', begbyte, endbyte, nbytes)
+                                response += self.D.read(nbytes, begbyte)
+
+                                endbyte = int((endsample + 1) * self.H.nChannels * wordSize[self.H.dataType])
+                                nbytes=endbyte - begbyte
+                                # print('returning bytes', begbyte, endbyte, nbytes)
+                                response += self.D.read(nbytes, begbyte)
+
+                    else:
+                        response = struct.pack('HHI', VERSION, GET_ERR, 0)
+
+                    # send the response to GET_DAT
+                    sock.send(response)
+
+                elif command == GET_EVT:
+                    print('GET_EVT not implemented')
+                    response = struct.pack('HHI', VERSION, GET_ERR, 0)
+                    sock.send(response)
+
+                elif command == FLUSH_HDR:
+                    # print('FLUSH_HDR')
+                    if self.H != None:
+                        self.H = None
+                        self.D = None  # this also flushes the data
+                        self.E = None  # this also flushes the events
+                        response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
+                    else:
+                        response = struct.pack('HHI', VERSION, FLUSH_ERR, 0)
+                    sock.send(response)
+
+                elif command == FLUSH_DAT:
+                    # print('FLUSH_DAT')
+                    if self.D != None:
+                        self.D = None
+                        response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
+                    else:
+                        response = struct.pack('HHI', VERSION, FLUSH_ERR, 0)
+                    sock.send(response)
+
+                elif command == FLUSH_EVT:
+                    # print('FLUSH_EVT')
+                    if E != None:
+                        E = None
+                        response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
+                    else:
+                        response = struct.pack('HHI', VERSION, FLUSH_ERR, 0)
+                    sock.send(response)
+
+                elif command == WAIT_DAT:
+                    if self.H != None and bufsize == 12:
+                        (nsamples, nevents, timeout) = struct.unpack('III', payload[0:12])
+                        # print('WAIT_DAT', nsamples, nevents, timeout)
+                        timeout /= 1000.0  # in seconds
+                        start = time.time()
+                        response = struct.pack('HHI', VERSION, WAIT_ERR, 0)
+                        while time.time() < (start + timeout):
+                            if self.H.nSamples >= nsamples or self.H.nEvents >= nevents:
+                                response = struct.pack('HHI', VERSION, WAIT_OK, 8)
+                                response += struct.pack('II', self.H.nSamples, self.H.nEvents)
+                                break
+                            else:
+                                time.sleep(0.010)
+                    else:
+                        response = struct.pack('HHI', VERSION, WAIT_ERR, 0)
+                    sock.send(response)
+
+            else:
+                print(f'Closing connection to {data.addr}')
+                self.sel.unregister(sock)
+                sock.close()
+
+    def loop(self):
+        if self.sel != None:
+            events = self.sel.select(timeout = None)
+            for key, mask in events:
+                if key.data is None:
+                    self.accept_wrapper(key.fileobj)
+                else:
+                    self.service_request(key, mask)

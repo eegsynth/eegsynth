@@ -68,6 +68,7 @@ setuptools.setup(
     packages=["eegsynth"] + ["eegsynth." + s for s in setuptools.find_packages(".")],
     install_requires=[
         "bitalino",
+        "bringbuf",
         "colorama",
         "configparser",
         "fuzzywuzzy[speedup]",
