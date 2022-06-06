@@ -11,7 +11,7 @@ class RingBuffer:
 
     def append(self, data):
         """
-        append - add bytes to the end of the ringbuffer.
+        append(bytes) - add bytes to the end of the buffer.
         """
         if len(data)>self.length:
             # remove the part of the data that does not fit anyway
@@ -37,14 +37,14 @@ class RingBuffer:
 
     def read(self, begbyte, endbyte):
         """
-        read() - read bytes from a specific location in the ringbuffer.
+        read(begbyte, endbyte) - read bytes from a specific location in the buffer.
         """
         if self.count>self.length:
             begavailable = self.count - self.length
         else:
             begavailable = 0
         endavailable = self.count
-
+        
         if begbyte<begavailable:
             raise RuntimeError('Cannot read before the start of the available data.')
         elif endbyte>endavailable or begbyte>endavailable-1:
@@ -52,12 +52,10 @@ class RingBuffer:
         elif endbyte<begbyte:
             raise RuntimeError('Invalid selection.')
         begbyte = begbyte % self.length
-        endbyte = (endbyte-1) % self.length + 1
-        try:
-            if endbyte<=begbyte:
-                data = self.buffer[begbyte:] + self.buffer[0:endbyte]
-            else:
-                data = self.buffer[begbyte:endbyte]
-        except:
-            data = bytes(numbytes)
+        endbyte = (endbyte - 1) % self.length + 1
+    
+        if endbyte<=begbyte:
+            data = self.buffer[begbyte:] + self.buffer[0:endbyte]
+        else:
+            data = self.buffer[begbyte:endbyte]
         return data
