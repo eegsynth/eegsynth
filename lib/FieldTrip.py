@@ -562,6 +562,7 @@ class Server():
     """Class for a FieldTrip buffer server."""
 
     def __init__(self):
+        self.isConnected = False
         self.sel = None
         self.H = None
         self.D = None
@@ -570,6 +571,8 @@ class Server():
 
 
     def connect(self, hostname='localhost', port=1972):
+        if self.isConnected:
+            raise RuntimeError('Already connected.')
         lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         lsock.bind((hostname, port))
         lsock.listen()
@@ -577,14 +580,20 @@ class Server():
         lsock.setblocking(False)
         self.sel = selectors.DefaultSelector()
         self.sel.register(lsock, selectors.EVENT_READ, data = None)
+        self.isConnected = True
 
 
     def disconnect(self):
+        if not self.isConnected:
+            raise RuntimeError('Not connected.')
         self.sel.close()
         self.sel = None
+        self.isConnected = False
 
 
     def accept_wrapper(self, sock):
+        if not self.isConnected:
+            raise RuntimeError('Not connected.')
         conn, addr = sock.accept()  # Should be ready to read
         print(f'Accepted connection from {addr}')
         conn.setblocking(False)
@@ -594,6 +603,9 @@ class Server():
 
 
     def service_request(self, key, mask):
+        if not self.isConnected:
+            raise RuntimeError('Not connected.')
+
         sock = key.fileobj
         data = key.data
 
@@ -616,15 +628,12 @@ class Server():
                     self.D = None  # this flushes the data
                     self.E = None  # this flushes the events
                     (self.H.nChannels, self.H.nSamples, self.H.nEvents, self.H.fSample, self.H.dataType, bufsize) = struct.unpack('IIIfII', payload[0:24])
-                    # print('PUT_HDR')
-                    # print(self.H)
                     response = struct.pack('HHI', VERSION, PUT_OK, 0)
                     sock.send(response)
 
                 elif command == PUT_DAT:
                     if self.H != None:
                         (nchans, nsamples, data_type, bufsize) = struct.unpack('IIII', payload[0:16])
-                        # print('PUT_DAT', nchans, nsamples, data_type, bufsize)
                         if nchans != self.H.nChannels:
                             raise RuntimeError('Incorrect number of channels')
                         if data_type != self.H.dataType:
@@ -649,7 +658,6 @@ class Server():
 
                 elif command == GET_HDR:
                     if self.H != None:
-                        # print('GET_HDR')
                         response = struct.pack('HHI', VERSION, GET_OK, 24)
                         response += struct.pack('IIIfII', self.H.nChannels, self.H.nSamples, self.H.nEvents, self.H.fSample, self.H.dataType, 0)
                         sock.send(response)
@@ -658,19 +666,17 @@ class Server():
                         sock.send(response)
 
                 elif command == GET_DAT:
+                    
                     if self.H != None and self.D != None and bufsize == 8:
-                        (begsample, endsample) = struct.unpack('II', payload[0:8])
-                        # print('GET_DAT', begsample, endsample)
+                        (begsample, endsample) = struct.unpack('II', payload[0:8]) # this uses inclusive, zero-based start/end indices
                         begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
-                        endbyte = int(endsample * self.H.nChannels * wordSize[self.H.dataType])
-                        endbyte += 1 # Python indexing excludes the last element
-                        print('GET_DAT requesting', begbyte, endbyte)
+                        endbyte = int((endsample+1) * self.H.nChannels * wordSize[self.H.dataType])
                         nbytes = endbyte - begbyte
                         try:
-                            response = struct.pack('HHI', VERSION, GET_OK, nbytes)
-                            response += self.D.read(begbyte, endbyte)
+                            response = struct.pack('HHI', VERSION, GET_OK, nbytes+16)
+                            response += struct.pack('IIII', self.H.nChannels, endsample-begsample+1, self.H.dataType, nbytes)
+                            response += self.D.read(begbyte, endbyte) # this uses exclusive, zer0-based start/end indices
                         except Exception as e:
-                            print(e)
                             response = struct.pack('HHI', VERSION, GET_ERR, 0)
                     else:
                         response = struct.pack('HHI', VERSION, GET_ERR, 0)
@@ -684,7 +690,6 @@ class Server():
                     sock.send(response)
 
                 elif command == FLUSH_HDR:
-                    # print('FLUSH_HDR')
                     if self.H != None:
                         self.H = None
                         self.D = None  # this also flushes the data
@@ -695,7 +700,6 @@ class Server():
                     sock.send(response)
 
                 elif command == FLUSH_DAT:
-                    # print('FLUSH_DAT')
                     if self.D != None:
                         self.D = None
                         response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
@@ -704,7 +708,6 @@ class Server():
                     sock.send(response)
 
                 elif command == FLUSH_EVT:
-                    # print('FLUSH_EVT')
                     if E != None:
                         E = None
                         response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
@@ -715,7 +718,6 @@ class Server():
                 elif command == WAIT_DAT:
                     if self.H != None and bufsize == 12:
                         (nsamples, nevents, timeout) = struct.unpack('III', payload[0:12])
-                        # print('WAIT_DAT', nsamples, nevents, timeout)
                         timeout /= 1000.0  # in seconds
                         start = time.time()
                         response = struct.pack('HHI', VERSION, WAIT_ERR, 0)
@@ -729,6 +731,12 @@ class Server():
                     else:
                         response = struct.pack('HHI', VERSION, WAIT_ERR, 0)
                     sock.send(response)
+                    
+                else:
+                    # unrecognized command
+                    print('Command not implemented')
+                    response = struct.pack('HHI', VERSION, 0, 0)
+                    sock.send(response)
 
             else:
                 print(f'Closing connection to {data.addr}')
@@ -736,11 +744,13 @@ class Server():
                 sock.close()
 
     def loop(self):
-        if self.sel != None:
-            # use the timeout to return control to the main loop once every second
-            events = self.sel.select(timeout = 1)
-            for key, mask in events:
-                if key.data is None:
-                    self.accept_wrapper(key.fileobj)
-                else:
-                    self.service_request(key, mask)
+        if not self.isConnected:
+            raise IOError('Not connected.')
+            
+        # use the timeout to return control to the main loop once every second
+        events = self.sel.select(timeout = 1)
+        for key, mask in events:
+            if key.data is None:
+                self.accept_wrapper(key.fileobj)
+            else:
+                self.service_request(key, mask)
