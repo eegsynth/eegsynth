@@ -17,12 +17,7 @@ import time
 import selectors
 import types
 import struct
-# For the server we also need this one, which is not available by default
-try:
-    from bringbuf import bringbuf
-except Exception as e:
-    print('the FieldTrip.Server() class requires https://pypi.org/project/bringbuf/')
-
+import RingBuffer
 
 ##########################################################################################
 # general definitions
@@ -185,7 +180,7 @@ class Event:
         sv = value_numel * wordSize[value_type]
 
         if bsiz + 32 > bufsize or st + sv > bsiz:
-            raise IOError(
+             IOError(
                 'Invalid event definition -- does not fit in given buffer')
 
         raw_type = buf[32:32 + st]
@@ -571,7 +566,7 @@ class Server():
         self.H = None
         self.D = None
         self.E = None
-        self.buflen = 600 # ring buffer length in seconds
+        self.lenght = 600 # ring buffer length in seconds
 
 
     def connect(self, hostname='localhost', port=1972):
@@ -603,21 +598,26 @@ class Server():
         data = key.data
 
         if mask & selectors.EVENT_READ:
-            message = sock.recv(8)
+            try:
+                message = sock.recv(8)
+            except:
+                raise IOError('Cannot read message.')
             if message:
                 (version, command, bufsize) = struct.unpack('HHI', message[0:8])
                 if version != VERSION:
-                    print(version, VERSION)
-                    raise RuntimeError('Wrong version')
-                payload = sock.recv(bufsize)
+                    raise RuntimeError('Incompatible version.')
+                try:
+                    payload = sock.recv(bufsize)
+                except:
+                    raise IOError('Cannot read payload.')
 
                 if command == PUT_HDR:
                     self.H = Header()
                     self.D = None  # this flushes the data
                     self.E = None  # this flushes the events
                     (self.H.nChannels, self.H.nSamples, self.H.nEvents, self.H.fSample, self.H.dataType, bufsize) = struct.unpack('IIIfII', payload[0:24])
-                    print('PUT_HDR')
-                    print(self.H)
+                    # print('PUT_HDR')
+                    # print(self.H)
                     response = struct.pack('HHI', VERSION, PUT_OK, 0)
                     sock.send(response)
 
@@ -630,10 +630,10 @@ class Server():
                         if data_type != self.H.dataType:
                             raise RuntimeError('Incorrect data type')
                         if self.D == None:
-                            nbytes = int(self.H.nChannels * self.H.fSample * self.buflen * wordSize[self.H.dataType])
-                            self.D = bringbuf.bRingBuf(nbytes)
+                            nbytes = int(self.H.nChannels * self.H.fSample * self.lenght * wordSize[self.H.dataType])
+                            self.D = RingBuffer.RingBuffer(nbytes)
                             print('Initialized ring buffer with %d bytes' % nbytes)
-                        self.D.enqueue(payload[16:])
+                        self.D.append(payload[16:])
                         self.H.nSamples += nsamples
                         # print('nSamples', self.H.nSamples)
                         response = struct.pack('HHI', VERSION, PUT_OK, 0)
@@ -661,53 +661,17 @@ class Server():
                     if self.H != None and self.D != None and bufsize == 8:
                         (begsample, endsample) = struct.unpack('II', payload[0:8])
                         # print('GET_DAT', begsample, endsample)
-                        nsamples = endsample - begsample + 1
-                        bufsize = self.H.nChannels * nsamples * wordSize[self.H.dataType]
-
-                        if self.H.nSamples > (self.H.fSample * self.buflen):
-                            begavailable = self.H.nSamples - 1 - (self.H.fSample * self.buflen)
-                        else:
-                            begavailable = 0
-                        endavailable = self.H.nSamples - 1
-
-                        if endsample < begsample:
-                            print('invalid selection')
+                        begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
+                        endbyte = int(endsample * self.H.nChannels * wordSize[self.H.dataType])
+                        endbyte += 1 # Python indexing excludes the last element
+                        print('GET_DAT requesting', begbyte, endbyte)
+                        nbytes = endbyte - begbyte
+                        try:
+                            response = struct.pack('HHI', VERSION, GET_OK, nbytes)
+                            response += self.D.read(begbyte, endbyte)
+                        except Exception as e:
+                            print(e)
                             response = struct.pack('HHI', VERSION, GET_ERR, 0)
-                        elif begsample < begavailable or endsample < begavailable:
-                            print('selection too early')
-                            response = struct.pack('HHI', VERSION, GET_ERR, 0)
-                        elif begsample > endavailable or endsample > endavailable:
-                            print('selection too late')
-                            response = struct.pack('HHI', VERSION, GET_ERR, 0)
-                        else:
-                            # print('returning samples', begsample, endsample)
-                            while begsample > self.H.fSample * self.buflen:
-                                begsample -= self.H.fSample * self.buflen
-                            while endsample > self.H.fSample * self.buflen:
-                                endsample -= self.H.fSample * self.buflen
-
-                            response = struct.pack('HHI', VERSION, GET_OK, 16 + bufsize)
-                            response += struct.pack('IIII', self.H.nChannels, nsamples, self.H.dataType, bufsize)
-
-                            if endsample > begsample:
-                                begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
-                                endbyte = int((endsample + 1) * self.H.nChannels * wordSize[self.H.dataType])
-                                nbytes = endbyte - begbyte
-                                # print('returning bytes', begbyte, endbyte, nbytes)
-                                response += self.D.read(nbytes, begbyte)
-                            else:
-                                # the selection wraps around the end of the buffer
-                                begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
-                                endbyte = int(self.H.nChannels * self.H.fSample * self.buflen * wordSize[self.H.dataType])
-                                nbytes = endbyte - begbyte
-                                # print('returning bytes', begbyte, endbyte, nbytes)
-                                response += self.D.read(nbytes, begbyte)
-
-                                endbyte = int((endsample + 1) * self.H.nChannels * wordSize[self.H.dataType])
-                                nbytes=endbyte - begbyte
-                                # print('returning bytes', begbyte, endbyte, nbytes)
-                                response += self.D.read(nbytes, begbyte)
-
                     else:
                         response = struct.pack('HHI', VERSION, GET_ERR, 0)
 
@@ -773,7 +737,8 @@ class Server():
 
     def loop(self):
         if self.sel != None:
-            events = self.sel.select(timeout = None)
+            # use the timeout to return control to the main loop once every second
+            events = self.sel.select(timeout = 1)
             for key, mask in events:
                 if key.data is None:
                     self.accept_wrapper(key.fileobj)
