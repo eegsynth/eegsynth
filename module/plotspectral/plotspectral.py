@@ -97,7 +97,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input, name
-    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -131,6 +131,7 @@ def _start():
     winwidth    = patch.getfloat('display', 'width')
     winheight   = patch.getfloat('display', 'height')
     prefix      = patch.getstring('output', 'prefix')
+    ylim        = patch.getfloat('arguments', 'ylim', multiple=True, default=None)
 
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
@@ -275,7 +276,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global timeout, hdr_input, start, channels, window, clipsize, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
     global dat, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
     monitor.loop()
@@ -354,8 +355,14 @@ def _loop_once():
         # update the axes
         freqplot_curr[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_hist[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
-        freqplot_curr[plotnr].setYRange(specmin_curr[plotnr], specmax_curr[plotnr])
-        freqplot_hist[plotnr].setYRange(specmin_hist[plotnr], specmax_hist[plotnr])
+        if len(ylim)==2:
+            # set the vertical scale to the user-specified limits
+            freqplot_curr[plotnr].setYRange(ylim[0], ylim[1])
+            freqplot_hist[plotnr].setYRange(ylim[0], ylim[1])
+        else:
+            # set the vertical scale to the user-specified limits
+            freqplot_curr[plotnr].setYRange(specmin_curr[plotnr], specmax_curr[plotnr])
+            freqplot_hist[plotnr].setYRange(specmin_hist[plotnr], specmax_hist[plotnr])
 
         # update the spectra
         spect_curr[plotnr].setData(freqaxis[freqrange], fft_curr[plotnr][freqrange])
