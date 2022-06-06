@@ -567,13 +567,15 @@ class Server():
         self.H = None
         self.D = None
         self.E = None
-        self.lenght = 600 # ring buffer length in seconds
+        self.length = 600   # in seconds, ring buffer length
+        self.timeout = 1    # in seconds, this should be 0 if you want to loop over multiple servers
 
 
     def connect(self, hostname='localhost', port=1972):
         if self.isConnected:
             raise RuntimeError('Already connected.')
         lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         lsock.bind((hostname, port))
         lsock.listen()
         print(f'Listening on {(hostname, port)}')
@@ -639,7 +641,7 @@ class Server():
                         if data_type != self.H.dataType:
                             raise RuntimeError('Incorrect data type')
                         if self.D == None:
-                            nbytes = int(self.H.nChannels * self.H.fSample * self.lenght * wordSize[self.H.dataType])
+                            nbytes = int(self.H.nChannels * self.H.fSample * self.length * wordSize[self.H.dataType])
                             self.D = RingBuffer.RingBuffer(nbytes)
                             print('Initialized ring buffer with %d bytes' % nbytes)
                         self.D.append(payload[16:])
@@ -748,7 +750,7 @@ class Server():
             raise IOError('Not connected.')
             
         # use the timeout to return control to the main loop once every second
-        events = self.sel.select(timeout = 1)
+        events = self.sel.select(timeout = self.timeout)
         for key, mask in events:
             if key.data is None:
                 self.accept_wrapper(key.fileobj)
