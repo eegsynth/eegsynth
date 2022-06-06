@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Inputmidi records MIDI data to Redis
+# Buffer starts a FieldTrip buffer server
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2017-2022 EEGsynth project
+# Copyright (C) 2022 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,12 +21,11 @@
 
 import configparser
 import argparse
-import mido
-from fuzzywuzzy import process
 import os
 import redis
 import sys
 import time
+import threading
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -48,6 +47,7 @@ else:
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
+import FieldTrip
 
 
 def _setup():
@@ -72,92 +72,56 @@ def _setup():
     # combine the patching from the configuration file and Redis
     patch = EEGsynth.patch(config, r)
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, mididevice, output_scale, output_offset, port, inputport
+    global parser, args, config, r, response, patch
+    global monitor, debug, delay, port, server
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug')
-    mididevice = patch.getstring('midi', 'device')
-    mididevice = EEGsynth.trimquotes(mididevice)
-
-    # the scale and offset are used to map MIDI values to Redis values
-    output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # MIDI values are from 0 to 127
-    output_offset = patch.getfloat('output', 'offset', default=0.)    # MIDI values are from 0 to 127
-
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ INPUT ------')
-    for port in mido.get_input_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
-
-    try:
-        inputport = mido.open_input(mididevice)
-        monitor.success('Connected to MIDI input')
-    except:
-        raise RuntimeError("Cannot connect to MIDI input")
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
+    delay = patch.getfloat('general', 'delay', default=0.010)
+    port = patch.getint('fieldtrip', 'port', multiple=True)
+    
+    server = []
+    for p in port:
+        monitor.info("starting server on %d" % p)
+        s = FieldTrip.Server()
+        s.connect(hostname='localhost', port=p)
+        s.timeout = 0 # the server main loop should not wait, as it would block the other instances
+        server.append(s);
+    del p, s
+        
 
 def _loop_once():
     '''Run the main loop once
-    This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
-    global monitor, debug, mididevice, output_scale, output_offset, port, inputport
-
-    for msg in inputport.iter_pending():
-        monitor.debug(msg)
-
-        if hasattr(msg, "control"):
-            # prefix.control000=value
-            key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
-            val = msg.value
-            # map the MIDI values to Redis values between 0 and 1
-            val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-            patch.setvalue(key, val)
-
-        elif hasattr(msg, "note"):
-            # prefix.noteXXX=value
-            key = "{}.note{:0>3d}".format(patch.getstring('output', 'prefix'), msg.note)
-            val = msg.velocity
-            patch.setvalue(key, val)
-            key = "{}.note".format(patch.getstring('output', 'prefix'))
-            val = msg.note
-            patch.setvalue(key, val)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
+    global server
+    for s in server:
+        s.loop() # deal with new connections and incoming requests
 
 
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch
+    global delay
     while True:
         monitor.loop()
         _loop_once()
-        time.sleep(patch.getfloat('general', 'delay'))
+        time.sleep(delay)
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
+    global monitor, server
+    for s in server:
+        s.disconnect()
     sys.exit()
 
 
