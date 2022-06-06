@@ -1,5 +1,5 @@
 """
-FieldTrip buffer (V1) client in pure Python
+FieldTrip buffer (V1) client and server in pure Python
 
 (C) 2010      S. Klanke
 (C) 2010-2022 R. Oostenveld
@@ -558,7 +558,6 @@ class Client:
 ##########################################################################################
 
 class Server():
-
     """Class for a FieldTrip buffer server."""
 
     def __init__(self):
@@ -574,6 +573,7 @@ class Server():
     def connect(self, hostname='localhost', port=1972):
         if self.isConnected:
             raise RuntimeError('Already connected.')
+
         lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         lsock.bind((hostname, port))
@@ -588,6 +588,7 @@ class Server():
     def disconnect(self):
         if not self.isConnected:
             raise RuntimeError('Not connected.')
+
         self.sel.close()
         self.sel = None
         self.isConnected = False
@@ -596,6 +597,7 @@ class Server():
     def accept_wrapper(self, sock):
         if not self.isConnected:
             raise RuntimeError('Not connected.')
+
         conn, addr = sock.accept()  # Should be ready to read
         print(f'Accepted connection from {addr}')
         conn.setblocking(False)
@@ -745,11 +747,12 @@ class Server():
                 self.sel.unregister(sock)
                 sock.close()
 
+
     def loop(self):
         if not self.isConnected:
             raise IOError('Not connected.')
             
-        # use the timeout to return control to the main loop once every second
+        # the timeout is used to return control to the main loop once in a while
         events = self.sel.select(timeout = self.timeout)
         for key, mask in events:
             if key.data is None:
