@@ -1,8 +1,14 @@
 import FieldTrip
-import time
 
 server = FieldTrip.Server()
-server.connect(port=1972)
+
+port = 1972
+while not server.isConnected and port<2000:
+    try:
+        server.connect(port=port)
+    except:
+        port += 1
+
 try:
     while True:
         server.loop()
