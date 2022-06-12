@@ -210,7 +210,7 @@ def _loop_once():
             endsample = hdr_input.nSamples - 1
 
     # get the last available data
-    begsample = (hdr_input.nSamples - window)  # the clipsize will be removed from both sides after filtering
+    begsample = (hdr_input.nSamples - window)  # the clipsize will be removed after filtering
     endsample = (hdr_input.nSamples - 1)
 
     monitor.info("reading from sample %d to %d" % (begsample, endsample))
@@ -248,7 +248,12 @@ def _loop_once():
     for plotnr, channr in enumerate(channels):
 
         # time axis
-        timeaxis = np.linspace(-(window-2*clipsize) / hdr_input.fSample, 0, len(dat))
+        if clipside == 'left':
+            timeaxis = np.linspace(-(window-clipsize) / hdr_input.fSample, 0, len(dat))
+        elif clipside == 'right':
+            timeaxis = np.linspace(-window / hdr_input.fSample, -clipsize / hdr_input.fSample, len(dat))
+        elif clipside == 'both':
+            timeaxis = np.linspace(-(window-clipsize) / hdr_input.fSample, -clipsize / hdr_input.fSample, len(dat))
 
         # update timecourses
         curve[plotnr].setData(timeaxis, dat[:, channr-1])
