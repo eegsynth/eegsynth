@@ -98,7 +98,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
-    global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
+    global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
 
     # read variables from ini/redis
     channels    = patch.getint('arguments', 'channels', multiple=True)
@@ -132,21 +132,21 @@ def _start():
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
 
-    # lowpass, highpass and bandpass are optional, but mutually exclusive
-    filtorder = 9
+    # lowpass, highpass or bandpass are optional
+    filter = [np.nan, np.nan]
     if patch.hasitem('arguments', 'bandpass'):
         filter = patch.getfloat('arguments', 'bandpass', multiple=True)
-    elif patch.hasitem('arguments', 'lowpass'):
-        filter = patch.getfloat('arguments', 'lowpass')
-        filter = [np.nan, filter]
-    elif patch.hasitem('arguments', 'highpass'):
-        filter = patch.getfloat('arguments', 'highpass')
-        filter = [filter, np.nan]
-    else:
-        filter = [np.nan, np.nan]
+    if patch.hasitem('arguments', 'lowpass'):
+        filter[1] = patch.getfloat('arguments', 'lowpass')
+    if patch.hasitem('arguments', 'highpass'):
+        filter[0] = patch.getfloat('arguments', 'highpass')
 
     # notch filtering is optional
     notch = patch.getfloat('arguments', 'notch', default=np.nan)
+
+    # determine the filter order and notch filter quality
+    filterorder = patch.getfloat('arguments', 'filterorder', default=5)
+    notchquality = patch.getfloat('arguments', 'notchquality', default=5) # small is a broad filter, large is a sharp filter
 
     # wait until there is enough data
     begsample = -1
@@ -194,7 +194,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
+    global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
     global dat, timeaxis
 
     monitor.loop()
@@ -225,15 +225,21 @@ def _loop_once():
     if patch.getint('arguments', 'detrend', default=0):
         dat = detrend(dat, axis=0, type='linear')
 
-    # apply the user-defined filtering
+    # apply the low/high/bandpass filtering
     if not np.isnan(filter[0]) and not np.isnan(filter[1]):
-        dat = EEGsynth.butter_bandpass_filter(dat.T, filter[0], filter[1], int(hdr_input.fSample), filtorder).T
+        dat = EEGsynth.butter_bandpass_filter(dat.T, filter[0], filter[1], int(hdr_input.fSample), filterorder).T
     elif not np.isnan(filter[0]):
-        dat = EEGsynth.butter_highpass_filter(dat.T, filter[0], int(hdr_input.fSample), filtorder).T
+        dat = EEGsynth.butter_highpass_filter(dat.T, filter[0], int(hdr_input.fSample), filterorder).T
     elif not np.isnan(filter[1]):
-        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filtorder).T
-    if not np.isnan(notch):
-        dat = EEGsynth.notch_filter(dat.T, notch, hdr_input.fSample).T
+        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filterorder).T
+
+    # apply the notch filtering
+    if not np.isnan(notch) and notch<(hdr_input.fSample/2):
+        dat = EEGsynth.notch_filter(dat.T, notch, hdr_input.fSample, notchquality).T # remove the line noise
+    if not np.isnan(notch) and 2*notch<(hdr_input.fSample/2):
+        dat = EEGsynth.notch_filter(dat.T, 2*notch, hdr_input.fSample, notchquality).T # remove the first harmonic
+    if not np.isnan(notch) and 3*notch<(hdr_input.fSample/2):
+        dat = EEGsynth.notch_filter(dat.T, 3*notch, hdr_input.fSample, notchquality).T # remove the second harmonic
 
     # remove the filter padding
     if clipsize > 0:

@@ -96,7 +96,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input, name
-    global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filterorder, filter, notchquality, notch, freqrange, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -136,35 +136,38 @@ def _start():
 
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
-    numhistory  = int(historysize / stepsize)                  # number of observations in the history
-    if clipside == 'both':
-        freqaxis = np.fft.fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
-    else:
+    if clipside == 'left' or clipside == 'right':
         freqaxis = np.fft.fftfreq((window-clipsize), 1. / hdr_input.fSample)
+    elif clipside == 'both':
+        freqaxis = np.fft.fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
+    numhistory  = int(historysize / stepsize)                  # number of observations in the history
     history     = np.zeros((len(channels), freqaxis.shape[0], numhistory))
 
     # this is used to taper the data prior to Fourier transforming
-    taper = np.hanning(window)
+    if clipside == 'left' or clipside == 'right':
+        taper = np.hanning(window-clipsize)
+    elif clipside == 'both':
+        taper = np.hanning(window-2*clipsize)
 
     # ideally it should be possible to change these on the fly
     showred     = patch.getint('input', 'showred', default=1)
     showblue    = patch.getint('input', 'showblue', default=1)
 
-    # lowpass, highpass and bandpass are optional, but mutually exclusive
-    filtorder = 9
+    # lowpass, highpass or bandpass are optional
+    filter = [np.nan, np.nan]
     if patch.hasitem('arguments', 'bandpass'):
         filter = patch.getfloat('arguments', 'bandpass', multiple=True)
-    elif patch.hasitem('arguments', 'lowpass'):
-        filter = patch.getfloat('arguments', 'lowpass')
-        filter = [np.nan, filter]
-    elif patch.hasitem('arguments', 'highpass'):
-        filter = patch.getfloat('arguments', 'highpass')
-        filter = [filter, np.nan]
-    else:
-        filter = [np.nan, np.nan]
+    if patch.hasitem('arguments', 'lowpass'):
+        filter[1] = patch.getfloat('arguments', 'lowpass')
+    if patch.hasitem('arguments', 'highpass'):
+        filter[0] = patch.getfloat('arguments', 'highpass')
 
     # notch filtering is optional
     notch = patch.getfloat('arguments', 'notch', default=np.nan)
+
+    # determine the filter order and notch filter quality
+    filterorder = patch.getfloat('arguments', 'filterorder', default=5)
+    notchquality = patch.getfloat('arguments', 'notchquality', default=5) # small is a broad filter, large is a sharp filter
 
     # wait until there is enough data
     begsample = -1
@@ -280,7 +283,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filterorder, filter, notchquality, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
     global dat, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
     monitor.loop()
@@ -311,16 +314,22 @@ def _loop_once():
     if patch.getint('arguments', 'detrend', default=0):
         dat = detrend(dat, axis=0, type='linear')
 
-    # apply the user-defined filtering
+    # apply the low/high/bandpass filtering
     if not np.isnan(filter[0]) and not np.isnan(filter[1]):
-        dat = EEGsynth.butter_bandpass_filter(dat.T, filter[0], filter[1], int(hdr_input.fSample), filtorder).T
+        dat = EEGsynth.butter_bandpass_filter(dat.T, filter[0], filter[1], int(hdr_input.fSample), filterorder).T
     elif not np.isnan(filter[0]):
-        dat = EEGsynth.butter_highpass_filter(dat.T, filter[0], int(hdr_input.fSample), filtorder).T
+        dat = EEGsynth.butter_highpass_filter(dat.T, filter[0], int(hdr_input.fSample), filterorder).T
     elif not np.isnan(filter[1]):
-        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filtorder).T
-    if not np.isnan(notch):
-        dat = EEGsynth.notch_filter(dat.T, notch, hdr_input.fSample).T
+        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filterorder).T
 
+    # apply the notch filtering
+    if not np.isnan(notch) and notch<(hdr_input.fSample/2):
+        dat = EEGsynth.notch_filter(dat.T, notch, hdr_input.fSample, notchquality).T # remove the line noise
+    if not np.isnan(notch) and 2*notch<(hdr_input.fSample/2):
+        dat = EEGsynth.notch_filter(dat.T, 2*notch, hdr_input.fSample, notchquality).T # remove the first harmonic
+    if not np.isnan(notch) and 3*notch<(hdr_input.fSample/2):
+        dat = EEGsynth.notch_filter(dat.T, 3*notch, hdr_input.fSample, notchquality).T # remove the second harmonic
+        
     # remove the filter padding
     if clipsize > 0:
         if clipside == 'left':
