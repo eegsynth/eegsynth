@@ -610,7 +610,7 @@ def online_filter(b, a, x, axis=-1, zi=[]):
     return y, zo
 
 ####################################################################
-def butter_bandpass(lowcut, highcut, fs, order=9):
+def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
@@ -647,14 +647,15 @@ def bessel_highpass(cutoff, fs, order):
     return sos
 
 ####################################################################
-def notch(f0, fs, Q=30):
+def notch(f0, fs, Q=5):
     # Q = Quality factor
-    w0 = f0 / (fs / 2)  # Normalized Frequency
+    nyq = 0.5 * fs
+    w0 = f0 / nyq
     b, a = iirnotch(w0, Q)
     return b, a
 
 ####################################################################
-def butter_bandpass_filter(dat, lowcut, highcut, fs, order=9):
+def butter_bandpass_filter(dat, lowcut, highcut, fs, order=5):
     '''
     This filter does not retain state and is not optimal for online filtering.
     '''
