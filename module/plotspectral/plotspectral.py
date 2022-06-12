@@ -30,7 +30,6 @@ import pyqtgraph as pg
 import sys
 import time
 import signal
-from scipy.fftpack import fft, fftfreq
 from scipy.signal import detrend
 
 if hasattr(sys, 'frozen'):
@@ -97,7 +96,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input, name
-    global timeout, hdr_input, start, channels, window, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, freqrange, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -133,11 +132,15 @@ def _start():
     winheight   = patch.getfloat('display', 'height')
     prefix      = patch.getstring('output', 'prefix')
     ylim        = patch.getfloat('arguments', 'ylim', multiple=True, default=None)
+    output      = patch.getstring('arguments', 'output', default='amplitude')  # amplitude or power
 
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
     numhistory  = int(historysize / stepsize)                  # number of observations in the history
-    freqaxis    = fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
+    if clipside == 'both':
+        freqaxis = np.fft.fftfreq((window-2*clipsize), 1. / hdr_input.fSample)
+    else:
+        freqaxis = np.fft.fftfreq((window-clipsize), 1. / hdr_input.fSample)
     history     = np.zeros((len(channels), freqaxis.shape[0], numhistory))
 
     # this is used to taper the data prior to Fourier transforming
@@ -179,10 +182,10 @@ def _start():
     win.setGeometry(winx, winy, winwidth, winheight)
 
     # initialize graphical elements
-    text_redleft_curr        = pg.TextItem("", anchor=( 1,  0), color='r')
-    text_redright_curr       = pg.TextItem("", anchor=( 0,  0), color='r')
-    text_blueleft_curr       = pg.TextItem("", anchor=( 1, -1), color='b')
-    text_blueright_curr      = pg.TextItem("", anchor=( 0, -1), color='b')
+    text_redleft_curr   = pg.TextItem("", anchor=( 1,  0), color='r')
+    text_redright_curr  = pg.TextItem("", anchor=( 0,  0), color='r')
+    text_blueleft_curr  = pg.TextItem("", anchor=( 1, -1), color='b')
+    text_blueright_curr = pg.TextItem("", anchor=( 0, -1), color='b')
     text_redleft_hist   = pg.TextItem("", anchor=( 1,  0), color='r')
     text_redright_hist  = pg.TextItem("", anchor=( 0,  0), color='r')
     text_blueleft_hist  = pg.TextItem("", anchor=( 1, -1), color='b')
@@ -277,7 +280,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channels, window, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
+    global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filtorder, filter, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
     global dat, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 
     monitor.loop()
@@ -335,8 +338,11 @@ def _loop_once():
 
     for plotnr, channr in enumerate(channels):
 
-        # estimate the absolute FFT amplitude at the current moment
-        fft_curr[plotnr] = abs(fft(dat[:, channr-1]))
+        # estimate the absolute FFT at the current moment
+        if output == 'amplitude':
+            fft_curr[plotnr] = abs(np.fft.fft(dat[:, channr-1]))
+        elif output == 'power':
+            fft_curr[plotnr] = abs(np.fft.fft(dat[:, channr-1]))**2
 
         # update the FFT history with the current estimate
         history[plotnr, :, numhistory - 1] = fft_curr[plotnr]
