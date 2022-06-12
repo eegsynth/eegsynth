@@ -56,7 +56,7 @@ class Window(QWidget):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
         self.setStyleSheet('background-color:black;')
-        self.setWindowTitle('EEGsynth inputcontrol')
+        self.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth inputcontrol'))
         self.drawmain()
 
     # each row or column with sliders/dials/buttons is a panel

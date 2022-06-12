@@ -144,11 +144,10 @@ def _start():
         float(config.get('processing', 'highpassfilter'))
         float(config.get('processing', 'lowpassfilter'))
         float(config.get('processing', 'notchfilter'))
-        # the filter frequencies are specified as numbers
+        # the filter frequencies are specified as numbers, assume they are in Hz
         default_scale = 1.
     except:
-        # the filter frequencies are specified as Redis channels
-        # scale them to the Nyquist frequency
+        # the filter frequencies are specified as Redis channels, scale them to the Nyquist frequency
         default_scale = hdr_input.fSample/2
 
     monitor.info('default scale for filter settings is %.0f' % (default_scale))

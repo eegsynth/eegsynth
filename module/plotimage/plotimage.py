@@ -84,7 +84,7 @@ class Window(QWidget):
         self.setGeometry(winx, winy, winwidth, winheight)
         # self.setFixedSize(winwidth, winheight)
         self.setStyleSheet('background-color:black;');
-        self.setWindowTitle('EEGsynth vumeter')
+        self.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotimage'))
         self.image = None
 
         self.label = QtWidgets.QLabel() # this will contain the pixmap

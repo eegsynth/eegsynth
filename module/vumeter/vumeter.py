@@ -57,7 +57,7 @@ class Window(QWidget):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
         self.setStyleSheet('background-color:black;');
-        self.setWindowTitle('EEGsynth vumeter')
+        self.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth vumeter'))
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()

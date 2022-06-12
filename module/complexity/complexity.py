@@ -101,7 +101,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -142,14 +142,12 @@ def _start():
     dfa         = patch.getint('metrics', 'dfa',         default=0) != 0
     lyap_r      = patch.getint('metrics', 'lyap_r',      default=0) != 0
     lyap_e      = patch.getint('metrics', 'lyap_e',      default=0) != 0
-    window      = patch.getfloat('processing','window')  # in seconds
+    window      = patch.getfloat('processing', 'window')  # in seconds
 
     window      = int(round(window * hdr_input.fSample)) # in samples
     taper       = np.hanning(window)
-    frequency   = np.fft.rfftfreq(window, 1.0/hdr_input.fSample)
 
     monitor.trace('taper     = ' + str(taper))
-    monitor.trace('frequency = ' + str(frequency))
 
     begsample = -1
     endsample = -1
@@ -160,7 +158,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, frequency, begsample, endsample
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, begsample, endsample
     global dat, meandat, chan, sample, metrics, timeseries, metric_names, metric, shortmetric, key, val
 
     hdr_input = ft_input.getHeader()
