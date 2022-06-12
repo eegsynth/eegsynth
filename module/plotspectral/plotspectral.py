@@ -346,29 +346,32 @@ def _loop_once():
         arguments_freqrange = patch.getfloat('arguments', 'freqrange', multiple=True)
         freqrange = np.greater(freqaxis, arguments_freqrange[0]) & np.less_equal(freqaxis, arguments_freqrange[1])
 
-        # adapt the vertical scale to the running mean of the min/max
-        if specmax_curr[plotnr]==None:
+        if len(ylim) == 2:
+            # set a fixed vertical scale
+            specmax_curr[plotnr] = ylim[1]
+            specmin_curr[plotnr] = ylim[0]
+            specmax_hist[plotnr] = ylim[1]
+            specmin_hist[plotnr] = ylim[0]
+        elif specmax_curr[plotnr] == None:
+            # initialize the vertical scale to the min/max
             specmax_curr[plotnr] = max(fft_curr[plotnr][freqrange])
             specmin_curr[plotnr] = min(fft_curr[plotnr][freqrange])
             specmax_hist[plotnr] = max(fft_hist[plotnr][freqrange])
             specmin_hist[plotnr] = min(fft_hist[plotnr][freqrange])
         else:
+            # adapt the vertical scale to the running mean of the min/max
             specmax_curr[plotnr] = (1 - lrate) * float(specmax_curr[plotnr]) + lrate * max(fft_curr[plotnr][freqrange])
             specmin_curr[plotnr] = (1 - lrate) * float(specmin_curr[plotnr]) + lrate * min(fft_curr[plotnr][freqrange])
             specmax_hist[plotnr] = (1 - lrate) * float(specmax_hist[plotnr]) + lrate * max(fft_hist[plotnr][freqrange])
             specmin_hist[plotnr] = (1 - lrate) * float(specmin_hist[plotnr]) + lrate * min(fft_hist[plotnr][freqrange])
 
-        # update the axes
+        # set the horizontal scale
         freqplot_curr[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
         freqplot_hist[plotnr].setXRange(arguments_freqrange[0], arguments_freqrange[1])
-        if len(ylim)==2:
-            # set the vertical scale to the user-specified limits
-            freqplot_curr[plotnr].setYRange(ylim[0], ylim[1])
-            freqplot_hist[plotnr].setYRange(ylim[0], ylim[1])
-        else:
-            # set the vertical scale to the user-specified limits
-            freqplot_curr[plotnr].setYRange(specmin_curr[plotnr], specmax_curr[plotnr])
-            freqplot_hist[plotnr].setYRange(specmin_hist[plotnr], specmax_hist[plotnr])
+
+        # set the vertical scale
+        freqplot_curr[plotnr].setYRange(specmin_curr[plotnr], specmax_curr[plotnr])
+        freqplot_hist[plotnr].setYRange(specmin_hist[plotnr], specmax_hist[plotnr])
 
         # update the spectra
         spect_curr[plotnr].setData(freqaxis[freqrange], fft_curr[plotnr][freqrange])
@@ -384,15 +387,16 @@ def _loop_once():
             redright_curr[plotnr].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
             redleft_hist[plotnr].setData(x=[redfreq - redwidth, redfreq - redwidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
             redright_hist[plotnr].setData(x=[redfreq + redwidth, redfreq + redwidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
-            # update labels at the vertical lines
-            text_redleft_curr.setText('%0.1f' % (redfreq - redwidth))
-            text_redleft_curr.setPos(redfreq - redwidth, specmax_curr[0])
-            text_redright_curr.setText('%0.1f' % (redfreq + redwidth))
-            text_redright_curr.setPos(redfreq + redwidth, specmax_curr[0])
-            text_redleft_hist.setText('%0.1f' % (redfreq - redwidth))
-            text_redleft_hist.setPos(redfreq - redwidth, specmax_hist[0])
-            text_redright_hist.setText('%0.1f' % (redfreq + redwidth))
-            text_redright_hist.setPos(redfreq + redwidth, specmax_hist[0])
+            if plotnr == 0:
+                # update the labels at the vertical lines
+                text_redleft_curr.setText('%0.1f' % (redfreq - redwidth))
+                text_redleft_curr.setPos(redfreq - redwidth, specmax_curr[0])
+                text_redright_curr.setText('%0.1f' % (redfreq + redwidth))
+                text_redright_curr.setPos(redfreq + redwidth, specmax_curr[0])
+                text_redleft_hist.setText('%0.1f' % (redfreq - redwidth))
+                text_redleft_hist.setPos(redfreq - redwidth, specmax_hist[0])
+                text_redright_hist.setText('%0.1f' % (redfreq + redwidth))
+                text_redright_hist.setPos(redfreq + redwidth, specmax_hist[0])
             # write the positions of the lines to Redis
             key = "%s.%s.%s" % (prefix, 'redband', 'low')
             patch.setvalue(key, redfreq - redwidth)
@@ -408,16 +412,17 @@ def _loop_once():
             blueright_curr[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_curr[plotnr], specmax_curr[plotnr]])
             blueleft_hist[plotnr].setData(x=[bluefreq - bluewidth, bluefreq - bluewidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
             blueright_hist[plotnr].setData(x=[bluefreq + bluewidth, bluefreq + bluewidth], y=[specmin_hist[plotnr], specmax_hist[plotnr]])
-            # update labels at the vertical lines
-            text_blueleft_curr.setText('%0.1f' % (bluefreq - bluewidth))
-            text_blueleft_curr.setPos(bluefreq - bluewidth, specmax_curr[0])
-            text_blueright_curr.setText('%0.1f' % (bluefreq + bluewidth))
-            text_blueright_curr.setPos(bluefreq + bluewidth, specmax_curr[0])
-            text_blueleft_hist.setText('%0.1f' % (bluefreq - bluewidth))
-            text_blueleft_hist.setPos(bluefreq - bluewidth, specmax_hist[0])
-            text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
-            text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
-            # write the positions of the lines to Redis
+            if plotnr == 0:
+                # update the labels at the vertical lines
+                text_blueleft_curr.setText('%0.1f' % (bluefreq - bluewidth))
+                text_blueleft_curr.setPos(bluefreq - bluewidth, specmax_curr[0])
+                text_blueright_curr.setText('%0.1f' % (bluefreq + bluewidth))
+                text_blueright_curr.setPos(bluefreq + bluewidth, specmax_curr[0])
+                text_blueleft_hist.setText('%0.1f' % (bluefreq - bluewidth))
+                text_blueleft_hist.setPos(bluefreq - bluewidth, specmax_hist[0])
+                text_blueright_hist.setText('%0.1f' % (bluefreq + bluewidth))
+                text_blueright_hist.setPos(bluefreq + bluewidth, specmax_hist[0])
+                # write the positions of the lines to Redis
             key = "%s.%s.%s" % (prefix, 'blueband', 'low')
             patch.setvalue(key, bluefreq - bluewidth)
             key = "%s.%s.%s" % (prefix, 'blueband', 'high')
