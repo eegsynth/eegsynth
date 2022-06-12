@@ -566,13 +566,18 @@ class Server():
         self.H = None
         self.D = None
         self.E = None
-        self.length = 600   # in seconds, ring buffer length
-        self.timeout = 1    # in seconds, this should be 0 if you want to loop over multiple servers
+        self.length = 600       # in seconds, ring buffer length
+        self.timeout = 1        # in seconds, this should be 0 if you want to loop over multiple servers
+        self.keepalive = True   # whether to raise errors or keep running
 
 
     def connect(self, hostname='localhost', port=1972):
         if self.isConnected:
-            raise RuntimeError('Already connected.')
+            if self.keepalive:
+                print('Already connected.')
+                return
+            else:
+                raise RuntimeError('Already connected.')
 
         lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -587,7 +592,11 @@ class Server():
 
     def disconnect(self):
         if not self.isConnected:
-            raise RuntimeError('Not connected.')
+            if self.keepalive:
+                print('Not connected.')
+                return
+            else:
+                raise RuntimeError('Not connected.')
 
         self.sel.close()
         self.sel = None
@@ -596,7 +605,11 @@ class Server():
 
     def accept_wrapper(self, sock):
         if not self.isConnected:
-            raise RuntimeError('Not connected.')
+            if self.keepalive:
+                print('Already connected.')
+                return
+            else:
+                raise RuntimeError('Not connected.')
 
         conn, addr = sock.accept()  # Should be ready to read
         print(f'Accepted connection from {addr}')
@@ -608,7 +621,11 @@ class Server():
 
     def service_request(self, key, mask):
         if not self.isConnected:
-            raise RuntimeError('Not connected.')
+            if self.keepalive:
+                print('Not connected.')
+                return
+            else:
+                raise RuntimeError('Not connected.')
 
         sock = key.fileobj
         data = key.data
@@ -617,15 +634,29 @@ class Server():
             try:
                 message = sock.recv(8)
             except:
-                raise IOError('Cannot read message.')
-            if message:
+                if self.keepalive:
+                    print('Cannot read message.')
+                    message = [] # this will be handled further down
+                else:
+                    raise IOError('Cannot read message.')
+
+            if message and len(message)==8:
                 (version, command, bufsize) = struct.unpack('HHI', message[0:8])
                 if version != VERSION:
-                    raise RuntimeError('Incompatible version.')
+                    if self.keepalive:
+                        print('Incompatible version.')
+                        return
+                    else:
+                        raise RuntimeError('Incompatible version.')
+
                 try:
                     payload = sock.recv(bufsize)
                 except:
-                    raise IOError('Cannot read payload.')
+                    if self.keepalive:
+                        print('Cannot read payload.')
+                        return
+                    else:
+                        raise IOError('Cannot read payload.')
 
                 if command == PUT_HDR:
                     self.H = Header()
@@ -648,12 +679,11 @@ class Server():
                             print('Initialized ring buffer with %d bytes' % nbytes)
                         self.D.append(payload[16:])
                         self.H.nSamples += nsamples
-                        # print('nSamples', self.H.nSamples)
                         response = struct.pack('HHI', VERSION, PUT_OK, 0)
-                        sock.send(response)
                     else:
                         response = struct.pack('HHI', VERSION, PUT_ERR, 0)
-                        sock.send(response)
+                    # send the response to PUT_DAT
+                    sock.send(response)
 
                 elif command == PUT_EVT:
                     print('PUT_EVT not implemented')
@@ -664,13 +694,12 @@ class Server():
                     if self.H != None:
                         response = struct.pack('HHI', VERSION, GET_OK, 24)
                         response += struct.pack('IIIfII', self.H.nChannels, self.H.nSamples, self.H.nEvents, self.H.fSample, self.H.dataType, 0)
-                        sock.send(response)
                     else:
                         response = struct.pack('HHI', VERSION, GET_ERR, 0)
-                        sock.send(response)
+                    # send the response to GET_HDR
+                    sock.send(response)
 
                 elif command == GET_DAT:
-                    
                     if self.H != None and self.D != None and bufsize == 8:
                         (begsample, endsample) = struct.unpack('II', payload[0:8]) # this uses inclusive, zero-based start/end indices
                         begbyte = int(begsample * self.H.nChannels * wordSize[self.H.dataType])
@@ -684,7 +713,6 @@ class Server():
                             response = struct.pack('HHI', VERSION, GET_ERR, 0)
                     else:
                         response = struct.pack('HHI', VERSION, GET_ERR, 0)
-
                     # send the response to GET_DAT
                     sock.send(response)
 
@@ -701,6 +729,7 @@ class Server():
                         response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
                     else:
                         response = struct.pack('HHI', VERSION, FLUSH_ERR, 0)
+                    # send the response to FLUSH_HDR
                     sock.send(response)
 
                 elif command == FLUSH_DAT:
@@ -709,6 +738,7 @@ class Server():
                         response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
                     else:
                         response = struct.pack('HHI', VERSION, FLUSH_ERR, 0)
+                    # send the response to FLUSH_DAT
                     sock.send(response)
 
                 elif command == FLUSH_EVT:
@@ -717,6 +747,7 @@ class Server():
                         response = struct.pack('HHI', VERSION, FLUSH_OK, 0)
                     else:
                         response = struct.pack('HHI', VERSION, FLUSH_ERR, 0)
+                    # send the response to FLUSH_EVT
                     sock.send(response)
 
                 elif command == WAIT_DAT:
@@ -734,8 +765,9 @@ class Server():
                                 time.sleep(0.010)
                     else:
                         response = struct.pack('HHI', VERSION, WAIT_ERR, 0)
+                    # send the response to WAIT_DAT
                     sock.send(response)
-                    
+
                 else:
                     # unrecognized command
                     print('Command not implemented')
@@ -750,8 +782,12 @@ class Server():
 
     def loop(self):
         if not self.isConnected:
-            raise IOError('Not connected.')
-            
+            if self.keepalive:
+                print('Not connected.')
+                return
+            else:
+                raise RuntimeError('Not connected.')
+                
         # the timeout is used to return control to the main loop once in a while
         events = self.sel.select(timeout = self.timeout)
         for key, mask in events:
