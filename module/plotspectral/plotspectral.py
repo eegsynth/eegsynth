@@ -292,7 +292,7 @@ def _loop_once():
             endsample = hdr_input.nSamples - 1
 
     # get the last available data
-    begsample = (hdr_input.nSamples - window)  # the clipsize will be removed from both sides after filtering
+    begsample = (hdr_input.nSamples - window)  # the clipsize will be removed after filtering
     endsample = (hdr_input.nSamples - 1)
 
     monitor.info("reading from sample %d to %d" % (begsample, endsample))
