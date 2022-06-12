@@ -157,10 +157,10 @@ def _start():
     filter = [np.nan, np.nan]
     if patch.hasitem('arguments', 'bandpass'):
         filter = patch.getfloat('arguments', 'bandpass', multiple=True)
-    if patch.hasitem('arguments', 'lowpass'):
-        filter[1] = patch.getfloat('arguments', 'lowpass')
     if patch.hasitem('arguments', 'highpass'):
         filter[0] = patch.getfloat('arguments', 'highpass')
+    if patch.hasitem('arguments', 'lowpass'):
+        filter[1] = patch.getfloat('arguments', 'lowpass')
 
     # notch filtering is optional
     notch = patch.getfloat('arguments', 'notch', default=np.nan)
