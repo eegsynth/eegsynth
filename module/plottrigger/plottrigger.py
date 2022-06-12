@@ -152,8 +152,8 @@ def _start():
 
     # initialize graphical window
     app = QtGui.QApplication(sys.argv)
-    win = pg.GraphicsWindow(title="EEGsynth plottrigger")
-    win.setWindowTitle('EEGsynth plottrigger')
+    win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plottrigger'))
+    win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plottrigger'))
     win.setGeometry(winx, winy, winwidth, winheight)
 
     # Enable antialiasing for prettier plots

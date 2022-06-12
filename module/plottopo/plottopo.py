@@ -57,7 +57,7 @@ class Window(QWidget):
         super(Window, self).__init__()
         self.setGeometry(winx, winy, winwidth, winheight)
         self.setStyleSheet('background-color:black;');
-        self.setWindowTitle('EEGsynth plottopo')
+        self.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plottopo'))
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -100,7 +100,7 @@ class Window(QWidget):
                 qp.setPen(QtGui.QColor('white'))
                 qp.drawEllipse(x, y, diameter*w, diameter*h)
             else:
-                # this is needed as fallback when labelcolor is inverse 
+                # this is needed as fallback when labelcolor is inverse
                 r = 0
                 g = 0
                 b = 0

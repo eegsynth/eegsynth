@@ -92,7 +92,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input, name
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, output, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -121,6 +121,7 @@ def _start():
     monitor.info(str(channame) + " " + str(chanindx))
 
     prefix = patch.getstring('output', 'prefix')
+    output = patch.getstring('processing', 'output', default='power')  # amplitude or power
 
     begsample = -1
     endsample = -1
@@ -131,7 +132,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, begsample, endsample
+    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, output, begsample, endsample
     global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
 
     scale_window = patch.getfloat('scale', 'window', default=1.)
@@ -143,7 +144,7 @@ def _loop_once():
 
     window = int(round(window * hdr_input.fSample))  # in samples
     taper = np.hanning(window)
-    frequency = np.fft.rfftfreq(window, 1.0 / hdr_input.fSample)
+    frequency = np.fft.fftfreq(window, 1.0 / hdr_input.fSample)
 
     band_items = config.items('band')
     bandname = []
@@ -179,29 +180,32 @@ def _loop_once():
     dat = dat * taper[:, np.newaxis]
 
     # compute the FFT over the sample direction
-    F = np.fft.rfft(dat, axis=0)
+    if output == 'amplitude':
+        F = abs(np.fft.fft(dat, axis=0))
+    elif output == 'power':
+        F = abs(np.fft.fft(dat, axis=0))**2
 
-    power = [0] * len(channame) * len(bandname)
+    value = [0] * len(channame) * len(bandname)
     i = 0
     for chan in range(F.shape[1]):
         for lo,hi in zip(bandlo,bandhi):
-            power[i] = 0
+            value[i] = 0
             count = 0
             for sample in range(len(frequency)):
                 if frequency[sample]>=lo and frequency[sample]<=hi:
-                    power[i] += abs(F[sample, chan]*F[sample, chan])
-                    count    += 1
+                    value[i] += F[sample, chan]
+                    count        += 1
             if count>0:
-                power[i] /= count
+                value[i] /= count
             i+=1
 
-    monitor.debug(power)
+    monitor.debug(value)
 
     i = 0
     for chan in channame:
         for band in bandname:
             key = "%s.%s.%s" % (prefix, chan, band)
-            patch.setvalue(key, power[i])
+            patch.setvalue(key, value[i])
             i+=1
 
 
