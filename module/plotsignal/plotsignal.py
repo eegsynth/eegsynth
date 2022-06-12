@@ -98,7 +98,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, name
-    global channels, winx, winy, winwidth, winheight, window, clipsize, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
+    global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
 
     # read variables from ini/redis
     channels    = patch.getint('arguments', 'channels', multiple=True)
@@ -108,6 +108,7 @@ def _start():
     winheight   = patch.getfloat('display', 'height')
     window      = patch.getfloat('arguments', 'window', default=5.0)        # in seconds
     clipsize    = patch.getfloat('arguments', 'clipsize', default=0.0)      # in seconds
+    clipside    = patch.getstring('arguments', 'clipside', default='left')  # left is in the past, right is in the future
     stepsize    = patch.getfloat('arguments', 'stepsize', default=0.1)      # in seconds
     lrate       = patch.getfloat('arguments', 'learning_rate', default=0.2)
     ylim        = patch.getfloat('arguments', 'ylim', multiple=True, default=None)
@@ -194,7 +195,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input
-    global channels, winx, winy, winwidth, winheight, window, clipsize, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
+    global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filtorder, filter, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
     global dat, timeaxis
 
     monitor.loop()
@@ -228,16 +229,21 @@ def _loop_once():
     # apply the user-defined filtering
     if not np.isnan(filter[0]) and not np.isnan(filter[1]):
         dat = EEGsynth.butter_bandpass_filter(dat.T, filter[0], filter[1], int(hdr_input.fSample), filtorder).T
-    elif not np.isnan(filter[1]):
-        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filtorder).T
     elif not np.isnan(filter[0]):
         dat = EEGsynth.butter_highpass_filter(dat.T, filter[0], int(hdr_input.fSample), filtorder).T
+    elif not np.isnan(filter[1]):
+        dat = EEGsynth.butter_lowpass_filter(dat.T, filter[1], int(hdr_input.fSample), filtorder).T
     if not np.isnan(notch):
         dat = EEGsynth.notch_filter(dat.T, notch, hdr_input.fSample).T
 
     # remove the filter padding
     if clipsize > 0:
-        dat = dat[clipsize:-clipsize,:]
+        if clipside == 'left':
+            dat = dat[clipsize:,:]
+        elif clipside == 'right':
+            dat = dat[:-clipsize,:]
+        elif clipside == 'both':
+            dat = dat[clipsize:-clipsize,:]
 
     for plotnr, channr in enumerate(channels):
 
