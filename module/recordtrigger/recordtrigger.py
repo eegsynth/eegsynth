@@ -69,7 +69,6 @@ class TriggerThread(threading.Thread):
             for item in pubsub.listen():
                 timestamp = datetime.datetime.now().isoformat()
                 if not self.running or not item['type'] == 'message':
-                    print(item["type"])
                     break
                 if item['channel'] == self.redischannel:
                     val = item["data"]
@@ -82,7 +81,7 @@ class TriggerThread(threading.Thread):
                         except ValueError:
                             # keep it as a string
                             monitor.info(("cannot apply scaling, writing %s as string" % (self.redischannel)))
-                    if not f.closed:
+                    if f and not f.closed:
                         # write the value, it can be either a number or a string
                         with lock:
                             f.write("%s\t%s\t%s\n" % (self.redischannel, val, timestamp))
@@ -163,7 +162,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
     global fname, ext
 
