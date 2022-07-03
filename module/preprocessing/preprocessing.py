@@ -137,6 +137,11 @@ def _start():
     if reference == 'montage':
         montage_out, montage_in = list(map(list, list(zip(*config.items('montage')))))
         nChannels_out = len(montage_out)
+        # construct the montage matrix once to give feedback, it will later be recomputed on the fly
+        for i, name in enumerate(montage_out):
+            montage_in[i] = patch.getfloat('montage', name, multiple=True)
+        montage = np.transpose(np.array(montage_in), (1, 0))
+        monitor.info("montage =", montage.shape)
     else:
         nChannels_out = hdr_input.nChannels
 
@@ -241,7 +246,7 @@ def _loop_once():
     if not(highpassfilter is None) or not(lowpassfilter is None):
         # apply the filter to the data
         dat_output, zi = EEGsynth.online_filter(b, a, dat_output, axis=0, zi=zi)
-        monitor.debug("filtered    ", window, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("filtered     ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Online notch filtering
     notchfilter = patch.getfloat('processing', 'notchfilter', default=None)
@@ -261,7 +266,7 @@ def _loop_once():
     if not(notchfilter is None):
         # apply the filter to the data
         dat_output, nzi = EEGsynth.online_filter(nb, na, dat_output, axis=0, zi=nzi)
-        monitor.debug("notched     ", window, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("notched      ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Differentiate
     if differentiate:
@@ -280,32 +285,30 @@ def _loop_once():
         for t in range(window):
             dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
             previous = copy(dat_output[t, :])
-        monitor.debug("smoothed    ", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("smoothed     ", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # Downsampling
     if not(downsample is None):
         # do not apply an anti aliassing filter, the data segment is probably too short for that
         dat_output = decimate(dat_output, downsample, n=0, ftype='iir', axis=0, zero_phase=True)
         window_new = int(window / downsample)
-        monitor.debug("downsampled ", window, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("downsampled  ", window, "samples in", (time.time()-start)*1000, "ms")
     else:
         window_new = window
 
     # Re-referencing
     if reference == 'median':
         dat_output -= repmat(np.nanmedian(dat_output, axis=1), dat_output.shape[1], 1).T
-        monitor.debug("rereferenced (median)", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("rereferenced ", window_new, "samples in", (time.time()-start)*1000, "ms")
     elif reference == 'average':
         dat_output -= repmat(np.nanmean(dat_output, axis=1), dat_output.shape[1], 1).T
-        monitor.debug("rereferenced (average)", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("rereferenced ", window_new, "samples in", (time.time()-start)*1000, "ms")
     elif reference == 'montage':
-        monitor.debug("applying montage")
         for i, name in enumerate(montage_out):
             montage_in[i] = patch.getfloat('montage', name, multiple=True)
-        dat_output = np.matmul(dat_output, np.transpose(np.array(montage_in), (1, 0)))
-        print("Data dimensions after montage:", dat_output.shape)
-    else:
-        monitor.debug("No rereferencing or montage applied")
+        montage = np.transpose(np.array(montage_in), (1, 0))
+        dat_output = np.matmul(dat_output, montage)
+        monitor.debug("rereferenced ", window_new, "samples in", (time.time()-start)*1000, "ms")
 
     # write the data to the output buffer
     ft_output.putData(dat_output.astype(np.float32))
