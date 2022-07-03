@@ -199,7 +199,7 @@ def _loop_once():
                 value[i] /= count
             i+=1
 
-    monitor.debug(value)
+    monitor.debug(np.around(value))
 
     i = 0
     for chan in channame:
