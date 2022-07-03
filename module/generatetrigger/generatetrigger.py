@@ -51,12 +51,19 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
-def trigger(send=True):
-    global patch, lock, rate, spread, t
-    if send:
+def trigger(skip=False):
+    global monitor, debug, patch, lock, rate, spread, t
+
+    if skip:
+        # this happens upon initialization and when the timing parameters change
+        monitor.debug('skipping this trigger')
+    elif patch.getint('general', 'enable', default=True):
         # send the current trigger
         key = patch.getstring('output', 'prefix') + '.note'
         patch.setvalue(key, 1.)
+        monitor.debug('sending', key, 1.)
+    else:
+        monitor.debug('triggers are not enabled')
 
     with lock:
         # the rate is in bpm, i.e. quarter notes per minute
@@ -140,7 +147,7 @@ def _start():
     t = threading.Timer(0, None)
 
     # start the chain of triggers, the first one does not have to be sent
-    trigger(send=False)
+    trigger(skip=True)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -167,7 +174,8 @@ def _loop_once():
     if change:
         monitor.debug('canceling previously scheduled trigger')
         t.cancel()
-        trigger(send=False)
+        # restart the chain of triggers, the first one does not have to be sent
+        trigger(skip=True)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
