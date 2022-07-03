@@ -226,7 +226,10 @@ def _start():
         plot.setYRange(0,1)
 
         freqplot_curr.append(plot)
-        freqplot_curr[plotnr].setLabel('left', text='Power')
+        if output=='amplitude':
+            freqplot_curr[plotnr].setLabel('left', text='Amplitude')
+        elif output=='power':
+            freqplot_curr[plotnr].setLabel('left', text='Power')
         freqplot_curr[plotnr].setLabel('bottom', text='Frequency (Hz)')
 
         spect_curr.append(freqplot_curr[plotnr].plot(pen='w'))
