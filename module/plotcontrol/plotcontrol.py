@@ -155,6 +155,10 @@ def _loop_once():
     global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     monitor.loop()
+    
+    if not patch.getint('general', 'enable', default=True):
+        # do not read data and do not plot anything
+        return
 
     # shift all historic data with one sample
     inputhistory = np.roll(inputhistory, -1, axis=1)

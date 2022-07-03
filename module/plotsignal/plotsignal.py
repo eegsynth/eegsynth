@@ -198,6 +198,10 @@ def _loop_once():
     global dat, timeaxis
 
     monitor.loop()
+    
+    if not patch.getint('general', 'enable', default=True):
+        # do not read data and do not plot anything
+        return
 
     hdr_input = ft_input.getHeader()
     if (hdr_input.nSamples-1)<endsample:
