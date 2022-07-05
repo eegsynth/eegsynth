@@ -219,8 +219,11 @@ class Window(QWidget):
         if target.type == 'slider' or target.type == 'dial':
             val = target.value()
         elif target.type == 'text':
-            val = float(target.text())  # convert the string into a scalar
-            target.setText('%g' % val)  # ensure that the displayed value is consistent
+            try:
+                val = float(target.text())  # convert the string into a scalar
+                target.setText('%g' % val)  # ensure that the displayed value is consistent
+            except:
+                val = target.text()
         elif target.type == 'slap':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1

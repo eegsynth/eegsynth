@@ -378,6 +378,9 @@ class patch():
         # get all items from the ini file, there might be one or multiple
         try:
             val = self.config.get(section, item)
+            if self.redis.exists(val):
+                # the ini file points to a Redis key, which contains the actual value
+                val = self.redis.get(val)
         except:
             val = default
 
