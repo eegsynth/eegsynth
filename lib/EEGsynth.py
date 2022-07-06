@@ -231,7 +231,7 @@ Press Ctrl-C to stop this module.
             self.logger.log(logging.TRACE, " ".join(map(format, args)))
 
 ###################################################################################################
-class patch():
+class patch(threading.Thread):
     """Class to provide a generalized interface for patching modules using
     configuration files and Redis.
 
@@ -248,8 +248,29 @@ class patch():
     """
 
     def __init__(self, c, r):
+        threading.Thread.__init__(self)
         self.config = c
-        self.redis  = r
+        self.redis = r
+        self.running = False
+        self.cache = {}                     # this is to store the cached values
+        self.pubsub = self.redis.pubsub()   # this is to automatically update the cached values
+    
+    def stop(self):
+        self.running = False
+        self.redis.publish('PATCH_UNBLOCK', 1)
+        self.join()         # wait for the thread to finish
+        self.cache = {}     # empty the cache, as it will not be updated any more
+
+    def run(self):
+        # this message unblocks the Redis listen command
+        self.pubsub.subscribe('PATCH_UNBLOCK')
+        self.running = True
+        while self.running:
+            for item in self.pubsub.listen():
+                if item['type'] == 'message' and item['channel'] in self.cache:
+                    # update the cached value
+                    self.cache[item['channel']] = item['data']
+                    print('updating cache', self.cache)
 
     ####################################################################
     def getfloat(self, section, item, multiple=False, default=None):
@@ -274,7 +295,7 @@ class patch():
                 # make a list with a single item
                 items = [items]
 
-            # set the default
+            # set the default value
             if default != None:
                 val = [float(default)] * len(items)
             else:
@@ -283,14 +304,28 @@ class patch():
             # convert the strings into floating point values
             for i,item in enumerate(items):
                 try:
-                    # if it resembles a value, use that
+                    # if it resembles a float value, use that
                     val[i] = float(item)
-                except ValueError:
-                    # if it is a string, get the value from Redis
-                    try:
-                        val[i] = float(self.redis.get(item))
-                    except TypeError:
-                        pass
+                except (TypeError, ValueError):
+                    if item in self.cache:
+                        # get the value from cache, which is automatically updated with pubsub
+                        # print('get %s from cache' % item)
+                        try:
+                            val[i] = float(self.cache[item])
+                        except (TypeError, ValueError):
+                            pass
+                    else:
+                        # get the value from Redis
+                        # print('get %s from redis' % item)
+                        try:
+                            val[i] = float(self.redis.get(item))
+                            if self.running:
+                                # add this item to the cache, which is automatically updated with pubsub
+                                self.cache[item] = val[i]
+                                self.pubsub.subscribe(item)
+                        except (TypeError, ValueError):
+                            pass
+
         else:
             # the configuration file does not contain the item
             if multiple == True and default == None:
@@ -335,7 +370,7 @@ class patch():
                 # make a list with a single item
                 items = [items]
 
-            # set the default
+            # set the default value
             if default != None:
                 val = [int(default)] * len(items)
             else:
@@ -344,14 +379,26 @@ class patch():
             # convert the strings into integer values
             for i,item in enumerate(items):
                 try:
-                    # if it resembles a value, use that
+                    # if it resembles an int value, use that
                     val[i] = int(item)
-                except ValueError:
-                    # if it is a string, get the value from Redis
-                    try:
-                        val[i] = int(round(float(self.redis.get(item))))
-                    except TypeError:
-                        pass
+                except (TypeError, ValueError):
+                    if item in self.cache:
+                        # get the value from cache, which is automatically updated with pubsub
+                        try:
+                            val[i] = int(round(float(self.cache[item])))
+                        except (TypeError, ValueError):
+                            pass
+                    else:
+                        # get the value from Redis
+                        try:
+                            val[i] = int(round(float(self.redis.get(item))))
+                            if self.running:
+                                # add this item to the cache, which is automatically updated with pubsub
+                                self.cache[item] = val[i]
+                                self.pubsub.subscribe(item)
+                        except (TypeError, ValueError):
+                            pass
+
         else:
             # the configuration file does not contain the item
             if multiple == True and default == None:
@@ -375,33 +422,64 @@ class patch():
 
     ####################################################################
     def getstring(self, section, item, default=None, multiple=False):
-        # get all items from the ini file, there might be one or multiple
-        try:
-            val = self.config.get(section, item)
-            if self.redis.exists(val):
-                # the ini file points to a Redis key, which contains the actual value
-                val = self.redis.get(val)
-        except:
-            val = default
+        if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
+            # get all items from the ini file, there might be one or multiple
+            items = self.config.get(section, item)
 
-        if multiple:
-            if val==None or len(val)==0:
-                # convert it to an empty list
-                val = []
-            else:
-                # convert the string with items to a list
-                if val.find(",") > -1:
-                    separator = ","
-                elif val.find("-") > -1:
-                    separator = "-"
-                elif val.find("\t") > -1:
-                    separator = "\t"
+            if multiple:
+                if items==None or len(items)==0:
+                    # convert it to an empty list
+                    items = []
                 else:
-                    separator = " "
+                    # convert the string with items to a list
+                    if items.find(",") > -1:
+                        separator = ","
+                    elif items.find("-") > -1:
+                        separator = "-"
+                    elif items.find("\t") > -1:
+                        separator = "\t"
+                    else:
+                        separator = " "
 
-                val = squeeze(separator, val)  # remove double separators
-                val = val.split(separator)     # split on the separator
+                    items = squeeze(separator, items)  # remove double separators
+                    items = items.split(separator)     # split on the separator
+            else:
+                # make a list with a single item
+                items = [items]
 
+            # set the default value
+            if default != None:
+                val = [default] * len(items)
+            else:
+                val = [default] * len(items)
+
+            # convert the strings
+            for i,item in enumerate(items):
+                if item in self.cache:
+                    # get the value from cache, which is automatically updated with pubsub
+                    val[i] = self.cache[item]
+                elif self.redis.exists(item):
+                    # get the value from Redis
+                    val[i] = self.redis.get(item)
+                    if self.running:
+                        # add this item to the cache, which is automatically updated with pubsub
+                        self.cache[item] = val[i]
+                        self.pubsub.subscribe(item)
+                else:
+                    # keep the item as it is
+                    val[i] = item
+
+        else:
+            # the configuration file does not contain the item
+            if multiple == True and default == None:
+                val = []
+            elif multiple == True and default != None:
+                val = [x for x in default]
+            elif multiple == False and default == None:
+                val = None
+            elif multiple == False and default != None:
+                val = default
+                
         if multiple:
             # return it as list
             return val
