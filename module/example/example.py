@@ -69,6 +69,7 @@ def _setup():
 
     # combine the patching from the configuration file and Redis
     patch = EEGsynth.patch(config, r)
+    patch.start()
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -79,16 +80,10 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, prefix, param1, param2
+    global parser, args, config, r, response, patch, name, monitor
 
-    # this can be used to show parameters that have changed
+    # the monitor can be used for info/debug/trace and to print values when they change
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
-
-    # get the options from the configuration file
-    prefix = patch.getstring('output', 'prefix')
-    param1 = patch.getfloat('input', 'param1', default=0)
-    param2 = patch.getfloat('input', 'param2', default=0)
     
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -98,16 +93,18 @@ def _start():
 def _loop_once():
     '''Run the main loop once
     '''
-    global parser, args, config, r, response, patch
-    global monitor, prefix
-
+    global parser, args, config, r, response, patch, monitor
+    
+    # the prefix can in principle change on the fly when patched as a string in Redis
+    prefix = patch.getstring('output', 'prefix')
+    
     # update the value of input param1, copy it to the output
     param1 = patch.getfloat('input', 'param1', default=0)
-    patch.setvalue(prefix + 'param1', param1)
+    patch.setvalue(prefix + '.param1', param1)
 
     # update the value of input param2, copy it to the output
     param2 = patch.getfloat('input', 'param2', default=0)
-    patch.setvalue(prefix + 'param2', param2)
+    patch.setvalue(prefix + '.param2', param2)
 
     monitor.info('param1', param1)  # this is printed when debug>=1
     monitor.debug('param2', param2) # this is printed when debug>=2
@@ -120,12 +117,15 @@ def _loop_forever():
     while True:
         monitor.loop()
         _loop_once()
+        # the delay can in principle change on the fly
         time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
+    global patch
+    patch.stop()
     sys.exit()
 
 
