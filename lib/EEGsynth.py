@@ -270,7 +270,7 @@ class patch(threading.Thread):
                 if item['type'] == 'message' and item['channel'] in self.cache:
                     # update the cached value
                     self.cache[item['channel']] = item['data']
-                    print('updating cache', self.cache)
+                    # print('updating cache', self.cache)
 
     ####################################################################
     def getfloat(self, section, item, multiple=False, default=None):
