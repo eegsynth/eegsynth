@@ -23,7 +23,6 @@ import configparser
 import argparse
 import os
 import redis
-import serial
 import sys
 import time
 

@@ -21,7 +21,6 @@ import configparser
 import argparse
 import os
 import redis
-import serial
 import sys
 import threading
 import time
