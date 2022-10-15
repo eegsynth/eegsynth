@@ -285,7 +285,7 @@ def _loop_once():
         for t in range(window):
             dat_output[t, :] = smoothing * dat_output[t, :] + (1.-smoothing)*previous
             previous = copy(dat_output[t, :])
-        monitor.debug("smoothed     ", window_new, "samples in", (time.time()-start)*1000, "ms")
+        monitor.debug("smoothed     ", window, "samples in", (time.time()-start)*1000, "ms")
 
     # Downsampling
     if not(downsample is None):
