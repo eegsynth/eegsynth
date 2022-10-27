@@ -81,7 +81,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global parser, args, config, r, response, patch, name
-    global monitor, stepsize, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
+    global monitor, stepsize, scale_frequency, scale_spread, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_spread, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -91,11 +91,13 @@ def _start():
 
     # the scale and offset are used to map the Redis values to internal values
     scale_frequency = patch.getfloat('scale', 'frequency', default=1)
+    scale_spread = patch.getfloat('scale', 'spread', default=1)
     scale_amplitude = patch.getfloat('scale', 'amplitude', default=1)
     scale_offset = patch.getfloat('scale', 'offset', default=1)
     scale_noise = patch.getfloat('scale', 'noise', default=1)
     scale_dutycycle = patch.getfloat('scale', 'dutycycle', default=1)
     offset_frequency = patch.getfloat('offset', 'frequency', default=0)
+    offset_spread = patch.getfloat('offset', 'spread', default=0)
     offset_amplitude = patch.getfloat('offset', 'amplitude', default=0)
     offset_offset = patch.getfloat('offset', 'offset', default=0)
     offset_noise = patch.getfloat('offset', 'noise', default=0)
@@ -115,8 +117,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global parser, args, config, r, response, patch
-    global monitor, stepsize, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
-    global frequency, amplitude, offset, noise, dutycycle, key, val, elapsed, naptime
+    global monitor, stepsize, scale_frequency, scale_spread, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_spread, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
+    global frequency, spread, amplitude, offset, noise, dutycycle, key, val, elapsed, naptime
 
     if patch.getint('signal', 'rewind', default=0):
         monitor.info("Rewind pressed, jumping back to start of signal")
@@ -137,30 +139,33 @@ def _loop_once():
         time.sleep(0.1)
         return
 
+    # get the Redis control values
     frequency = patch.getfloat('signal', 'frequency', default=0.2)
+    spread = patch.getfloat('signal', 'spread', default=0)
     amplitude = patch.getfloat('signal', 'amplitude', default=0.3)
     offset = patch.getfloat('signal', 'offset', default=0.5)
     noise = patch.getfloat('signal', 'noise', default=0.1)
     dutycycle = patch.getfloat('signal', 'dutycycle', default=0.5)   # for the square wave
 
     # map the Redis values to signal parameters
-    frequency = EEGsynth.rescale(
-        frequency, slope=scale_frequency, offset=offset_frequency)
-    amplitude = EEGsynth.rescale(
-        amplitude, slope=scale_amplitude, offset=offset_amplitude)
+    frequency = EEGsynth.rescale(frequency, slope=scale_frequency, offset=offset_frequency)
+    spread = EEGsynth.rescale(spread, slope=scale_spread, offset=offset_spread)
+    amplitude = EEGsynth.rescale(amplitude, slope=scale_amplitude, offset=offset_amplitude)
     offset = EEGsynth.rescale(offset, slope=scale_offset, offset=offset_offset)
     noise = EEGsynth.rescale(noise, slope=scale_noise, offset=offset_noise)
-    dutycycle = EEGsynth.rescale(
-        dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
+    dutycycle = EEGsynth.rescale(dutycycle, slope=scale_dutycycle, offset=offset_dutycycle)
 
     monitor.update("frequency", frequency)
+    monitor.update("spread", spread)
     monitor.update("amplitude", amplitude)
     monitor.update("offset   ", offset)
     monitor.update("noise    ", noise)
     monitor.update("dutycycle", dutycycle)
 
-    # compute the phase of this sample
-    phase = phase + 2 * np.pi * frequency * stepsize
+    # compute the phase of the upcoming sample
+    instantaneous_frequency = frequency + np.random.randn(1) * spread
+    instantaneous_frequency = min(max(instantaneous_frequency, 0*frequency), 2*frequency) # the instantaneous frequency should not become negative, nor too large
+    phase = phase + 2 * np.pi * instantaneous_frequency * stepsize
 
     key = patch.getstring('output', 'prefix') + '.sin'
     val = np.sin(phase) * amplitude + offset + np.random.randn(1) * noise
@@ -181,6 +186,7 @@ def _loop_once():
     sample += 1
 
     # there should not be any local variables in this function, they should all be global
+    del instantaneous_frequency
     if len(locals()):
         print("LOCALS: " + ", ".join(locals().keys()))
 
