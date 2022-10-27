@@ -87,7 +87,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, r, response, patch, name
-    global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
+    global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, index, input_value
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -122,6 +122,7 @@ def _start():
     del output_value[index]
 
     # there should not be any local variables in this function, they should all be global
+    del i, name
     if len(locals()):
         print('LOCALS: ' + ', '.join(locals().keys()))
 
@@ -130,7 +131,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, r, response, patch, name
     global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
     global channel, val, idx, qname, qvalue, key
 

@@ -27,7 +27,6 @@ import redis
 import sys
 import time
 import threading
-from numpy import random
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -81,7 +80,7 @@ def trigger(skip=False):
     # it should have at least some miminum time
     maxtime = max(maxtime, patch.getfloat('general', 'delay'))
     # compute a random duration which is uniform between mintime and maxtime
-    duration = mintime + float(random.rand(1)) * (maxtime - mintime)
+    duration = mintime + float(np.random.rand(1)) * (maxtime - mintime)
     # schedule the next trigger
     monitor.debug('scheduling next trigger after %g seconds' % (duration))
     t = threading.Timer(duration, trigger)
