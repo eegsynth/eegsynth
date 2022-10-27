@@ -10,6 +10,8 @@ If you encounter Bluetooth connection problems on macOS, such as the LED keeps g
 
     sudo pkill bluetoothd
 
+This module stream 16 channels in total: EEG 1 to 8, Accelerometer X, Y, Z, Gyroscope X, Y, Z, Battery Level and Counter. Please note that the Unicorn Recorder and UnicornLSL application which are part of the Windows suite have a 17th channel with a Validation Indicator.
+
 
 ## Alternatives
 
