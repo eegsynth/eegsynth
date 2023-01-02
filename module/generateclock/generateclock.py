@@ -24,7 +24,6 @@ import mido
 from fuzzywuzzy import process
 import numpy as np
 import os
-import redis
 import sys
 import threading
 import time
@@ -162,7 +161,7 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -171,14 +170,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -189,7 +182,7 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
 
     # this can be used to show parameters that have changed
@@ -242,7 +235,7 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
     global monitor, stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
     global start, redis_play, midi_play, midi_start, rate, shift, ppqn, elapsed, naptime
 

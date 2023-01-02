@@ -22,7 +22,6 @@
 import configparser
 import argparse
 import os
-import redis
 import sys
 import time
 
@@ -53,7 +52,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -62,14 +61,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -80,7 +73,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, debug, address, artnet, dmxsize, dmxframe, prevtime
 
     # this can be used to show parameters that have changed
@@ -123,7 +116,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
     global monitor, debug, address, artnet, dmxsize, dmxframe, prevtime
     global update, chanindx, chanstr, chanval, scale, offset
 

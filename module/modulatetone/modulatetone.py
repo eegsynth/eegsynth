@@ -23,7 +23,6 @@ import configparser
 import argparse
 import numpy as np
 import os
-import redis
 import sys
 import time
 import signal
@@ -65,7 +64,7 @@ class TriggerThread(threading.Thread):
 
     def run(self):
         global modulation, frequencies, control, channame, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         # this message unblocks the Redis listen command
         pubsub.subscribe('MODULATETONE_UNBLOCK')
         # this message triggers the event
@@ -128,7 +127,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug
+    global parser, args, config, patch, monitor, debug
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'),
@@ -138,15 +137,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint(
-            'redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -163,7 +155,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug
+    global parser, args, config, patch, monitor, debug
     global device, mode, rate, modulation, offset, control, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency, nchans, channame, ntones, frequencies, lock, stream, trigger, thread, p
 
     # get the options from the configuration file
@@ -276,7 +268,7 @@ def _stop(*args):
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('MODULATETONE_UNBLOCK', 1)
+    patch.publish('MODULATETONE_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     stream.stop_stream()

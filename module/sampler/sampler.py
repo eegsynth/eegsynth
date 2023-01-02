@@ -25,7 +25,6 @@ import numpy as np
 import scipy.io
 from scipy.io import wavfile
 import os
-import redis
 import sys
 import time
 import pyaudio
@@ -94,7 +93,7 @@ class TriggerThread(threading.Thread):
 
     def run(self):
         global r, monitor, patch, stack, current_channel, current_value
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('SAMPLER_UNBLOCK')  # this message unblocks the Redis listen command
         pubsub.subscribe(self.redischannel)  # this message triggers the event
         while self.running:
@@ -201,7 +200,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -210,14 +209,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -228,7 +221,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, debug, device, scaling_method, scaling, speed, onset, offset, taper, scale_scaling, scale_speed, scale_onset, scale_offset, scale_taper, offset_scaling, offset_speed, offset_onset, offset_offset, offset_taper, started, finished, p, info, i, devinfo, lock, input_channel, input_sample, rate, dat, channels, stack, current_channel, current_value, trigger, channel, sample, thread, stream
 
     # this can be used to show parameters that have changed
@@ -344,7 +337,7 @@ def _stop(*args):
     monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
-    r.publish('SAMPLER_UNBLOCK', 1)
+    patch.publish('SAMPLER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()

@@ -22,7 +22,6 @@
 import configparser
 import argparse
 import os
-import redis
 import string
 import sys
 import time
@@ -54,7 +53,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, context, socket, patch
+    global parser, args, config, patch, context, socket, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -66,11 +65,8 @@ def _setup():
     if not 'general' in config:
         raise RuntimeError("cannot read configuration from " + args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     try:
         context = zmq.Context()
@@ -78,9 +74,6 @@ def _setup():
         socket.connect("tcp://%s:%i" % (config.get('zeromq', 'hostname'), config.getint('zeromq', 'port')))
     except:
         raise RuntimeError("cannot connect to ZeroMQ")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -91,7 +84,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, context, socket, patch
+    global parser, args, config, patch, context, socket, patch
     global monitor, debug, prefix, output_scale, output_offset, input_channels
 
     # this can be used to show parameters that have changed
@@ -126,7 +119,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, context, socket, patch
+    global parser, args, config, patch, context, socket, patch
     global monitor, debug, prefix, output_scale, output_offset, input_channels
     global start
 

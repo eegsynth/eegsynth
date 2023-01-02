@@ -20,7 +20,6 @@
 import configparser
 import argparse
 import os
-import redis
 import sys
 import time
 import numpy as np
@@ -65,17 +64,9 @@ class BreathingBiofeedback:
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
         config.read(args.inifile)
 
-        # Redis.
-        try:
-            rds = redis.StrictRedis(host=config.get('redis', 'hostname'),
-                                    port=config.getint('redis', 'port'),
-                                    db=0, charset='utf-8',
-                                    decode_responses=True)
-        except redis.ConnectionError as e:
-            raise RuntimeError(e)
-
-        self.patch = EEGsynth.patch(config, rds)    # combine patching from configuration file and Redis.
-
+        # configure and start the patch
+        self.patch = EEGsynth.patch(config)
+        
         # Monitor.
         self.monitor = EEGsynth.monitor(name=name,
                                         debug=self.patch.getint('general', 'debug'))

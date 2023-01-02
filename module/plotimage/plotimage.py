@@ -22,7 +22,6 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
 import configparser
-import redis
 import argparse
 import os
 import sys
@@ -66,7 +65,7 @@ class TriggerThread(threading.Thread):
 
     def run(self):
         global r, patch, lock, monitor
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('PLOTIMAGE_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)  # this message contains the trigger
         while self.running:
@@ -108,7 +107,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -117,14 +116,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -135,7 +128,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, delay, winx, winy, winwidth, winheight, input_channel, input_image, app, window, triggers, timer
 
     # this can be used to show parameters that have changed
@@ -198,7 +191,7 @@ def _stop(*args):
     monitor.success('Closing threads')
     for thread in triggers:
         thread.stop()
-    r.publish('PLOTIMAGE_UNBLOCK', 1)
+    patch.publish('PLOTIMAGE_UNBLOCK', 1)
     for thread in triggers:
         thread.join()
     QApplication.quit()

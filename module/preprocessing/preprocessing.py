@@ -21,7 +21,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import configparser
-import redis
 import argparse
 import os
 import sys
@@ -56,7 +55,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -65,14 +64,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -102,7 +95,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
+    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
     global timeout, hdr_input, start, window, downsample, differentiate, integrate, rectify, smoothing, reference, default_scale, scale_lowpass, scale_highpass, scale_notchfilter, offset_lowpass, offset_highpass, offset_notchfilter, scale_filterorder, scale_notchquality, offset_filterorder, offset_notchquality, previous, differentiate_zi, integrate_zi, begsample, endsample
     global montage_in, montage_out
 
@@ -194,7 +187,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, window, downsample, differentiate, integrate, rectify, smoothing, reference, default_scale, scale_lowpass, scale_highpass, scale_notchfilter, offset_lowpass, offset_highpass, offset_notchfilter, scale_filterorder, scale_notchquality, offset_filterorder, offset_notchquality, previous, differentiate_zi, integrate_zi, begsample, endsample
     global dat_input, dat_output, highpassfilter, lowpassfilter, filterorder, change, b, a, zi, notchfilter, notchquality, nb, na, nzi, window_new, t
     global montage_in, montage_out

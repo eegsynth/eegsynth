@@ -21,7 +21,6 @@
 import configparser
 import argparse
 import os
-import redis
 import sys
 import asyncio
 from bleak import BleakClient, discover
@@ -62,17 +61,8 @@ class PolarClient:
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
         config.read(args.inifile)
 
-        # Redis.
-        try:
-            rds = redis.StrictRedis(host=config.get('redis', 'hostname'),
-                                    port=config.getint('redis', 'port'),
-                                    db=0, charset='utf-8',
-                                    decode_responses=True)
-        except redis.ConnectionError as e:
-            raise RuntimeError(e)
-
-        # Combine the patching from the configuration file and Redis.
-        self.patch = EEGsynth.patch(config, rds)
+        # configure and start the patch
+        patch = EEGsynth.patch(config)
         
         # BLE client.
         self.loop = asyncio.get_event_loop()

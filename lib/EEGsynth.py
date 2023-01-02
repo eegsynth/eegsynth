@@ -9,6 +9,9 @@ from scipy.signal import firwin, butter, bessel, lfilter, lfiltic, iirnotch
 import logging
 from logging import Formatter
 import colorama
+import random
+import redis
+import string
 import termcolor
 from termcolor import colored
 
@@ -43,6 +46,10 @@ def trimquotes(option):
     if option[-1]=='\'':
         option = option[0:-1]
     return option
+
+###################################################################################################
+def uuid(length):
+    return ''.join(random.choice(string.hexdigits) for i in range(length))
 
 ###################################################################################################
 class ColoredFormatter(Formatter):
@@ -230,6 +237,7 @@ Press Ctrl-C to stop this module.
         else:
             self.logger.log(logging.TRACE, " ".join(map(format, args)))
 
+
 ###################################################################################################
 class patch():
     """Class to provide a generalized interface for patching modules using
@@ -247,9 +255,47 @@ class patch():
       item=0,key2       get the value of key2 from Redis
     """
 
-    def __init__(self, c, r):
-        self.config = c
-        self.redis  = r
+    def __init__(self, config):
+        try:
+            r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
+            response = r.client_list()
+        except redis.ConnectionError:
+            raise RuntimeError("cannot connect to Redis server")
+        # store the configuration object (which maps the ini file) and the redis connection
+        self.config = config
+        self.redis = r
+
+    ####################################################################
+    def pubsub(self):
+        return self.redis.pubsub()
+
+    ####################################################################
+    def publish(self, channel, value):
+        return self.redis.publish(channel, value)
+
+    ####################################################################
+    def getfloat(channel, default=None):
+        # get it directly from Redis
+        val = self.redis.get(channel)
+        if val==None and default!=None:
+            val = default
+        return float(val)
+
+    ####################################################################
+    def getint(channel, default=None):
+        # get it directly from Redis
+        val = self.redis.get(channel)
+        if val==None and default!=None:
+            val = default
+        return int(round(float(val)))
+
+    ####################################################################
+    def getstring(channel, default=None):
+        # get it directly from Redis
+        val = self.redis.get(channel)
+        if val==None and default!=None:
+            val = default
+        return val
 
     ####################################################################
     def getfloat(self, section, item, multiple=False, default=None):

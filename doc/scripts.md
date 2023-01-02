@@ -56,7 +56,6 @@ import configparser
 import argparse
 import numpy as np
 import os
-import redis
 import sys
 import time
 from scipy import signal
@@ -100,18 +99,12 @@ args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.inifile)
 
-try:
-    r = redis.StrictRedis(host=config.get('redis','hostname'), port=config.getint('redis','port'), db=0)
-    response = r.client_list()
-except redis.ConnectionError:
-    raise RuntimeError("'cannot connect to Redis server")
-
-# combine the patching from the configuration file and Redis
-patch = EEGsynth.patch(config, r)
+# configure the connections and start the patch, this also starts Redis
+patch = EEGsynth.patch(config)
 del config
 
 # this determines how much debugging information gets printed
-debug = patch.getint('general','debug')
+debug = patch.getint('general', 'debug')
 
 # the scale and offset are used to map Redis values to signal parameters
 scale_frequency   = patch.getfloat('scale', 'frequency', default=1)
@@ -138,7 +131,7 @@ MIDI devices can be accessed in de code using the EEGsynth library:
 ```
 mididevice = patch.getstring('midi', 'device')
 try:
-    outputport  = mido.open_output(mididevice)
+    outputport = mido.open_output(mididevice)
     if debug>0:
         print("Connected to MIDI output")
 except:
@@ -335,7 +328,6 @@ Followed by the main loop, and a neat closing of thread when it's interrupted:
 
 ```
 while True:
-
     <MAIN LOOP>
 
 except (KeyboardInterrupt, RuntimeError) as e:

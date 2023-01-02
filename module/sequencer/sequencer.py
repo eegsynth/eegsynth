@@ -24,7 +24,6 @@ import argparse
 import math
 import numpy as np
 import os
-import redis
 import sys
 import threading
 import time
@@ -81,7 +80,7 @@ class SequenceThread(threading.Thread):
 
     def run(self):
         global r, monitor, patch
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('SEQUENCER_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)    # this message contains the note
         while self.running:
@@ -102,12 +101,7 @@ class SequenceThread(threading.Thread):
                             val = float(val)
                         except:
                             # get the value from Redis
-                            val = r.get(val)
-                            if val == None:
-                                val = 0.
-                            else:
-                                # convert the string from Redis to floating point
-                                val = float(val)
+                            val = patch.getfloat(val, default=0.)
 
                         # apply the scaling, offset and transpose the note
                         val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
@@ -127,7 +121,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -136,15 +130,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
-
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -155,7 +142,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
 
     # this can be used to show parameters that have changed
@@ -204,7 +191,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
     global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
     global active, sequence, transpose, duration, elapsed, naptime
 
@@ -272,7 +259,7 @@ def _stop(*args):
         pass
     monitor.success('Closing threads')
     sequencethread.stop()
-    r.publish('SEQUENCER_UNBLOCK', 1)
+    patch.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()
     sys.exit()
 

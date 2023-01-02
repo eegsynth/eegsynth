@@ -22,7 +22,6 @@
 import configparser
 import argparse
 import os
-import redis
 import sys
 import threading
 import time
@@ -76,7 +75,7 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         # this message unblocks the Redis listen command
         pubsub.subscribe('OUTPUTCVGATE_UNBLOCK')
         # this message triggers the event
@@ -123,7 +122,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -132,13 +131,8 @@ def _setup():
     config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -149,7 +143,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
 
     # this can be used to show parameters that have changed
@@ -202,7 +196,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
     global monitor, duration_scale, duration_offset, serialdevice, s, lock, trigger, chanindx, chanstr, redischannel, thread
 
     # loop over the control voltages
@@ -267,7 +261,7 @@ def _stop():
     monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
-    r.publish('OUTPUTCVGATE_UNBLOCK', 1)
+    patch.publish('OUTPUTCVGATE_UNBLOCK', 1)
     for thread in trigger:
             thread.join()
     sys.exit()

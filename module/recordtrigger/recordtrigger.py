@@ -23,7 +23,6 @@ import configparser
 import argparse
 import datetime
 import os
-import redis
 import sys
 import time
 import threading
@@ -62,7 +61,7 @@ class TriggerThread(threading.Thread):
 
     def run(self):
         global r, monitor, lock
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('RECORDTRIGGER_UNBLOCK')  # this message unblocks the Redis listen command
         pubsub.subscribe(self.redischannel)        # this message triggers the event
         while self.running:
@@ -92,7 +91,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -102,14 +101,8 @@ def _setup():
     config.optionxform = str
     config.read(args.inifile)
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # configure and start the patch
+    patch = EEGsynth.patch(config)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -120,7 +113,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch, name
     global monitor, debug, delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
 
     # this can be used to show parameters that have changed
@@ -162,7 +155,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global parser, args, config, patch
     global monitor, debug, delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
     global fname, ext
 
@@ -213,7 +206,7 @@ def _stop(*args):
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('RECORDTRIGGER_UNBLOCK', 1)
+    patch.publish('RECORDTRIGGER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()
