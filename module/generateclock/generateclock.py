@@ -265,7 +265,7 @@ def _loop_once():
         mididevice = EEGsynth.trimquotes(mididevice)
         mididevice = process.extractOne(mididevice, mido.get_output_names())[0]  # select the closest match
         try:
-            outputport = mido.open_output(mididevice)
+            midiport = mido.open_output(mididevice)
             monitor.success('Connected to MIDI output')
         except:
             raise RuntimeError("cannot connect to MIDI output")
@@ -320,10 +320,6 @@ def _loop_once():
     clockthread.setRate(rate)
     redisthread.setShift(shift)
     redisthread.setPpqn(ppqn)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print("LOCALS: " + ", ".join(locals().keys()))
 
 
 def _loop_forever():
