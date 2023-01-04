@@ -154,7 +154,7 @@ def _start():
     for name, code in zip(note_name, note_code):
         if config.has_option('note', name):
             # start the background thread that deals with this note
-            this = TriggerThread(patch.getstring('note', name), code)
+            this = TriggerThread(patch.get('note', name), code)
             trigger.append(this)
             monitor.debug(name + ' trigger configured')
 

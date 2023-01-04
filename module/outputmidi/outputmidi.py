@@ -269,7 +269,7 @@ def _start():
     for name, code in zip(trigger_name, trigger_code):
         if config.has_option('trigger', name):
             # start the background thread that deals with this note
-            this = TriggerThread(patch.getstring('trigger', name), name, code)
+            this = TriggerThread(patch.get('trigger', name), name, code)
             trigger.append(this)
             monitor.debug(name + ' trigger configured')
 

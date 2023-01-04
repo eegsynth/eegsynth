@@ -131,13 +131,13 @@ def _start():
 
         win.nextRow()
 
-        signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGINT, _stop)
 
-        # Set timer for update
-        timer = QtCore.QTimer()
-        timer.timeout.connect(_loop_once)
-        timer.setInterval(10)            # timeout in milliseconds
-        timer.start(int(delay * 1000))   # in milliseconds
+    # Set timer for update
+    timer = QtCore.QTimer()
+    timer.timeout.connect(_loop_once)
+    timer.setInterval(10)            # timeout in milliseconds
+    timer.start(int(delay * 1000))   # in milliseconds
 
 
 def _loop_once():

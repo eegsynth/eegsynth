@@ -143,7 +143,7 @@ def _start():
         if config.has_option('gate', name):
 
             # start the background thread that deals with this channel
-            this = TriggerThread(patch.getstring('gate', name), channel)
+            this = TriggerThread(patch.get('gate', name), channel)
             trigger.append(this)
             monitor.debug(name + ' trigger configured')
 

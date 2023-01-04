@@ -1,3 +1,20 @@
+# This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
+#
+# Copyright (C) 2023 EEGsynth project
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from __future__ import print_function
 
 import sys
@@ -142,7 +159,7 @@ class monitor():
 ##############################################################################
 # %s is part of EEGsynth, see <http://www.eegsynth.org>.
 #
-# Copyright (C) 2017-2022 EEGsynth project
+# Copyright (C) 2017-2023 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -249,10 +266,23 @@ class patch():
     or if multiple is True
       item=1-20         this returns [1,20]
       item=1,2,3        this returns [1,2,3]
-      item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,4,5,6,7,8,9]
+      item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,5,6,7,8,9]
       item=key1,key2    get the value of key1 and key2 from Redis
       item=key1,5       get the value of key1 from Redis
       item=0,key2       get the value of key2 from Redis
+      
+    The following methods get the values (as a string) from the ini file
+      patch.get(section, item, default=None)
+
+    The following methods get the values from Redis
+      patch.getfloat(channel, default=None)
+      patch.getint(channel, default=None)
+      patch.getstring(channel, default=None)
+
+    The following methods get the values either from the ini file or Redis
+      patch.getfloat(section, item, multiple=False, default=None)
+      patch.getint(section, item, multiple=False, default=None)
+      patch.getstring(section, item, multiple=False, default=None)
     """
 
     def __init__(self, config):
@@ -274,7 +304,14 @@ class patch():
         return self.redis.publish(channel, value)
 
     ####################################################################
-    def getfloat(channel, default=None):
+    def get(self, section, item, default=None):
+        if self.config.has_option(section, item):
+            return self.config.get(section, item)
+        else:
+            return default
+
+    ####################################################################
+    def getfloat(self, channel, default=None):
         # get it directly from Redis
         val = self.redis.get(channel)
         if val==None and default!=None:
@@ -282,7 +319,7 @@ class patch():
         return float(val)
 
     ####################################################################
-    def getint(channel, default=None):
+    def getint(self, channel, default=None):
         # get it directly from Redis
         val = self.redis.get(channel)
         if val==None and default!=None:
@@ -290,7 +327,7 @@ class patch():
         return int(round(float(val)))
 
     ####################################################################
-    def getstring(channel, default=None):
+    def getstring(self, channel, default=None):
         # get it directly from Redis
         val = self.redis.get(channel)
         if val==None and default!=None:
