@@ -21,7 +21,6 @@
 
 from __future__ import print_function
 
-import configparser
 import argparse
 import numpy as np
 import os

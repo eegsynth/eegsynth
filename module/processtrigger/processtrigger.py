@@ -21,7 +21,6 @@
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod
 from numpy import random
-import configparser
 import argparse
 import numpy as np
 import os

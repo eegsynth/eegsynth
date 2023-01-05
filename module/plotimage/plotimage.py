@@ -21,7 +21,6 @@
 
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
-import configparser
 import argparse
 import os
 import sys
