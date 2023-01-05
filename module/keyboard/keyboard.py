@@ -142,13 +142,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -226,7 +222,7 @@ def _start():
     # the keyboard notes can be linked to separate triggers, where the trigger value corresponds to the velocity
     trigger = []
     for name, code in zip(note_name, note_code):
-        if config.has_option('input', name):
+        if patch.config.has_option('input', name):
             # start the background thread that deals with this note
             onset = patch.getstring('input', name)
             velocity = None  # use the value of the onset trigger

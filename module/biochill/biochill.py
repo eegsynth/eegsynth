@@ -56,20 +56,13 @@ class BreathingBiofeedback:
 
         # Configuration.
         parser = argparse.ArgumentParser()
-        parser.add_argument("-i", "--inifile",
-                            default=os.path.join(path, name + '.ini'),
-                            help="name of the configuration file")
-        args = parser.parse_args()
+        parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 
-        config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-        config.read(args.inifile)
-
-        # configure and start the patch
-        self.patch = EEGsynth.patch(config)
+        # configure and start the patch, this will parse the command-line arguments and the ini file
+        self.patch = EEGsynth.patch(parser)
         
         # Monitor.
-        self.monitor = EEGsynth.monitor(name=name,
-                                        debug=self.patch.getint('general', 'debug'))
+        self.monitor = EEGsynth.monitor(name=name, debug=self.patch.getint('general', 'debug'))
 
         # FieldTrip.
         try:

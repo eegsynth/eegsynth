@@ -62,13 +62,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -96,8 +92,8 @@ def _start():
     output_offset = patch.getfloat('output', 'offset', default=0)
 
     # get the input and output options
-    input_channel, input_name = list(map(list, list(zip(*config.items('input')))))
-    output_name, output_value = list(map(list, list(zip(*config.items('quantization')))))
+    input_channel, input_name = list(map(list, list(zip(*patch.config.items('input')))))
+    output_name, output_value = list(map(list, list(zip(*patch.config.items('quantization')))))
 
     # remove the scale and offset from the input list
     del input_channel[input_channel.index('scale')]

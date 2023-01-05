@@ -153,13 +153,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -181,29 +177,29 @@ def _start():
 
     if 'initial' in config.sections():
         # assign the initial values
-        for item in config.items('initial'):
+        for item in patch.config.items('initial'):
             val = patch.getfloat('initial', item[0])
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)
 
     # get the input variables
-    if len(config.items('input')):
-        input_name, input_variable = list(zip(*config.items('input')))
+    if len(patch.config.items('input')):
+        input_name, input_variable = list(zip(*patch.config.items('input')))
     else:
         input_name, input_variable = ([], [])
 
     # get the output equations for each trigger
     output_name = {}
     output_equation = {}
-    for item in config.items('trigger'):
-        output_name[item[0]], output_equation[item[0]] = list(zip(*config.items(item[0])))
+    for item in patch.config.items('trigger'):
+        output_name[item[0]], output_equation[item[0]] = list(zip(*patch.config.items(item[0])))
         # make the equations robust against sub-string replacements
         output_equation[item[0]] = [sanitize(equation) for equation in output_equation[item[0]]]
 
     monitor.info('===== input variables =====')
     for name, variable in zip(input_name, input_variable):
         monitor.info(name + ' = ' + variable)
-    for item in config.items('trigger'):
+    for item in patch.config.items('trigger'):
         monitor.info('===== output equations for %s =====' % item[0])
         for name, equation in zip(output_name[item[0]], output_equation[item[0]]):
             monitor.info(name + ' = ' + equation)
@@ -215,7 +211,7 @@ def _start():
     # create the background threads that deal with the triggers
     trigger = []
     monitor.debug("Setting up threads for each trigger")
-    for item in config.items('trigger'):
+    for item in patch.config.items('trigger'):
         trigger.append(TriggerThread(item[1], item[0]))
         monitor.debug(item[0] + " " + item[1] + " OK")
 

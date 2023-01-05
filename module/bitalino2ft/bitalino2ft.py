@@ -58,19 +58,10 @@ def _setup():
     global parser, args, config, patch
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i",
-        "--inifile",
-        default=os.path.join(path, name + ".ini"),
-        help="name of the configuration file",
-    )
-    args = parser.parse_args()
+    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
 
-    config = configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):

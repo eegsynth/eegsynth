@@ -95,14 +95,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.optionxform = str
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser, preservecase=True)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -138,7 +133,7 @@ def _start():
     # create the background threads that deal with the triggers
     trigger = []
     monitor.info("Setting up threads for each trigger")
-    for item in config.items('trigger'):
+    for item in patch.config.items('trigger'):
         trigger.append(TriggerThread(item[0]))
         monitor.debug(item[0] + ' = OK')
 

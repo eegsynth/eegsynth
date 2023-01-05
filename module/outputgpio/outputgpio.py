@@ -108,13 +108,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -168,7 +164,7 @@ def _start():
 
     # set up PWM for the control channels
     previous_val = {}
-    for gpio, channel in config.items('control'):
+    for gpio, channel in patch.config.items('control'):
         monitor.info("control " + channel + " " + gpio)
         wiringpi.softPwmCreate(pin[gpio], 0, 100)
         # control values are only relevant when different from the previous value
@@ -176,7 +172,7 @@ def _start():
 
     # create the threads that deal with the triggers
     trigger = []
-    for gpio, channel in config.items('trigger'):
+    for gpio, channel in patch.config.items('trigger'):
         wiringpi.pinMode(pin[gpio], 1)
         duration = patch.getstring('duration', gpio)
         trigger.append(TriggerThread(channel, gpio, duration))
@@ -197,7 +193,7 @@ def _loop_once():
     '''
     global parser, args, config, patch
 
-    for gpio, channel in config.items('control'):
+    for gpio, channel in patch.config.items('control'):
         val = patch.getfloat('control', gpio)
 
         if val == None:

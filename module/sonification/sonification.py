@@ -57,13 +57,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -136,8 +132,8 @@ def _start():
     offset_scaling = patch.getfloat('offset', 'scaling', default=0)
 
     try:
-        float(config.get('processing', 'highpassfilter'))
-        float(config.get('processing', 'lowpassfilter'))
+        float(patch.config.get('processing', 'highpassfilter'))
+        float(patch.config.get('processing', 'lowpassfilter'))
         # the filter frequencies are specified as numbers
         default_scale = 1.
     except:

@@ -85,13 +85,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -110,18 +106,18 @@ def _start():
 
     if 'initial' in config.sections():
         # assign the initial values
-        for item in config.items('initial'):
+        for item in patch.config.items('initial'):
             val = patch.getfloat('initial', item[0])
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)
 
     # get the input and output options
-    if len(config.items('input')):
-        input_name, input_variable = list(zip(*config.items('input')))
+    if len(patch.config.items('input')):
+        input_name, input_variable = list(zip(*patch.config.items('input')))
     else:
         input_name, input_variable = ([], [])
-    if len(config.items('output')):
-        output_name, output_equation = list(zip(*config.items('output')))
+    if len(patch.config.items('output')):
+        output_name, output_equation = list(zip(*patch.config.items('output')))
     else:
         output_name, output_equation = ([], [])
 

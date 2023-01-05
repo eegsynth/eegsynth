@@ -64,13 +64,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -123,8 +119,8 @@ def _start():
     monitor.debug(hdr_input.labels)
 
     # get the input and output options
-    input_number, input_channel = list(map(list, list(zip(*config.items('input_channel')))))
-    output_number, output_channel = list(map(list, list(zip(*config.items('output_channel')))))
+    input_number, input_channel = list(map(list, list(zip(*patch.config.items('input_channel')))))
+    output_number, output_channel = list(map(list, list(zip(*patch.config.items('output_channel')))))
 
     # convert to integer and make the indices zero-offset
     input_number = [int(number)-1 for number in input_number]

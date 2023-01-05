@@ -88,17 +88,13 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     try:
         client = mqtt.Client()
-        client.connect(config.get('mqtt', 'hostname'), config.getint('mqtt', 'port'), config.getint('mqtt', 'timeout'))
+        client.connect(patch.get('mqtt', 'hostname'), patch.getint('mqtt', 'port'), patch.getint('mqtt', 'timeout'))
     except:
         raise RuntimeError("cannot connect to MQTT broker")
 

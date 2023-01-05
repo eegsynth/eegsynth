@@ -52,7 +52,6 @@ Each script is prefaced with a commented text explaining it's functionality, as 
 The EEGsynth uses standard Python libraries as well as it's own, located in the `eegsynth/lib` directory:
 
 ```
-import configparser
 import argparse
 import numpy as np
 import os
@@ -94,14 +93,9 @@ done using the _patch object_:
 ```
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
-args = parser.parse_args()
 
-config = configparser.ConfigParser()
-config.read(args.inifile)
-
-# configure the connections and start the patch, this also starts Redis
-patch = EEGsynth.patch(config)
-del config
+# configure and start the patch, this will parse the command-line arguments and the ini file
+patch = EEGsynth.patch(parser)
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')

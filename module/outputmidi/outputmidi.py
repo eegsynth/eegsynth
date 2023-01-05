@@ -188,13 +188,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -267,7 +263,7 @@ def _start():
     # each of the Redis messages is mapped onto a different MIDI message
     trigger = []
     for name, code in zip(trigger_name, trigger_code):
-        if config.has_option('trigger', name):
+        if patch.config.has_option('trigger', name):
             # start the background thread that deals with this note
             this = TriggerThread(patch.get('trigger', name), name, code)
             trigger.append(this)

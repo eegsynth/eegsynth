@@ -59,13 +59,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -148,7 +144,7 @@ def _loop_once():
         sample = 0
 
         # search-and-replace to reduce the length of the channel labels
-        for replace in config.items('replace'):
+        for replace in patch.config.items('replace'):
             monitor.debug(replace)
             for i in range(len(channelz)):
                 channelz[i] = channelz[i].replace(replace[0], replace[1])

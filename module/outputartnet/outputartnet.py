@@ -56,13 +56,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -88,7 +84,7 @@ def _start():
 
     # determine the size of the universe
     dmxsize = 0
-    chanlist, chanvals = list(map(list, list(zip(*config.items('input')))))
+    chanlist, chanvals = list(map(list, list(zip(*patch.config.items('input')))))
     for chanindx in range(0, 512):
         chanstr = "channel%03d" % (chanindx + 1)
         if chanstr in chanlist:

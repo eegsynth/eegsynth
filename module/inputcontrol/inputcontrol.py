@@ -181,31 +181,31 @@ class Window(QWidget):
         # the section 'slider' is treated as the first row
         # this is only for backward compatibility
         section = 'slider'
-        if config.has_section(section):
+        if patch.config.has_section(section):
             sectionlayout = QtWidgets.QHBoxLayout()
-            self.drawpanel(sectionlayout, config.items(section))
+            self.drawpanel(sectionlayout, patch.config.items(section))
             leftlayout.addLayout(sectionlayout)
 
         for row in range(0, 16):
             section = 'row%d' % (row + 1)
-            if config.has_section(section):
+            if patch.config.has_section(section):
                 sectionlayout = QtWidgets.QHBoxLayout()
-                self.drawpanel(sectionlayout, config.items(section))
+                self.drawpanel(sectionlayout, patch.config.items(section))
                 leftlayout.addLayout(sectionlayout)
 
         # the section 'button' is treated as the first column
         # this is only for backward compatibility
         section = 'button'
-        if config.has_section(section):
+        if patch.config.has_section(section):
             sectionlayout = QtWidgets.QVBoxLayout()
-            self.drawpanel(sectionlayout, config.items(section))
+            self.drawpanel(sectionlayout, patch.config.items(section))
             rightlayout.addLayout(sectionlayout)
 
         for column in range(0, 16):
             section = 'column%d' % (column + 1)
-            if config.has_section(section):
+            if patch.config.has_section(section):
                 sectionlayout = QtWidgets.QVBoxLayout()
-                self.drawpanel(sectionlayout, config.items(section))
+                self.drawpanel(sectionlayout, patch.config.items(section))
                 rightlayout.addLayout(sectionlayout)
 
     def changecolor(self):
@@ -313,13 +313,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -348,9 +344,9 @@ def _start():
     output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # internal values are from 0 to 127
     output_offset = patch.getfloat('output', 'offset', default=0.)    # internal values are from 0 to 127
 
-    if 'initial' in config.sections():
+    if 'initial' in patch.config.sections():
         # assign the initial values
-        for item in config.items('initial'):
+        for item in patch.config.items('initial'):
             val = patch.getfloat('initial', item[0])
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)

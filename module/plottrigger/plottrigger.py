@@ -85,13 +85,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -103,7 +99,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global parser, args, config, patch, name
-    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
+    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, timer, plot
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -126,14 +122,14 @@ def _start():
 
     trigger = []
     number = []
-    # each of the gates that can be triggered is mapped onto a different message
+    # each of the gates is mapped onto a different message
     for i in range(1, 17):
         name = 'channel{}'.format(i)
-        if config.has_option('gate', name):
+        if patch.config.has_option('gate', name):
             number.append(i)
             data[i] = []
             # start the background thread that deals with this channel
-            this = TriggerThread(patch.getstring('gate', name), i)
+            this = TriggerThread(patch.get('gate', name), i)
             trigger.append(this)
             monitor.info(name + ' trigger configured')
     if len(trigger)==0:
@@ -158,9 +154,13 @@ def _start():
     plot.setXRange(-window, 0)
     plot.setYRange(0.5, len(trigger)+0.5)
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
+    signal.signal(signal.SIGINT, _stop)
+
+    # Set timer for update
+    timer = QtCore.QTimer()
+    timer.timeout.connect(_loop_once)
+    timer.setInterval(10)                     # timeout in milliseconds
+    timer.start(int(round(delay * 1000)))     # in milliseconds
 
 
 def _loop_once():
@@ -168,7 +168,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global parser, args, config, patch
-    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
+    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, timer, plot
 
     monitor.loop()
 
@@ -201,18 +201,6 @@ def _loop_once():
                 text = pg.TextItem(s, anchor=(0,0))
                 text.setPos(x, y)
                 plot.addItem(text)
-
-    signal.signal(signal.SIGINT, _stop)
-
-    # Set timer for update
-    timer = QtCore.QTimer()
-    timer.timeout.connect(_loop_once)
-    timer.setInterval(10)                     # timeout in milliseconds
-    timer.start(int(round(delay * 1000)))     # in milliseconds
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

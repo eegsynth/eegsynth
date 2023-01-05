@@ -110,13 +110,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -147,8 +143,8 @@ def _start():
         raise RuntimeError("Cannot connect to OSC server")
 
     # keys should be present in both the input and output section of the *.ini file
-    list_input  = config.items('input')
-    list_output = config.items('output')
+    list_input  = patch.config.items('input')
+    list_output = patch.config.items('output')
 
     list1 = [] # the key name that matches in the input and output section of the *.ini file
     list2 = [] # the key name in Redis

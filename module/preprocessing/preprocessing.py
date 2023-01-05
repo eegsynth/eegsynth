@@ -59,13 +59,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -128,7 +124,7 @@ def _start():
     reference       = patch.getstring('processing', 'reference')
 
     if reference == 'montage':
-        montage_out, montage_in = list(map(list, list(zip(*config.items('montage')))))
+        montage_out, montage_in = list(map(list, list(zip(*patch.config.items('montage')))))
         nChannels_out = len(montage_out)
         # construct the montage matrix once to give feedback, it will later be recomputed on the fly
         for i, name in enumerate(montage_out):
@@ -139,9 +135,9 @@ def _start():
         nChannels_out = hdr_input.nChannels
 
     try:
-        float(config.get('processing', 'highpassfilter'))
-        float(config.get('processing', 'lowpassfilter'))
-        float(config.get('processing', 'notchfilter'))
+        float(patch.config.get('processing', 'highpassfilter'))
+        float(patch.config.get('processing', 'lowpassfilter'))
+        float(patch.config.get('processing', 'notchfilter'))
         # the filter frequencies are specified as numbers, assume they are in Hz
         default_scale = 1.
     except:

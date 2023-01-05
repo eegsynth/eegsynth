@@ -95,13 +95,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -133,7 +129,7 @@ def _start():
     # create the background threads that deal with the triggers
     trigger = []
     monitor.info("Setting up threads for each trigger")
-    for item in config.items('trigger'):
+    for item in patch.config.items('trigger'):
         trigger.append(TriggerThread(item[1], item[0]))
         monitor.debug(str(item[0]) + " " + str(item[1]) + " OK")
 
@@ -145,7 +141,7 @@ def _start():
         thread.start()
 
     previous_val = {}
-    for item in config.items('control'):
+    for item in patch.config.items('control'):
         key = item[0]
         previous_val[key] = None
 
@@ -164,7 +160,7 @@ def _loop_once():
     global val, marker
 
     # loop over the control values
-    for item in config.items('control'):
+    for item in patch.config.items('control'):
         key = item[0]
 
         val = patch.getfloat('control', key)

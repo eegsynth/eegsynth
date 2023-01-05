@@ -204,13 +204,9 @@ def _setup():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    # configure and start the patch
-    patch = EEGsynth.patch(config)
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(parser)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -269,7 +265,7 @@ def _start():
     # this is to prevent concurrency problems
     lock = threading.Lock()
 
-    input_channel, input_sample = list(zip(*config.items('input')))
+    input_channel, input_sample = list(zip(*patch.config.items('input')))
     input_sample = [x.split(',') for x in input_sample]
 
     # open first file to determine the format
