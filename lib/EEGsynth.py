@@ -377,30 +377,6 @@ class patch():
         return self.redis.publish(channel, value)
 
     ####################################################################
-    def redis_getfloat(self, channel, default=None):
-        # get it directly from Redis
-        val = self.redis.get(channel)
-        if val==None and default!=None:
-            val = default
-        return float(val)
-
-    ####################################################################
-    def redis_getint(self, channel, default=None):
-        # get it directly from Redis
-        val = self.redis.get(channel)
-        if val==None and default!=None:
-            val = default
-        return int(round(float(val)))
-
-    ####################################################################
-    def redis_getstring(self, channel, default=None):
-        # get it directly from Redis
-        val = self.redis.get(channel)
-        if val==None and default!=None:
-            val = default
-        return val
-
-    ####################################################################
     def get(self, section, item, default=None):
         if section + "_" + item in self.args:
             return self.args[section + "_" + item]
