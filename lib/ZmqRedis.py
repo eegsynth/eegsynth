@@ -29,7 +29,7 @@ class server():
         self.command = command
         self.publish = publish
         self.store = {}
-        self.debug = 1
+        self.debug = 0
 
     def start(self):
         while True:
