@@ -103,7 +103,7 @@ def _start():
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
-    if 'initial' in config.sections():
+    if 'initial' in patch.config.sections():
         # assign the initial values
         for item in patch.config.items('initial'):
             val = patch.getfloat('initial', item[0])

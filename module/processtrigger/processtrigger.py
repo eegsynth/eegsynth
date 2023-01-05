@@ -174,7 +174,7 @@ def _start():
     # get the options from the configuration file
     prefix = patch.getstring('output', 'prefix')
 
-    if 'initial' in config.sections():
+    if 'initial' in patch.config.sections():
         # assign the initial values
         for item in patch.config.items('initial'):
             val = patch.getfloat('initial', item[0])
