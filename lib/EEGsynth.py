@@ -17,7 +17,17 @@
 
 from __future__ import print_function
 
+import os
 import sys
+
+# exclude the eegsynth/module/redis directory from the path
+for i, dir in enumerate(sys.path):
+    if dir.endswith(os.path.join('module', 'redis')):
+        del sys.path[i]
+        continue
+
+import configparser
+import argparse
 import time
 import threading
 import math
@@ -27,10 +37,14 @@ import logging
 from logging import Formatter
 import colorama
 import random
-import redis
+import redis          # this is NOT eegsynth/module/redis
+import ZmqRedis       # this offers an alternative to a real redis server
+import FakeRedis      # this offers an alternative to a real redis server
+import DummyRedis     # this offers an alternative to a real redis server
 import string
 import termcolor
 from termcolor import colored
+
 
 ###################################################################################################
 def formatkeyval(key, val):
@@ -274,24 +288,83 @@ class patch():
     The following methods get the values (as a string) from the ini file
       patch.get(section, item, default=None)
 
-    The following methods get the values from Redis
-      patch.getfloat(channel, default=None)
-      patch.getint(channel, default=None)
-      patch.getstring(channel, default=None)
-
     The following methods get the values either from the ini file or Redis
       patch.getfloat(section, item, multiple=False, default=None)
       patch.getint(section, item, multiple=False, default=None)
       patch.getstring(section, item, multiple=False, default=None)
     """
 
-    def __init__(self, config):
-        try:
-            r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-            response = r.client_list()
-        except redis.ConnectionError:
-            raise RuntimeError("cannot connect to Redis server")
+    def __init__(self, parser, preservecase=False):
+        
+        parser.add_argument("--general-broker", default=None, help="general broker")
+        parser.add_argument("--general-debug", default=1, help="general debug")
+        args = parser.parse_args()
+
+        config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+        if preservecase:
+            # see https://docs.python.org/3/library/configparser.html#configparser.ConfigParser.optionxform
+            config.optionxform = str
+        config.read(args.inifile)
+        
+        # convert the command-line arguments in a dict
+        args = vars(args)
+        # remove empty items
+        args = {k:v for k,v in args.items() if v}
+        
+        if 'general_broker' in args:
+            broker = args['general_broker']
+        elif config.has_option('general', 'broker'):
+            broker = config.get('general', 'broker')
+        else:
+            # set the default broker
+            if config.has_section('redis'):
+                broker = 'redis'
+            elif config.has_section('zeromq'):
+                broker = 'zeromq'
+            else:
+                broker = 'dummy'
+                
+        if broker=='redis':
+            if config.has_option('redis', 'hostname'):
+                hostname = config.get('redis', 'hostname')
+            else:
+                hostname = 'localhost'
+            if config.has_option('redis', 'port'):
+                port = config.getint('redis', 'port')
+            else:
+                port = 6379
+            try:
+                r = redis.StrictRedis(host=hostname, port=port, db=0, charset='utf-8', decode_responses=True)
+                response = r.client_list()
+            except redis.ConnectionError:
+                raise RuntimeError("cannot connect to Redis server")
+
+        elif broker=='zeromq':
+            # make a connection to the specified ZeroMQ server
+            # the combination of server and client emulate a subset of redis functionality
+            if config.has_option('zeromq', 'hostname'):
+                hostname = config.get('zeromq', 'hostname')
+            else:
+                hostname = 'localhost'
+            if config.has_option('zeromq', 'port'):
+                port = config.getint('zeromq', 'port')
+            else:
+                port = 5555
+            r = ZmqRedis.client(host=hostname, port=port)
+
+        elif broker=='fake':
+            # the fake client stores all values in a dictionary
+            r = DummyRedis.client()
+
+        elif broker=='dummy':
+            # the dummy client has all functions but does not do anything
+            r = DummyRedis.client()
+
+        else:
+            raise RuntimeError("unknown broker")
+
         # store the configuration object (which maps the ini file) and the redis connection
+        self.args = args
         self.config = config
         self.redis = r
 
@@ -304,14 +377,7 @@ class patch():
         return self.redis.publish(channel, value)
 
     ####################################################################
-    def get(self, section, item, default=None):
-        if self.config.has_option(section, item):
-            return self.config.get(section, item)
-        else:
-            return default
-
-    ####################################################################
-    def getfloat(self, channel, default=None):
+    def redis_getfloat(self, channel, default=None):
         # get it directly from Redis
         val = self.redis.get(channel)
         if val==None and default!=None:
@@ -319,7 +385,7 @@ class patch():
         return float(val)
 
     ####################################################################
-    def getint(self, channel, default=None):
+    def redis_getint(self, channel, default=None):
         # get it directly from Redis
         val = self.redis.get(channel)
         if val==None and default!=None:
@@ -327,7 +393,7 @@ class patch():
         return int(round(float(val)))
 
     ####################################################################
-    def getstring(self, channel, default=None):
+    def redis_getstring(self, channel, default=None):
         # get it directly from Redis
         val = self.redis.get(channel)
         if val==None and default!=None:
@@ -335,8 +401,20 @@ class patch():
         return val
 
     ####################################################################
+    def get(self, section, item, default=None):
+        if section + "_" + item in self.args:
+            return self.args[section + "_" + item]
+        elif self.config.has_option(section, item):
+            return self.config.get(section, item)
+        else:
+            return default
+
+    ####################################################################
     def getfloat(self, section, item, multiple=False, default=None):
-        if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
+        if section + "_" + item in self.args:
+            # get it from the command-line arguments
+            return float(self.args[section + "_" + item])
+        elif self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
@@ -397,7 +475,9 @@ class patch():
 
     ####################################################################
     def getint(self, section, item, multiple=False, default=None):
-        if self.config.has_option(section, item) and len(self.config.get(section, item))>0:
+        if section + "_" + item in self.args:
+            return int(self.args[section + "_" + item])
+        elif self.config.has_option(section, item) and len(self.config.get(section, item))>0:
             # get all items from the ini file, there might be one or multiple
             items = self.config.get(section, item)
 
@@ -458,14 +538,17 @@ class patch():
 
     ####################################################################
     def getstring(self, section, item, default=None, multiple=False):
-        # get all items from the ini file, there might be one or multiple
-        try:
-            val = self.config.get(section, item)
-            if self.redis.exists(val):
-                # the ini file points to a Redis key, which contains the actual value
-                val = self.redis.get(val)
-        except:
-            val = default
+        if section + "_" + item in self.args:
+            return self.args[section + "_" + item]
+        else:
+            # get all items from the ini file, there might be one or multiple
+            try:
+                val = self.config.get(section, item)
+                if self.redis.exists(val):
+                    # the ini file points to a Redis key, which contains the actual value
+                    val = self.redis.get(val)
+            except:
+                val = default
 
         if multiple:
             if val==None or len(val)==0:
@@ -497,8 +580,11 @@ class patch():
 
     ####################################################################
     def hasitem(self, section, item):
-        # check whether an item is present in the ini file
-        return self.config.has_option(section, item)
+        # check whether an item is present on the command line or in the ini file
+        if section + "_" + item in self.args:
+            return True
+        else:
+            return self.config.has_option(section, item)
 
     ####################################################################
     def setvalue(self, item, val, duration=0):
