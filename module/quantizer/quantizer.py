@@ -109,11 +109,6 @@ def _start():
     del output_name[index]
     del output_value[index]
 
-    # there should not be any local variables in this function, they should all be global
-    del i, name
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_once():
     '''Run the main loop once
@@ -148,10 +143,6 @@ def _loop_once():
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                 patch.setvalue(key, val)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():
