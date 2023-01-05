@@ -60,7 +60,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -99,7 +99,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
     global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -203,7 +203,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
     global dat_input, tmpvar, ch, chan_time, original, t, fourier, mask, convert, signal_time, signal, dat_output, write_time
 

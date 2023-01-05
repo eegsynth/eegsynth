@@ -127,7 +127,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug
+    global parser, patch, monitor, debug
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -150,7 +150,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug
+    global parser, patch, monitor, debug
     global device, mode, rate, modulation, offset, control, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency, nchans, channame, ntones, frequencies, lock, stream, trigger, thread, p
 
     # get the options from the configuration file

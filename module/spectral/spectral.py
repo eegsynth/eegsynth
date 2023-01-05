@@ -54,7 +54,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, ft_host, ft_port, ft_input
+    global parser, patch, monitor, ft_host, ft_port, ft_input
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -80,7 +80,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, ft_host, ft_port, ft_input, name
+    global parser, patch, monitor, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, output, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -120,7 +120,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, ft_host, ft_port, ft_input
+    global parser, patch, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, output, begsample, endsample
     global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
 

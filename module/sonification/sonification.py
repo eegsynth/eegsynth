@@ -53,7 +53,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -96,7 +96,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
     global timeout, hdr_input, start, sample_rate, f_shift, f_offset, f_order, window, sideband, left, right, scaling, scaling_method, scale_scaling, offset_scaling, default_scale, scale_lowpass, scale_highpass, offset_lowpass, offset_highpass, scale_filterorder, offset_filterorder, hdr_output, nInput, nOutput, begsample, endsample, dat_output, left_f, left_b, left_a, left_zi, right_f, right_b, right_a, right_zi, i, highpass, lowpass
 
     # this is the timeout for the FieldTrip buffer
@@ -234,7 +234,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, sample_rate, f_shift, f_offset, f_order, window, sideband, left, right, scaling, scaling_method, scale_scaling, offset_scaling, default_scale, scale_lowpass, scale_highpass, offset_lowpass, offset_highpass, scale_filterorder, offset_filterorder, hdr_output, nInput, nOutput, begsample, endsample, dat_output, left_f, left_b, left_a, left_zi, right_f, right_b, right_a, right_zi, i, highpass, lowpass
     global dat_input, begtime, endtime, tim_input, tim_output, chan, vec_output, highpassfilter, lowpassfilter, filterorder, change, b, a, zi, duration, desired
 

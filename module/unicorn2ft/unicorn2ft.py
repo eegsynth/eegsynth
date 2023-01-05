@@ -57,7 +57,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -74,7 +74,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, name
+    global parser, patch, name
     global monitor, prefix, ft_host, ft_port, ft_output, timeout, s, start_acq, stop_acq, start_sequence, stop_sequence, blocksize, nchan, fsample
 
     # this can be used to show parameters that have changed
@@ -134,7 +134,7 @@ def _start():
 def _loop_once():
     '''Run the main loop once
     '''
-    global parser, args, config, patch
+    global parser, patch
     global monitor, s, start_sequence, blocksize, nchan, fsample
     
     nsample = int(blocksize*fsample)

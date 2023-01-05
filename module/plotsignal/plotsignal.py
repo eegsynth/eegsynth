@@ -57,7 +57,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -86,7 +86,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input, name
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input, name
     global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
 
     # read variables from ini/redis
@@ -182,7 +182,7 @@ def _loop_once():
     '''Update the main figure once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch, monitor, debug, ft_host, ft_port, ft_input
+    global parser, patch, monitor, debug, ft_host, ft_port, ft_input
     global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
     global dat, timeaxis
 

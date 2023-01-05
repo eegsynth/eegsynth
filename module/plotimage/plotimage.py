@@ -107,7 +107,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -124,7 +124,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, name
+    global parser, patch, name
     global monitor, delay, winx, winy, winwidth, winheight, input_channel, input_image, app, window, triggers, timer
 
     # this can be used to show parameters that have changed

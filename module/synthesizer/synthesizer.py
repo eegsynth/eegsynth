@@ -188,7 +188,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -205,7 +205,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, name
+    global parser, patch, name
     global monitor, debug, p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
 
     # this can be used to show parameters that have changed
@@ -267,7 +267,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
     global monitor, debug, p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
     global BUFFER, t, last, vco_pitch, vco_sin, vco_tri, vco_saw, vco_sqr, lfo_depth, lfo_frequency, adsr_attack, adsr_decay, adsr_sustain, adsr_release, vca_envelope, frequency, period, wave_sin, wave_tri, wave_saw, wave_sqr, waveform, lfo_envelope, adsr_envelope
 

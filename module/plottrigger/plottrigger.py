@@ -69,7 +69,7 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    monitor.info(item)
+                    monitor.debug(item)
                     now = time.time()
                     val = float(item['data'])
                     with lock:
@@ -81,7 +81,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -98,7 +98,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, name
+    global parser, patch, name
     global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, timer, plot
 
     # this can be used to show parameters that have changed
@@ -167,7 +167,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
     global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, timer, plot
 
     monitor.loop()

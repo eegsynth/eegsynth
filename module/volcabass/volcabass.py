@@ -84,7 +84,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
@@ -101,7 +101,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, patch, name
+    global parser, patch, name
     global monitor, control_name, control_code, note_name, note_code, debug, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
 
     # this can be used to show parameters that have changed
@@ -171,7 +171,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, patch
+    global parser, patch
     global monitor, control_name, control_code, note_name, note_code, debug, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
     global cmd, val, msg
 
@@ -191,10 +191,6 @@ def _loop_once():
         monitor.debug(cmd, val, name)
         with lock:
             outputport.send(msg)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():
