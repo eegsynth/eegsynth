@@ -190,10 +190,9 @@ def _loop_once():
     if recording:
         D = []
         for chan in channels:
-            xval = patch.getfloat(chan)
             try:
-                xval = float(xval)
-            except ValueError:
+                xval = float(patch.redis.get(chan))
+            except:
                 xval = 0.
             xval = EEGsynth.limit(xval, physical_min, physical_max)
             D.append([xval])

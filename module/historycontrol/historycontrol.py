@@ -148,7 +148,10 @@ def _loop_once():
 
     # update with current data
     for channel in range(numchannel):
-        history[channel, numhistory-1] = patch.getfloat(inputlist[channel])
+        try:
+            history[channel, numhistory-1] = float(patch.redis.get(inputlist[channel]))
+        except:
+            history[channel, numhistory-1] = np.NaN
 
     if metrics_mean or metrics_max_att or metrics_min_att:
         historic['mean']    = np.nanmean(history, axis=1)

@@ -190,7 +190,7 @@ def _start():
         for tone in range(0, ntones):
             tonestr = "tone%d" % (tone + 1)
             if patch.hasitem(channame[chan], tonestr):
-                redischannel = patch.getstring(channame[chan], tonestr)
+                redischannel = patch.get(channame[chan], tonestr)
                 trigger.append(TriggerThread(redischannel, chan, tone))
                 monitor.info("configured " + channame[chan] + " " + tonestr + " as " + redischannel)
             else:

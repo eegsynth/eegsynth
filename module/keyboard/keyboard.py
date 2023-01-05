@@ -89,7 +89,7 @@ class TriggerThread(threading.Thread):
                         # use the value of the onset trigger
                         velocity = val
                     elif type(self.velocity) == str:
-                        velocity = patch.getfloat(self.velocity)
+                        velocity = float(patch.redis.get(self.velocity))
                         velocity = EEGsynth.rescale(velocity, slope=scale_velocity, offset=offset_velocity)
                         velocity = EEGsynth.limit(velocity, 0, 127)
                         velocity = int(velocity)
@@ -97,7 +97,7 @@ class TriggerThread(threading.Thread):
                         velocity = self.velocity
 
                     if type(self.pitch) == str:
-                        pitch = patch.getfloat(self.pitch)
+                        pitch = float(patch.redis.get(self.pitch))
                         pitch = EEGsynth.rescale(pitch, slope=scale_pitch, offset=offset_pitch)
                         pitch = EEGsynth.limit(pitch, 0, 127)
                         pitch = int(pitch)
@@ -105,7 +105,7 @@ class TriggerThread(threading.Thread):
                         pitch = self.pitch
 
                     if type(self.duration) == str:
-                        duration = patch.getfloat(self.duration)
+                        duration = float(patch.redis.get(self.duration))
                         duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
                         # some minimal time is needed for the delay
                         duration = EEGsynth.limit(duration, 0.05, float('Inf'))
