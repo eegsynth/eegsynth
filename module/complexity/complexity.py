@@ -69,14 +69,14 @@ def _setup():
     patch = EEGsynth.patch(parser)
 
     # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
-    debug = patch.getint('general','debug')
+    debug = patch.getint('general', 'debug')
 
     try:
-        ft_host = patch.getstring('fieldtrip','hostname')
-        ft_port = patch.getint('fieldtrip','port')
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
         monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
         ft_input = FieldTrip.Client()
         ft_input.connect(ft_host, ft_port)
