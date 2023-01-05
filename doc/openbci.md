@@ -26,12 +26,12 @@ In principle the data format of the Daisy board is the same as for the Cyton, wi
 
 Besides the hardware, another aspect to consider is the support to configure the boards and to receive the data in different programming environments. The problem is that none of these covers the full hardware range.
 
-- Programming (Java)
+- Processing (Java)
 - Node.js (Javascript)
 - Python
 - C/C++
 
-The OpenBCI_Gui is implemented in Programming (Java) and uses the OpenBCI Hub (which is implemented in Node.js) background application to interface with the hardware. That in principle makes the OpenBCI Hub an interesting target to interface with other software, but regretfully documentation is very limited.
+The OpenBCI_Gui is implemented in Processing (Java) and uses the OpenBCI Hub (which is implemented in Node.js) background application to interface with the hardware. That in principle makes the OpenBCI Hub an interesting target to interface with other software, but regretfully documentation is very limited.
 
 The [OpenBCI_Python](https://github.com/OpenBCI/OpenBCI_C) interface is (so far) only fully implemented for the Cyton and Gandlion boards, but not for the WiFi shield. Furthermore, the Ganglion board is only supported on Linux due to the underlying BLE library not being compatible with Windows or macOS.
 
