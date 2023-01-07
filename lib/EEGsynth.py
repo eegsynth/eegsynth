@@ -98,7 +98,6 @@ class patch():
         parser.add_argument("--general-delay", default=None, help="general delay")
         args = parser.parse_args()
         
-
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
         if preservecase:
             # see https://docs.python.org/3/library/configparser.html#configparser.ConfigParser.optionxform
