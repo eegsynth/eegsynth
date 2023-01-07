@@ -45,74 +45,317 @@ import string
 import termcolor
 from termcolor import colored
 
-
 ###################################################################################################
-def formatkeyval(key, val):
-    if sys.version_info < (3,0):
-        # this works in Python 2, but fails in Python 3
-        isstring = isinstance(val, basestring)
-    else:
-        # this works in Python 3, but fails for unicode strings in Python 2
-        isstring = isinstance(val, str)
-    if val is None:
-        output = "%s = None" % (key)
-    elif isinstance(val, list):
-        output = "%s = %s" % (key, str(val))
-    elif isstring:
-        output = "%s = %s" % (key, val)
-    else:
-        output = "%s = %g" % (key, val)
-    return output
+class patch():
+    """Class to provide a generalized interface for patching modules using
+    command-line arguments, configuration files and Redis.
 
-###################################################################################################
-def trimquotes(option):
-    # remove leading and trailing quotation marks
-    # this is needed to include leading or trailing spaces in an ini-file option
-    if option[0]=='"':
-        option = option[1:]
-    if option[0]=='\'':
-        option = option[1:]
-    if option[-1]=='"':
-        option = option[0:-1]
-    if option[-1]=='\'':
-        option = option[0:-1]
-    return option
+    The following methods get the values (as a string) from the commnand-line
+    arguments or from the ini file
+      patch.get(section, item, default=None)
 
-###################################################################################################
-def uuid(length):
-    return ''.join(random.choice(string.hexdigits) for i in range(length))
+    The following methods get the values either from the commnand-line
+    arguments, from the ini file or from Redis
+      patch.getfloat(section, item, multiple=False, default=None)
+      patch.getint(section, item, multiple=False, default=None)
+      patch.getstring(section, item, multiple=False, default=None)
 
-###################################################################################################
-class ColoredFormatter(Formatter):
-    """Class to format logging messages
+    The formatting of options on the command-line should be like this
+      --section-item value
+
+    The formatting of options in the ini file should be like this
+      [section]
+      item=1            this returns 1
+      item=key          get the value of the key from Redis
+    or to return multiple items the formatting should be like this
+      [section]
+      item=1-20         this returns [1,20]
+      item=1,2,3        this returns [1,2,3]
+      item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,5,6,7,8,9]
+      item=key1,key2    get the value of key1 and key2 from Redis
+      item=key1,5       get the value of key1 from Redis
+      item=0,key2       get the value of key2 from Redis
     """
 
-    def __init__(self, name=None):
-        self.name = name
-        colors = list(termcolor.COLORS.keys()) # prevent RuntimeError: dictionary changed size during iteration
-        # add reverse and bright color
-        for color in colors:
-            termcolor.COLORS['reverse_'+color] = termcolor.COLORS[color]+10
-            termcolor.COLORS['bright_'+color] = termcolor.COLORS[color]+60
-        # for color in termcolor.COLORS.keys():
-        #     print(colored(color, color))
+    def __init__(self, parser, preservecase=False):
+        
+        if parser==None:
+            parser = argparse.ArgumentParser()
+        
+        parser.add_argument("--general-broker", default=None, help="general broker")
+        parser.add_argument("--general-debug", default=1, help="general debug")
+        args = parser.parse_args()
 
-    def format(self, record):
-        colors = {
-            'CRITICAL': 'reverse_red',
-            'ERROR': 'red',
-            'WARNING': 'yellow',
-            'SUCCESS': 'green',
-            'INFO': 'cyan',
-            'DEBUG': 'bright_grey',
-            'TRACE': 'reverse_white',
-        }
-        color = colors.get(record.levelname, 'white')
-        if self.name:
-            return colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
+        config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+        if preservecase:
+            # see https://docs.python.org/3/library/configparser.html#configparser.ConfigParser.optionxform
+            config.optionxform = str
+        if 'inifile' in args:
+            config.read(args.inifile)
+        
+        # convert the command-line arguments in a dict
+        args = vars(args)
+        # remove empty items
+        args = {k:v for k,v in args.items() if v}
+        
+        if 'general_broker' in args:
+            broker = args['general_broker']
+        elif config.has_option('general', 'broker'):
+            broker = config.get('general', 'broker')
         else:
-            return colored(record.levelname, color) + ': ' + record.getMessage()
+            # set the default broker
+            if config.has_section('redis'):
+                broker = 'redis'
+            elif config.has_section('zeromq'):
+                broker = 'zeromq'
+            else:
+                broker = 'dummy'
+                
+        if broker=='redis':
+            if config.has_option('redis', 'hostname'):
+                hostname = config.get('redis', 'hostname')
+            else:
+                hostname = 'localhost'
+            if config.has_option('redis', 'port'):
+                port = config.getint('redis', 'port')
+            else:
+                port = 6379
+            try:
+                r = redis.StrictRedis(host=hostname, port=port, db=0, charset='utf-8', decode_responses=True)
+                response = r.client_list()
+            except redis.ConnectionError:
+                raise RuntimeError("cannot connect to Redis server")
 
+        elif broker=='zeromq':
+            # make a connection to the specified ZeroMQ server
+            # the combination of server and client emulate a subset of redis functionality
+            if config.has_option('zeromq', 'hostname'):
+                hostname = config.get('zeromq', 'hostname')
+            else:
+                hostname = 'localhost'
+            if config.has_option('zeromq', 'port'):
+                port = config.getint('zeromq', 'port')
+            else:
+                port = 5555
+            r = ZmqRedis.client(host=hostname, port=port)
+
+        elif broker=='fake':
+            # the fake client stores all values in a dictionary
+            r = DummyRedis.client()
+
+        elif broker=='dummy':
+            # the dummy client has all functions but does not do anything
+            r = DummyRedis.client()
+
+        else:
+            raise RuntimeError("unknown broker")
+
+        # store the command-line arguments, the configuration object that maps the ini file, and the Redis connection
+        self.args = args
+        self.config = config
+        self.redis = r
+
+    ####################################################################
+    def pubsub(self):
+        return self.redis.pubsub()
+
+    ####################################################################
+    def publish(self, channel, value):
+        return self.redis.publish(channel, value)
+
+    ####################################################################
+    def get(self, section, item, default=None):
+        if section + "_" + item in self.args:
+            return self.args[section + "_" + item]
+        elif self.config.has_option(section, item):
+            return self.config.get(section, item)
+        else:
+            return default
+
+    ####################################################################
+    def getfloat(self, section, item, multiple=False, default=None):
+        if section + "_" + item in self.args:
+            # get it from the command-line arguments
+            return float(self.args[section + "_" + item])
+        elif self.config.has_option(section, item) and len(self.config.get(section, item))>0:
+            # get all items from the ini file, there might be one or multiple
+            items = self.config.get(section, item)
+
+            if multiple:
+                # convert the items to a list
+                if items.find(",") > -1:
+                    separator = ","
+                elif items.find("-") > -1:
+                    separator = "-"
+                elif items.find("\t") > -1:
+                    separator = "\t"
+                else:
+                    separator = " "
+                items = squeeze(' ', items)        # remove excess whitespace
+                items = squeeze(separator, items)  # remove double separators
+                items = items.split(separator)     # split on the separator
+            else:
+                # make a list with a single item
+                items = [items]
+
+            # set the default
+            if default != None:
+                val = [float(default)] * len(items)
+            else:
+                val = [default] * len(items)
+
+            # convert the strings into floating point values
+            for i,item in enumerate(items):
+                try:
+                    # if it resembles a value, use that
+                    val[i] = float(item)
+                except ValueError:
+                    # if it is a string, get the value from Redis
+                    try:
+                        val[i] = float(self.redis.get(item))
+                    except TypeError:
+                        pass
+        else:
+            # the configuration file does not contain the item
+            if multiple == True and default == None:
+                val = []
+            elif multiple == True and default != None:
+                val = [float(x) for x in default]
+            elif multiple == False and default == None:
+                val = None
+            elif multiple == False and default != None:
+                val = float(default)
+
+        if multiple:
+            # return it as list
+            return val
+        else:
+            # return a single value
+            if isinstance(val, list):
+                return val[0]
+            else:
+                return val
+
+    ####################################################################
+    def getint(self, section, item, multiple=False, default=None):
+        if section + "_" + item in self.args:
+            return int(self.args[section + "_" + item])
+        elif self.config.has_option(section, item) and len(self.config.get(section, item))>0:
+            # get all items from the ini file, there might be one or multiple
+            items = self.config.get(section, item)
+
+            if multiple:
+                # convert the items to a list
+                if items.find(",") > -1:
+                    separator = ","
+                elif items.find("-") > -1:
+                    separator = "-"
+                elif items.find("\t") > -1:
+                    separator = "\t"
+                else:
+                    separator = " "
+                items = squeeze(' ', items)        # remove excess whitespace
+                items = squeeze(separator, items)  # remove double separators
+                items = items.split(separator)     # split on the separator
+            else:
+                # make a list with a single item
+                items = [items]
+
+            # set the default
+            if default != None:
+                val = [int(default)] * len(items)
+            else:
+                val = [default] * len(items)
+
+            # convert the strings into integer values
+            for i,item in enumerate(items):
+                try:
+                    # if it resembles a value, use that
+                    val[i] = int(item)
+                except ValueError:
+                    # if it is a string, get the value from Redis
+                    try:
+                        val[i] = int(round(float(self.redis.get(item))))
+                    except TypeError:
+                        pass
+        else:
+            # the configuration file does not contain the item
+            if multiple == True and default == None:
+                val = []
+            elif multiple == True and default != None:
+                val = [int(x) for x in default]
+            elif multiple == False and default == None:
+                val = None
+            elif multiple == False and default != None:
+                val = int(default)
+
+        if multiple:
+            # return it as list
+            return val
+        else:
+            # return a single value
+            if isinstance(val, list):
+                return val[0]
+            else:
+                return val
+
+    ####################################################################
+    def getstring(self, section, item, multiple=False, default=None):
+        if section + "_" + item in self.args:
+            return self.args[section + "_" + item]
+        else:
+            # get all items from the ini file, there might be one or multiple
+            try:
+                val = self.config.get(section, item)
+                if self.redis.exists(val):
+                    # the ini file points to a Redis key, which contains the actual value
+                    val = self.redis.get(val)
+            except:
+                val = default
+
+        if multiple:
+            if val==None or len(val)==0:
+                # convert it to an empty list
+                val = []
+            else:
+                # convert the string with items to a list
+                if val.find(",") > -1:
+                    separator = ","
+                elif val.find("-") > -1:
+                    separator = "-"
+                elif val.find("\t") > -1:
+                    separator = "\t"
+                else:
+                    separator = " "
+
+                val = squeeze(separator, val)  # remove double separators
+                val = val.split(separator)     # split on the separator
+
+        if multiple:
+            # return it as list
+            return val
+        else:
+            # return a single value
+            if isinstance(val, list):
+                return val[0]
+            else:
+                return val
+
+    ####################################################################
+    def hasitem(self, section, item):
+        # check whether an item is present on the command line or in the ini file
+        if section + "_" + item in self.args:
+            return True
+        else:
+            return self.config.has_option(section, item)
+
+    ####################################################################
+    def setvalue(self, item, val, duration=0):
+        self.redis.set(item, val)      # set it as control channel
+        self.redis.publish(item, val)  # send it as trigger
+        if duration > 0:
+            # switch off after a certain amount of time
+            threading.Timer(duration, self.setvalue, args=[item, 0.]).start()
 
 ###################################################################################################
 class monitor():
@@ -268,308 +511,36 @@ Press Ctrl-C to stop this module.
         else:
             self.logger.log(logging.TRACE, " ".join(map(format, args)))
 
-
 ###################################################################################################
-class patch():
-    """Class to provide a generalized interface for patching modules using
-    configuration files and Redis.
-
-    The formatting of the item in the ini file should be like this
-      item=1            this returns 1
-      item=key          get the value of the key from Redis
-    or if multiple is True
-      item=1-20         this returns [1,20]
-      item=1,2,3        this returns [1,2,3]
-      item=1,2,3,5-9    this returns [1,2,3,5,9], not [1,2,3,5,6,7,8,9]
-      item=key1,key2    get the value of key1 and key2 from Redis
-      item=key1,5       get the value of key1 from Redis
-      item=0,key2       get the value of key2 from Redis
-      
-    The following methods get the values (as a string) from the ini file
-      patch.get(section, item, default=None)
-
-    The following methods get the values either from the ini file or Redis
-      patch.getfloat(section, item, multiple=False, default=None)
-      patch.getint(section, item, multiple=False, default=None)
-      patch.getstring(section, item, multiple=False, default=None)
+class ColoredFormatter(Formatter):
+    """Class to format logging messages
     """
 
-    def __init__(self, parser, preservecase=False):
-        
-        parser.add_argument("--general-broker", default=None, help="general broker")
-        parser.add_argument("--general-debug", default=1, help="general debug")
-        args = parser.parse_args()
+    def __init__(self, name=None):
+        self.name = name
+        colors = list(termcolor.COLORS.keys()) # prevent RuntimeError: dictionary changed size during iteration
+        # add reverse and bright color
+        for color in colors:
+            termcolor.COLORS['reverse_'+color] = termcolor.COLORS[color]+10
+            termcolor.COLORS['bright_'+color] = termcolor.COLORS[color]+60
+        # for color in termcolor.COLORS.keys():
+        #     print(colored(color, color))
 
-        config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-        if preservecase:
-            # see https://docs.python.org/3/library/configparser.html#configparser.ConfigParser.optionxform
-            config.optionxform = str
-        config.read(args.inifile)
-        
-        # convert the command-line arguments in a dict
-        args = vars(args)
-        # remove empty items
-        args = {k:v for k,v in args.items() if v}
-        
-        if 'general_broker' in args:
-            broker = args['general_broker']
-        elif config.has_option('general', 'broker'):
-            broker = config.get('general', 'broker')
+    def format(self, record):
+        colors = {
+            'CRITICAL': 'reverse_red',
+            'ERROR': 'red',
+            'WARNING': 'yellow',
+            'SUCCESS': 'green',
+            'INFO': 'cyan',
+            'DEBUG': 'bright_grey',
+            'TRACE': 'reverse_white',
+        }
+        color = colors.get(record.levelname, 'white')
+        if self.name:
+            return colored(record.levelname, color) + ': ' + self.name + ': ' + record.getMessage()
         else:
-            # set the default broker
-            if config.has_section('redis'):
-                broker = 'redis'
-            elif config.has_section('zeromq'):
-                broker = 'zeromq'
-            else:
-                broker = 'dummy'
-                
-        if broker=='redis':
-            if config.has_option('redis', 'hostname'):
-                hostname = config.get('redis', 'hostname')
-            else:
-                hostname = 'localhost'
-            if config.has_option('redis', 'port'):
-                port = config.getint('redis', 'port')
-            else:
-                port = 6379
-            try:
-                r = redis.StrictRedis(host=hostname, port=port, db=0, charset='utf-8', decode_responses=True)
-                response = r.client_list()
-            except redis.ConnectionError:
-                raise RuntimeError("cannot connect to Redis server")
-
-        elif broker=='zeromq':
-            # make a connection to the specified ZeroMQ server
-            # the combination of server and client emulate a subset of redis functionality
-            if config.has_option('zeromq', 'hostname'):
-                hostname = config.get('zeromq', 'hostname')
-            else:
-                hostname = 'localhost'
-            if config.has_option('zeromq', 'port'):
-                port = config.getint('zeromq', 'port')
-            else:
-                port = 5555
-            r = ZmqRedis.client(host=hostname, port=port)
-
-        elif broker=='fake':
-            # the fake client stores all values in a dictionary
-            r = DummyRedis.client()
-
-        elif broker=='dummy':
-            # the dummy client has all functions but does not do anything
-            r = DummyRedis.client()
-
-        else:
-            raise RuntimeError("unknown broker")
-
-        # store the configuration object (which maps the ini file) and the redis connection
-        self.args = args
-        self.config = config
-        self.redis = r
-
-    ####################################################################
-    def pubsub(self):
-        return self.redis.pubsub()
-
-    ####################################################################
-    def publish(self, channel, value):
-        return self.redis.publish(channel, value)
-
-    ####################################################################
-    def get(self, section, item, default=None):
-        if section + "_" + item in self.args:
-            return self.args[section + "_" + item]
-        elif self.config.has_option(section, item):
-            return self.config.get(section, item)
-        else:
-            return default
-
-    ####################################################################
-    def getfloat(self, section, item, multiple=False, default=None):
-        if section + "_" + item in self.args:
-            # get it from the command-line arguments
-            return float(self.args[section + "_" + item])
-        elif self.config.has_option(section, item) and len(self.config.get(section, item))>0:
-            # get all items from the ini file, there might be one or multiple
-            items = self.config.get(section, item)
-
-            if multiple:
-                # convert the items to a list
-                if items.find(",") > -1:
-                    separator = ","
-                elif items.find("-") > -1:
-                    separator = "-"
-                elif items.find("\t") > -1:
-                    separator = "\t"
-                else:
-                    separator = " "
-                items = squeeze(' ', items)        # remove excess whitespace
-                items = squeeze(separator, items)  # remove double separators
-                items = items.split(separator)     # split on the separator
-            else:
-                # make a list with a single item
-                items = [items]
-
-            # set the default
-            if default != None:
-                val = [float(default)] * len(items)
-            else:
-                val = [default] * len(items)
-
-            # convert the strings into floating point values
-            for i,item in enumerate(items):
-                try:
-                    # if it resembles a value, use that
-                    val[i] = float(item)
-                except ValueError:
-                    # if it is a string, get the value from Redis
-                    try:
-                        val[i] = float(self.redis.get(item))
-                    except TypeError:
-                        pass
-        else:
-            # the configuration file does not contain the item
-            if multiple == True and default == None:
-                val = []
-            elif multiple == True and default != None:
-                val = [float(x) for x in default]
-            elif multiple == False and default == None:
-                val = None
-            elif multiple == False and default != None:
-                val = float(default)
-
-        if multiple:
-            # return it as list
-            return val
-        else:
-            # return a single value
-            if isinstance(val, list):
-                return val[0]
-            else:
-                return val
-
-    ####################################################################
-    def getint(self, section, item, multiple=False, default=None):
-        if section + "_" + item in self.args:
-            return int(self.args[section + "_" + item])
-        elif self.config.has_option(section, item) and len(self.config.get(section, item))>0:
-            # get all items from the ini file, there might be one or multiple
-            items = self.config.get(section, item)
-
-            if multiple:
-                # convert the items to a list
-                if items.find(",") > -1:
-                    separator = ","
-                elif items.find("-") > -1:
-                    separator = "-"
-                elif items.find("\t") > -1:
-                    separator = "\t"
-                else:
-                    separator = " "
-                items = squeeze(' ', items)        # remove excess whitespace
-                items = squeeze(separator, items)  # remove double separators
-                items = items.split(separator)     # split on the separator
-            else:
-                # make a list with a single item
-                items = [items]
-
-            # set the default
-            if default != None:
-                val = [int(default)] * len(items)
-            else:
-                val = [default] * len(items)
-
-            # convert the strings into integer values
-            for i,item in enumerate(items):
-                try:
-                    # if it resembles a value, use that
-                    val[i] = int(item)
-                except ValueError:
-                    # if it is a string, get the value from Redis
-                    try:
-                        val[i] = int(round(float(self.redis.get(item))))
-                    except TypeError:
-                        pass
-        else:
-            # the configuration file does not contain the item
-            if multiple == True and default == None:
-                val = []
-            elif multiple == True and default != None:
-                val = [int(x) for x in default]
-            elif multiple == False and default == None:
-                val = None
-            elif multiple == False and default != None:
-                val = int(default)
-
-        if multiple:
-            # return it as list
-            return val
-        else:
-            # return a single value
-            if isinstance(val, list):
-                return val[0]
-            else:
-                return val
-
-    ####################################################################
-    def getstring(self, section, item, default=None, multiple=False):
-        if section + "_" + item in self.args:
-            return self.args[section + "_" + item]
-        else:
-            # get all items from the ini file, there might be one or multiple
-            try:
-                val = self.config.get(section, item)
-                if self.redis.exists(val):
-                    # the ini file points to a Redis key, which contains the actual value
-                    val = self.redis.get(val)
-            except:
-                val = default
-
-        if multiple:
-            if val==None or len(val)==0:
-                # convert it to an empty list
-                val = []
-            else:
-                # convert the string with items to a list
-                if val.find(",") > -1:
-                    separator = ","
-                elif val.find("-") > -1:
-                    separator = "-"
-                elif val.find("\t") > -1:
-                    separator = "\t"
-                else:
-                    separator = " "
-
-                val = squeeze(separator, val)  # remove double separators
-                val = val.split(separator)     # split on the separator
-
-        if multiple:
-            # return it as list
-            return val
-        else:
-            # return a single value
-            if isinstance(val, list):
-                return val[0]
-            else:
-                return val
-
-    ####################################################################
-    def hasitem(self, section, item):
-        # check whether an item is present on the command line or in the ini file
-        if section + "_" + item in self.args:
-            return True
-        else:
-            return self.config.has_option(section, item)
-
-    ####################################################################
-    def setvalue(self, item, val, duration=0):
-        self.redis.set(item, val)      # set it as control channel
-        self.redis.publish(item, val)  # send it as trigger
-        if duration > 0:
-            # switch off after a certain amount of time
-            threading.Timer(duration, self.setvalue, args=[item, 0.]).start()
-
+            return colored(record.levelname, color) + ': ' + record.getMessage()
 
 ####################################################################
 def rescale(xval, slope=None, offset=None, reverse=False):
@@ -877,3 +848,39 @@ def notch_filter(dat, f0, fs, Q=30, dir='onepass'):
         # average
         y = (y1 + y2)/2
     return y
+
+###################################################################################################
+def formatkeyval(key, val):
+    if sys.version_info < (3,0):
+        # this works in Python 2, but fails in Python 3
+        isstring = isinstance(val, basestring)
+    else:
+        # this works in Python 3, but fails for unicode strings in Python 2
+        isstring = isinstance(val, str)
+    if val is None:
+        output = "%s = None" % (key)
+    elif isinstance(val, list):
+        output = "%s = %s" % (key, str(val))
+    elif isstring:
+        output = "%s = %s" % (key, val)
+    else:
+        output = "%s = %g" % (key, val)
+    return output
+
+###################################################################################################
+def trimquotes(option):
+    # remove leading and trailing quotation marks
+    # this is needed to include leading or trailing spaces in an ini-file option
+    if option[0]=='"':
+        option = option[1:]
+    if option[0]=='\'':
+        option = option[1:]
+    if option[-1]=='"':
+        option = option[0:-1]
+    if option[-1]=='\'':
+        option = option[0:-1]
+    return option
+
+###################################################################################################
+def uuid(length):
+    return ''.join(random.choice(string.hexdigits) for i in range(length))
