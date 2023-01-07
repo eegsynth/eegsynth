@@ -83,20 +83,21 @@ class patch():
     """
 
     def __init__(self, name=None, path=None, preservecase=False):
-        
+
         if not name==None and not path==None:
             inifile = os.path.join(path, name + '.ini')
         elif not name==None:
             inifile = name + '.ini'
         else:
             inifile = None
-        
+
         parser = argparse.ArgumentParser()
         parser.add_argument("-i", "--inifile", default=inifile, help="name of the configuration file")
         parser.add_argument("--general-broker", default=None, help="general broker")
-        parser.add_argument("--general-debug", default=1, help="general debug")
-        parser.add_argument("--general-delay", default=0.05, help="general delay")
+        parser.add_argument("--general-debug", default=None, help="general debug")
+        parser.add_argument("--general-delay", default=None, help="general delay")
         args = parser.parse_args()
+        
 
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
         if preservecase:
