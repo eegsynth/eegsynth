@@ -26,6 +26,7 @@ import os
 import sys
 import threading
 import time
+import numpy as np
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -96,6 +97,10 @@ def SetNoteOff(note, velocity):
 # send the MIDI message, different messages have slightly different parameters
 def sendMidi(name, code, val):
     global previous
+    
+    if np.isnan(val):
+        # monitor.error('cannot send NaN as MIDI message')
+        return
 
     if name == 'pitchwheel':
         # the value should be limited between -8192 to 8191
