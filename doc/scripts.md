@@ -52,7 +52,6 @@ Each script is prefaced with a commented text explaining it's functionality, as 
 The EEGsynth uses standard Python libraries as well as it's own, located in the `eegsynth/lib` directory:
 
 ```
-import argparse
 import numpy as np
 import os
 import sys
@@ -62,12 +61,19 @@ from scipy import signal
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(sys.executable)[-1]
-elif sys.argv[0] != '':
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
     file = os.path.split(sys.argv[0])[-1]
-else:
+    name = os.path.splitext(file)[0]
+elif __name__=='__main__':
     path = os.path.abspath('')
     file = os.path.split(path)[-1] + '.py'
+    name = os.path.splitext(file)[0]
+else:
+    path = os.path.split(__file__)[0]
+    file = os.path.split(__file__)[-1]
+    name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(path,'../../lib'))
@@ -91,11 +97,10 @@ We try to permit _all_ dynamic values to be set dynamically like this, which is 
 done using the _patch object_:
 
 ```
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--inifile", default=os.path.join(path, os.path.splitext(file)[0] + '.ini'), help="optional name of the configuration file")
 
 # configure and start the patch, this will parse the command-line arguments and the ini file
-patch = EEGsynth.patch(parser)
+# the default for <somemodule.py> is to read <somemodule.ini> in the same directory
+patch = EEGsynth.patch(name=name, path=path)
 
 # this determines how much debugging information gets printed
 debug = patch.getint('general', 'debug')
@@ -163,6 +168,7 @@ try:
 
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
+```
 
 
 To wait until there is _any_ data we can wait until the data header is available:
@@ -258,7 +264,7 @@ while True:
 
 In many cases, a module will output its results by changing some value(s) in Redis.
 Other modules can then read those values and use them to influence [output devices](output.md).
-Setting a value in Redis using the _patch obect_ is as simple as:
+Setting a value in Redis using the _patch() obect_ is as simple as:
 
 ```
 patch.setvalue(key, value)
