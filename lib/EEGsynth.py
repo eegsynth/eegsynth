@@ -95,6 +95,7 @@ class patch():
         parser.add_argument("-i", "--inifile", default=inifile, help="name of the configuration file")
         parser.add_argument("--general-broker", default=None, help="general broker")
         parser.add_argument("--general-debug", default=1, help="general debug")
+        parser.add_argument("--general-delay", default=0.05, help="general delay")
         args = parser.parse_args()
 
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
