@@ -21,7 +21,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyqtgraph.Qt import QtGui, QtCore
-import argparse
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -57,13 +56,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch, monitor, ft_host, ft_port, ft_input
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path, monitor, ft_host, ft_port, ft_input
     
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -83,7 +79,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, monitor, ft_host, ft_port, ft_input, name
+    global patch, name, path, monitor, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filterorder, filter, notchquality, notch, freqrange, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
 
     # this is the timeout for the FieldTrip buffer
@@ -273,7 +269,7 @@ def _loop_once():
     '''Update the main figure once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, patch, monitor, ft_host, ft_port, ft_input
+    global patch, name, path, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channels, window, output, clipsize, clipside, stepsize, historysize, lrate, ylim, scale_red, scale_blue, offset_red, offset_blue, winx, winy, winwidth, winheight, prefix, numhistory, freqaxis, history, showred, showblue, filterorder, filter, notchquality, notch, app, win, text_redleft_curr, text_redright_curr, text_blueleft_curr, text_blueright_curr, text_redleft_hist, text_redright_hist, text_blueleft_hist, text_blueright_hist, freqplot_curr, freqplot_hist, spect_curr, spect_hist, redleft_curr, redright_curr, blueleft_curr, blueright_curr, redleft_hist, redright_hist, blueleft_hist, blueright_hist, fft_curr, fft_hist, specmax_curr, specmin_curr, specmax_hist, specmin_hist, plotnr, channr, timer, begsample, endsample, taper
     global dat, arguments_freqrange, freqrange, redfreq, redwidth, bluefreq, bluewidth
 

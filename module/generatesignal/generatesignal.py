@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import numpy as np
 import os
 import sys
@@ -53,13 +52,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch, monitor, debug, ft_host, ft_port, ft_output
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
@@ -86,7 +82,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, monitor, debug, ft_host, ft_port, ft_output, name
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output, name
     global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
 
     # get the options from the configuration file
@@ -149,7 +145,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, patch, monitor, debug, ft_host, ft_port, ft_output
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output
     global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
     global start, frequency, amplitude, offset, noise, dutycycle, signal, dat_output, chan, elapsed, naptime
 

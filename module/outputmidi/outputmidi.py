@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import mido
 from fuzzywuzzy import process
 import os
@@ -51,7 +50,7 @@ import EEGsynth
 
 
 def UpdateParameters():
-    global patch, velocity_note, scale_velocity, offset_velocity, duration_note, scale_duration, offset_duration
+    global patch, name, path, velocity_note, scale_velocity, offset_velocity, duration_note, scale_duration, offset_duration
     velocity_note = patch.getfloat('velocity', 'note', default=64)
     velocity_note = int(EEGsynth.rescale(velocity_note, slope=scale_velocity, offset=offset_velocity))
     duration_note = patch.getfloat('duration', 'note', default=None)
@@ -99,7 +98,7 @@ def sendMidi(name, code, val):
     global previous
     
     if np.isnan(val):
-        # monitor.error('cannot send NaN as MIDI message')
+        # monitor.error('cannot send NaN as MIDI message')
         return
 
     if name == 'pitchwheel':
@@ -188,13 +187,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path
     
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -205,7 +201,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, name
+    global patch, name, path
     global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
     # this can be used to show parameters that have changed
@@ -304,7 +300,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, patch
+    global patch, name, path
     global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
     UpdateParameters()

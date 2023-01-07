@@ -21,7 +21,6 @@
 
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
-import argparse
 import os
 import sys
 import time
@@ -308,13 +307,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -325,7 +321,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, name
+    global patch, name, path
     global monitor, debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset
 
     # this can be used to show parameters that have changed

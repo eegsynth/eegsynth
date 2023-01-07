@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import numpy as np
 import scipy.io
 from scipy.io import wavfile
@@ -199,13 +198,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path
     
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -216,7 +212,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, name
+    global patch, name, path
     global monitor, debug, device, scaling_method, scaling, speed, onset, offset, taper, scale_scaling, scale_speed, scale_onset, scale_offset, scale_taper, offset_scaling, offset_speed, offset_onset, offset_offset, offset_taper, started, finished, p, info, i, devinfo, lock, input_channel, input_sample, rate, dat, channels, stack, current_channel, current_value, trigger, channel, sample, thread, stream
 
     # this can be used to show parameters that have changed

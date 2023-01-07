@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import os
 import string
 import sys
@@ -83,13 +82,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch, client
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path, client
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     try:
         client = mqtt.Client()
@@ -106,7 +102,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, client, name
+    global patch, name, path, client, name
     global monitor, debug, prefix, output_scale, output_offset, input_channels, channel
 
     # this can be used to show parameters that have changed
@@ -140,7 +136,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, patch, client
+    global patch, name, path, client
     global monitor, debug, prefix, output_scale, output_offset, input_channels, channel
     global output_scale, output_offset
 

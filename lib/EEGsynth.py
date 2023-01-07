@@ -49,6 +49,11 @@ from termcolor import colored
 class patch():
     """Class to provide a generalized interface for patching modules using
     command-line arguments, configuration files and Redis.
+    
+    The patch is initialized like this
+      patch = EEGsynth.patch(name=<name>, path=<path>)
+    where the name and path point to the ini file. You can also
+    pass the --inifile option on the command-line.
 
     The following methods get the values (as a string) from the commnand-line
     arguments or from the ini file
@@ -77,11 +82,17 @@ class patch():
       item=0,key2       get the value of key2 from Redis
     """
 
-    def __init__(self, parser, preservecase=False):
+    def __init__(self, name=None, path=None, preservecase=False):
         
-        if parser==None:
-            parser = argparse.ArgumentParser()
-        
+        if not name==None and not path==None:
+            inifile = os.path.join(path, name + '.ini')
+        elif not name==None:
+            inifile = name + '.ini'
+        else:
+            inifile = None
+            
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-i", "--inifile", default=inifile, help="name of the configuration file")
         parser.add_argument("--general-broker", default=None, help="general broker")
         parser.add_argument("--general-debug", default=1, help="general debug")
         args = parser.parse_args()

@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import os
 import socket
 import sys
@@ -109,13 +108,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -126,7 +122,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, name
+    global patch, name, path
     global use_old_version, dispatcher, osc_server
     global monitor, debug, osc_address, osc_port, prefix, output_scale, output_offset
 
@@ -177,7 +173,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, patch
+    global patch, name, path
     global use_old_version, output_scale, output_offset
 
     # keep looping while incoming OSC messages are being handled

@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import os
 import sys
 
@@ -48,18 +47,15 @@ import ZmqRedis
 def _setup():
     '''Initialize the module
     '''
-    global parser, patch
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
+    global patch, name, path
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
 def _start():
     '''Start the module
     '''
-    global parser, patch
+    global patch, name, path
     global monitor, broker, server
 
     # this can be used to show parameters that have changed

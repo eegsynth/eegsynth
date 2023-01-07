@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import numpy as np
 import os
 import sys
@@ -53,13 +52,10 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, patch, monitor, ft_host, ft_port, ft_input
+    global patch, name, path, monitor, ft_host, ft_port, ft_input
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # this can be used to show parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
@@ -79,7 +75,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, patch, monitor, ft_host, ft_port, ft_input, name
+    global patch, name, path, monitor, ft_host, ft_port, ft_input, name
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, output, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
@@ -119,7 +115,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, patch, monitor, ft_host, ft_port, ft_input
+    global patch, name, path, monitor, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, output, begsample, endsample
     global scale_window, offset_window, window, taper, frequency, band_items, bandname, bandlo, bandhi, lohi, dat, power, chan, band, meandat, sample, F, i, lo, hi, count, key
 
