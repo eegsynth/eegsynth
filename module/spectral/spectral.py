@@ -140,7 +140,7 @@ def _loop_once():
     bandhi   = []
     for item in band_items:
         # channel numbers are one-offset in the ini file, zero-offset in the code
-        lohi = patch.getfloat('band', item[0], multiple=True)
+        lohi = patch.getfloat('band', item[0], multiple=True, default=[0,hdr_input.fSample/2])
         bandname.append(item[0])
         bandlo.append(lohi[0])
         bandhi.append(lohi[1])
