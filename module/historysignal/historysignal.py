@@ -213,7 +213,7 @@ def _loop_once():
     for operation in list(historic.keys()):
         key = prefix + "." + operation
         val = historic[operation]
-        patch.setvalue(key, val, debug > 1)
+        patch.setvalue(key, val)
 
     begsample += stepsize
     endsample += stepsize
