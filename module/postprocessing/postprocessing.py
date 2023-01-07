@@ -106,7 +106,7 @@ def _start():
     if 'initial' in patch.config.sections():
         # assign the initial values
         for item in patch.config.items('initial'):
-            val = patch.getfloat('initial', item[0])
+            val = patch.getfloat('initial', item[0], default=np.nan)
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)
 
@@ -147,7 +147,7 @@ def _loop_once():
 
     input_value = []
     for name in input_name:
-        val = patch.getfloat('input', name)
+        val = patch.getfloat('input', name, default=np.nan)
         input_value.append(val)
 
     for key, equation in zip(output_name, output_equation):
@@ -160,6 +160,8 @@ def _loop_once():
 
         # try to evaluate the equation
         try:
+            equation = equation.replace('nan', 'np.nan')
+            equation = equation.replace('inf', 'np.inf')
             val = eval(equation)
             val = float(val) # deal with True/False
             monitor.debug('%s = %s = %g' % (key, equation, val))
