@@ -140,7 +140,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input, name
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
     global timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer

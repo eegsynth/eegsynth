@@ -82,7 +82,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output, name
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output
     global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
 
     # get the options from the configuration file

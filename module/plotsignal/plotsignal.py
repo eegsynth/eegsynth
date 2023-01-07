@@ -81,7 +81,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input, name
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
     global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
 
     # read variables from ini/redis

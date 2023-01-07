@@ -87,7 +87,7 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
+    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input, ft_output
     global timeout, hdr_input, start, window, downsample, differentiate, integrate, rectify, smoothing, reference, default_scale, scale_lowpass, scale_highpass, scale_notchfilter, offset_lowpass, offset_highpass, offset_notchfilter, scale_filterorder, scale_notchquality, offset_filterorder, offset_notchquality, previous, differentiate_zi, integrate_zi, begsample, endsample
     global montage_in, montage_out
 
