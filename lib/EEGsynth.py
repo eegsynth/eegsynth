@@ -90,7 +90,7 @@ class patch():
             inifile = name + '.ini'
         else:
             inifile = None
-            
+        
         parser = argparse.ArgumentParser()
         parser.add_argument("-i", "--inifile", default=inifile, help="name of the configuration file")
         parser.add_argument("--general-broker", default=None, help="general broker")
@@ -101,7 +101,7 @@ class patch():
         if preservecase:
             # see https://docs.python.org/3/library/configparser.html#configparser.ConfigParser.optionxform
             config.optionxform = str
-        if 'inifile' in args:
+        if 'inifile' in args and not args.inifile==None:
             config.read(args.inifile)
         
         # convert the command-line arguments in a dict
@@ -210,7 +210,9 @@ class patch():
                 items = [items]
 
             # set the default
-            if default != None:
+            if multiple and isinstance(default, list):
+                val = [float(x) for x in default]
+            elif default != None:
                 val = [float(default)] * len(items)
             else:
                 val = [default] * len(items)
@@ -228,24 +230,25 @@ class patch():
                         pass
         else:
             # the configuration file does not contain the item
-            if multiple == True and default == None:
-                val = []
-            elif multiple == True and default != None:
+            if multiple and isinstance(default, list):
                 val = [float(x) for x in default]
-            elif multiple == False and default == None:
-                val = None
-            elif multiple == False and default != None:
+            elif multiple and default == None:
+                val = []
+            elif multiple and default != None:
+                val = [float(default)]
+            elif not multiple and default == None:
+                val = default
+            elif not multiple and default != None:
                 val = float(default)
 
-        if multiple:
-            # return it as list
-            return val
-        else:
+        if multiple and not isinstance(val, list):
+            # return a list
+            return [val]
+        elif not multiple and isinstance(val, list):
             # return a single value
-            if isinstance(val, list):
-                return val[0]
-            else:
-                return val
+            return val[0]
+        else:
+            return val
 
     ####################################################################
     def getint(self, section, item, multiple=False, default=None):
@@ -273,7 +276,9 @@ class patch():
                 items = [items]
 
             # set the default
-            if default != None:
+            if multiple and isinstance(default, list):
+                val = [int(x) for x in default]
+            elif default != None:
                 val = [int(default)] * len(items)
             else:
                 val = [default] * len(items)
@@ -291,24 +296,25 @@ class patch():
                         pass
         else:
             # the configuration file does not contain the item
-            if multiple == True and default == None:
-                val = []
-            elif multiple == True and default != None:
+            if multiple and isinstance(default, list):
                 val = [int(x) for x in default]
-            elif multiple == False and default == None:
-                val = None
-            elif multiple == False and default != None:
+            elif multiple and default == None:
+                val = []
+            elif multiple and default != None:
+                val = [int(default)]
+            elif not multiple and default == None:
+                val = default
+            elif not multiple and default != None:
                 val = int(default)
 
-        if multiple:
-            # return it as list
-            return val
-        else:
+        if multiple and not isinstance(val, list):
+            # return a list
+            return [val]
+        elif not multiple and isinstance(val, list):
             # return a single value
-            if isinstance(val, list):
-                return val[0]
-            else:
-                return val
+            return val[0]
+        else:
+            return val
 
     ####################################################################
     def getstring(self, section, item, multiple=False, default=None):
@@ -342,15 +348,14 @@ class patch():
                 val = squeeze(separator, val)  # remove double separators
                 val = val.split(separator)     # split on the separator
 
-        if multiple:
-            # return it as list
-            return val
-        else:
+        if multiple and not isinstance(val, list):
+            # return a list
+            return [val]
+        elif not multiple and isinstance(val, list):
             # return a single value
-            if isinstance(val, list):
-                return val[0]
-            else:
-                return val
+            return val[0]
+        else:
+            return val
 
     ####################################################################
     def hasitem(self, section, item):
