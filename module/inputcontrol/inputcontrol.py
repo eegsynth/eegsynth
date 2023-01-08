@@ -21,10 +21,7 @@
 
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
-import configparser
-import argparse
 import os
-import redis
 import sys
 import time
 import signal
@@ -182,31 +179,31 @@ class Window(QWidget):
         # the section 'slider' is treated as the first row
         # this is only for backward compatibility
         section = 'slider'
-        if config.has_section(section):
+        if patch.config.has_section(section):
             sectionlayout = QtWidgets.QHBoxLayout()
-            self.drawpanel(sectionlayout, config.items(section))
+            self.drawpanel(sectionlayout, patch.config.items(section))
             leftlayout.addLayout(sectionlayout)
 
         for row in range(0, 16):
             section = 'row%d' % (row + 1)
-            if config.has_section(section):
+            if patch.config.has_section(section):
                 sectionlayout = QtWidgets.QHBoxLayout()
-                self.drawpanel(sectionlayout, config.items(section))
+                self.drawpanel(sectionlayout, patch.config.items(section))
                 leftlayout.addLayout(sectionlayout)
 
         # the section 'button' is treated as the first column
         # this is only for backward compatibility
         section = 'button'
-        if config.has_section(section):
+        if patch.config.has_section(section):
             sectionlayout = QtWidgets.QVBoxLayout()
-            self.drawpanel(sectionlayout, config.items(section))
+            self.drawpanel(sectionlayout, patch.config.items(section))
             rightlayout.addLayout(sectionlayout)
 
         for column in range(0, 16):
             section = 'column%d' % (column + 1)
-            if config.has_section(section):
+            if patch.config.has_section(section):
                 sectionlayout = QtWidgets.QVBoxLayout()
-                self.drawpanel(sectionlayout, config.items(section))
+                self.drawpanel(sectionlayout, patch.config.items(section))
                 rightlayout.addLayout(sectionlayout)
 
     def changecolor(self):
@@ -310,23 +307,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -337,14 +324,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
     winx = patch.getfloat('display', 'xpos')
     winy = patch.getfloat('display', 'ypos')
@@ -355,9 +339,9 @@ def _start():
     output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # internal values are from 0 to 127
     output_offset = patch.getfloat('output', 'offset', default=0.)    # internal values are from 0 to 127
 
-    if 'initial' in config.sections():
+    if 'initial' in patch.config.sections():
         # assign the initial values
-        for item in config.items('initial'):
+        for item in patch.config.items('initial'):
             val = patch.getfloat('initial', item[0])
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)

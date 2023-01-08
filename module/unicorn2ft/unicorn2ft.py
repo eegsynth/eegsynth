@@ -19,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import os
-import redis
 import sys
 import time
 import serial
@@ -58,23 +55,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -85,15 +72,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, prefix, ft_host, ft_port, ft_output, timeout, s, start_acq, stop_acq, start_sequence, stop_sequence, blocksize, nchan, fsample
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
-
-    # get the options from the configuration file
-    timeout = patch.getfloat('unicorn', 'timeout', default=5)
-    blocksize = patch.getfloat('unicorn', 'blocksize', default=0.2) # write blocks of 0.2 seconds, i.e., 50 samples
+    global patch, name, path, monitor
+    global monitor, prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -104,7 +84,11 @@ def _start():
         monitor.info("Connected to output FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
-        
+
+    # get the options from the configuration file
+    timeout = patch.getfloat('unicorn', 'timeout', default=5)
+    blocksize = patch.getfloat('unicorn', 'blocksize', default=0.2) # write blocks of 0.2 seconds, i.e., 50 samples
+
     # write the header information to the FieldTrip buffer
     nchan = 16
     fsample = 250
@@ -145,8 +129,8 @@ def _start():
 def _loop_once():
     '''Run the main loop once
     '''
-    global parser, args, config, r, response, patch
-    global monitor, s, start_sequence, blocksize, nchan, fsample
+    global patch, name, path, monitor
+    global monitor, prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
     
     nsample = int(blocksize*fsample)
     dat = np.zeros((nsample,nchan))
@@ -201,7 +185,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch, s
+    global monitor, patch
     while True:
         monitor.loop()
         _loop_once()

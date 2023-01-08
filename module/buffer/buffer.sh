@@ -4,7 +4,7 @@
 # in the specified or the default inifile.
 #
 # Use as
-#   buffer.sh [-i <inifile>] [-h] [-v]
+#   buffer.sh [-h] [-v] [-i <inifile>]
 
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
@@ -17,19 +17,20 @@ BINDIR=$DIR/../../bin
 INIFILE=${DIR}/${NAME}.ini
 VERBOSE=0
 
-while getopts "hvi:" option; do
-  case "${option}" in
-    i)
-      INIFILE=${OPTARG}
+while getopts "hvi:" OPTION; do
+  case ${OPTION} in
+    h)
+      echo "Use as: $0 [-h] [-v] [-i <inifile>]"
+      exit 0
       ;;
     v)
       VERBOSE=1
       ;;
-    h)
-      echo "Use as: $0 [-i <inifile>] [-h] [-v]"
+    i)
+      INIFILE=${OPTARG}
       ;;
     \?)
-      echo "Invalid option: -${OPTARG}" >&2
+      exit 0
       ;;
   esac
 done

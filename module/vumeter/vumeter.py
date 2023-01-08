@@ -21,9 +21,6 @@
 
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
-import configparser
-import redis
-import argparse
 import os
 import sys
 import time
@@ -125,23 +122,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -152,11 +139,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global patch, name, path, monitor
     global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     delay           = patch.getfloat('general', 'delay')
@@ -166,7 +150,7 @@ def _start():
     winheight       = patch.getfloat('display', 'height')
 
     # get the input options
-    input_name, input_variable = list(zip(*config.items('input')))
+    input_name, input_variable = list(zip(*patch.config.items('input')))
 
     for name,variable in zip(input_name, input_variable):
         monitor.info("%s = %s" % (name, variable))

@@ -19,12 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import mido
 from fuzzywuzzy import process
 import os
-import redis
 import sys
 import threading
 import time
@@ -62,7 +59,7 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('ENDORPHINES_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)      # this message contains the note
         while self.running:
@@ -87,23 +84,13 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -114,14 +101,11 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
     mididevice = process.extractOne(mididevice, mido.get_output_names())[0]  # select the closest match
@@ -147,10 +131,10 @@ def _start():
 
         # channels are one-offset in the ini file, zero-offset in the code
         name = 'channel{}'.format(channel + 1)
-        if config.has_option('gate', name):
+        if patch.config.has_option('gate', name):
 
             # start the background thread that deals with this channel
-            this = TriggerThread(patch.getstring('gate', name), channel)
+            this = TriggerThread(patch.get('gate', name), channel)
             trigger.append(this)
             monitor.debug(name + ' trigger configured')
 
@@ -175,8 +159,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
-    global monitor, debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
+    global patch, name, path, monitor
+    global debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
     global name, val, port_val, scale, offset, midichannel, msg
 
     # loop over the control values
@@ -275,7 +259,7 @@ def _stop():
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('ENDORPHINES_UNBLOCK', 1)
+    patch.publish('ENDORPHINES_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()

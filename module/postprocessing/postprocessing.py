@@ -20,11 +20,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy import log, log2, log10, exp, power, sqrt, mean, median, var, std, mod, random
-import configparser
-import argparse
 import numpy as np
 import os
-import redis
 import sys
 import time
 
@@ -82,23 +79,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -109,26 +96,23 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global patch, name, path, monitor
     global monitor, input_name, input_variable, output_name, output_equation, variable, equation
 
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
-
-    if 'initial' in config.sections():
+    if 'initial' in patch.config.sections():
         # assign the initial values
-        for item in config.items('initial'):
-            val = patch.getfloat('initial', item[0])
+        for item in patch.config.items('initial'):
+            val = patch.getfloat('initial', item[0], default=np.nan)
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)
 
     # get the input and output options
-    if len(config.items('input')):
-        input_name, input_variable = list(zip(*config.items('input')))
+    if len(patch.config.items('input')):
+        input_name, input_variable = list(zip(*patch.config.items('input')))
     else:
         input_name, input_variable = ([], [])
-    if len(config.items('output')):
-        output_name, output_equation = list(zip(*config.items('output')))
+    if len(patch.config.items('output')):
+        output_name, output_equation = list(zip(*patch.config.items('output')))
     else:
         output_name, output_equation = ([], [])
 
@@ -152,14 +136,14 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
     global monitor, input_name, input_variable, output_name, output_equation, variable, equation
 
     monitor.debug('============================')
 
     input_value = []
     for name in input_name:
-        val = patch.getfloat('input', name)
+        val = patch.getfloat('input', name, default=np.nan)
         input_value.append(val)
 
     for key, equation in zip(output_name, output_equation):
@@ -172,6 +156,8 @@ def _loop_once():
 
         # try to evaluate the equation
         try:
+            equation = equation.replace('nan', 'np.nan')
+            equation = equation.replace('inf', 'np.inf')
             val = eval(equation)
             val = float(val) # deal with True/False
             monitor.debug('%s = %s = %g' % (key, equation, val))

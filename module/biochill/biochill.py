@@ -17,15 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import os
-import redis
 import sys
 import time
 import numpy as np
 from scipy.signal import sosfilt_zi, sosfilt
-
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -52,33 +48,13 @@ from EEGsynth import bessel_highpass, bessel_bandpass
 
 
 class BreathingBiofeedback:
-
     def __init__(self, path, name):
 
-        # Configuration.
-        parser = argparse.ArgumentParser()
-        parser.add_argument("-i", "--inifile",
-                            default=os.path.join(path, name + '.ini'),
-                            help="name of the configuration file")
-        args = parser.parse_args()
-
-        config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-        config.read(args.inifile)
-
-        # Redis.
-        try:
-            rds = redis.StrictRedis(host=config.get('redis', 'hostname'),
-                                    port=config.getint('redis', 'port'),
-                                    db=0, charset='utf-8',
-                                    decode_responses=True)
-        except redis.ConnectionError as e:
-            raise RuntimeError(e)
-
-        self.patch = EEGsynth.patch(config, rds)    # combine patching from configuration file and Redis.
-
+        # configure and start the patch, this will parse the command-line arguments and the ini file
+        self.patch = EEGsynth.patch(name=name, path=path)
+        
         # Monitor.
-        self.monitor = EEGsynth.monitor(name=name,
-                                        debug=self.patch.getint('general', 'debug'))
+        self.monitor = EEGsynth.monitor(name=name, debug=self.patch.getint('general', 'debug', default=1))
 
         # FieldTrip.
         try:

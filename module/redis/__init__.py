@@ -1,7 +1,7 @@
 import sys
 import time
 
-from .outputzeromq import _setup, _start, _loop_once, _loop_forever, _stop
+from .redis import _setup, _start, _loop_once, _loop_forever, _stop
 
 class Executable:
     def __init__(self, args=None):
@@ -18,7 +18,7 @@ class Executable:
                 _start()
                 _loop_forever()
             except RuntimeError:
-                # restart after one second
-                time.sleep(1)
+                # do not restart
+                raise SystemExit
             except KeyboardInterrupt:
                 raise SystemExit

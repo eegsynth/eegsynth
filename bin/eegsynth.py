@@ -50,16 +50,21 @@ else:
 # eegsynth/module contains the modules
 sys.path.insert(0, os.path.join(path, '..'))
 
+
 # the module starts as soon as it is instantiated
 # optional command-line arguments can be passed to specify the ini file
 def _start(module, args=None):
     module(args)
+
 
 def _main():
     """Parse command line options and start the EEGsynth modules for the specified patch.
     """
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--general-broker", default=None, help="general broker")
+    parser.add_argument("--general-debug", default=None, help="general debug")
+    parser.add_argument("--general-delay", default=None, help="general delay")
     parser.add_argument("inifile", nargs='+', help="configuration file for a patch")
     args = parser.parse_args()
 
@@ -70,6 +75,9 @@ def _main():
     args.inifile = [glob(x) for x in args.inifile]
     args.inifile = [item for sublist in args.inifile for item in sublist]
 
+    if len(args.inifile)==0:
+        raise RuntimeError('incorrect command line argument')
+        
     for file_or_dir in args.inifile:
         if os.path.isfile(file_or_dir):
             if not file_or_dir.endswith('.ini'):
@@ -78,26 +86,38 @@ def _main():
         else:
             raise RuntimeError('incorrect command line argument ' + file_or_dir)
 
-    # ignore the EEGsynth modules that are not implemented in Python but that do have an ini file
-    inifiles = [file for file in inifiles if not file.endswith('redis.ini')]
-    inifiles = [file for file in inifiles if not file.endswith('openbci2ft.ini')]
+    # convert the command-line arguments in a dict
+    args = vars(args)
+    # remove empty items
+    args = {k:v for k,v in args.items() if v}
 
     # this will contain a list of processes
     process = []
 
-    for file in inifiles:
-        module = os.path.split(file)[-1]        # keep only the filename
+    for inifile in inifiles:
+        module = os.path.split(inifile)[-1]     # keep only the filename
         module = os.path.splitext(module)[0]    # remove the ini extension
         module = module.split('-')[0]           # remove whatever comes after a "-" separator
         module = module.split('_')[0]           # remove whatever comes after a "_" separator
 
+        # convert the string in a reference to the corresponding class
+        # as soon as an object of the class is instantiated, the module will start
+
         # import the class that implements the specific module from eegsynth/module
         object = import_module('module.' + module)
 
-        # convert the string in a reference to the corresponding class
-        # as soon as an object of the class is instantiated, the module will start
-        file = os.path.join(os.getcwd(), file)
-        process.append(Process(target=_start, args=(object.Executable, ['--inifile', file])))
+        inifile = os.path.join(os.getcwd(), inifile)
+        
+        # pass only the specific ini file
+        args['inifile'] = inifile
+        
+        # pass all other arguments
+        args_to_pass = []
+        for k,v in args.items():
+            # reformat them back into command-line arguments
+            args_to_pass += ['--' + k.replace('_', '-'), v]
+        
+        process.append(Process(target=_start, args=(object.Executable, args_to_pass)))
 
     # see https://stackoverflow.com/questions/64174552/what-does-the-process-has-forked-and-you-cannot-use-this-corefoundation-functio
     if sys.version_info >= (3,0):

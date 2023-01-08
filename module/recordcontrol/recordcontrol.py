@@ -19,12 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import datetime
 import numpy as np
 import os
-import redis
 import sys
 import time
 import wave
@@ -56,23 +53,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -83,11 +70,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
 
     MININT16 = -np.power(2., 15)
     MAXINT16 = np.power(2., 15) - 1
@@ -95,7 +79,7 @@ def _start():
     MAXINT32 = np.power(2., 31) - 1
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
     filename = patch.getstring('recording', 'file')
     fileformat = patch.getstring('recording', 'format')
@@ -118,8 +102,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
-    global monitor, MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
+    global patch, name, path, monitor
+    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
     global start, fname, f, ext, blocksize, synchronize, channels, channelz, nchans, sample, replace, i, s, z, physical_min, physical_max, meas_info, chan_info, recstart, D, chan, xval, elapsed
 
     # measure the time to correct for the slip
@@ -155,7 +139,7 @@ def _loop_once():
         sample = 0
 
         # search-and-replace to reduce the length of the channel labels
-        for replace in config.items('replace'):
+        for replace in patch.config.items('replace'):
             monitor.debug(replace)
             for i in range(len(channelz)):
                 channelz[i] = channelz[i].replace(replace[0], replace[1])
@@ -201,10 +185,9 @@ def _loop_once():
     if recording:
         D = []
         for chan in channels:
-            xval = r.get(chan)
             try:
-                xval = float(xval)
-            except ValueError:
+                xval = float(patch.redis.get(chan))
+            except:
                 xval = 0.
             xval = EEGsynth.limit(xval, physical_min, physical_max)
             D.append([xval])
@@ -244,7 +227,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch
+    global monitor
     while True:
         monitor.loop()
         _loop_once()

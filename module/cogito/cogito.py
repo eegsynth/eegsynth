@@ -21,13 +21,10 @@
 
 from __future__ import print_function
 
-import configparser
-import argparse
 import numpy as np
 import os
 import sys
 import time
-import redis
 from copy import copy
 
 # Pandas is a rather large Python package with a lot of extra dependencies.
@@ -61,29 +58,21 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
 
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-    # get the options from the configuration file
-    debug   = patch.getint('general', 'debug')
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, ft_output, timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
 
     try:
         ft_host = patch.getstring('input_fieldtrip', 'hostname')
@@ -105,14 +94,6 @@ def _setup():
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
 
-
-def _start():
-    '''Start the module
-    This uses the global variables from setup and adds a set of global variables
-    '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output, name
-    global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
-
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('input_fieldtrip','timeout', default=30)
 
@@ -130,8 +111,8 @@ def _start():
     monitor.debug(hdr_input.labels)
 
     # get the input and output options
-    input_number, input_channel = list(map(list, list(zip(*config.items('input_channel')))))
-    output_number, output_channel = list(map(list, list(zip(*config.items('output_channel')))))
+    input_number, input_channel = list(map(list, list(zip(*patch.config.items('input_channel')))))
+    output_number, output_channel = list(map(list, list(zip(*patch.config.items('output_channel')))))
 
     # convert to integer and make the indices zero-offset
     input_number = [int(number)-1 for number in input_number]
@@ -161,13 +142,12 @@ def _start():
     output_number = list(range(nOutputs))
     output_channel = tmp
 
-    if debug > 0:
-        monitor.info('===== input channels =====')
-        for number, channel in zip(input_number, input_channel):
-            monitor.info(str(number) + ' = ' + channel)
-        monitor.info('===== output channels =====')
-        for number, channel in zip(output_number, output_channel):
-            monitor.info(str(number) + ' = ' + channel)
+    monitor.info('===== input channels =====')
+    for number, channel in zip(input_number, input_channel):
+        monitor.info(str(number) + ' = ' + channel)
+    monitor.info('===== output channels =====')
+    for number, channel in zip(output_number, output_channel):
+        monitor.info(str(number) + ' = ' + channel)
 
     sample_rate         = patch.getfloat('cogito', 'sample_rate')
     window              = patch.getfloat('cogito', 'window')
@@ -214,8 +194,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, monitor, debug, ft_host, ft_port, ft_input, ft_output
-    global timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, ft_output, timeout, hdr_input, start, input_number, input_channel, output_number, output_channel, nInputs, number, channel, nOutputs, tmp, sample_rate, window, f_min, f_max, f_offset, scaling, polyorder, profileMin, profileMax, profileCorrection, layout, definition, val, positions, inputscaling, outputscaling, begsample, endsample
     global dat_input, tmpvar, ch, chan_time, original, t, fourier, mask, convert, signal_time, signal, dat_output, write_time
 
     # determine when we start polling for available data

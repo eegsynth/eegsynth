@@ -19,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import os
-import redis
 import string
 import sys
 import threading
@@ -85,29 +82,19 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, client
+    global patch, name, path, monitor, client
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     try:
         client = mqtt.Client()
-        client.connect(config.get('mqtt', 'hostname'), config.getint('mqtt', 'port'), config.getint('mqtt', 'timeout'))
+        client.connect(patch.get('mqtt', 'hostname'), patch.getint('mqtt', 'port'), patch.getint('mqtt', 'timeout'))
     except:
         raise RuntimeError("cannot connect to MQTT broker")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -118,14 +105,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, client, name
-    global monitor, debug, prefix, output_scale, output_offset, input_channels, channel
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor, client, name
+    global debug, prefix, output_scale, output_offset, input_channels, channel
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
 
     # the scale and offset are used to map OSC values to Redis values
@@ -152,8 +136,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, client
-    global monitor, debug, prefix, output_scale, output_offset, input_channels, channel
+    global patch, name, path, monitor, client
+    global debug, prefix, output_scale, output_offset, input_channels, channel
     global output_scale, output_offset
 
     # update the scale and offset

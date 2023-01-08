@@ -19,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import os
-import redis
 import sys
 import threading
 import time
@@ -76,7 +73,7 @@ class TriggerThread(threading.Thread):
     def stop(self):
         self.running = False
     def run(self):
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('OUTPUTOSC_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)     # this message contains the value of interest
         while self.running:
@@ -107,23 +104,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -134,14 +121,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, s, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    global patch, name, path, monitor
+    global debug, s, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
 
     try:
         if use_old_version:
@@ -154,8 +138,8 @@ def _start():
         raise RuntimeError("Cannot connect to OSC server")
 
     # keys should be present in both the input and output section of the *.ini file
-    list_input  = config.items('input')
-    list_output = config.items('output')
+    list_input  = patch.config.items('input')
+    list_output = patch.config.items('output')
 
     list1 = [] # the key name that matches in the input and output section of the *.ini file
     list2 = [] # the key name in Redis
@@ -209,7 +193,7 @@ def _stop():
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('OUTPUTOSC_UNBLOCK', 1)
+    patch.publish('OUTPUTOSC_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()

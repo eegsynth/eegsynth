@@ -19,12 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import math
 import numpy as np
 import os
-import redis
 import sys
 import threading
 import time
@@ -81,7 +78,7 @@ class SequenceThread(threading.Thread):
 
     def run(self):
         global r, monitor, patch
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('SEQUENCER_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)    # this message contains the note
         while self.running:
@@ -89,6 +86,7 @@ class SequenceThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel'] == self.redischannel:
+                    monitor.debug(item)
                     now = time.time()
                     if self.prevtime != None:
                         self.steptime = now - self.prevtime
@@ -97,26 +95,27 @@ class SequenceThread(threading.Thread):
                         # the sequence can consist of a list of values or a list of Redis channels
                         val = self.sequence[self.step % len(self.sequence)]
 
-                        try:
-                            # convert the string from the ini to floating point
-                            val = float(val)
-                        except:
-                            # get the value from Redis
-                            val = r.get(val)
-                            if val == None:
+                        if val[0].isalpha():
+                            # get the value directly from Redis
+                            try:
+                                val = float(patch.redis.get(val))
+                            except:
                                 val = 0.
-                            else:
-                                # convert the string from Redis to floating point
+                        else:
+                            try:
                                 val = float(val)
+                            except ValueError:
+                                val = 0.
 
                         # apply the scaling, offset and transpose the note
                         val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
                         val += self.transpose
+                        
                         # send it as sequencer.note with the note as value
                         patch.setvalue(self.key, val, duration=self.duration * self.steptime)
                         if val >= 1.:
                             # send it also as sequencer.noteXXX with value 1.0
-                            key = '%s%03d' % (self.key, val)
+                            key = '%s%03d' % (self.key, round(val))
                             patch.setvalue(key, 1., duration=self.duration * self.steptime)
                         monitor.info("step %2d : %s = %g" % (self.step + 1, self.key, val))
                         # increment to the next step
@@ -127,24 +126,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
-
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -155,15 +143,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global patch, name, path, monitor
     global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     stepsize = patch.getfloat('general', 'delay')
-    clock = patch.getstring('sequence', 'clock')  # the clock signal for the sequence
     prefix = patch.getstring('output', 'prefix')
 
     # these scale and offset parameters are used to map between Redis and internal values
@@ -179,6 +163,8 @@ def _start():
     # this is to prevent two messages from being sent at the same time
     lock = threading.Lock()
 
+    # the clock signal for the sequence
+    clock = patch.get('sequence', 'clock')
     # the notes will be sent to Redis using this key
     key = "{}.note".format(prefix)
 
@@ -204,7 +190,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
     global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
     global active, sequence, transpose, duration, elapsed, naptime
 
@@ -245,7 +231,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch
+    global monitor
     while True:
         # measure the time to correct for the slip
         start = time.time()
@@ -272,7 +258,7 @@ def _stop(*args):
         pass
     monitor.success('Closing threads')
     sequencethread.stop()
-    r.publish('SEQUENCER_UNBLOCK', 1)
+    patch.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()
     sys.exit()
 

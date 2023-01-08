@@ -19,12 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import mido
 from fuzzywuzzy import process
 import os
-import redis
 import sys
 import threading
 import time
@@ -72,7 +69,7 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('KEYBOARD_UNBLOCK')  # this message unblocks the Redis listen command
         pubsub.subscribe(self.onset)      # this message triggers the note
         while self.running:
@@ -90,7 +87,7 @@ class TriggerThread(threading.Thread):
                         # use the value of the onset trigger
                         velocity = val
                     elif type(self.velocity) == str:
-                        velocity = float(r.get(self.velocity))
+                        velocity = float(patch.redis.get(self.velocity))
                         velocity = EEGsynth.rescale(velocity, slope=scale_velocity, offset=offset_velocity)
                         velocity = EEGsynth.limit(velocity, 0, 127)
                         velocity = int(velocity)
@@ -98,7 +95,7 @@ class TriggerThread(threading.Thread):
                         velocity = self.velocity
 
                     if type(self.pitch) == str:
-                        pitch = float(r.get(self.pitch))
+                        pitch = float(patch.redis.get(self.pitch))
                         pitch = EEGsynth.rescale(pitch, slope=scale_pitch, offset=offset_pitch)
                         pitch = EEGsynth.limit(pitch, 0, 127)
                         pitch = int(pitch)
@@ -106,7 +103,7 @@ class TriggerThread(threading.Thread):
                         pitch = self.pitch
 
                     if type(self.duration) == str:
-                        duration = float(r.get(self.duration))
+                        duration = float(patch.redis.get(self.duration))
                         duration = EEGsynth.rescale(duration, slope=scale_duration, offset=offset_duration)
                         # some minimal time is needed for the delay
                         duration = EEGsynth.limit(duration, 0.05, float('Inf'))
@@ -139,23 +136,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -166,11 +153,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, note_name, note_code, debug, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global note_name, note_code, debug, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
 
     # the list of MIDI commands is specific to the implementation for a full-scale keyboard
     # see https://newt.phys.unsw.edu.au/jw/notes.html
@@ -180,7 +164,7 @@ def _start():
                  82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     midichannel = patch.getint('midi', 'channel', default=None)
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
@@ -233,7 +217,7 @@ def _start():
     # the keyboard notes can be linked to separate triggers, where the trigger value corresponds to the velocity
     trigger = []
     for name, code in zip(note_name, note_code):
-        if config.has_option('input', name):
+        if patch.config.has_option('input', name):
             # start the background thread that deals with this note
             onset = patch.getstring('input', name)
             velocity = None  # use the value of the onset trigger
@@ -266,8 +250,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
-    global monitor, note_name, note_code, debug, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
+    global patch, name, path, monitor
+    global note_name, note_code, debug, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
 
     for msg in inputport.iter_pending():
         if midichannel is None:
@@ -326,7 +310,7 @@ def _stop():
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('KEYBOARD_UNBLOCK', 1)
+    patch.publish('KEYBOARD_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()

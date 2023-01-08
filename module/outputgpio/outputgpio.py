@@ -19,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import os
-import redis
 import sys
 import time
 import threading
@@ -73,7 +70,7 @@ class TriggerThread(threading.Thread):
         self.running = False
 
     def run(self):
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         # this message unblocks the Redis listen command
         pubsub.subscribe('OUTPUTGPIO_UNBLOCK')
         # this message triggers the event
@@ -105,23 +102,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -132,11 +119,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, pin, debug, delay, scale_duration, offset_duration, lock, trigger
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global pin, debug, delay, scale_duration, offset_duration, lock, trigger
 
     # make a dictionary that maps GPIOs to the WiringPi number
     pin = {
@@ -160,7 +144,7 @@ def _start():
     }
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
 
     # values between 0 and 1 work well for the duration
@@ -175,7 +159,7 @@ def _start():
 
     # set up PWM for the control channels
     previous_val = {}
-    for gpio, channel in config.items('control'):
+    for gpio, channel in patch.config.items('control'):
         monitor.info("control " + channel + " " + gpio)
         wiringpi.softPwmCreate(pin[gpio], 0, 100)
         # control values are only relevant when different from the previous value
@@ -183,7 +167,7 @@ def _start():
 
     # create the threads that deal with the triggers
     trigger = []
-    for gpio, channel in config.items('trigger'):
+    for gpio, channel in patch.config.items('trigger'):
         wiringpi.pinMode(pin[gpio], 1)
         duration = patch.getstring('duration', gpio)
         trigger.append(TriggerThread(channel, gpio, duration))
@@ -202,9 +186,9 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    for gpio, channel in config.items('control'):
+    for gpio, channel in patch.config.items('control'):
         val = patch.getfloat('control', gpio)
 
         if val == None:
@@ -243,7 +227,7 @@ def _stop():
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('OUTPUTGPIO_UNBLOCK', 1)
+    patch.publish('OUTPUTGPIO_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     sys.exit()

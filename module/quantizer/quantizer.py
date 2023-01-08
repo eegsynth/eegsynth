@@ -19,11 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import numpy as np
 import os
-import redis
 import sys
 import time
 
@@ -59,23 +56,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -86,14 +73,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, index, input_value
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, index, input_value
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
 
     # the input scale and offset are used to map Redis values to internal values
     input_scale = patch.getfloat('input', 'scale', default=127)
@@ -103,8 +87,8 @@ def _start():
     output_offset = patch.getfloat('output', 'offset', default=0)
 
     # get the input and output options
-    input_channel, input_name = list(map(list, list(zip(*config.items('input')))))
-    output_name, output_value = list(map(list, list(zip(*config.items('quantization')))))
+    input_channel, input_name = list(map(list, list(zip(*patch.config.items('input')))))
+    output_name, output_value = list(map(list, list(zip(*patch.config.items('quantization')))))
 
     # remove the scale and offset from the input list
     del input_channel[input_channel.index('scale')]
@@ -121,18 +105,13 @@ def _start():
     del output_name[index]
     del output_value[index]
 
-    # there should not be any local variables in this function, they should all be global
-    del i, name
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
+    global patch, name, path, monitor
+    global debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
     global channel, val, idx, qname, qvalue, key
 
     monitor.info('----------------------------------------')
@@ -160,10 +139,6 @@ def _loop_once():
                 # map the internally used values to Redis values
                 val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
                 patch.setvalue(key, val)
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
 
 
 def _loop_forever():

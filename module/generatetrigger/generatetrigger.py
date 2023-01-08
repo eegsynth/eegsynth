@@ -19,11 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import numpy as np
 import os
-import redis
 import sys
 import time
 import threading
@@ -51,7 +48,7 @@ import EEGsynth
 
 
 def trigger(skip=False):
-    global monitor, debug, patch, lock, rate, spread, t
+    global debug, patch, lock, rate, spread, t
 
     if skip:
         # this happens upon initialization and when the timing parameters change
@@ -91,23 +88,13 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -118,14 +105,11 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
 
     # the scale and offset are used to map the Redis values to internal values
     scale_rate = patch.getfloat('scale', 'rate', default=1)
@@ -157,8 +141,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
-    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+    global patch, name, path, monitor
+    global debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
     global change
 
     with lock:

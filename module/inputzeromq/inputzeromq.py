@@ -19,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import os
-import redis
 import string
 import sys
 import time
@@ -54,33 +51,20 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, context, socket, patch
+    global patch, name, path, monitor, context, socket, patch
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    if not 'general' in config:
-        raise RuntimeError("cannot read configuration from " + args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     try:
         context = zmq.Context()
         socket = context.socket(zmq.SUB)
-        socket.connect("tcp://%s:%i" % (config.get('zeromq', 'hostname'), config.getint('zeromq', 'port')))
+        socket.connect("tcp://%s:%i" % (patch.get('zeromq', 'hostname'), patch.getint('zeromq', 'port')))
     except:
         raise RuntimeError("cannot connect to ZeroMQ")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -91,14 +75,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, context, socket, patch
-    global monitor, debug, prefix, output_scale, output_offset, input_channels
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor, context, socket, patch
+    global debug, prefix, output_scale, output_offset, input_channels
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
 
     # the scale and offset are used to map OSC values to Redis values
@@ -126,8 +107,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, context, socket, patch
-    global monitor, debug, prefix, output_scale, output_offset, input_channels
+    global patch, name, path, monitor, context, socket, patch
+    global debug, prefix, output_scale, output_offset, input_channels
     global start
 
     start = time.time()
@@ -162,7 +143,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch
+    global monitor
     while True:
         monitor.loop()
         _loop_once()

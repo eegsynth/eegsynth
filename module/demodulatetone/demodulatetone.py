@@ -19,11 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import numpy as np
 import os
-import redis
 import sys
 import time
 import pyaudio
@@ -55,34 +52,13 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i",
-        "--inifile",
-        default=os.path.join(path, name + ".ini"),
-        help="name of the configuration file",
-    )
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(
-            host=config.get("redis", "hostname"),
-            port=config.getint("redis", "port"),
-            db=0,
-            charset="utf-8",
-            decode_responses=True,
-        )
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug", default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -93,14 +69,11 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, device, rate, blocksize, modulation, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
+    global patch, name, path, monitor
+    global debug, device, rate, blocksize, modulation, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
 
     # get the options from the configuration file
-    debug = patch.getint("general", "debug")
+    debug = patch.getint("general", "debug", default=1)
     device = patch.getint("audio", "device")
     rate = patch.getint("audio", "rate", default=44100)
     nchans = patch.getint("audio", "nchans", default=2)
@@ -129,7 +102,7 @@ def _start():
         for tone in range(0, ntones):
             tonestr = "tone%d" % (tone + 1)
             if patch.hasitem(channame[chan], tonestr):
-                redischannel = patch.getstring(channame[chan], tonestr)
+                redischannel = patch.get(channame[chan], tonestr)
                 key[chan].append(redischannel)
                 monitor.info("configured " + channame[chan] + " " + tonestr + " as " + redischannel)
             else:
@@ -175,7 +148,7 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
     global rate, nchans, blocksize, frequencies, modulation, ntones, offset, startfeedback, countfeedback
     global start, data, chan, timeaxis, tone, phase, value, Fsin, Fcos, chanval
 

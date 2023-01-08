@@ -19,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import configparser
-import argparse
 import numpy as np
-import redis
 import os
 import sys
 import time
@@ -57,34 +54,13 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i",
-        "--inifile",
-        default=os.path.join(path, name + ".ini"),
-        help="name of the configuration file",
-    )
-    args = parser.parse_args()
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    config = configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(
-            host=config.get("redis", "hostname"),
-            port=config.getint("redis", "port"),
-            db=0,
-            charset="utf-8",
-            decode_responses=True,
-        )
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug", default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -95,15 +71,8 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
-    global monitor, debug, delay, ft_host, ft_port, ft_output, board_id, streamer_params, params, board
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
-
-    # get the general options from the configuration file
-    debug = patch.getint("general", "debug")
-    delay = patch.getfloat("general", "delay")
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_output, delay, board_id, streamer_params, params, board
 
     try:
         ft_host = patch.getstring("fieldtrip", "hostname")
@@ -114,6 +83,9 @@ def _start():
         monitor.success("Connected to output FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
+
+    # get the general options from the configuration file
+    delay = patch.getfloat("general", "delay")
 
     # get the options that are specific for BrainFlow
     board_id             = patch.getint("brainflow", "board_id", default=-1)
@@ -157,8 +129,9 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global parser, args, config, r, response, patch
-    global monitor, delay, ft_output, board, data
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_output, delay, board_id, streamer_params, params, board
+    global data
     
     if board.get_board_data_count()>0:
         data = np.transpose(board.get_board_data())

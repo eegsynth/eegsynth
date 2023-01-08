@@ -20,9 +20,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyqtgraph.Qt import QtGui, QtCore
-import configparser
-import redis
-import argparse
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -62,7 +59,7 @@ class TriggerThread(threading.Thread):
     def stop(self):
         self.running = False
     def run(self):
-        pubsub = r.pubsub()
+        pubsub = patch.pubsub()
         pubsub.subscribe('PLOTTRIGGER_UNBLOCK')  # this message unblocks the redis listen command
         pubsub.subscribe(self.redischannel)      # this message contains the note
         while self.running:
@@ -70,7 +67,7 @@ class TriggerThread(threading.Thread):
                 if not self.running or not item['type'] == 'message':
                     break
                 if item['channel']==self.redischannel:
-                    monitor.info(item)
+                    monitor.debug(item)
                     now = time.time()
                     val = float(item['data'])
                     with lock:
@@ -82,23 +79,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -109,14 +96,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
-    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    global patch, name, path, monitor
+    global debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, timer, plot
 
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug')
+    debug       = patch.getint('general', 'debug', default=1)
     delay       = patch.getfloat('general', 'delay')            # in seconds
     window      = patch.getfloat('general', 'window')           # in seconds
     value       = patch.getint('general', 'value', default=0)   # boolean
@@ -133,14 +117,14 @@ def _start():
 
     trigger = []
     number = []
-    # each of the gates that can be triggered is mapped onto a different message
+    # each of the gates is mapped onto a different message
     for i in range(1, 17):
         name = 'channel{}'.format(i)
-        if config.has_option('gate', name):
+        if patch.config.has_option('gate', name):
             number.append(i)
             data[i] = []
             # start the background thread that deals with this channel
-            this = TriggerThread(patch.getstring('gate', name), i)
+            this = TriggerThread(patch.get('gate', name), i)
             trigger.append(this)
             monitor.info(name + ' trigger configured')
     if len(trigger)==0:
@@ -165,17 +149,21 @@ def _start():
     plot.setXRange(-window, 0)
     plot.setYRange(0.5, len(trigger)+0.5)
 
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
+    signal.signal(signal.SIGINT, _stop)
+
+    # Set timer for update
+    timer = QtCore.QTimer()
+    timer.timeout.connect(_loop_once)
+    timer.setInterval(10)                     # timeout in milliseconds
+    timer.start(int(round(delay * 1000)))     # in milliseconds
 
 
 def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
-    global monitor, debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, plot
+    global patch, name, path, monitor
+    global debug, delay, window, value, winx, winy, winwidth, winheight, data, lock, trigger, number, i, this, thread, app, win, timer, plot
 
     monitor.loop()
 
@@ -209,18 +197,6 @@ def _loop_once():
                 text.setPos(x, y)
                 plot.addItem(text)
 
-    signal.signal(signal.SIGINT, _stop)
-
-    # Set timer for update
-    timer = QtCore.QTimer()
-    timer.timeout.connect(_loop_once)
-    timer.setInterval(10)                     # timeout in milliseconds
-    timer.start(int(round(delay * 1000)))     # in milliseconds
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
 
 def _loop_forever():
     '''Run the main loop forever
@@ -235,7 +211,7 @@ def _stop(*args):
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()
-    r.publish('PLOTTRIGGER_UNBLOCK', 1)
+    patch.publish('PLOTTRIGGER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
     QtGui.QApplication.quit()

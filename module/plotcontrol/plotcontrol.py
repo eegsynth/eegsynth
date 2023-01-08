@@ -20,9 +20,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyqtgraph.Qt import QtGui, QtCore
-import configparser
-import redis
-import argparse
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -54,34 +51,21 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
+    
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--inifile", default=os.path.join(path, name + '.ini'), help="name of the configuration file")
-    args = parser.parse_args()
-
-    config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
-    config.read(args.inifile)
-
-    try:
-        r = redis.StrictRedis(host=config.get('redis', 'hostname'), port=config.getint('redis', 'port'), db=0, charset='utf-8', decode_responses=True)
-        response = r.client_list()
-    except redis.ConnectionError:
-        raise RuntimeError("cannot connect to Redis server")
-
-    # combine the patching from the configuration file and Redis
-    patch = EEGsynth.patch(config, r)
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
 
 def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch, name
+    global patch, name, path, monitor
     global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     delay       = patch.getfloat('general', 'delay')
@@ -94,8 +78,8 @@ def _start():
     historysize = int(window/delay) # in steps
     timeaxis = np.linspace(-window, 0, historysize)
 
-    input_name, input_variable = list(zip(*config.items('input')))
-    ylim_name, ylim_value = list(zip(*config.items('ylim')))
+    input_name, input_variable = list(zip(*patch.config.items('input')))
+    ylim_name, ylim_value = list(zip(*patch.config.items('ylim')))
 
     # count the total number of curves to be drawm
     counter = 0
@@ -138,20 +122,20 @@ def _start():
 
         win.nextRow()
 
-        signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGINT, _stop)
 
-        # Set timer for update
-        timer = QtCore.QTimer()
-        timer.timeout.connect(_loop_once)
-        timer.setInterval(10)            # timeout in milliseconds
-        timer.start(int(delay * 1000))   # in milliseconds
+    # Set timer for update
+    timer = QtCore.QTimer()
+    timer.timeout.connect(_loop_once)
+    timer.setInterval(10)            # timeout in milliseconds
+    timer.start(int(delay * 1000))   # in milliseconds
 
 
 def _loop_once():
     '''Update the main figure once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global parser, args, config, r, response, patch
+    global patch, name, path, monitor
     global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     monitor.loop()
