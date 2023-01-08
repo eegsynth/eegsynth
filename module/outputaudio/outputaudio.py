@@ -110,26 +110,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
-
-    try:
-        ft_host = patch.getstring('fieldtrip', 'hostname')
-        ft_port = patch.getint('fieldtrip', 'port')
-        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-        ft_input = FieldTrip.Client()
-        ft_input.connect(ft_host, ft_port)
-        monitor.success('Connected to input FieldTrip buffer')
-    except:
-        raise RuntimeError("cannot connect to input FieldTrip buffer")
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -140,11 +127,21 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
+
+    try:
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        monitor.success('Connected to input FieldTrip buffer')
+    except:
+        raise RuntimeError("cannot connect to input FieldTrip buffer")
 
     hdr_input = None
     start = time.time()
@@ -237,8 +234,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, timeout, hdr_input, start, device, window, lrate, scaling_method, scaling, outputrate, scale_scaling, offset_scaling, nchans, inputrate, p, info, i, devinfo, lock, stack, firstsample, stretch, inputblock, outputblock, previnput, prevoutput, stream, begsample, endsample
     global dat, now, old, new, duration
 
     # measure the time that it takes
@@ -317,10 +314,12 @@ def _loop_forever():
         _loop_once()
 
 
-def _stop():
+def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global stream, p
+    global monitor, ft_input, stream, p
+    ft_input.disconnect()
+    monitor.success('Disconnected from input FieldTrip buffer')
     stream.stop_stream()
     stream.close()
     p.terminate()
