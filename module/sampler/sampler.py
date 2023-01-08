@@ -311,7 +311,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch
+    global monitor
     while True:
         monitor.loop()
         _loop_once()

@@ -52,26 +52,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
-
-    try:
-        ft_host = patch.getstring('fieldtrip', 'hostname')
-        ft_port = patch.getint('fieldtrip', 'port')
-        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-        ft_output = FieldTrip.Client()
-        ft_output.connect(ft_host, ft_port)
-        monitor.success('Connected to output FieldTrip buffer')
-    except:
-        raise RuntimeError("cannot connect to output FieldTrip buffer")
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -82,8 +69,18 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output
-    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_output, nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
+
+    try:
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        monitor.success('Connected to output FieldTrip buffer')
+    except:
+        raise RuntimeError("cannot connect to output FieldTrip buffer")
 
     # get the options from the configuration file
     nchannels = patch.getint('generate', 'nchannels')
@@ -145,8 +142,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_output
-    global nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_output, nchannels, fsample, shape, scale_frequency, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, blocksize, datatype, block, begsample, endsample, stepsize, timevec, phasevec
     global start, frequency, amplitude, offset, noise, dutycycle, signal, dat_output, chan, elapsed, naptime
 
     if patch.getint('signal', 'rewind', default=0):

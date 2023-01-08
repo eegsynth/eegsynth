@@ -231,7 +231,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch
+    global monitor
     while True:
         # measure the time to correct for the slip
         start = time.time()

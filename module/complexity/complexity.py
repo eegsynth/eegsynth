@@ -58,7 +58,7 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
@@ -66,8 +66,13 @@ def _setup():
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, begsample, endsample
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -78,14 +83,6 @@ def _setup():
         monitor.success('Connected to FieldTrip buffer')
     except:
         raise RuntimeError("cannot connect to FieldTrip buffer")
-
-
-def _start():
-    '''Start the module
-    This uses the global variables from setup and adds a set of global variables
-    '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, begsample, endsample
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -141,8 +138,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, begsample, endsample
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, timeout, hdr_input, start, channel_items, channame, chanindx, item, shannon, sampen, multiscale, spectral, svd, correlation, higushi, petrosian, fisher, hurst, dfa, lyap_r, lyap_e, window, taper, begsample, endsample
     global dat, meandat, chan, sample, metrics, timeseries, metric_names, metric, shortmetric, key, val
 
     hdr_input = ft_input.getHeader()

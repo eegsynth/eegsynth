@@ -70,14 +70,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
-
-    # get the options from the configuration file
-    debug = patch.getint("general", "debug", default=1)
-    device = patch.getint("audio", "device")
-    rate = patch.getint("audio", "rate", default=44100)
-    blocksize = patch.getint("audio", "blocksize", default=1024)
-    nchans = patch.getint("audio", "nchans", default=2)
+    global ft_host, ft_port, ft_output, device, rate, blocksize, nchans, p, info, i, devinfo, stream, startfeedback, countfeedback
 
     try:
         ft_host = patch.getstring("fieldtrip", "hostname")
@@ -88,6 +81,12 @@ def _start():
         monitor.success("Connected to output FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
+
+    # get the options from the configuration file
+    device = patch.getint("audio", "device")
+    rate = patch.getint("audio", "rate", default=44100)
+    blocksize = patch.getint("audio", "blocksize", default=1024)
+    nchans = patch.getint("audio", "nchans", default=2)
 
     monitor.info("rate = %g" % rate)
     monitor.info("nchans = %g" % nchans)
@@ -134,7 +133,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global startfeedback, countfeedback
+    global ft_host, ft_port, ft_output, device, rate, blocksize, nchans, p, info, i, devinfo, stream, startfeedback, countfeedback
     global start, data
 
     # measure the time that it takes

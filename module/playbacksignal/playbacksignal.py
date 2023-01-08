@@ -72,7 +72,17 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, filename, fileformat, ext, ft_host, ft_port, ft_output, H, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, f, chanindx, labels, A, blocksize, begsample, endsample, block
+    global ft_host, ft_port, ft_output, filename, fileformat, ext, H, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, f, chanindx, labels, A, blocksize, begsample, endsample, block
+
+    try:
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_output = FieldTrip.Client()
+        ft_output.connect(ft_host, ft_port)
+        monitor.success('Connected to FieldTrip buffer')
+    except:
+        raise RuntimeError('cannot connect to FieldTrip buffer')
 
     # get the options from the configuration file
     filename = patch.getstring('playback', 'file')
@@ -84,16 +94,6 @@ def _start():
         fileformat = ext[1:]
 
     monitor.info('Reading data from ' + filename)
-
-    try:
-        ft_host = patch.getstring('fieldtrip', 'hostname')
-        ft_port = patch.getint('fieldtrip', 'port')
-        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-        ft_output = FieldTrip.Client()
-        ft_output.connect(ft_host, ft_port)
-        monitor.success('Connected to FieldTrip buffer')
-    except:
-        raise RuntimeError('cannot connect to FieldTrip buffer')
 
     H = FieldTrip.Header()
 
@@ -187,7 +187,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, H, A, ft_output, blocksize, begsample, endsample, block
+    global ft_host, ft_port, ft_output, filename, fileformat, ext, H, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, f, chanindx, labels, A, blocksize, begsample, endsample, block
     global D, stepsize
 
     if endsample > H.nSamples - 1:

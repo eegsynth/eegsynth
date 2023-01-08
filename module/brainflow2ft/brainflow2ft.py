@@ -72,11 +72,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, delay, ft_host, ft_port, ft_output, board_id, streamer_params, params, board
-
-    # get the general options from the configuration file
-    debug = patch.getint("general", "debug", default=1)
-    delay = patch.getfloat("general", "delay")
+    global ft_host, ft_port, ft_output, delay, board_id, streamer_params, params, board
 
     try:
         ft_host = patch.getstring("fieldtrip", "hostname")
@@ -87,6 +83,9 @@ def _start():
         monitor.success("Connected to output FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
+
+    # get the general options from the configuration file
+    delay = patch.getfloat("general", "delay")
 
     # get the options that are specific for BrainFlow
     board_id             = patch.getint("brainflow", "board_id", default=-1)
@@ -131,7 +130,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global monitor, delay, ft_output, board, data
+    global ft_host, ft_port, ft_output, delay, board_id, streamer_params, params, board
+    global data
     
     if board.get_board_data_count()>0:
         data = np.transpose(board.get_board_data())

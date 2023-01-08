@@ -52,26 +52,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
-
-    try:
-        ft_host = patch.getstring('fieldtrip', 'hostname')
-        ft_port = patch.getint('fieldtrip', 'port')
-        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
-        ft_input = FieldTrip.Client()
-        ft_input.connect(ft_host, ft_port)
-        monitor.success('Connected to FieldTrip buffer')
-    except:
-        raise RuntimeError("cannot connect to FieldTrip buffer")
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -82,8 +69,18 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, window, begsample, endsample
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, window, begsample, endsample
+
+    try:
+        ft_host = patch.getstring('fieldtrip', 'hostname')
+        ft_port = patch.getint('fieldtrip', 'port')
+        monitor.success('Trying to connect to buffer on %s:%i ...' % (ft_host, ft_port))
+        ft_input = FieldTrip.Client()
+        ft_input.connect(ft_host, ft_port)
+        monitor.success('Connected to FieldTrip buffer')
+    except:
+        raise RuntimeError("cannot connect to FieldTrip buffer")
 
     # this is the timeout for the FieldTrip buffer
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
@@ -125,8 +122,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
-    global timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, window, begsample, endsample
+    global patch, name, path, monitor
+    global ft_host, ft_port, ft_input, timeout, hdr_input, start, channel_items, channame, chanindx, item, prefix, window, begsample, endsample
     global dat, rms, i, chanvec, chanval, name, val, key
 
     hdr_input = ft_input.getHeader()

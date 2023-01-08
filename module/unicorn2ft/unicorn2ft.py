@@ -73,11 +73,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, ft_host, ft_port, ft_output, timeout, s, start_acq, stop_acq, start_sequence, stop_sequence, blocksize, nchan, fsample
-
-    # get the options from the configuration file
-    timeout = patch.getfloat('unicorn', 'timeout', default=5)
-    blocksize = patch.getfloat('unicorn', 'blocksize', default=0.2) # write blocks of 0.2 seconds, i.e., 50 samples
+    global monitor, prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -88,7 +84,11 @@ def _start():
         monitor.info("Connected to output FieldTrip buffer")
     except:
         raise RuntimeError("cannot connect to output FieldTrip buffer")
-        
+
+    # get the options from the configuration file
+    timeout = patch.getfloat('unicorn', 'timeout', default=5)
+    blocksize = patch.getfloat('unicorn', 'blocksize', default=0.2) # write blocks of 0.2 seconds, i.e., 50 samples
+
     # write the header information to the FieldTrip buffer
     nchan = 16
     fsample = 250
@@ -130,7 +130,7 @@ def _loop_once():
     '''Run the main loop once
     '''
     global patch, name, path, monitor
-    global monitor, s, start_sequence, blocksize, nchan, fsample
+    global monitor, prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
     
     nsample = int(blocksize*fsample)
     dat = np.zeros((nsample,nchan))
@@ -185,7 +185,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, patch, s
+    global monitor, patch
     while True:
         monitor.loop()
         _loop_once()

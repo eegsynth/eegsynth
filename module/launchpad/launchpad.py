@@ -310,7 +310,7 @@ def _loop_forever():
     while True:
         monitor.loop()
         _loop_once()
-        time.sleep(patch.getfloat('general','delay'))
+        time.sleep(patch.getfloat('general', 'delay'))
 
 
 def _stop():
