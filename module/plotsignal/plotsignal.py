@@ -60,11 +60,8 @@ def _setup():
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -84,7 +81,8 @@ def _start():
     global patch, name, path, monitor, debug, ft_host, ft_port, ft_input
     global channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, timeout, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
 
-    # read variables from ini/redis
+    # get the options from the configuration file
+    debug       = patch.getint('general', 'debug', default=1)
     channels    = patch.getint('arguments', 'channels', multiple=True)
     winx        = patch.getfloat('display', 'xpos')
     winy        = patch.getfloat('display', 'ypos')

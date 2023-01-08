@@ -198,10 +198,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -212,14 +215,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path
-    global monitor, debug, device, scaling_method, scaling, speed, onset, offset, taper, scale_scaling, scale_speed, scale_onset, scale_offset, scale_taper, offset_scaling, offset_speed, offset_onset, offset_offset, offset_taper, started, finished, p, info, i, devinfo, lock, input_channel, input_sample, rate, dat, channels, stack, current_channel, current_value, trigger, channel, sample, thread, stream
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global debug, device, scaling_method, scaling, speed, onset, offset, taper, scale_scaling, scale_speed, scale_onset, scale_offset, scale_taper, offset_scaling, offset_speed, offset_onset, offset_offset, offset_taper, started, finished, p, info, i, devinfo, lock, input_channel, input_sample, rate, dat, channels, stack, current_channel, current_value, trigger, channel, sample, thread, stream
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     device = patch.getint('audio', 'device')
     scaling_method = patch.getstring('audio', 'scaling_method')
     scaling = patch.getfloat('audio', 'scaling', default=1)

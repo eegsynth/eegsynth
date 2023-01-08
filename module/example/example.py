@@ -49,10 +49,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -63,11 +66,8 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     global monitor, prefix, param1, param2
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
 
     # get the options from the configuration file
     prefix = patch.getstring('output', 'prefix')
@@ -82,7 +82,7 @@ def _start():
 def _loop_once():
     '''Run the main loop once
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     global monitor, prefix
 
     # update the value of input param1, copy it to the output
@@ -95,6 +95,7 @@ def _loop_once():
 
     monitor.info('param1', param1)  # this is printed when debug>=1
     monitor.debug('param2', param2) # this is printed when debug>=2
+    monitor.trace('param2', param2) # this is printed when debug>=3
 
 
 def _loop_forever():

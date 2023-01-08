@@ -44,22 +44,24 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 import ZmqRedis
 
+
 def _setup():
     '''Initialize the module
     '''
-    global patch, name, path
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+
+
 def _start():
     '''Start the module
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     global monitor, broker, server
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # get the options from the configuration file
     broker = patch.get('general', 'broker', default='zeromq')
@@ -89,10 +91,12 @@ def _start():
         monitor.error(msg)
         raise RuntimeError(msg)
 
+
 def _loop_once():
     '''Run the main loop once
     '''
     pass
+
 
 def _loop_forever():
     '''Run the main loop forever
@@ -101,10 +105,12 @@ def _loop_forever():
     if broker=='zeromq':
         server.start()
 
+
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
     pass
+
 
 if __name__ == '__main__':
     _setup()

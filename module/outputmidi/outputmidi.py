@@ -50,7 +50,7 @@ import EEGsynth
 
 
 def UpdateParameters():
-    global patch, name, path, velocity_note, scale_velocity, offset_velocity, duration_note, scale_duration, offset_duration
+    global patch, name, path, monitor, velocity_note, scale_velocity, offset_velocity, duration_note, scale_duration, offset_duration
     velocity_note = patch.getfloat('velocity', 'note', default=64)
     velocity_note = int(EEGsynth.rescale(velocity_note, slope=scale_velocity, offset=offset_velocity))
     duration_note = patch.getfloat('duration', 'note', default=None)
@@ -187,10 +187,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -201,14 +204,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
-
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug')
+    debug       = patch.getint('general', 'debug', default=1)
     monophonic  = patch.getint('general', 'monophonic', default=1)
     midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
     mididevice  = patch.getstring('midi', 'device')
@@ -300,7 +300,7 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
     global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
     UpdateParameters()

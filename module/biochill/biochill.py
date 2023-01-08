@@ -54,7 +54,7 @@ class BreathingBiofeedback:
         self.patch = EEGsynth.patch(name=name, path=path)
         
         # Monitor.
-        self.monitor = EEGsynth.monitor(name=name, debug=self.patch.getint('general', 'debug'))
+        self.monitor = EEGsynth.monitor(name=name, debug=self.patch.getint('general', 'debug', default=1))
 
         # FieldTrip.
         try:

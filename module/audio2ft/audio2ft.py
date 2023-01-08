@@ -52,10 +52,13 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global patch, name, path
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug", default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -66,14 +69,11 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global patch, name, path
-    global monitor, debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint("general", "debug"))
+    global patch, name, path, monitor
+    global debug, device, rate, blocksize, nchans, ft_host, ft_port, ft_output, p, info, i, devinfo, stream, startfeedback, countfeedback
 
     # get the options from the configuration file
-    debug = patch.getint("general", "debug")
+    debug = patch.getint("general", "debug", default=1)
     device = patch.getint("audio", "device")
     rate = patch.getint("audio", "rate", default=44100)
     blocksize = patch.getint("audio", "blocksize", default=1024)
@@ -133,7 +133,7 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global patch, name, path
+    global patch, name, path, monitor
     global startfeedback, countfeedback
     global start, data
 

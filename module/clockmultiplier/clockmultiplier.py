@@ -115,10 +115,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -129,14 +132,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path
-    global monitor, debug, channels, multipliers, lrate, count, triggers, channel, multiplier, thread
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    global patch, name, path, monitor
+    global debug, channels, multipliers, lrate, count, triggers, channel, multiplier, thread
 
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug')
+    debug       = patch.getint('general', 'debug', default=1)
     channels    = patch.getstring('clock', 'channel', multiple=True)
     multipliers = patch.getint('clock', 'rate',  multiple=True)
     lrate       = patch.getfloat('clock', 'learning_rate', default=1)
@@ -163,8 +163,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path
-    global monitor, debug, channels, multipliers, lrate, count, triggers, channel, multiplier, thread
+    global patch, name, path, monitor
+    global debug, channels, multipliers, lrate, count, triggers, channel, multiplier, thread
 
     monitor.update("count", count / len(multipliers))
 

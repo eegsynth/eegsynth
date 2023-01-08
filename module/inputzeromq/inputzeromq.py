@@ -51,10 +51,13 @@ def _setup():
     '''Initialize the module
     This adds a set of global variables
     '''
-    global patch, name, path, context, socket, patch
+    global patch, name, path, monitor, context, socket, patch
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     try:
         context = zmq.Context()
@@ -72,14 +75,11 @@ def _start():
     '''Start the module
     This uses the global variables from setup and adds a set of global variables
     '''
-    global patch, name, path, context, socket, patch
-    global monitor, debug, prefix, output_scale, output_offset, input_channels
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor, context, socket, patch
+    global debug, prefix, output_scale, output_offset, input_channels
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
 
     # the scale and offset are used to map OSC values to Redis values
@@ -107,8 +107,8 @@ def _loop_once():
     '''Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     '''
-    global patch, name, path, context, socket, patch
-    global monitor, debug, prefix, output_scale, output_offset, input_channels
+    global patch, name, path, monitor, context, socket, patch
+    global debug, prefix, output_scale, output_offset, input_channels
     global start
 
     start = time.time()

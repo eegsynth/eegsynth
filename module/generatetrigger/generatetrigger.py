@@ -48,7 +48,7 @@ import EEGsynth
 
 
 def trigger(skip=False):
-    global monitor, debug, patch, lock, rate, spread, t
+    global debug, patch, lock, rate, spread, t
 
     if skip:
         # this happens upon initialization and when the timing parameters change
@@ -88,10 +88,13 @@ def _setup():
     """Initialize the module
     This adds a set of global variables
     """
-    global patch, name, path
+    global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -102,14 +105,11 @@ def _start():
     """Start the module
     This uses the global variables from setup and adds a set of global variables
     """
-    global patch, name, path
-    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
-
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug'))
+    global patch, name, path, monitor
+    global debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug')
+    debug = patch.getint('general', 'debug', default=1)
 
     # the scale and offset are used to map the Redis values to internal values
     scale_rate = patch.getfloat('scale', 'rate', default=1)
@@ -141,8 +141,8 @@ def _loop_once():
     """Run the main loop once
     This uses the global variables from setup and start, and adds a set of global variables
     """
-    global patch, name, path
-    global monitor, debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+    global patch, name, path, monitor
+    global debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
     global change
 
     with lock:

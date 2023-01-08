@@ -63,11 +63,11 @@ def _setup():
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
-    # this can be used to show parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general','debug'))
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
     # get the options from the configuration file
-    debug   = patch.getint('general', 'debug')
+    debug   = patch.getint('general', 'debug', default=1)
 
     try:
         ft_host = patch.getstring('input_fieldtrip', 'hostname')
@@ -145,13 +145,12 @@ def _start():
     output_number = list(range(nOutputs))
     output_channel = tmp
 
-    if debug > 0:
-        monitor.info('===== input channels =====')
-        for number, channel in zip(input_number, input_channel):
-            monitor.info(str(number) + ' = ' + channel)
-        monitor.info('===== output channels =====')
-        for number, channel in zip(output_number, output_channel):
-            monitor.info(str(number) + ' = ' + channel)
+    monitor.info('===== input channels =====')
+    for number, channel in zip(input_number, input_channel):
+        monitor.info(str(number) + ' = ' + channel)
+    monitor.info('===== output channels =====')
+    for number, channel in zip(output_number, output_channel):
+        monitor.info(str(number) + ' = ' + channel)
 
     sample_rate         = patch.getfloat('cogito', 'sample_rate')
     window              = patch.getfloat('cogito', 'window')

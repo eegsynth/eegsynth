@@ -50,15 +50,12 @@ class PolarClient:
         # configure and start the patch, this will parse the command-line arguments and the ini file
         patch = EEGsynth.patch(name=name, path=path)
         
+        # this shows the splash screen and can be used to track parameters that have changed
+        self.monitor = EEGsynth.monitor(name=name, debug=self.patch.getint("general", "debug", default=1))
+
         # BLE client.
         self.loop = asyncio.get_event_loop()
-        
-        self.ble_client = BleakClient(self.patch.getstring("input", "uuid"),
-                                      loop=self.loop)
-
-        self.monitor = EEGsynth.monitor(name=name,
-                                        debug=self.patch.getint("general", "debug"))
-
+        self.ble_client = BleakClient(self.patch.getstring("input", "uuid"), loop=self.loop)
         self.loop.run_until_complete(self.discover())
 
 
