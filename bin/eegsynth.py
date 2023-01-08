@@ -50,10 +50,12 @@ else:
 # eegsynth/module contains the modules
 sys.path.insert(0, os.path.join(path, '..'))
 
+
 # the module starts as soon as it is instantiated
 # optional command-line arguments can be passed to specify the ini file
 def _start(module, args=None):
     module(args)
+
 
 def _main():
     """Parse command line options and start the EEGsynth modules for the specified patch.
