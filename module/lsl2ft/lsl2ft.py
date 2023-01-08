@@ -70,7 +70,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
+    global timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
 
     # get the options from the configuration file
     timeout = patch.getfloat('lsl', 'timeout', default=30)
@@ -147,7 +147,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
+    global timeout, lsl_name, lsl_type, ft_host, ft_port, ft_output, start, selected, streams, stream, inlet, type, source_id, match, lsl_id, channel_count, channel_format, nominal_srate, samples, blocksize
 
     chunk, timestamps = inlet.pull_chunk()
     if timestamps:

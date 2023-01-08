@@ -68,7 +68,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global monitor, stepsize, scale_frequency, scale_spread, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_spread, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
+    global stepsize, scale_frequency, scale_spread, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_spread, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
 
     # get the options from the configuration file
     stepsize = patch.getfloat('generate', 'stepsize')  # in seconds
@@ -101,7 +101,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global monitor, stepsize, scale_frequency, scale_spread, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_spread, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
+    global stepsize, scale_frequency, scale_spread, scale_amplitude, scale_offset, scale_noise, scale_dutycycle, offset_frequency, offset_spread, offset_amplitude, offset_offset, offset_noise, offset_dutycycle, sample, phase
     global frequency, spread, amplitude, offset, noise, dutycycle, key, val, elapsed, naptime
 
     if patch.getint('signal', 'rewind', default=0):
@@ -178,7 +178,7 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
-    global monitor, stepsize
+    global monitor, stepsize, elapsed, naptime
     while True:
         # measure the time to correct for the slip
         start = time.time()

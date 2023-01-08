@@ -73,7 +73,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
+    global prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -93,7 +93,7 @@ def _start():
     nchan = 16
     fsample = 250
     ft_output.putHeader(nchan, fsample, FieldTrip.DATATYPE_FLOAT32)
-    
+
     monitor.success("connecting to Unicorn...")
 
     # get the specified serial device, or the one that is the closest match
@@ -113,10 +113,10 @@ def _start():
         monitor.success("connected to serial port " + serialdevice)
     except:
         raise RuntimeError("cannot connect to serial port " + serialdevice)
-    
+
     # start the data stream
     s.write(start_acq)
-    
+
     response = s.read(3)
     if response != b'\x00\x00\x00':
         raise RuntimeError("cannot start data stream")
@@ -130,15 +130,15 @@ def _loop_once():
     '''Run the main loop once
     '''
     global patch, name, path, monitor
-    global monitor, prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
-    
+    global prefix, ft_host, ft_port, ft_output, timeout, blocksize, nchan, fsample, serialdevice, start_acq, stop_acq, start_sequence, stop_sequence, s, response
+
     nsample = int(blocksize*fsample)
     dat = np.zeros((nsample,nchan))
-    
+
     for sample in range(0,nsample):
         # read one block of data from the serial port
         payload = s.read(45)
-        
+
         # check the start and end bytes
         if payload[0:2] != b'\xC0\x00':
             raise RuntimeError("invalid packet")
@@ -176,7 +176,7 @@ def _loop_once():
         dat[sample,11:14] = gyro
         dat[sample,14]    = battery
         dat[sample,15]    = counter
-        
+
     # write the segment of data to the FieldTrip buffer
     ft_output.putData(dat.astype(np.float32))
     monitor.info('wrote samples %d' % counter)

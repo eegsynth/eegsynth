@@ -68,7 +68,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, timeout, lsl_name, lsl_type, lsl_format, output_prefix, start, selected, streams, stream, inlet, type, source_id, match, lsl_id
+    global delay, timeout, lsl_name, lsl_type, lsl_format, output_prefix, start, selected, streams, stream, inlet, type, source_id, match, lsl_id
 
     # get the options from the configuration file
     delay = patch.getfloat('general', 'delay')
@@ -128,7 +128,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, timeout, lsl_name, lsl_type, lsl_format, output_prefix, start, selected, streams, stream, inlet, type, source_id, match, lsl_id
+    global delay, timeout, lsl_name, lsl_type, lsl_format, output_prefix, start, selected, streams, stream, inlet, type, source_id, match, lsl_id
     global sample, timestamp
 
     sample, timestamp = inlet.pull_sample(timeout=delay)

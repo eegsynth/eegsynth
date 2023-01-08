@@ -80,7 +80,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -134,8 +134,11 @@ def _start():
     for thread in trigger:
         thread.start()
 
-    # initialize graphical window
+    # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
+    signal.signal(signal.SIGINT, _stop)
+
     win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plottrigger'))
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plottrigger'))
     win.setGeometry(winx, winy, winwidth, winheight)
@@ -148,8 +151,6 @@ def _start():
     plot.setLabel('bottom', text='Time (s)')
     plot.setXRange(-window, 0)
     plot.setYRange(0.5, len(trigger)+0.5)
-
-    signal.signal(signal.SIGINT, _stop)
 
     # Set timer for update
     timer = QtCore.QTimer()

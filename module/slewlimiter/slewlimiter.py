@@ -66,7 +66,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, input_name, input_variable, previous_val
+    global prefix, input_name, input_variable, previous_val
 
     # get the options from the configuration file
     prefix = patch.getstring('output', 'prefix')
@@ -88,7 +88,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, input_name, input_variable, previous_val
+    global prefix, input_name, input_variable, previous_val
 
     lrate = patch.getfloat('processing', 'learning_rate', default=1)
 

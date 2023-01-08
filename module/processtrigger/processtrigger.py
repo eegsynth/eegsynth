@@ -165,7 +165,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, item, val, input_name, input_variable, output_name, output_equation, variable, equation, lock, trigger, thread
+    global prefix, item, val, input_name, input_variable, output_name, output_equation, variable, equation, lock, trigger, thread
 
     # get the options from the configuration file
     prefix = patch.getstring('output', 'prefix')

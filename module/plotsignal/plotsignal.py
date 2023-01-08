@@ -139,8 +139,11 @@ def _start():
             begsample = hdr_input.nSamples - window
             endsample = hdr_input.nSamples - 1
 
-    # initialize graphical window
+    # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
+    signal.signal(signal.SIGINT, _stop)
+
     win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plotsignal'))
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotsignal'))
     win.setGeometry(winx, winy, winwidth, winheight)
@@ -162,8 +165,6 @@ def _start():
         curve.append(timeplot[plotnr].plot(pen='w'))
         win.nextRow()
 
-    signal.signal(signal.SIGINT, _stop)
-
     # Set timer for update
     timer = QtCore.QTimer()
     timer.timeout.connect(_loop_once)
@@ -180,7 +181,7 @@ def _loop_once():
     global dat, timeaxis
 
     monitor.loop()
-    
+
     if not patch.getint('general', 'enable', default=True):
         # do not read data and do not plot anything
         return

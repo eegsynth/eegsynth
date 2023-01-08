@@ -85,7 +85,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, stepsize, filename, fileformat
+    global stepsize, filename, fileformat
     global data_A, filepath_A
     global data_B, filepath_B
     global scale_lowpass, scale_highpass, scale_notchfilter, offset_lowpass, offset_highpass, offset_notchfilter, scale_filtorder, scale_notchquality, offset_filtorder, offset_notchquality
@@ -117,7 +117,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, H, A
+    global H, A
     global D, stepsize
     global data_A, filepath_A
     global data_B, filepath_B

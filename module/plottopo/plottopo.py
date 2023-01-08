@@ -114,7 +114,7 @@ class Window(QWidget):
             y = (1 - ypos)*h
             # this is the dispalcement for left/right/top/bottom alignment
             d = scale_diameter*(w+h)/3
-            
+
             if labelposition == 'center':
                 r = QtCore.QRect(x-100, y-100, 200, 200)
                 qp.drawText(r, QtCore.Qt.AlignCenter, name)
@@ -142,7 +142,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -159,7 +159,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer, colormap, labelposition, labelcolor
+    global delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer, colormap, labelposition, labelcolor
 
     # get the options from the configuration file
     delay           = patch.getfloat('general', 'delay')

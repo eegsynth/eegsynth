@@ -57,7 +57,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -162,8 +162,11 @@ def _start():
             begsample = hdr_input.nSamples - window
             endsample = hdr_input.nSamples - 1
 
-    # initialize graphical window
+    # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
+    signal.signal(signal.SIGINT, _stop)
+
     win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plotspectral'))
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotspectral'))
     win.setGeometry(winx, winy, winwidth, winheight)
@@ -256,8 +259,6 @@ def _start():
     freqplot_hist[0].addItem(text_blueleft_hist)
     freqplot_hist[0].addItem(text_blueright_hist)
 
-    signal.signal(signal.SIGINT, _stop)
-
     # Set timer for update
     timer = QtCore.QTimer()
     timer.timeout.connect(_loop_once)
@@ -320,7 +321,7 @@ def _loop_once():
         dat = EEGsynth.notch_filter(dat.T, 2*notch, hdr_input.fSample, notchquality).T # remove the first harmonic
     if not np.isnan(notch) and 3*notch<(hdr_input.fSample/2):
         dat = EEGsynth.notch_filter(dat.T, 3*notch, hdr_input.fSample, notchquality).T # remove the second harmonic
-        
+
     # remove the filter padding
     if clipsize > 0:
         if clipside == 'left':

@@ -52,7 +52,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -65,7 +65,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
+    global delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     # get the options from the configuration file
     delay       = patch.getfloat('general', 'delay')
@@ -87,8 +87,11 @@ def _start():
         for control in input_variable[iplot].split(','):
             counter += 1
 
-    # initialize graphical window
+    # start the graphical user interface
     app = QtGui.QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
+    signal.signal(signal.SIGINT, _stop)
+
     win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plotcontrol'))
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotcontrol'))
     win.setGeometry(winx, winy, winwidth, winheight)
@@ -122,8 +125,6 @@ def _start():
 
         win.nextRow()
 
-    signal.signal(signal.SIGINT, _stop)
-
     # Set timer for update
     timer = QtCore.QTimer()
     timer.timeout.connect(_loop_once)
@@ -136,10 +137,10 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
+    global delay, historysize, window, winx, winy, winwidth, winheight, input_name, input_variable, ylim_name, ylim_value, counter, app, win, inputhistory, inputplot, inputcurve, iplot, name, ylim, variable, linecolor, icurve, timer, timeaxis
 
     monitor.loop()
-    
+
     if not patch.getint('general', 'enable', default=True):
         # do not read data and do not plot anything
         return

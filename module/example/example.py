@@ -67,13 +67,13 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, param1, param2
+    global prefix, param1, param2
 
     # get the options from the configuration file
     prefix = patch.getstring('output', 'prefix')
     param1 = patch.getfloat('input', 'param1', default=0)
     param2 = patch.getfloat('input', 'param2', default=0)
-    
+
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
         print("LOCALS: " + ", ".join(locals().keys()))

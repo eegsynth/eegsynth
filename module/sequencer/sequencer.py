@@ -110,7 +110,7 @@ class SequenceThread(threading.Thread):
                         # apply the scaling, offset and transpose the note
                         val = EEGsynth.rescale(val, slope=scale_note, offset=offset_note)
                         val += self.transpose
-                        
+
                         # send it as sequencer.note with the note as value
                         patch.setvalue(self.key, val, duration=self.duration * self.steptime)
                         if val >= 1.:
@@ -127,7 +127,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -144,7 +144,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
+    global stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
 
     # get the options from the configuration file
     stepsize = patch.getfloat('general', 'delay')
@@ -191,7 +191,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
+    global stepsize, clock, prefix, scale_active, scale_transpose, scale_note, scale_duration, offset_active, offset_transpose, offset_note, offset_duration, lock, key, sequencethread
     global active, sequence, transpose, duration, elapsed, naptime
 
     # the active sequence is specified as an integer between 0 and 127

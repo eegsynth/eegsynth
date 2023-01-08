@@ -89,7 +89,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -172,7 +172,7 @@ def _loop_forever():
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, trigger, r, context
+    global monitor, trigger, context
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()

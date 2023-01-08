@@ -325,7 +325,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset
+    global debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset, app, timer
 
     # get the options from the configuration file
     debug = patch.getint('general', 'debug', default=1)
@@ -351,21 +351,24 @@ def _start():
     app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
+    window = Window()
+    window.show()
+
     # Let the interpreter run every 200 ms
     # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
     timer = QtCore.QTimer()
-    timer.start(400)
-    timer.timeout.connect(lambda: None)
+    timer.start(200)
+    timer.timeout.connect(_loop_once)
 
-    ex = Window()
-    ex.show()
     sys.exit(app.exec_())
 
 
 def _loop_once():
-    '''Updating the main figure is done through Qt events
+    '''Run the main loop once
     '''
-    pass
+    # Updating the main figure is done through Qt events
+    global monitor
+    monitor.loop()
 
 
 def _loop_forever():

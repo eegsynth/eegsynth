@@ -108,10 +108,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, prefix, item, val, input_name, input_variable, output_name, output_variable, lock, trigger, thread
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
+    global prefix, item, val, input_name, input_variable, output_name, output_variable, lock, trigger, thread
 
     # create the background threads that deal with the input triggers
     trigger = []
@@ -142,6 +139,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
+    global monitor, patch
     while True:
         monitor.loop()
         time.sleep(patch.getfloat('general', 'delay'))

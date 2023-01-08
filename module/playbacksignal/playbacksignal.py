@@ -55,7 +55,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -233,7 +233,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, stepsize
+    global monitor, stepsize, elapsed, naptime
     while True:
         # measure the time to correct for the slip
         start = time.time()

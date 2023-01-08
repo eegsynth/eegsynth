@@ -349,7 +349,7 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, control, trigger, r, stream, p
+    global monitor, control, trigger, stream, p
     monitor.success('Closing threads')
     control.stop()
     trigger.stop()

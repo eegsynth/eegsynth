@@ -76,7 +76,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
+    global inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
 
     # get the options from the configuration file
     inputlist   = patch.getstring('input', 'channels', multiple=True)
@@ -118,7 +118,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
+    global inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
     global prev_enable, channel, history_att, operation, key, val
 
     # update the enable status
@@ -209,7 +209,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, stepize
+    global monitor, stepize, elapsed, naptime
     while True:
         # measure the time to correct for the slip
         start = time.time()

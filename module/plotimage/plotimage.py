@@ -73,7 +73,7 @@ class TriggerThread(threading.Thread):
                 if item['channel'] == self.redischannel:
                     window.setImage(self.image)
                     window.paintEvent(None)
-                        
+
 
 class Window(QWidget):
     def __init__(self):
@@ -94,7 +94,7 @@ class Window(QWidget):
 
     def setImage(self, image):
         self.image = image
-        
+
     def paintEvent(self, e):
         if not self.image == None:
             self.label.setPixmap(self.image)
@@ -106,7 +106,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -123,7 +123,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, winx, winy, winwidth, winheight, input_channel, input_image, app, window, triggers, timer
+    global delay, winx, winy, winwidth, winheight, input_channel, input_image, app, timer, window, triggers, channel, image, thread
 
     # get the options from the configuration file
     delay           = patch.getfloat('general', 'delay')
@@ -140,20 +140,20 @@ def _start():
     app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
-    # Let the interpreter run every 400 ms
-    # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
-    timer = QtCore.QTimer()
-    timer.start(400)
-    timer.timeout.connect(lambda: None)
-
     window = Window()
     window.show()
+
+    # Let the interpreter run every 200 ms
+    # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
+    timer = QtCore.QTimer()
+    timer.start(200)
+    timer.timeout.connect(_loop_once)
 
     triggers = []
     # make a trigger thread for each image
     for channel, image in zip(input_channel, input_image):
         triggers.append(TriggerThread(channel, image))
-        
+
     # start the thread for each of the triggers
     for thread in triggers:
         thread.start()
@@ -166,7 +166,9 @@ def _start():
 def _loop_once():
     '''Run the main loop once
     '''
-    pass
+    # Updating the main figure is done through Qt events
+    global monitor
+    monitor.loop()
 
 
 def _loop_forever():
@@ -178,7 +180,7 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, r, triggers
+    global monitor, triggers
     monitor.success('Closing threads')
     for thread in triggers:
         thread.stop()

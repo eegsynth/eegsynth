@@ -97,7 +97,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, input_name, input_variable, output_name, output_equation, variable, equation
+    global input_name, input_variable, output_name, output_equation, variable, equation
 
     if 'initial' in patch.config.sections():
         # assign the initial values
@@ -137,7 +137,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, input_name, input_variable, output_name, output_equation, variable, equation
+    global input_name, input_variable, output_name, output_equation, variable, equation
 
     monitor.debug('============================')
 

@@ -177,7 +177,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global monitor, stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
+    global stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
 
     # get the options from the configuration file
     stepsize = patch.getfloat('general', 'delay')
@@ -227,7 +227,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global monitor, stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
+    global stepsize, scale_rate, offset_rate, scale_shift, offset_shift, scale_ppqn, offset_ppqn, lock, clock, i, clockthread, midithread, redisthread, midiport, previous_midi_play, previous_midi_start, previous_redis_play
     global start, redis_play, midi_play, midi_start, rate, shift, ppqn, elapsed, naptime
 
     redis_play = patch.getint('redis', 'play')
@@ -309,7 +309,7 @@ def _loop_once():
 def _loop_forever():
     """Run the main loop forever
     """
-    global monitor, stepsize
+    global monitor, stepsize, elapsed, naptime
     while True:
         # measure the time to correct for the slip
         start = time.time()

@@ -140,7 +140,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global monitor, delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer
+    global delay, winx, winy, winwidth, winheight, input_name, input_variable, variable, app, window, timer
 
     # get the options from the configuration file
     delay           = patch.getfloat('general', 'delay')
@@ -157,6 +157,7 @@ def _start():
 
     # start the graphical user interface
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
     window = Window()

@@ -234,7 +234,7 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    global monitor, stepsize
+    global monitor, stepsize, elapsed, naptime
     while True:
         # measure the time to correct for the slip
         start = time.time()
