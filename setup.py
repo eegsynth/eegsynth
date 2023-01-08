@@ -73,7 +73,6 @@ setuptools.setup(
         "fuzzywuzzy[speedup]",
         "matplotlib",
         "mido",
-        "mido",
         "nilearn",
         "numpy",
         "paho-mqtt",
