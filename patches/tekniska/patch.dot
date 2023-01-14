@@ -1,0 +1,24 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+  unicorn2ft -> buffer1972;
+
+  buffer1972 -> recordsignal;
+  playbacksignal -> buffer1972;
+  buffer1972 -> preprocessing -> buffer1973;
+  recordsignal -> playbacksignal;
+
+  buffer1973 -> plotsignal;
+  buffer1973 -> plotspectral;
+  buffer1973 -> spectral;
+
+  spectral -> postprocessing;
+  
+  inputcontrol -> recordsignal;
+  inputcontrol -> postprocessing;
+
+  postprocessing -> vumeter;
+  postprocessing -> outputosc;
+  postprocessing -> outputmidi;
+}
