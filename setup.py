@@ -80,11 +80,12 @@ setuptools.setup(
         "pylsl",
         "pyqtgraph",
         "pyserial",
+        "pyzmq",
         "redis",
         "scipy",
         "sklearn",
         "termcolor",
-        "pyzmq",
+        "wiringpi; platform_machine == 'armv7l'"
     ],
     python_requires=">=2.7",
     extras_require={
