@@ -84,7 +84,7 @@ class Window(QWidget):
             val = patch.getfloat('input', name, default=np.nan)
             val = EEGsynth.rescale(val, slope=scale, offset=offset)
 
-            monitor.update(name, val)
+            monitor.update(name, val, level='debug')
 
             threshold = patch.getfloat('threshold', name, default=1)
             threshold = EEGsynth.rescale(threshold, slope=scale, offset=offset)
@@ -98,10 +98,10 @@ class Window(QWidget):
 
             if not np.isnan(val):
                 val = EEGsynth.limit(val, 0, 1)
-                r = QtCore.QRect(x, pady + (1-val)*bary, barx, val*bary)
+                r = QtCore.QRect(int(x), int(pady + (1-val)*bary), int(barx), int(val*bary))
                 qp.drawRect(r)
 
-            r = QtCore.QRect(x, pady, barx, bary)
+            r = QtCore.QRect(int(x), int(pady), int(barx), int(bary))
             qp.setPen(QtGui.QColor('white'))
             qp.drawText(r, QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, name)
 
@@ -112,7 +112,7 @@ class Window(QWidget):
         for i in range(1,10):
             qp.setPen(QtGui.QColor('black'))
             y = h - pady - float(i)/10 * bary
-            qp.drawLine(0, y, w, y)
+            qp.drawLine(0, int(y), int(w), int(y))
 
         qp.end()
         self.show()
