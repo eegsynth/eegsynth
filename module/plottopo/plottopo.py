@@ -163,10 +163,10 @@ def _start():
 
     # get the options from the configuration file
     delay           = patch.getfloat('general', 'delay')
-    winx            = patch.getfloat('display', 'xpos')
-    winy            = patch.getfloat('display', 'ypos')
-    winwidth        = patch.getfloat('display', 'width')
-    winheight       = patch.getfloat('display', 'height')
+    winx            = patch.getint('display', 'xpos')
+    winy            = patch.getint('display', 'ypos')
+    winwidth        = patch.getint('display', 'width')
+    winheight       = patch.getint('display', 'height')
     colormap        = patch.getstring('display', 'colormap', default='parula')
     labelposition   = patch.getstring('display', 'labelposition', default='center')
     labelcolor      = patch.getstring('display', 'labelcolor', default='inverse')

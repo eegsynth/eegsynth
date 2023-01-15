@@ -330,10 +330,10 @@ def _start():
     # get the options from the configuration file
     debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
-    winx = patch.getfloat('display', 'xpos')
-    winy = patch.getfloat('display', 'ypos')
-    winwidth = patch.getfloat('display', 'width')
-    winheight = patch.getfloat('display', 'height')
+    winx = patch.getint('display', 'xpos')
+    winy = patch.getint('display', 'ypos')
+    winwidth = patch.getint('display', 'width')
+    winheight = patch.getint('display', 'height')
 
     # the scale and offset are used to map internal values to Redis values
     output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # internal values are from 0 to 127

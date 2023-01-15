@@ -127,10 +127,10 @@ def _start():
 
     # get the options from the configuration file
     delay           = patch.getfloat('general', 'delay')
-    winx            = patch.getfloat('display', 'xpos')
-    winy            = patch.getfloat('display', 'ypos')
-    winwidth        = patch.getfloat('display', 'width')
-    winheight       = patch.getfloat('display', 'height')
+    winx            = patch.getint('display', 'xpos')
+    winy            = patch.getint('display', 'ypos')
+    winwidth        = patch.getint('display', 'width')
+    winheight       = patch.getint('display', 'height')
 
     # get the input options
     input_channel, input_image = list(zip(*patch.config.items('input')))
