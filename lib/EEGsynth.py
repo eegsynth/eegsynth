@@ -476,7 +476,7 @@ Press Ctrl-C to stop this module.
         if duration!=None and now-self.loop_start>duration:
             raise SystemExit
 
-    def update(self, key, val):
+    def update(self, key, val, level='info'):
         if (key not in self.previous_value) or (self.previous_value[key]!=val):
             try:
                 # the comparison returns false in case both are nan
@@ -486,7 +486,22 @@ Press Ctrl-C to stop this module.
                     return False
             except:
                 pass
-            self.info(formatkeyval(key, val))
+
+            if level == 'critical':
+                self.critical(formatkeyval(key, val))
+            elif level == 'error':
+                self.error(formatkeyval(key, val))
+            elif level == 'warning':
+                self.warning(formatkeyval(key, val))
+            elif level == 'success':
+                self.success(formatkeyval(key, val))
+            elif level == 'info':
+                self.info(formatkeyval(key, val))
+            elif level == 'debug':
+                self.debug(formatkeyval(key, val))
+            elif level == 'trace':
+                self.trace(formatkeyval(key, val))
+
             self.previous_value[key] = val
             return True
         else:
