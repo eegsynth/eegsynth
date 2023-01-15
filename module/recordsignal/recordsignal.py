@@ -26,6 +26,7 @@ import sys
 import time
 import wave
 import struct
+import csv
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -73,7 +74,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording
+    global MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording, maxabs
 
     MININT16 = -np.power(2, 15)
     MAXINT16 = np.power(2, 15) - 1
@@ -83,8 +84,8 @@ def _start():
     # get the options from the configuration file
     debug = patch.getint('general', 'debug', default=1)
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
-    filename = patch.getstring('recording', 'file')
-    fileformat = patch.getstring('recording', 'format')
+    filename = patch.get('recording', 'file')           # do not try to get this from Redis
+    fileformat = patch.get('recording', 'format')       # do not try to get this from Redis
 
     if fileformat is None:
         # determine the file format from the file name
@@ -115,6 +116,7 @@ def _start():
     monitor.debug(hdr_input.labels)
 
     recording = False
+    maxabs = 0
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -126,8 +128,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording
-    global fname, f, ext, blocksize, synchronize, physical_min, physical_max, meas_info, chan_info, now, begsample, endsample, startsample, dat, key
+    global MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording, maxabs
+    global fname, f, ext, blocksize, synchronize, csvwriter, physical_min, physical_max, meas_info, chan_info, now, sample, begsample, endsample, startsample, dat, key
 
     hdr_input = ft_input.getHeader()
 
@@ -149,6 +151,7 @@ def _loop_once():
 
     if not recording and patch.getint('recording', 'record'):
         recording = True
+        maxabs = 0
         # open a new file
         name, ext = os.path.splitext(filename)
         if len(ext) == 0:
@@ -193,6 +196,12 @@ def _loop_once():
             f.setnframes(0)
             f.setsampwidth(4)  # 1, 2 or 4
             f.setframerate(hdr_input.fSample)
+        elif fileformat == 'csv':
+            f = open(fname, 'w')
+            csvwriter = csv.writer(f, delimiter=',')
+        elif fileformat == 'tsv':
+            f = open(fname, 'w')
+            csvwriter = csv.writer(f, delimiter='\t')
         else:
             raise NotImplementedError('unsupported file format')
 
@@ -229,15 +238,26 @@ def _loop_once():
             # the scaling is done in the EDF writer
             f.writeBlock(np.transpose(dat))
         elif fileformat == 'wav':
-            for sample in range(len(dat)):
-                x = dat[sample, :]
+            for x in dat:
+                maxabs = max(max(abs(x)), maxabs)
+                if monitor.update('maxabs', maxabs) and maxabs>1:
+                    monitor.warning('the signal is clipping')
                 # scale the floating point values between -1 and 1
-                y = x / ((physical_max - physical_min) / 2)
+                y = x / ((physical_max - physical_min) / 2.)
+                # the values cannot exceed the range from -1 to +1 in an int32 wav file
+                y = np.clip(y, -1.0, 1.0)
                 # scale the floating point values between MININT32 and MAXINT32
                 y = y * ((float(MAXINT32) - float(MININT32)) / 2)
-                # convert them to packed binary data
+                # convert them to packed binary int32 data
                 z = [int(item) for item in y]
                 f.writeframesraw(wave.struct.pack('i' * len(z), *z))
+                del x, y, z
+        elif fileformat == 'csv':
+            for sample in range(len(dat)):
+                csvwriter.writerow(dat[sample, :])
+        elif fileformat == 'tsv':
+            for sample in range(len(dat)):
+                csvwriter.writerow(dat[sample, :])
         begsample += blocksize
         endsample += blocksize
 
@@ -258,9 +278,13 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
-    global monitor, ft_input
+    global monitor, ft_input, recording, fname, f
     ft_input.disconnect()
     monitor.success('Disconnected from input FieldTrip buffer')
+    if recording:
+        recording = False
+        monitor.info("Closing " + fname)
+        f.close()
     sys.exit()
 
 

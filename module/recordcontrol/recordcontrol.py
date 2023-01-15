@@ -25,6 +25,7 @@ import os
 import sys
 import time
 import wave
+import csv
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
@@ -71,7 +72,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
+    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust, maxabs
 
     MININT16 = -np.power(2., 15)
     MAXINT16 = np.power(2., 15) - 1
@@ -81,8 +82,8 @@ def _start():
     # get the options from the configuration file
     debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
-    filename = patch.getstring('recording', 'file')
-    fileformat = patch.getstring('recording', 'format')
+    filename = patch.get('recording', 'file')           # do not try to get this from Redis
+    fileformat = patch.get('recording', 'format')       # do not try to get this from Redis
 
     if fileformat is None:
         # determine the file format from the file name
@@ -92,6 +93,7 @@ def _start():
     filenumber = 0
     recording = False
     adjust = 1
+    maxabs = 0
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -103,8 +105,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust
-    global start, fname, f, ext, blocksize, synchronize, channels, channelz, nchans, sample, replace, i, s, z, physical_min, physical_max, meas_info, chan_info, recstart, D, chan, xval, elapsed
+    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust, maxabs
+    global start, fname, f, ext, blocksize, synchronize, csvwriter, channels, channelz, nchans, sample, replace, i, s, z, physical_min, physical_max, meas_info, chan_info, recstart, D, chan, xval, elapsed
 
     # measure the time to correct for the slip
     start = time.time()
@@ -121,6 +123,7 @@ def _loop_once():
 
     if not recording and patch.getint('recording', 'record'):
         recording = True
+        maxabs = 0
         # open a new file
         name, ext = os.path.splitext(filename)
         if len(ext) == 0:
@@ -132,8 +135,8 @@ def _loop_once():
         assert (synchronize % blocksize) == 0, "synchronize should be multiple of blocksize"
 
         # get the details from Redis
-        channels = sorted(r.keys('*'))
-        channelz = sorted(r.keys('*'))
+        channels = sorted(patch.redis.keys('*'))
+        channelz = sorted(patch.redis.keys('*'))
         nchans = len(channels)
         # this is to keep track of the number of samples written so far
         sample = 0
@@ -179,6 +182,14 @@ def _loop_once():
             f.setnframes(0)
             f.setsampwidth(4)  # 1, 2 or 4
             f.setframerate(1. / delay)
+        elif fileformat == 'csv':
+            f = open(fname, 'w')
+            csvwriter = csv.writer(f, delimiter=',')
+            csvwriter.writerow(channelz)
+        elif fileformat == 'tsv':
+            f = open(fname, 'w')
+            csvwriter = csv.writer(f, delimiter='\t')
+            csvwriter.writerow(channelz)
         else:
             raise NotImplementedError('unsupported file format')
 
@@ -202,15 +213,26 @@ def _loop_once():
         if fileformat == 'edf':
             f.writeBlock(D)
         elif fileformat == 'wav':
-            D = np.asarray(D)
+            # the blocksize is always 1
+            D = np.array(D, ndmin=2).transpose()
             for x in D:
+                maxabs = max(max(abs(x)), maxabs)
+                if monitor.update('maxabs', maxabs) and maxabs>1:
+                    monitor.warning('the signal is clipping')
                 # scale the floating point values between -1 and 1
                 y = x / ((physical_max - physical_min) / 2.)
+                # the values cannot exceed the range from -1 to +1 in an int32 wav file
+                y = np.clip(y, -1.0, 1.0)
                 # scale the floating point values between MININT32 and MAXINT32
                 y = y * ((float(MAXINT32) - float(MININT32)) / 2.)
-                # convert them to packed binary data
-                z = "".join((wave.struct.pack('i', item) for item in y))
-                f.writeframesraw(z)
+                # convert them to packed binary int32 data
+                z = [int(item) for item in y]
+                f.writeframesraw(wave.struct.pack('i' * len(z), *z))
+                del x, y, z
+        elif fileformat == 'csv':
+            csvwriter.writerow([item for sublist in D for item in sublist])
+        elif fileformat == 'tsv':
+            csvwriter.writerow([item for sublist in D for item in sublist])
 
         time.sleep(adjust * delay)
 
@@ -236,6 +258,11 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt
     '''
+    global monitor, recording, fname, f
+    if recording:
+        recording = False
+        monitor.info("Closing " + fname)
+        f.close()
     sys.exit()
 
 
