@@ -34,43 +34,50 @@ class server():
     def start(self):
         while True:
             message = self.command.recv_string()
-            cmd, key = message.split(' ', 1)
-            if cmd == 'SET':
+            if message.startswith('SET'):
                 if self.debug>1:
                     print(message)
-                key, val = key.split(' ', 1)
+                cmd, key, val = message.split(' ', 1)
                 self.store[key] = val
                 self.command.send_string('OK')
-            elif cmd == 'GET':
-                if self.debug>1:
+            elif message.startswith('GET'):
+                if self.debug>2:
                     print(message)
+                cmd, key = message.split(' ', 1)
                 if key in self.store:
                     self.command.send_string(self.store[key])
                 else:
                     self.command.send_string('')
-            elif cmd == 'PUBLISH':
-                if self.debug>0:
+            elif message.startswith('PUBLISH'):
+                if self.debug>1:
                     print(message)
-                key, val = key.split(' ', 1)
+                cmd, key, val = message.split(' ', 1)
                 self.command.send_string('OK')
                 self.publish.send_string('%s %s' % (key, val))
-            elif cmd == 'EXISTS':
-                if self.debug>2:
+            elif message.startswith('EXISTS'):
+                if self.debug>1:
                     print(message)
+                cmd, key = message.split(' ', 1)
                 if key in self.store.keys():
                     self.command.send_string('1')
                 else:
                     self.command.send_string('0')
+            elif message.startswith('CONNECT'):
+                if self.debug>0:
+                    print(message)
+                self.command.send_string('1')
 
 
 ###################################################################################################
 class client():
-    def __init__(self, host='localhost', port=5555):
+    def __init__(self, host='localhost', port=5555, timeout=5000):
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
+        socket.RCVTIMEO = timeout # in milliseconds
         socket.connect("tcp://%s:%d" % (host, port))
         self.socket = socket
         self.debug = 0
+        self.timeout = timeout
         self.lock = threading.Lock()
 
     def pubsub(self):
@@ -107,6 +114,16 @@ class client():
         with self.lock:
             self.socket.send_string("EXISTS %s" % key)
             val = bool(float(self.socket.recv_string()))
+        return val
+
+    def connect(self):
+        # test whether this client is connected to the server
+        with self.lock:
+            try:
+                self.socket.send_string("CONNECT")
+                val = bool(float(self.socket.recv_string()))
+            except:
+                val = False
         return val
         
 

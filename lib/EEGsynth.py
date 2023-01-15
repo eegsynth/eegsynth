@@ -149,8 +149,14 @@ class patch():
                 port = config.getint('zeromq', 'port')
             else:
                 port = 5555
-            r = ZmqRedis.client(host=hostname, port=port)
-
+            if config.has_option('zeromq', 'timeout'):
+                timeout = config.getint('zeromq', 'timeout')
+            else:
+                timeout = 5000
+            r = ZmqRedis.client(host=hostname, port=port, timeout=timeout)
+            if not name=='redis' and not r.connect():
+                raise RuntimeError("cannot connect to ZeroMQ server")
+            
         elif broker=='fake':
             # the fake client stores all values in a dictionary
             r = DummyRedis.client()
@@ -165,7 +171,7 @@ class patch():
         # store the command-line arguments, the configuration object that maps the ini file, and the Redis connection
         self.args = args
         self.config = config
-        self.redis = r
+        self.redis = r              # this can be redis, zeromq, fake or dummy
 
     ####################################################################
     def pubsub(self):
