@@ -76,7 +76,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
+    global inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, historic_data, historic_stat
 
     # get the options from the configuration file
     inputlist   = patch.getstring('input', 'channels', multiple=True)
@@ -102,11 +102,11 @@ def _start():
     numchannel  = len(inputlist)
     numhistory  = int(round(window/stepsize))
 
-    # this will contain the full list of historic values
-    history = np.empty((numchannel, numhistory)) * np.NAN
+    # this will contain the full list of historic_stat values
+    historic_data = np.empty((numchannel, numhistory)) * np.NAN
 
-    # this will contain the statistics of the historic values
-    historic = {}
+    # this will contain the statistics of the historic_stat values
+    historic_stat = {}
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -118,86 +118,75 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, history, historic
-    global prev_enable, channel, history_att, operation, key, val
+    global inputlist, enable, stepsize, window, metrics_iqr, metrics_mad, metrics_max, metrics_max_att, metrics_mean, metrics_median, metrics_min, metrics_min_att, metrics_p03, metrics_p16, metrics_p84, metrics_p97, metrics_range, metrics_std, numchannel, numhistory, historic_data, historic_stat
+    global channel, historic_att, operation, key, val
 
-    # update the enable status
-    prev_enable = enable
+    # determine whether the historic_data should be updated or not
     enable = patch.getint('history', 'enable', default=1)
-
-    if enable and prev_enable:
-        monitor.info("Updating the history")
-    elif enable and not prev_enable:
-        monitor.info("Enabling the updating")
-    elif not enable and not prev_enable:
-        monitor.info("Not updating the history")
-    elif not enable and prev_enable:
-        monitor.info("Disabling the updating")
-
+    monitor.update("enable", enable)
     if not enable:
-        time.sleep(0.1)
         return
 
-    # shift data to next sample
-    history[:, :-1] = history[:, 1:]
+    # shift the data to next sample
+    historic_data[:, :-1] = historic_data[:, 1:]
 
-    # update with current data
+    # update with the current data
     for channel in range(numchannel):
         try:
-            history[channel, numhistory-1] = float(patch.redis.get(inputlist[channel]))
+            historic_data[channel, numhistory-1] = float(patch.redis.get(inputlist[channel]))
         except:
-            history[channel, numhistory-1] = np.NaN
+            historic_data[channel, numhistory-1] = np.NaN
 
     if metrics_mean or metrics_max_att or metrics_min_att:
-        historic['mean']    = np.nanmean(history, axis=1)
+        historic_stat['mean']    = np.nanmean(historic_data, axis=1)
     if metrics_min or metrics_range:
-        historic['min']     = np.nanmin(history, axis=1)
+        historic_stat['min']     = np.nanmin(historic_data, axis=1)
     if metrics_max or metrics_range:
-        historic['max']     = np.nanmax(history, axis=1)
+        historic_stat['max']     = np.nanmax(historic_data, axis=1)
 
     # use some robust estimators
     if metrics_median:
-        historic['median']  = np.nanmedian(history, axis=1)
+        historic_stat['median']  = np.nanmedian(historic_data, axis=1)
     if metrics_mad:
         # see https://en.wikipedia.org/wiki/Median_absolute_deviation
-        historic['mad']     = mad(history, axis=1)
+        historic_stat['mad']     = mad(historic_data, axis=1)
 
     # for a normal distribution the 16th and 84th percentile correspond to the mean plus-minus one standard deviation
     if metrics_p03:
-        historic['p03']     = np.percentile(history,  3, axis=1) # mean minus 2x standard deviation
+        historic_stat['p03']     = np.percentile(historic_data,  3, axis=1) # mean minus 2x standard deviation
     if metrics_p16 or metrics_iqr:
-        historic['p16']     = np.percentile(history, 16, axis=1) # mean minus 1x standard deviation
+        historic_stat['p16']     = np.percentile(historic_data, 16, axis=1) # mean minus 1x standard deviation
     if metrics_p84 or metrics_iqr:
-        historic['p84']     = np.percentile(history, 84, axis=1) # mean plus 1x standard deviation
+        historic_stat['p84']     = np.percentile(historic_data, 84, axis=1) # mean plus 1x standard deviation
     if metrics_p97:
-        historic['p97']     = np.percentile(history, 97, axis=1) # mean plus 2x standard deviation
+        historic_stat['p97']     = np.percentile(historic_data, 97, axis=1) # mean plus 2x standard deviation
 
     if metrics_iqr:
         # see https://en.wikipedia.org/wiki/Interquartile_range
-        historic['iqr']     = historic['p84'] - historic['p16']
+        historic_stat['iqr']     = historic_stat['p84'] - historic_stat['p16']
 
     if metrics_range:
-        historic['range']   = historic['max'] - historic['min']
+        historic_stat['range']   = historic_stat['max'] - historic_stat['min']
     if metrics_std:
-        historic['std']     = np.nanstd(history, axis=1)
+        historic_stat['std']     = np.nanstd(historic_data, axis=1)
 
     if metrics_max_att or metrics_min_att:
-        # Attenuated history over time, so to diminish max/min over time
+        # Attenuated historic_data over time, so to diminish max/min over time
         # NOTE: There is probably a way to do this without a for-loop:
-        history_att = history
+        historic_att = historic_data
         for channel in range(numchannel):
-            history_att[channel, :] = history_att[channel, :] - historic['mean'][channel]
-            history_att[channel, :] = history_att[channel, :] * np.linspace(0, 1, numhistory)
-            history_att[channel, :] = history_att[channel, :] + historic['mean'][channel]
+            historic_att[channel, :] = historic_att[channel, :] - historic_stat['mean'][channel]
+            historic_att[channel, :] = historic_att[channel, :] * np.linspace(0, 1, numhistory)
+            historic_att[channel, :] = historic_att[channel, :] + historic_stat['mean'][channel]
 
     if metrics_max_att or metrics_min_att:
-        historic['min_att'] = np.nanmin(history_att, axis=1)
-        historic['max_att'] = np.nanmax(history_att, axis=1)
+        historic_stat['min_att'] = np.nanmin(historic_att, axis=1)
+        historic_stat['max_att'] = np.nanmax(historic_att, axis=1)
 
-    for operation in list(historic.keys()):
+    for operation in list(historic_stat.keys()):
         for channel in range(numchannel):
             key = inputlist[channel] + "." + operation
-            val = historic[operation][channel]
+            val = historic_stat[operation][channel]
             patch.setvalue(key, val)
             monitor.debug('%s = %g' % (key, val))
 
