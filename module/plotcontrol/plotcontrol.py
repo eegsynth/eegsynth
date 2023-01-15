@@ -70,10 +70,10 @@ def _start():
     # get the options from the configuration file
     delay       = patch.getfloat('general', 'delay')
     window      = patch.getfloat('general', 'window') # in seconds
-    winx        = patch.getfloat('display', 'xpos')
-    winy        = patch.getfloat('display', 'ypos')
-    winwidth    = patch.getfloat('display', 'width')
-    winheight   = patch.getfloat('display', 'height')
+    winx        = patch.getint('display', 'xpos')
+    winy        = patch.getint('display', 'ypos')
+    winwidth    = patch.getint('display', 'width')
+    winheight   = patch.getint('display', 'height')
 
     historysize = int(window/delay) # in steps
     timeaxis = np.linspace(-window, 0, historysize)

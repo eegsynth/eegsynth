@@ -104,10 +104,10 @@ def _start():
     delay       = patch.getfloat('general', 'delay')            # in seconds
     window      = patch.getfloat('general', 'window')           # in seconds
     value       = patch.getint('general', 'value', default=0)   # boolean
-    winx        = patch.getfloat('display', 'xpos')
-    winy        = patch.getfloat('display', 'ypos')
-    winwidth    = patch.getfloat('display', 'width')
-    winheight   = patch.getfloat('display', 'height')
+    winx        = patch.getint('display', 'xpos')
+    winy        = patch.getint('display', 'ypos')
+    winwidth    = patch.getint('display', 'width')
+    winheight   = patch.getint('display', 'height')
 
     # Initialize variables
     data = {}

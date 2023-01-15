@@ -84,10 +84,10 @@ def _start():
     # get the options from the configuration file
     debug       = patch.getint('general', 'debug', default=1)
     channels    = patch.getint('arguments', 'channels', multiple=True)
-    winx        = patch.getfloat('display', 'xpos')
-    winy        = patch.getfloat('display', 'ypos')
-    winwidth    = patch.getfloat('display', 'width')
-    winheight   = patch.getfloat('display', 'height')
+    winx        = patch.getint('display', 'xpos')
+    winy        = patch.getint('display', 'ypos')
+    winwidth    = patch.getint('display', 'width')
+    winheight   = patch.getint('display', 'height')
     window      = patch.getfloat('arguments', 'window', default=5.0)        # in seconds
     clipsize    = patch.getfloat('arguments', 'clipsize', default=0.0)      # in seconds
     clipside    = patch.getstring('arguments', 'clipside', default='left')  # left is in the past, right is in the future
