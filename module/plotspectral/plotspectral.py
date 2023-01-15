@@ -116,7 +116,7 @@ def _start():
     winheight   = patch.getint('display', 'height')
     prefix      = patch.getstring('output', 'prefix')
     ylim        = patch.getfloat('arguments', 'ylim', multiple=True, default=None)
-    output      = patch.getstring('arguments', 'output', default='amplitude')  # amplitude or power
+    output      = patch.getstring('arguments', 'output', default='amplitude')  # amplitude, power or db
 
     window      = int(round(window * hdr_input.fSample))       # in samples
     clipsize    = int(round(clipsize * hdr_input.fSample))     # in samples
@@ -217,6 +217,8 @@ def _start():
             freqplot_curr[plotnr].setLabel('left', text='Amplitude')
         elif output=='power':
             freqplot_curr[plotnr].setLabel('left', text='Power')
+        elif output=='db':
+            freqplot_curr[plotnr].setLabel('left', text='dB')
         freqplot_curr[plotnr].setLabel('bottom', text='Frequency (Hz)')
 
         spect_curr.append(freqplot_curr[plotnr].plot(pen='w'))
@@ -231,7 +233,13 @@ def _start():
         plot.setYRange(0,1)
 
         freqplot_hist.append(plot)
-        freqplot_hist[plotnr].setLabel('left', text='Power')
+
+        if output=='amplitude':
+            freqplot_hist[plotnr].setLabel('left', text='Amplitude')
+        elif output=='power':
+            freqplot_hist[plotnr].setLabel('left', text='Power')
+        elif output=='db':
+            freqplot_hist[plotnr].setLabel('left', text='dB')
         freqplot_hist[plotnr].setLabel('bottom', text='Frequency (Hz)')
 
         spect_hist.append(freqplot_hist[plotnr].plot(pen='w'))
@@ -344,6 +352,8 @@ def _loop_once():
             fft_curr[plotnr] = abs(np.fft.fft(dat[:, channr-1]))
         elif output == 'power':
             fft_curr[plotnr] = abs(np.fft.fft(dat[:, channr-1]))**2
+        elif output == 'db':
+            fft_curr[plotnr] = 10*np.log10(abs(np.fft.fft(dat[:, channr-1])))
 
         # update the FFT history with the current estimate
         history[plotnr, :, numhistory - 1] = fft_curr[plotnr]
