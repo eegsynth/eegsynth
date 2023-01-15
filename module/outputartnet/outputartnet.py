@@ -166,7 +166,7 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, artnet
-    monitor.success("Closing module...")
+    monitor.success("Stopping module...")
     # blank out
     dmxframe = [0] * 512
     artnet.broadcastDMX(dmxframe,address)
@@ -182,6 +182,7 @@ def _stop():
     artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
     artnet.close()
+    monitor.success("Done.")
 
 
 if __name__ == '__main__':

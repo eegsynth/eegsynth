@@ -184,10 +184,11 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, s
-    monitor.success("Closing module...")
+    monitor.success("Stopping module...")
     # blank out everything
     dmxframe = [0] * 512
     sendframe(s, dmxframe)
+    monitor.success("Done.")
 
 
 if __name__ == '__main__':

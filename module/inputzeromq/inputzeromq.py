@@ -153,7 +153,7 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, socket, context
-    monitor.success("Closing module...")
+    monitor.success("Stopping module...")
     socket.close()
     context.destroy()
     monitor.success("Done.")
