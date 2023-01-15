@@ -59,7 +59,7 @@ class patch():
     arguments or from the ini file
       patch.get(section, item, default=None)
 
-    The following methods get the values either from the commnand-line
+    The following methods get the values either from the command-line
     arguments, from the ini file or from Redis
       patch.getfloat(section, item, multiple=False, default=None)
       patch.getint(section, item, multiple=False, default=None)

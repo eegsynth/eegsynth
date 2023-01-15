@@ -37,9 +37,10 @@ class server():
             if message.startswith('SET'):
                 if self.debug>1:
                     print(message)
-                cmd, key, val = message.split(' ', 1)
+                cmd, key, val = message.split(' ', 2)
                 self.store[key] = val
                 self.command.send_string('OK')
+
             elif message.startswith('GET'):
                 if self.debug>2:
                     print(message)
@@ -48,12 +49,36 @@ class server():
                     self.command.send_string(self.store[key])
                 else:
                     self.command.send_string('')
+
             elif message.startswith('PUBLISH'):
                 if self.debug>1:
                     print(message)
-                cmd, key, val = message.split(' ', 1)
+                cmd, key, val = message.split(' ', 2)
                 self.command.send_string('OK')
                 self.publish.send_string('%s %s' % (key, val))
+
+            elif message.startswith('KEYS'):
+                if self.debug>1:
+                    print(message)
+                cmd, pattern = message.split(' ', 1)
+                keys = list(self.store.keys())
+                if pattern == '*':
+                    # return all keys
+                    self.command.send_string(' '.join(keys))
+                elif pattern.startswith('*'):
+                    # return all keys that start with anything and end with the pattern
+                    sel = [i.endswith(pattern[1:]) for i in keys]
+                    keys = [i for i,b in zip(keys, sel) if b]
+                    self.command.send_string(' '.join(keys))
+                elif pattern.endswith('*'):
+                    # return all keys that start with the pattern and end with anything
+                    sel = [i.startswith(pattern[:-1]) for i in keys]
+                    keys = [i for i,b in zip(keys, sel) if b]
+                    self.command.send_string(' '.join(keys))
+                else:
+                    # return no keys
+                    self.command.send_string('')
+
             elif message.startswith('EXISTS'):
                 if self.debug>1:
                     print(message)
@@ -62,6 +87,7 @@ class server():
                     self.command.send_string('1')
                 else:
                     self.command.send_string('0')
+
             elif message.startswith('CONNECT'):
                 if self.debug>0:
                     print(message)
@@ -114,6 +140,13 @@ class client():
         with self.lock:
             self.socket.send_string("EXISTS %s" % key)
             val = bool(float(self.socket.recv_string()))
+        return val
+
+    def keys(self, pattern):
+        with self.lock:
+            self.socket.send_string("KEYS %s" % pattern)
+            val = self.socket.recv_string()
+            val = val.split(' ')
         return val
 
     def connect(self):
