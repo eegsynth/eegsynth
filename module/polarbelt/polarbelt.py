@@ -82,7 +82,6 @@ class PolarClient:
         asyncio.ensure_future(self.ble_client.stop_notify(self.patch.getstring("input", "uuid")))
         asyncio.ensure_future(self.ble_client.disconnect())
         self.monitor.success("Disconnected from Polar belt {0}".format(self.patch.getstring("input", "uuid")))
-        sys.exit()
 
 
     def data_handler(self, sender, data):    # sender (UUID) unused but required by Bleak API
@@ -127,3 +126,4 @@ if __name__ == "__main__":
         polar.start()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         polar.stop()
+    sys.exit()

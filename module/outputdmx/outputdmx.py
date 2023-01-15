@@ -181,14 +181,13 @@ def _loop_forever():
 
 
 def _stop():
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, s
     monitor.success("Closing module...")
     # blank out everything
     dmxframe = [0] * 512
     sendframe(s, dmxframe)
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -198,3 +197,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

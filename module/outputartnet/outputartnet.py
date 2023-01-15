@@ -163,7 +163,7 @@ def _loop_forever():
 
 
 def _stop():
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, artnet
     monitor.success("Closing module...")
@@ -182,7 +182,6 @@ def _stop():
     artnet.broadcastDMX(dmxframe,address)
     time.sleep(0.1) # this seems to take some time
     artnet.close()
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -192,3 +191,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

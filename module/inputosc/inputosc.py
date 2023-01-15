@@ -197,16 +197,15 @@ def _loop_forever():
 
 
 def _stop():
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global use_old_version, monitor, s, st
     if use_old_version:
-        monitor.success("Closing module...")
+        monitor.success("Stopping module...")
         s.close()
         monitor.info("Waiting for OSC server thread to finish.")
         st.join()
         monitor.success("Done.")
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -216,3 +215,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

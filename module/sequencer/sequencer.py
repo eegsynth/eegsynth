@@ -248,7 +248,7 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, patch, sequencethread, r
     try:
@@ -260,7 +260,6 @@ def _stop(*args):
     sequencethread.stop()
     patch.publish('SEQUENCER_UNBLOCK', 1)
     sequencethread.join()
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -270,3 +269,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

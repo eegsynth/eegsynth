@@ -215,8 +215,6 @@ def _start():
     # it should not start playing immediately
     stream.stop_stream()
 
-    signal.signal(signal.SIGINT, _stop)
-
     # jump to the end of the input stream
     if hdr_input.nSamples - 1 < window:
         begsample = 0
@@ -315,7 +313,7 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, ft_input, stream, p
     ft_input.disconnect()
@@ -323,7 +321,6 @@ def _stop(*args):
     stream.stop_stream()
     stream.close()
     p.terminate()
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -333,3 +330,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

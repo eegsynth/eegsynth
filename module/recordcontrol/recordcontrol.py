@@ -256,14 +256,13 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, recording, fname, f
     if recording:
         recording = False
         monitor.info("Closing " + fname)
         f.close()
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -273,3 +272,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

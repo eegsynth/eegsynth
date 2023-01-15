@@ -129,7 +129,6 @@ class BreathingBiofeedback:
     def stop(self):
         self.ft_input.disconnect()
         self.monitor.success("Disconnected from input FieldTrip buffer")
-        sys.exit()
 
 
     def biofeedback_function(self, x, target):
@@ -203,3 +202,4 @@ if __name__ == "__main__":
         biofeedbackloop.start()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         biofeedbackloop.stop()
+    sys.exit()

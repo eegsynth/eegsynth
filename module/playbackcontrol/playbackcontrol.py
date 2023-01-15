@@ -182,9 +182,9 @@ def _loop_forever():
 
 
 def _stop():
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
-    sys.exit()
+    pass
 
 
 if __name__ == '__main__':
@@ -194,3 +194,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

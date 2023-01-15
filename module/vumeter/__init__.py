@@ -12,3 +12,6 @@ class Executable:
         _setup()
         _start()
         _loop_forever()
+
+    def __del__(self):
+        _stop()

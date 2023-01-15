@@ -22,3 +22,6 @@ class Executable:
                 time.sleep(1)
             except KeyboardInterrupt:
                 raise SystemExit
+
+    def __del__(self):
+        _stop()

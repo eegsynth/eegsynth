@@ -170,13 +170,12 @@ def _loop_forever():
 
 
 def _stop():
-    """Stop and clean up on SystemExit, KeyboardInterrupt
+    """Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     """
     global stream, p
     stream.stop_stream()
     stream.close()
     p.terminate()
-    sys.exit()
 
 
 if __name__ == "__main__":
@@ -186,3 +185,4 @@ if __name__ == "__main__":
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

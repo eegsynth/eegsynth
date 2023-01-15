@@ -92,7 +92,7 @@ def _setup():
     global patch, name, path, monitor
 
     # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(parser, preservecase=True)
+    patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
@@ -187,11 +187,12 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
-    global f, monitor, trigger, r
-    if not f.closed:
-        monitor.info('Closing file')
+    global monitor, patch, trigger, recording, fname, f
+    if recording:
+        recording = False
+        monitor.info("Closing " + fname)
         f.close()
     monitor.success('Closing threads')
     for thread in trigger:
@@ -199,7 +200,6 @@ def _stop(*args):
     patch.publish('RECORDTRIGGER_UNBLOCK', 1)
     for thread in trigger:
         thread.join()
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -209,3 +209,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

@@ -21,5 +21,7 @@ class Executable:
                 # restart after one second
                 time.sleep(1)
             except KeyboardInterrupt:
-                _stop()
                 raise SystemExit
+
+    def __del__(self):
+        _stop()

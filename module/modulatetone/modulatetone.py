@@ -221,8 +221,6 @@ def _start():
     # start the output stream
     stream.start_stream()
 
-    signal.signal(signal.SIGINT, _stop)
-
     if scale_amplitude>1/ntones:
         monitor.warning('the amplitude scaling is too high, clipping might occur')
 
@@ -249,7 +247,7 @@ def _loop_forever():
 
 
 def _stop(*args):
-    '''Stop and clean up on SystemExit, KeyboardInterrupt
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, trigger, stream, p
     monitor.success('Closing threads')
@@ -261,7 +259,6 @@ def _stop(*args):
     stream.stop_stream()
     stream.close()
     p.terminate()
-    sys.exit()
 
 
 if __name__ == '__main__':
@@ -271,3 +268,4 @@ if __name__ == '__main__':
         _loop_forever()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+    sys.exit()

@@ -22,3 +22,6 @@ class Executable:
                 raise SystemExit
             except KeyboardInterrupt:
                 raise SystemExit
+
+    def __del__(self):
+        _stop()
