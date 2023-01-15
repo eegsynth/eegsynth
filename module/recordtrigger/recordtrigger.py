@@ -114,7 +114,7 @@ def _start():
     delay = patch.getfloat('general', 'delay')
     input_scale = patch.getfloat('input', 'scale', default=None)
     input_offset = patch.getfloat('input', 'offset', default=None)
-    filename = patch.getstring('recording', 'file')
+    filename = patch.get('recording', 'file')           # do not try to get this from Redis
     fileformat = 'tsv'
 
     # start with a temporary file which is immediately closed
