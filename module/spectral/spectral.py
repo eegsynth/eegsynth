@@ -105,7 +105,7 @@ def _start():
     monitor.info(str(channame) + " " + str(chanindx))
 
     prefix = patch.getstring('output', 'prefix')
-    output = patch.getstring('processing', 'output', default='power')  # amplitude or power
+    output = patch.getstring('processing', 'output', default='amplitude')  # amplitude, power or db
 
     begsample = -1
     endsample = -1
@@ -168,26 +168,25 @@ def _loop_once():
         F = abs(np.fft.fft(dat, axis=0))
     elif output == 'power':
         F = abs(np.fft.fft(dat, axis=0))**2
+    elif output == 'db':
+        F = 10*np.log10(abs(np.fft.fft(dat, axis=0)))
 
-    value = [0] * len(channame) * len(bandname)
+    # this vector contains the spectral estimate for each channel and frequency band
+    value = [np.nan] * len(channame) * len(bandname)
+
     i = 0
-    for chan in range(F.shape[1]):
-        for lo,hi in zip(bandlo,bandhi):
-            value[i] = 0
-            count = 0
-            for sample in range(len(frequency)):
-                if frequency[sample]>=lo and frequency[sample]<=hi:
-                    value[i] += F[sample, chan]
-                    count        += 1
-            if count>0:
-                value[i] /= count
+    for lo,hi in zip(bandlo,bandhi):
+        freqindx = np.logical_and(frequency>=lo, frequency<=hi)
+        for chan in range(F.shape[1]):
+            if freqindx.sum()>0:
+                value[i] = np.mean(F[freqindx, chan])
             i+=1
-
+    
     monitor.debug(np.around(value))
 
     i = 0
-    for chan in channame:
-        for band in bandname:
+    for band in bandname:
+        for chan in channame:
             key = "%s.%s.%s" % (prefix, chan, band)
             patch.setvalue(key, value[i])
             i+=1
