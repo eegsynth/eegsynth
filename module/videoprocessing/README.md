@@ -1,12 +1,14 @@
 # Videoprocessing module
 
-This module does live video processing of the webcam data. It computes a number of features from the video and writes these as control signals to Redis.
+This module does live video processing of the video stream from a webcam. It computes a number of features from the video and writes these as control signals to Redis.
 
-## Installing with Python3 on macOS
+## Extra installation instructions for macOS
+
+This depends on the Open Source Computer Vision Library or [OpenCV](https://opencv.org/).
 
 ```
-$ brew install python
-$ brew install graphicsmagick
-$ brew install boost-python3
-$ pip3 install pgmagick
+pip install opencv-python
+pip install opencv-python-headless
 ```
+
+In the macOS system preferences "Privacy and Security" section you have to allow Camera access to the Terminal application.
