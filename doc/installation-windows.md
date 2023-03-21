@@ -17,4 +17,3 @@ There  is no working conda package for rt-MIDI, so you will need to install it w
 ```
 pip install python-rtmidi
 ```
-

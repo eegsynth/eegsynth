@@ -87,33 +87,38 @@ To make sure the Python package manager is up to date, you should do
 pip install --upgrade pip
 ```
 
-Subsequently you can install the Python modules
+Subsequently you can install the Python modules with `pip install eegsynth` or one by one using
 
 ```
-pip install redis
-pip install configparser
-pip install numpy
-pip install scipy
-pip install mido
-pip install python-rtmidi
-pip install pyserial
-pip install python-osc # for Python >= 3.6
-pip install pyOSC      # for Python <= 3.5
-pip install pyqtgraph
-pip install matplotlib
 pip install bitalino
+pip install colorama
+pip install configparser
 pip install fuzzywuzzy[speedup]
+pip install matplotlib
+pip install mido
 pip install nilearn
+pip install numpy
+pip install paho-mqtt  
+pip install pyaudio
+pip install pylsl
+pip install pyqtgraph
+pip install pyserial
+pip install pyzmq
+pip install redis
+pip install scipy
 pip install sklearn
-pip install neurokit
-pip install paho-mqtt
+pip install termcolor
+pip install pyOSC           # for Python <= 3.4
+pip install python-osc      # for Python >= 3.5
+pip install python-rtmidi   # for Python >= 3.5
 ```
 
-The graphical user interfaces of plotsignal and plotcontrol are implemented with pyqtgraph, which uses either PyQt4, PyQt5 or PySide.
+The graphical user interfaces of `plotsignal` and `plotcontrol` are implemented with pyqtgraph, which uses either PyQt4, PyQt5 or PySide.
 
 When using Anaconda and Python2 or Python3, the bindings between Python and Qt can be installed as follows:
 
 ```
+conda install pyqt
 conda install pyqtgraph
 ```
 

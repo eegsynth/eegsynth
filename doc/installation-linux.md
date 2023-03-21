@@ -125,28 +125,34 @@ To make sure it is up to date, you should do
 sudo pip install --upgrade pip # replace with pip3 for Python 3
 ```
 
-Subsequently you can install the Python modules (replace with pip3 for Python 3).
+Subsequently you can install the Python modules with `pip install eegsynth` or one by one using
 
 ```
-sudo pip install redis
-sudo pip install configparser
-sudo pip install numpy
-sudo pip install scipy
-sudo pip install mido
-sudo pip install python-rtmidi
-sudo pip install pyserial
-sudo pip install python-osc # for Python >= 3.6
-sudo pip install pyOSC      # for Python <= 3.5
-sudo pip install pyqtgraph
-sudo pip install matplotlib
 sudo pip install bitalino
+sudo pip install colorama
+sudo pip install configparser
 sudo pip install fuzzywuzzy[speedup]
+sudo pip install matplotlib
+sudo pip install mido
 sudo pip install nilearn
+sudo pip install numpy
+sudo pip install paho-mqtt  
+sudo pip install pyaudio
+sudo pip install pylsl
+sudo pip install pyqtgraph
+sudo pip install pyserial
+sudo pip install pyzmq
+sudo pip install redis
+sudo pip install scipy
 sudo pip install sklearn
-sudo pip install neurokit
-sudo pip install paho-mqtt
-sudo pip install wiringpi  # only for Raspberry Pi
+sudo pip install termcolor
+sudo pip install pyOSC          # for Python <= 3.4
+sudo pip install python-osc     # for Python >= 3.5
+sudo pip install python-rtmidi  # for Python >= 3.5
+sudo pip install wiringpi       # only for Raspberry Pi
 ```
+
+Replace pip with pip3 for Python 3 when needed.
 
 Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.
 
