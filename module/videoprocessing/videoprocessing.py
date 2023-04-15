@@ -146,10 +146,11 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global device, title, prefix, show, downsample, contrast, brightness, mirror, cap, frame, frame_height, frame_width, frame_depth, previous, previous_grey
+    global device, title, prefix, show, downsample, contrast, brightness, mirror, cap, fps, frame, frame_height, frame_width, frame_depth, previous, previous_grey
 
     # get the options from the configuration file
-    device = patch.getint('input', 'device', default=0)
+    device = patch.getint('input', 'device', default=None)
+    file = patch.getstring('input', 'file', default=None)
     title = patch.getstring('display', 'title', default='EEGsynth videoprocessing')
     prefix = patch.getstring('output', 'prefix')
     downsample = patch.getint('input', 'downsample', default=1)
@@ -160,8 +161,23 @@ def _start():
     show = patch.getstring('display', 'show', default='color')
     mirror = patch.getint('display', 'mirror', default=0)
 
-    cap = cv2.VideoCapture(device)
+    cap = None
 
+    if not device==None:
+        # open the webcam stream
+        cap = cv2.VideoCapture(device)
+        file = None
+    elif not file==None:
+        # open a video stream from file
+        cap = cv2.VideoCapture(file)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        length = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        monitor.info('fps = ', fps)
+        monitor.info('length = ', length)
+        device = None
+    else:
+        raise RuntimeError('You should specify a device or a file')
+        
     # read a single frame to determine the characteristics
     ret, frame = cap.read()
 
@@ -172,7 +188,7 @@ def _start():
     frame_width = frame.shape[1]
     frame_depth = frame.shape[2]
 
-    # remember the frame for the next iteration
+    # remember this as the previous rame for the next iteration
     previous = frame
     previous_grey = cv2.cvtColor(previous, cv2.COLOR_BGR2GRAY)
 
@@ -186,7 +202,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global device, title, prefix, show, downsample, contrast, brightness, mirror, cap, frame, frame_height, frame_width, frame_depth, previous, previous_grey
+    global device, file, title, prefix, show, downsample, contrast, brightness, mirror, cap, frame, frame_height, frame_width, frame_depth, previous, previous_grey
 
     # these can change dynamically
     contrast = patch.getfloat('input', 'contrast', default=0.5)
@@ -195,6 +211,14 @@ def _loop_once():
 
     # capture frame-by-frame
     ret, frame = cap.read()
+    
+    if device==None and not ret:
+        monitor.warning('rewind to the start of the video')
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        ret, frame = cap.read()
+        skip = True
+    else:
+        skip = False
 
     # downsample with the specified factor
     frame = process_frame(frame, downsample, contrast, brightness, mirror)
@@ -282,10 +306,13 @@ def _loop_once():
     if pixels==0:
         monitor.warning('the cropped image is empty')
 
+    elif skip:
+        # skip the processing of the first frame immediately following a rewind
+        pass
+
     else:
         ####################################################################
         # do the processing of the color
-
 
         if metrics_color:
             # the default order is blue, green, red
@@ -425,7 +452,11 @@ def _loop_once():
     previous = frame
     previous_grey = cv2.cvtColor(previous, cv2.COLOR_BGR2GRAY)
     
-    key = cv2.waitKey(1)
+    if not device==None:
+        key = cv2.waitKey(1)
+    else:
+        key = cv2.waitKey(int(1000./fps))
+
     if key == ord('q'):
         raise(KeyboardInterrupt)
     elif key == ord('1'):
@@ -453,8 +484,12 @@ def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     global monitor, cap
-    cap.release()
-    cv2.destroyAllWindows()
+
+    try:
+        cap.release()
+        cv2.destroyAllWindows()
+    except:
+        pass
     monitor.success('stopped OpenCV processing')
 
 
