@@ -28,7 +28,7 @@ import signal
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
-    file = os.path.split(sys.executable)[-1]
+    file = os.path.split(__file__)[-1]
     name = os.path.splitext(file)[0]
 elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
@@ -117,7 +117,7 @@ class Window(QWidget):
                 s.type = item[1]
                 s.setMinimum(0)
                 s.setMaximum(127)  # default is 100
-                s.setValue(val)
+                s.setValue(int(val))
                 s.setTickInterval(1)
                 s.setTickPosition(QtWidgets.QSlider.NoTicks)
                 s.setStyleSheet('background-color: rgb(64,64,64);')
