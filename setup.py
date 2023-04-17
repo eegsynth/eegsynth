@@ -98,7 +98,7 @@ setuptools.setup(
     },
     entry_points={
         'console_scripts': [
-            'eegsynth = eegsynth.bin.eegsynth:_main',
+            'eegsynth = eegsynth.eegsynth:_main',
         ],
     },
 )

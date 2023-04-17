@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# This application starts all modules in a patch. Each module corresponds
-# to an ini file that is specified on the command-line. The ini files must
-# start with the name of the corresponding module and can optionally be followed
-# with a "_xxx" or "-xxx". This allows multiple instances of the same module
-# to be started. All ini files should have the extension ".ini".
+# This command-line application starts all modules in a patch. Each module corresponds
+# to an ini file that is specified on the command-line. The ini files must start with
+# the name of the corresponding module and can optionally be followed with a "_xxx"
+# or "-xxx". This allows multiple instances of the same module to be started. All ini
+# files should have the extension ".ini".
 #
 # For example:
 #   eegsynth.py generatesignal.ini buffer-1972.ini preprocessing.ini buffer-1973.ini plotsignal.ini
@@ -34,27 +34,8 @@ import multiprocessing
 import signal
 from importlib import import_module
 
-if hasattr(sys, 'frozen'):
-    path = os.path.split(sys.executable)[0]
-    file = os.path.split(sys.executable)[-1]
-    name = os.path.splitext(file)[0]
-elif __name__ == '__main__' and sys.argv[0] != '':
-    path = os.path.split(sys.argv[0])[0]
-    file = os.path.split(sys.argv[0])[-1]
-    name = os.path.splitext(file)[0]
-elif __name__ == '__main__':
-    path = os.path.abspath('')
-    file = os.path.split(path)[-1] + '.py'
-    name = os.path.splitext(file)[0]
-else:
-    path = os.path.split(__file__)[0]
-    file = os.path.split(__file__)[-1]
-    name = os.path.splitext(file)[0]
-
-# eegsynth/module contains the modules
-sys.path.insert(0, os.path.join(path, '..'))
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path, '../lib'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
 import EEGsynth
 
 # this will contain a list of modules and processes
