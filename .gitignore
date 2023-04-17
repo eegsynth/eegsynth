@@ -12,6 +12,7 @@ interface/node_modules
 *.edf
 *.wav
 *.tsv
+*.spec
 .DS_Store
 misc/
 
