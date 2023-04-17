@@ -43,6 +43,12 @@ It is possible to test the `setup.py` file by doing an install from the local re
 pip install -e .
 ```
 
+## Creating compiled binaries
+
+Building a stand-alone executable with [pyinstaller](https://pyinstaller.org/) fails with the default environment, but works when `pip nomkl` is used prior to installing all other conda and pip packages.
+
+    pyinstaller --noconfirm --onefile --console --icon "/Users/roboos/eegsynth/doc/figures/logo-128.ico" --paths "/Users/roboos/eegsynth/lib"  "/Users/roboos/eegsynth/eegsynth-gui.py"
+
 ## Version numbering
 
 We use [semantic versioning](https://semver.org) for the releases.
