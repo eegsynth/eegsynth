@@ -41,7 +41,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable # part of matplotlib
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
-    file = os.path.split(sys.executable)[-1]
+    file = os.path.split(__file__)[-1]
     name = os.path.splitext(file)[0]
 elif __name__ == '__main__' and sys.argv[0] != '':
     path = os.path.split(sys.argv[0])[0]
