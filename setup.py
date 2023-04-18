@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import setuptools
+from version import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -24,7 +25,7 @@ long_description = long_description.replace(
 
 setuptools.setup(
     name="eegsynth",
-    version="0.7.0",
+    version=__version__,
     description="Converting real-time EEG into sounds, music and visual effects",
     long_description=long_description,
     long_description_content_type="text/markdown",

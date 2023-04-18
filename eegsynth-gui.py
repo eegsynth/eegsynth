@@ -29,6 +29,7 @@ import multiprocessing
 import signal
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
+from version import __version__
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
@@ -45,7 +46,7 @@ def _start_one(module, args=None):
     # the module starts as soon as it is instantiated
     # optional command-line arguments can be passed to specify the ini file
     module(args)
-    
+
 
 def _loop_once():
     '''Run the main loop once
@@ -54,7 +55,7 @@ def _loop_once():
     global monitor
     monitor.loop()
 
-    
+
 def _stop(*args):
     global monitor, modules, processes
     for m,p in zip(modules, processes):
@@ -69,15 +70,15 @@ def _stop(*args):
 class MainWindow(QWidget):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.resize(240, 120)
-        self.setWindowTitle("EEGsynth")
+        self.resize(300, 120)
+        self.setWindowTitle("EEGsynth %s" % __version__)
         self.setAcceptDrops(True)
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
         l = QtWidgets.QLabel("Drag and drop your ini files")
         l.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(l)
-        
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.accept()
@@ -190,11 +191,11 @@ class MainWindow(QWidget):
 
             process = multiprocessing.Process(target=_start_one, args=(object.Executable, args_to_pass))
             process.start()
-            
+
             # keep track of all modules and processes
             modules.append(name)
             processes.append(process)
-    
+
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
@@ -219,5 +220,3 @@ if __name__ == '__main__':
         sys.exit(app.exec_())
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
-
-    

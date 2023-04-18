@@ -33,6 +33,7 @@ from glob import glob
 import multiprocessing
 import signal
 from importlib import import_module
+from version import __version__
 
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
@@ -46,7 +47,10 @@ def _setup():
     global monitor, modules, processes
 
     # parse command-line options and determine the list of ini files
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='eegsynth',
+                    description='This is a command-line application to start multiple modules that comprise an EEGsynth patch.',
+                    epilog='See https://www.eegsynth.org and https://github.com/eegsynth')
+    parser.add_argument("--version", action="version", version="eegsynth %s" % __version__)
     parser.add_argument("--general-broker", default=None, help="general broker")
     parser.add_argument("--general-debug", default=None, help="general debug")
     parser.add_argument("--general-delay", default=None, help="general delay")
