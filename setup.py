@@ -78,7 +78,6 @@ setuptools.setup(
         "nilearn",
         "numpy",
         "opencv-python",
-        "opencv-python-headless",
         "paho-mqtt",
         "pyaudio",
         "pylsl",
