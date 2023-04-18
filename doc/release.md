@@ -47,7 +47,13 @@ pip install -e .
 
 Building a stand-alone executable with [pyinstaller](https://pyinstaller.org/) fails with the default environment, but works when `pip nomkl` is used prior to installing all other conda and pip packages.
 
+Building is done on macOS with
+
     pyinstaller --noconfirm --onefile --console --icon "/Users/roboos/eegsynth/doc/figures/logo-128.ico" --paths "/Users/roboos/eegsynth/lib"  "/Users/roboos/eegsynth/eegsynth-gui.py"
+
+or on Windows with
+
+    pyinstaller --noconfirm --onefile --console --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib"  "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth-gui.py"
 
 ## Version numbering
 
