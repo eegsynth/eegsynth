@@ -23,6 +23,7 @@ conda install pyqtgraph
 conda install python-levenshtein
 conda install portaudio
 conda install pyaudio
+conda install liblsl
 
 pip install eegsynth
 ```
