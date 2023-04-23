@@ -458,7 +458,7 @@ class monitor():
 Press Ctrl-C to stop this module.
         """ % (fullname))
 
-    def loop(self, duration=None):
+    def loop(self, feedback=1.0, duration=None):
         now = time.time()
 
         if self.loop_time is None:
@@ -469,7 +469,7 @@ Press Ctrl-C to stop this module.
         else:
             self.loop_count += 1
         elapsed = now - self.loop_time
-        if elapsed>=1:
+        if feedback and elapsed>=feedback:
             self.info("looping with %d iterations in %g seconds" % (self.loop_count, elapsed))
             self.loop_time = now
             self.loop_count = 0
