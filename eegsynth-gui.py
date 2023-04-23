@@ -42,7 +42,7 @@ modules = []
 processes = []
 
 
-def _start_one(module, args=None):
+def _start_module(module, args=None):
     # the module starts as soon as it is instantiated
     # optional command-line arguments can be passed to specify the ini file
     module(args)
@@ -53,7 +53,7 @@ def _loop_once():
     '''
     # Updating the main figure is done through Qt events
     global monitor
-    monitor.loop()
+    monitor.loop(feedback=60)
 
 
 def _stop(*args):
@@ -64,6 +64,8 @@ def _stop(*args):
     for m,p in zip(modules, processes):
         monitor.success('joining ' + m + ' process')
         p.join()
+    modules = []
+    processes = []
     QApplication.quit()
 
 
@@ -102,85 +104,87 @@ class MainWindow(QWidget):
             inifile = os.path.join(os.getcwd(), inifile)
 
             if   name=='accelerometer':
-                object = accelerometer
+                module_to_start = accelerometer
             elif name=='audiomixer':
-                object = audiomixer
+                module_to_start = audiomixer
+            elif name=='buffer':
+                module_to_start = buffer
             elif name=='bitalino2ft':
-                object = bitalino2ft
+                module_to_start = bitalino2ft
             elif name=='clockdivider':
-                object = clockdivider
+                module_to_start = clockdivider
             elif name=='cogito':
-                object = cogito
+                module_to_start = cogito
             elif name=='csp':
-                object = csp
+                module_to_start = csp
             elif name=='demodulatetone':
-                object = demodulatetone
+                module_to_start = demodulatetone
             elif name=='example':
-                object = example
+                module_to_start = example
             elif name=='generatecontrol':
-                object = generatecontrol
+                module_to_start = generatecontrol
             elif name=='generatetrigger':
-                object = generatetrigger
+                module_to_start = generatetrigger
             elif name=='heartrate':
-                object = heartrate
+                module_to_start = heartrate
             elif name=='historysignal':
-                object = historysignal
+                module_to_start = historysignal
             elif name=='inputcontrol':
-                object = inputcontrol
+                module_to_start = inputcontrol
             elif name=='inputlsl':
-                object = inputlsl
+                module_to_start = inputlsl
             elif name=='inputmqtt':
-                object = inputmqtt
+                module_to_start = inputmqtt
             elif name=='inputzeromq':
-                object = inputzeromq
+                module_to_start = inputzeromq
             elif name=='launchcontrol':
-                object = launchcontrol
+                module_to_start = launchcontrol
             elif name=='lsl2ft':
-                object = lsl2ft
+                module_to_start = lsl2ft
             elif name=='openbci2ft':
-                object = openbci2ft
+                module_to_start = openbci2ft
             elif name=='outputaudio':
-                object = outputaudio
+                module_to_start = outputaudio
             elif name=='outputdmx':
-                object = outputdmx
+                module_to_start = outputdmx
             elif name=='outputmidi':
-                object = outputmidi
+                module_to_start = outputmidi
             elif name=='outputosc':
-                object = outputosc
+                module_to_start = outputosc
             elif name=='playbackcontrol':
-                object = playbackcontrol
+                module_to_start = playbackcontrol
             elif name=='plotcontrol':
-                object = plotcontrol
+                module_to_start = plotcontrol
             elif name=='plotsignal':
-                object = plotsignal
+                module_to_start = plotsignal
             elif name=='plottopo':
-                object = plottopo
+                module_to_start = plottopo
             elif name=='polarbelt':
-                object = polarbelt
+                module_to_start = polarbelt
             elif name=='preprocessing':
-                object = preprocessing
+                module_to_start = preprocessing
             elif name=='quantizer':
-                object = quantizer
+                module_to_start = quantizer
             elif name=='recordsignal':
-                object = recordsignal
+                module_to_start = recordsignal
             elif name=='redis':
-                object = redis
+                module_to_start = redis
             elif name=='sampler':
-                object = sampler
+                module_to_start = sampler
             elif name=='slewlimiter':
-                object = slewlimiter
+                module_to_start = slewlimiter
             elif name=='spectral':
-                object = spectral
+                module_to_start = spectral
             elif name=='threshold':
-                object = threshold
+                module_to_start = threshold
             elif name=='videoprocessing':
-                object = videoprocessing
+                module_to_start = videoprocessing
             elif name=='volcabeats':
-                object = volcabeats
+                module_to_start = volcabeats
             elif name=='vumeter':
-                object = vumeter
+                module_to_start = vumeter
             else:
-                monitor.error('incorrect module', module)
+                monitor.error('incorrect module', name)
                 return
 
             # give some feedback
@@ -189,7 +193,7 @@ class MainWindow(QWidget):
             # give some feedback
             monitor.success(name + ' ' + ' '.join(args_to_pass))
 
-            process = multiprocessing.Process(target=_start_one, args=(object.Executable, args_to_pass))
+            process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_to_pass))
             process.start()
 
             # keep track of all modules and processes
