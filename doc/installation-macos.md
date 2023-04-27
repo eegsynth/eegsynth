@@ -36,13 +36,13 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 The pylsl module requires the dynamic library `liblsl.dylib` to be installed. For some binary wheels it is installed along with `pip install pylsl` in the `pylsl/lib` directory. Alternatively, it can be installed with
 
 ```
-conda install liblsl
+conda install -c conda-forge liblsl
 ```
 
 or specifically on macOS with
 
 ```
-brew install liblsl
+brew install lsl
 ```
 
 ## Give the terminal access to the microphone

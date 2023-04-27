@@ -11,7 +11,7 @@ We recommend that you use [Anaconda](https://www.anaconda.com) to install Python
 
 
 ```
-conda create -n eegsynth python=3.7 anaconda
+conda create -n eegsynth python=3.10 anaconda
 conda activate eegsynth
 
 conda install redis     # note that this is not yet sufficient for windows
@@ -23,7 +23,7 @@ conda install pyqtgraph
 conda install python-levenshtein
 conda install portaudio
 conda install pyaudio
-conda install liblsl
+conda install -c conda-forge liblsl
 
 pip install eegsynth
 ```
