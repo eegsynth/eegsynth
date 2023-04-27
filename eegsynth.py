@@ -134,6 +134,8 @@ def _stop(*args):
     for m,p in zip(modules, processes):
         monitor.success('joining ' + m + ' process')
         p.join()
+    modules = []
+    processes = []
 
 
 if __name__ == '__main__':
