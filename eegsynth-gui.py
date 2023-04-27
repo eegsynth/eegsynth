@@ -51,9 +51,17 @@ def _start_module(module, args=None):
 def _loop_once():
     '''Run the main loop once
     '''
-    # Updating the main figure is done through Qt events
-    global monitor
+    # updating the main figure is done through Qt events
+    global monitor, modules, processes
+    # remove modules that are not running any more
+    keep      = [p.is_alive() for p in processes]
+    modules   = [m for (m, k) in zip(modules, keep)   if k]
+    processes = [p for (p, k) in zip(processes, keep) if k]
     monitor.loop(feedback=60)
+    if len(modules):
+        monitor.update('active', ', '.join(modules))
+    else:
+        monitor.update('active', '<none>')
 
 
 def _stop(*args):
@@ -77,9 +85,21 @@ class MainWindow(QWidget):
         self.setAcceptDrops(True)
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
-        l = QtWidgets.QLabel("Drag and drop your ini files")
-        l.setAlignment(QtCore.Qt.AlignCenter)
-        self.layout.addWidget(l)
+        l1 = QtWidgets.QLabel("Drag and drop your ini files here")
+        l1.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(l1)
+        l2 = QtWidgets.QLabel("")
+        l2.setStyleSheet("color: red")
+        l2.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(l2)
+        # remember the label so that it can be changes later
+        self.label = l2
+
+    def updateLabel(self):
+        if len(modules):
+            self.label.setText(', '.join(modules))
+        else:
+            self.label.setText('<none>')
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -92,95 +112,170 @@ class MainWindow(QWidget):
         for inifile in inifiles:
             if os.path.splitext(inifile)[1]!='.ini':
                 monitor.error('incorrect file', inifile)
-                return
+                continue
 
-            # convert the string in a reference to the corresponding class
-            name = os.path.split(inifile)[-1]     # keep only the filename
+            # convert the string to the corresponding class
+            name = os.path.split(inifile)[-1]   # keep only the filename
             name = os.path.splitext(name)[0]    # remove the ini extension
+            fullname = name
             name = name.split('-')[0]           # remove whatever comes after a "-" separator
             name = name.split('_')[0]           # remove whatever comes after a "_" separator
 
             # reconstruct the full path
             inifile = os.path.join(os.getcwd(), inifile)
 
-            if   name=='accelerometer':
+            if name=='accelerometer':
                 module_to_start = accelerometer
+            elif name=='audio2ft':
+                module_to_start = audio2ft
             elif name=='audiomixer':
                 module_to_start = audiomixer
-            elif name=='buffer':
-                module_to_start = buffer
+            elif name=='biochill':
+                module_to_start = biochill
             elif name=='bitalino2ft':
                 module_to_start = bitalino2ft
+# This requires the brainflow package, which is not installed by default.
+#            elif name=='brainflow2ft':
+#                module_to_start = brainflow2ft
+            elif name=='buffer':
+                module_to_start = buffer
             elif name=='clockdivider':
                 module_to_start = clockdivider
+            elif name=='clockmultiplier':
+                module_to_start = clockmultiplier
             elif name=='cogito':
                 module_to_start = cogito
+# The complexity module has too many dependencies to include by default.
+#            elif name=='complexity':
+#                module_to_start = complexity
+            elif name=='compressor':
+                module_to_start = compressor
             elif name=='csp':
                 module_to_start = csp
+            elif name=='delaytrigger':
+                module_to_start = delaytrigger
             elif name=='demodulatetone':
                 module_to_start = demodulatetone
+            elif name=='endorphines':
+                module_to_start = endorphines
             elif name=='example':
                 module_to_start = example
+            elif name=='generateclock':
+                module_to_start = generateclock
             elif name=='generatecontrol':
                 module_to_start = generatecontrol
+            elif name=='generatesignal':
+                module_to_start = generatesignal
             elif name=='generatetrigger':
                 module_to_start = generatetrigger
+            elif name=='geomixer':
+                module_to_start = geomixer
             elif name=='heartrate':
                 module_to_start = heartrate
+            elif name=='historycontrol':
+                module_to_start = historycontrol
             elif name=='historysignal':
                 module_to_start = historysignal
             elif name=='inputcontrol':
                 module_to_start = inputcontrol
             elif name=='inputlsl':
                 module_to_start = inputlsl
+            elif name=='inputmidi':
+                module_to_start = inputmidi
             elif name=='inputmqtt':
                 module_to_start = inputmqtt
+            elif name=='inputosc':
+                module_to_start = inputosc
             elif name=='inputzeromq':
                 module_to_start = inputzeromq
+            elif name=='keyboard':
+                module_to_start = keyboard
             elif name=='launchcontrol':
                 module_to_start = launchcontrol
+            elif name=='launchpad':
+                module_to_start = launchpad
             elif name=='lsl2ft':
                 module_to_start = lsl2ft
-            elif name=='openbci2ft':
-                module_to_start = openbci2ft
+            elif name=='modulatetone':
+                module_to_start = modulatetone
+            elif name=='outputartnet':
+                module_to_start = outputartnet
             elif name=='outputaudio':
                 module_to_start = outputaudio
+            elif name=='outputcvgate':
+                module_to_start = outputcvgate
             elif name=='outputdmx':
                 module_to_start = outputdmx
+            elif name=='outputlsl':
+                module_to_start = outputlsl
             elif name=='outputmidi':
                 module_to_start = outputmidi
+            elif name=='outputmqtt':
+                module_to_start = outputmqtt
             elif name=='outputosc':
                 module_to_start = outputosc
+            elif name=='outputzeromq':
+                module_to_start = outputzeromq
             elif name=='playbackcontrol':
                 module_to_start = playbackcontrol
+            elif name=='playbacksignal':
+                module_to_start = playbacksignal
             elif name=='plotcontrol':
                 module_to_start = plotcontrol
+            elif name=='plotimage':
+                module_to_start = plotimage
             elif name=='plotsignal':
                 module_to_start = plotsignal
+            elif name=='plotspectral':
+                module_to_start = plotspectral
             elif name=='plottopo':
                 module_to_start = plottopo
+            elif name=='plottrigger':
+                module_to_start = plottrigger
             elif name=='polarbelt':
                 module_to_start = polarbelt
+            elif name=='postprocessing':
+                module_to_start = postprocessing
             elif name=='preprocessing':
                 module_to_start = preprocessing
+            elif name=='processtrigger':
+                module_to_start = processtrigger
             elif name=='quantizer':
                 module_to_start = quantizer
+            elif name=='recordcontrol':
+                module_to_start = recordcontrol
             elif name=='recordsignal':
                 module_to_start = recordsignal
+            elif name=='recordtrigger':
+                module_to_start = recordtrigger
             elif name=='redis':
                 module_to_start = redis
+            elif name=='rms':
+                module_to_start = rms
             elif name=='sampler':
                 module_to_start = sampler
+            elif name=='sequencer':
+                module_to_start = sequencer
             elif name=='slewlimiter':
                 module_to_start = slewlimiter
+            elif name=='sonification':
+                module_to_start = sonification
             elif name=='spectral':
                 module_to_start = spectral
+            elif name=='synthesizer':
+                module_to_start = synthesizer
             elif name=='threshold':
                 module_to_start = threshold
+            elif name=='unicorn2ft':
+                module_to_start = unicorn2ft
             elif name=='videoprocessing':
                 module_to_start = videoprocessing
+            elif name=='volcabass':
+                module_to_start = volcabass
             elif name=='volcabeats':
                 module_to_start = volcabeats
+            elif name=='volcakeys':
+                module_to_start = volcakeys
             elif name=='vumeter':
                 module_to_start = vumeter
             else:
@@ -197,7 +292,7 @@ class MainWindow(QWidget):
             process.start()
 
             # keep track of all modules and processes
-            modules.append(name)
+            modules.append(fullname)
             processes.append(process)
 
 
@@ -218,8 +313,9 @@ if __name__ == '__main__':
         # Let the interpreter run every 200 ms
         # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
         timer = QtCore.QTimer()
-        timer.start(200)
+        timer.start(100)
         timer.timeout.connect(_loop_once)
+        timer.timeout.connect(window.updateLabel)
 
         sys.exit(app.exec_())
     except (SystemExit, KeyboardInterrupt, RuntimeError):
