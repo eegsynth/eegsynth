@@ -76,10 +76,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor, context, socket, patch
-    global debug, prefix, output_scale, output_offset, input_channels
+    global prefix, output_scale, output_offset, input_channels
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
 
     # the scale and offset are used to map OSC values to Redis values
@@ -108,7 +107,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor, context, socket, patch
-    global debug, prefix, output_scale, output_offset, input_channels
+    global prefix, output_scale, output_offset, input_channels
     global start
 
     start = time.time()

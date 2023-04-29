@@ -71,10 +71,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
+    global device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
 
     # get the options from the configuration file
-    debug = patch.getint("general", "debug", default=1)
     device = patch.getstring("bitalino", "device")
     fsample = patch.getfloat("bitalino", "fsample", default=1000)
     blocksize = patch.getint("bitalino", "blocksize", default=10)
@@ -134,7 +133,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
+    global device, fsample, blocksize, channels, batterythreshold, nchans, startfeedback, countfeedback, ft_host, ft_port, ft_output, datatype, digitalOutput
     global start, dat
 
     # measure the time that it takes

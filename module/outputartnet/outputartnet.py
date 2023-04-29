@@ -68,7 +68,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, address, artnet, dmxsize, dmxframe, prevtime
+    global address, artnet, dmxsize, dmxframe, prevtime
 
     # get the options from the configuration file
     debug = patch.getint('general','debug')
@@ -108,7 +108,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, address, artnet, dmxsize, dmxframe, prevtime
+    global address, artnet, dmxsize, dmxframe, prevtime
     global update, chanindx, chanstr, chanval, scale, offset
 
     update = False

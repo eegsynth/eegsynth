@@ -51,7 +51,7 @@ import EEGsynth
 
 
 def callback(in_data, frame_count, time_info, status):
-    global lock, debug, stack, channels, prefix, current_channel, current_value
+    global lock, stack, channels, prefix, current_channel, current_value
 
     with lock:
         begsample = 0
@@ -199,7 +199,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -216,10 +216,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, device, scaling_method, scaling, speed, onset, offset, taper, scale_scaling, scale_speed, scale_onset, scale_offset, scale_taper, offset_scaling, offset_speed, offset_onset, offset_offset, offset_taper, started, finished, p, info, i, devinfo, lock, input_channel, input_sample, rate, dat, channels, stack, current_channel, current_value, trigger, channel, sample, thread, stream
+    global device, scaling_method, scaling, speed, onset, offset, taper, scale_scaling, scale_speed, scale_onset, scale_offset, scale_taper, offset_scaling, offset_speed, offset_onset, offset_offset, offset_taper, started, finished, p, info, i, devinfo, lock, input_channel, input_sample, rate, dat, channels, stack, current_channel, current_value, trigger, channel, sample, thread, stream
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     device = patch.getint('audio', 'device')
     scaling_method = patch.getstring('audio', 'scaling_method')
     scaling = patch.getfloat('audio', 'scaling', default=1)

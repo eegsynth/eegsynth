@@ -78,10 +78,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, stepsize, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+    global stepsize, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     stepsize = patch.getfloat('general', 'delay')
     number = patch.getint('switch', 'number', default=3)
     prefix = patch.getstring('output', 'prefix')
@@ -114,7 +113,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, stepsize, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
+    global stepsize, number, prefix, scale_input, scale_time, scale_precision, offset_input, offset_time, offset_precision, channel_name, vertex, dwelltime, edge, previous
     global switch_time, switch_precision, input, lower_treshold, upper_treshold, change, key, channel_val, this, next, val, desired, elapsed, naptime, s
 
     # these can change on the fly

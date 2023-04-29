@@ -69,10 +69,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, mididevice, output_scale, output_offset, port, inputport
+    global mididevice, output_scale, output_offset, port, inputport
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
 
@@ -102,7 +101,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, mididevice, output_scale, output_offset, port, inputport
+    global mididevice, output_scale, output_offset, port, inputport
 
     for msg in inputport.iter_pending():
         monitor.debug(msg)

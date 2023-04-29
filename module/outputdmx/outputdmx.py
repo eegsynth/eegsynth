@@ -79,10 +79,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime, START_VAL, END_VAL, TX_DMX_PACKET, FRAME_PAD
+    global serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime, START_VAL, END_VAL, TX_DMX_PACKET, FRAME_PAD
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
 
     # get the specified serial device, or the one that is the closest match
     serialdevice = patch.getstring('serial', 'device')
@@ -126,7 +125,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime
+    global serialdevice, s, dmxsize, chanlist, chanvals, chanindx, chanstr, dmxframe, prevtime
     global update, chanval, scale, offset
 
     update = False

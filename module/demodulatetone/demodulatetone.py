@@ -70,10 +70,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, device, rate, blocksize, modulation, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
+    global device, rate, blocksize, modulation, nchans, frequencies, ntones, scale_amplitude, offset_amplitude, scale_frequency, offset_frequency,key, p, info, i, devinfo, stream, startfeedback, countfeedback, offset
 
     # get the options from the configuration file
-    debug = patch.getint("general", "debug", default=1)
     device = patch.getint("audio", "device")
     rate = patch.getint("audio", "rate", default=44100)
     nchans = patch.getint("audio", "nchans", default=2)
@@ -108,7 +107,7 @@ def _start():
             else:
                 key[chan].append(None)
                 monitor.info("not configured " + channame[chan] + " " + tonestr)
-                
+
     p = pyaudio.PyAudio()
 
     monitor.info("------------------------------------------------------------------")

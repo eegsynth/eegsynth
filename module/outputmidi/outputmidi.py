@@ -96,7 +96,7 @@ def SetNoteOff(note, velocity):
 # send the MIDI message, different messages have slightly different parameters
 def sendMidi(name, code, val):
     global previous
-    
+
     if np.isnan(val):
         # monitor.error('cannot send NaN as MIDI message')
         return
@@ -188,7 +188,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -205,10 +205,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
+    global mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug', default=1)
     monophonic  = patch.getint('general', 'monophonic', default=1)
     midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
     mididevice  = patch.getstring('midi', 'device')
@@ -301,7 +300,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
+    global mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
     UpdateParameters()
 

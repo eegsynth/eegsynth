@@ -102,10 +102,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
+    global mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
     mididevice = process.extractOne(mididevice, mido.get_output_names())[0]  # select the closest match
@@ -160,7 +159,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
+    global mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
     global name, val, port_val, scale, offset, midichannel, msg
 
     # loop over the control values

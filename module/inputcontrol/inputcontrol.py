@@ -325,10 +325,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, prefix, winx, winy, winwidth, winheight, output_scale, output_offset, app, timer
+    global prefix, winx, winy, winwidth, winheight, output_scale, output_offset, app, timer
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     prefix = patch.getstring('output', 'prefix')
     winx = patch.getint('display', 'xpos')
     winy = patch.getint('display', 'ypos')

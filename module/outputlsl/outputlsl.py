@@ -90,7 +90,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -107,10 +107,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, lsl_name, lsl_type, lsl_id, lsl_format, info, outlet, trigger, item, lock, thread, previous_val
+    global lsl_name, lsl_type, lsl_id, lsl_format, info, outlet, trigger, item, lock, thread, previous_val
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     lsl_name = patch.getstring('lsl', 'name', default='eegsynth')
     lsl_type = patch.getstring('lsl', 'type', default='Markers')
     lsl_id = patch.getstring('lsl', 'id', default=EEGsynth.uuid(6))
@@ -150,7 +149,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, lsl_name, lsl_type, lsl_id, lsl_format, info, outlet, trigger, item, lock, thread, previous_val
+    global lsl_name, lsl_type, lsl_id, lsl_format, info, outlet, trigger, item, lock, thread, previous_val
     global val, marker
 
     # loop over the control values

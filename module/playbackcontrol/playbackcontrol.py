@@ -69,10 +69,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
+    global filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     filename = patch.getstring('playback', 'file')
 
     monitor.info("Reading data from " + filename)
@@ -121,7 +120,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
+    global filename, f, chanindx, channels, channelz, fSample, nSamples, replace, i, s, z, blocksize, begsample, endsample, block
     global indx, val, stepsize, elapsed, naptime
 
     if endsample > nSamples - 1:

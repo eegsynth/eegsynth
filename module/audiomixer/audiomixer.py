@@ -81,10 +81,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, delay, p, input_device, output_device, rate, blocksize, input_nchans, output_nchans, input_stream, output_stream, mix, previous
+    global delay, p, input_device, output_device, rate, blocksize, input_nchans, output_nchans, input_stream, output_stream, mix, previous
 
     # get the options from the configuration file
-    debug = patch.getint("general", "debug", default=1)
     delay = patch.getfloat("general", "delay", default=0.05)
     input_device = patch.getint("input", "device")
     input_nchans = patch.getint("input", "nchans", default=2)
@@ -154,7 +153,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, delay, blocksize, input_stream, output_stream, mix, previous
+    global delay, blocksize, input_stream, output_stream, mix, previous
 
     now = time.time()
     if (now-previous)>delay :
@@ -164,13 +163,13 @@ def _loop_once():
 
     # read a block of data from the input audio device
     input_data = input_stream.read(blocksize, exception_on_overflow=False)
-    
+
     # convert raw buffer to numpy array
     input_data = np.reshape(np.frombuffer(input_data, dtype=np.float32), (blocksize, input_nchans))
-    
+
     # apply the mixing
     output_data = np.matmul(input_data, mix, dtype=np.float32)
-    
+
     # convert numpy array to raw buffer
     output_data = output_data.tobytes()
 

@@ -74,10 +74,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, index, input_value
+    global input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, index, input_value
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
 
     # the input scale and offset are used to map Redis values to internal values
     input_scale = patch.getfloat('input', 'scale', default=127)
@@ -111,7 +110,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
+    global input_scale, input_offset, output_scale, output_offset, input_channel, input_name, output_name, output_value, i, index, input_value
     global channel, val, idx, qname, qvalue, key
 
     monitor.info('----------------------------------------')

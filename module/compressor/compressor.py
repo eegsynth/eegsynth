@@ -67,10 +67,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, delay, prefix, input_name, input_variable
+    global delay, prefix, input_name, input_variable
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
     prefix = patch.getstring('output', 'prefix')
 
@@ -90,7 +89,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, delay, prefix, input_name, input_variable
+    global delay, prefix, input_name, input_variable
 
     if patch.getint('processing', 'enable', default=1):
         # the compressor/expander applies to all channels and must exist as float or redis key

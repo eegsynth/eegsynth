@@ -74,7 +74,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording, maxabs
+    global MININT16, MAXINT16, MININT32, MAXINT32, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording, maxabs
 
     MININT16 = -np.power(2, 15)
     MAXINT16 = np.power(2, 15) - 1
@@ -82,7 +82,6 @@ def _start():
     MAXINT32 = np.power(2., 31) - 1
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
     filename = patch.get('recording', 'file')           # do not try to get this from Redis
     fileformat = patch.get('recording', 'format')       # do not try to get this from Redis
@@ -128,7 +127,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording, maxabs
+    global MININT16, MAXINT16, MININT32, MAXINT32, timeout, filename, fileformat, ft_host, ft_port, ft_input, hdr_input, start, recording, maxabs
     global fname, f, ext, blocksize, synchronize, csvwriter, physical_min, physical_max, meas_info, chan_info, now, sample, begsample, endsample, startsample, dat, key
 
     hdr_input = ft_input.getHeader()

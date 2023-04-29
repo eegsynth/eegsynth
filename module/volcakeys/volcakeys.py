@@ -101,7 +101,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global control_name, control_code, note_name, note_code, debug, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
+    global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
 
     # the list of MIDI commands is the only aspect that is specific to the Volca Keys
     # see http://media.aadl.org/files/catalog_guides/1444140_chart.pdf
@@ -113,15 +113,13 @@ def _start():
     note_code = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
                  82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
 
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
-
     # this is only for debugging, check which MIDI devices are accessible
     monitor.info('------ OUTPUT ------')
     for port in mido.get_output_names():
         monitor.info(port)
     monitor.info('-------------------------')
 
+    # get the options from the configuration file
     midichannel = patch.getint('midi', 'channel') - 1  # channel 1-16 get mapped to 0-15
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
@@ -168,7 +166,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global control_name, control_code, note_name, note_code, debug, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
+    global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
     global cmd, val, msg
 
     for name, cmd in zip(control_name, control_code):

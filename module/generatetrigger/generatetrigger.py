@@ -48,7 +48,7 @@ import EEGsynth
 
 
 def trigger(skip=False):
-    global debug, patch, lock, rate, spread, t
+    global patch, lock, rate, spread, t
 
     if skip:
         # this happens upon initialization and when the timing parameters change
@@ -106,10 +106,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+    global scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
 
     # the scale and offset are used to map the Redis values to internal values
     scale_rate = patch.getfloat('scale', 'rate', default=1)
@@ -142,7 +141,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     """
     global patch, name, path, monitor
-    global debug, scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
+    global scale_rate, scale_spread, offset_rate, offset_spread, rate, spread, lock, t
     global change
 
     with lock:

@@ -103,7 +103,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -120,7 +120,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global pin, debug, delay, scale_duration, offset_duration, lock, trigger
+    global pin, delay, scale_duration, offset_duration, lock, trigger
 
     # make a dictionary that maps GPIOs to the WiringPi number
     pin = {
@@ -144,7 +144,6 @@ def _start():
     }
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
 
     # values between 0 and 1 work well for the duration

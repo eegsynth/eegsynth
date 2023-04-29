@@ -100,7 +100,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global control_name, control_code, note_name, note_code, debug, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
+    global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
 
     # the list of MIDI commands is the only aspect that is specific to the Volca Beats
     # see http://media.aadl.org/files/catalog_guides/1445131_chart.pdf
@@ -110,8 +110,6 @@ def _start():
     note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
     note_code = [36, 38, 43, 50, 42, 46, 39]
 
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
 
     # this is only for debugging, check which MIDI devices are accessible
     monitor.info('------ OUTPUT ------')
@@ -119,6 +117,7 @@ def _start():
         monitor.info(port)
     monitor.info('-------------------------')
 
+    # get the options from the configuration file
     midichannel = patch.getint('midi', 'channel') - 1  # channel 1-16 get mapped to 0-15
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
@@ -165,7 +164,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global control_name, control_code, note_name, note_code, debug, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
+    global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
     global cmd, val, msg
 
     for name, cmd in zip(control_name, control_code):

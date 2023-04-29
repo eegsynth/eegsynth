@@ -201,16 +201,14 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
+    global p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
 
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
 
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
-
     p = pyaudio.PyAudio()
 
+    # get the options from the configuration file
     device = patch.getint('audio', 'device')
     rate = patch.getint('audio', 'rate')
     blocksize = patch.getint('audio', 'blocksize')
@@ -263,7 +261,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
+    global p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
     global BUFFER, t, last, vco_pitch, vco_sin, vco_tri, vco_saw, vco_sqr, lfo_depth, lfo_frequency, adsr_attack, adsr_decay, adsr_sustain, adsr_release, vca_envelope, frequency, period, wave_sin, wave_tri, wave_saw, wave_sqr, waveform, lfo_envelope, adsr_envelope
 
     ################################################################################

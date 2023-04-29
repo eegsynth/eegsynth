@@ -65,13 +65,12 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, delay, port, server
+    global delay, port, server
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay', default=0.010)
     port = patch.getint('fieldtrip', 'port', multiple=True)
-    
+
     server = []
     for p in port:
         monitor.info("starting server on %d" % p)
@@ -80,7 +79,7 @@ def _start():
         s.timeout = 0 # the server main loop should not wait, as it would block the other instances
         server.append(s);
     del p, s
-        
+
 
 def _loop_once():
     '''Run the main loop once

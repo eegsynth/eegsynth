@@ -105,7 +105,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -122,10 +122,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, s, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread
-
-    # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
+    global s, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread
 
     try:
         if use_old_version:
@@ -136,6 +133,8 @@ def _start():
         monitor.success('Connected to OSC server')
     except:
         raise RuntimeError("Cannot connect to OSC server")
+
+    # get the options from the configuration file
 
     # keys should be present in both the input and output section of the *.ini file
     list_input  = patch.config.items('input')

@@ -55,7 +55,7 @@ def _setup():
     This adds a set of global variables
     '''
     global patch, name, path, monitor
-    
+
     # configure and start the patch, this will parse the command-line arguments and the ini file
     patch = EEGsynth.patch(name=name, path=path)
 
@@ -72,7 +72,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust, maxabs
+    global MININT16, MAXINT16, MININT32, MAXINT32, delay, filename, fileformat, filenumber, recording, adjust, maxabs
 
     MININT16 = -np.power(2., 15)
     MAXINT16 = np.power(2., 15) - 1
@@ -80,7 +80,6 @@ def _start():
     MAXINT32 = np.power(2., 31) - 1
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
     filename = patch.get('recording', 'file')           # do not try to get this from Redis
     fileformat = patch.get('recording', 'format')       # do not try to get this from Redis
@@ -105,7 +104,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global MININT16, MAXINT16, MININT32, MAXINT32, debug, delay, filename, fileformat, filenumber, recording, adjust, maxabs
+    global MININT16, MAXINT16, MININT32, MAXINT32, delay, filename, fileformat, filenumber, recording, adjust, maxabs
     global start, fname, f, ext, blocksize, synchronize, csvwriter, channels, channelz, nchans, sample, replace, i, s, z, physical_min, physical_max, meas_info, chan_info, recstart, D, chan, xval, elapsed
 
     # measure the time to correct for the slip

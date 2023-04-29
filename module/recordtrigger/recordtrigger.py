@@ -107,10 +107,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
+    global delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     delay = patch.getfloat('general', 'delay')
     input_scale = patch.getfloat('input', 'scale', default=None)
     input_offset = patch.getfloat('input', 'offset', default=None)
@@ -146,7 +145,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
+    global delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
     global fname, ext
 
     if recording and not patch.getint('recording', 'record'):

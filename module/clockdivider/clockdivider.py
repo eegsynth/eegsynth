@@ -97,10 +97,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, channels, dividers, count, triggers, channel, divider, thread
+    global channels, dividers, count, triggers, channel, divider, thread
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     channels = patch.getstring('clock', 'channel', multiple=True)
     dividers = patch.getint('clock', 'rate', multiple=True)
 
@@ -127,7 +126,7 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, channels, dividers, count, triggers, channel, divider, thread
+    global channels, dividers, count, triggers, channel, divider, thread
 
     monitor.update("count", count / len(dividers))
 

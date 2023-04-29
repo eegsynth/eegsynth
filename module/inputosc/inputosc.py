@@ -127,10 +127,9 @@ def _start():
     '''
     global patch, name, path, monitor
     global use_old_version, dispatcher, osc_server
-    global debug, osc_address, osc_port, prefix, output_scale, output_offset
+    global osc_address, osc_port, prefix, output_scale, output_offset
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
     osc_address = patch.getstring('osc', 'address', default=socket.gethostbyname(socket.gethostname()))
     osc_port = patch.getint('osc', 'port')
     prefix = patch.getstring('output', 'prefix')

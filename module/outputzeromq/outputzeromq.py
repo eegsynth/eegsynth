@@ -106,10 +106,9 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global debug, list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread, context, socket
+    global list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread, context, socket
 
     # get the options from the configuration file
-    debug = patch.getint('general', 'debug', default=1)
 
     # keys should be present in both the input and output section of the *.ini file
     list_input = patch.config.items('input')

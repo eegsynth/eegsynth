@@ -82,7 +82,6 @@ def _start():
         raise RuntimeError("cannot connect to input FieldTrip buffer")
 
     # get the options from the configuration file
-    debug       = patch.getint('general', 'debug', default=1)
     channels    = patch.getint('arguments', 'channels', multiple=True)
     winx        = patch.getint('display', 'xpos')
     winy        = patch.getint('display', 'ypos')
@@ -180,6 +179,7 @@ def _loop_once():
     global ft_host, ft_port, ft_input, timeout, channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
     global dat, timeaxis
 
+    monitor.level(patch.getint('general', 'debug'))
     monitor.loop()
 
     if not patch.getint('general', 'enable', default=True):
