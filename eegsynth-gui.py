@@ -25,6 +25,7 @@
 
 import sys
 import os
+import argparse
 import multiprocessing
 import signal
 from PyQt5 import QtCore, QtWidgets
@@ -40,6 +41,29 @@ from module import accelerometer, audio2ft, audiomixer, biochill, bitalino2ft, b
 # this will contain a list of modules and processes
 modules = []
 processes = []
+
+# command-line arguments
+args = []
+
+def _setup():
+    global args, monitor
+
+    parser = argparse.ArgumentParser(prog='eegsynth-gui',
+                    description='This is a graphical user interface to start multiple modules that comprise an EEGsynth patch.',
+                    epilog='See https://www.eegsynth.org and https://github.com/eegsynth')
+    parser.add_argument("--version", action="version", version="eegsynth %s" % __version__)
+    parser.add_argument("--general-broker", default=None, help="general broker")
+    parser.add_argument("--general-debug", default=None, help="general debug")
+    parser.add_argument("--general-delay", default=None, help="general delay")
+    args = parser.parse_args()
+
+    # convert the command-line arguments in a dict
+    args = vars(args)
+    # remove empty items
+    args = {k: v for k, v in args.items() if v}
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=None, debug=1)
 
 
 def _start_module(module, args=None):
@@ -97,7 +121,7 @@ class MainWindow(QWidget):
 
     def updateLabel(self):
         if len(modules):
-            self.label.setText(', '.join(modules))
+            self.label.setText('\n'.join(modules))
         else:
             self.label.setText('<none>')
 
@@ -108,6 +132,8 @@ class MainWindow(QWidget):
             event.ignore()
 
     def dropEvent(self, event):
+        global args
+
         inifiles = [u.toLocalFile() for u in event.mimeData().urls()]
         for inifile in inifiles:
             if os.path.splitext(inifile)[1]!='.ini':
@@ -120,6 +146,10 @@ class MainWindow(QWidget):
             fullname = name
             name = name.split('-')[0]           # remove whatever comes after a "-" separator
             name = name.split('_')[0]           # remove whatever comes after a "_" separator
+
+            if fullname in modules:
+                monitor.error('%s is already running' % fullname)
+                continue
 
             # reconstruct the full path
             inifile = os.path.join(os.getcwd(), inifile)
@@ -282,8 +312,14 @@ class MainWindow(QWidget):
                 monitor.error('incorrect module', name)
                 return
 
-            # give some feedback
-            args_to_pass = ['--inifile', inifile]
+            # pass only the specific ini file
+            args['inifile'] = inifile
+
+            # pass all other arguments
+            args_to_pass = []
+            for k, v in args.items():
+                # reformat them back into command-line arguments
+                args_to_pass += ['--' + k.replace('_', '-'), v]
 
             # give some feedback
             monitor.success(name + ' ' + ' '.join(args_to_pass))
@@ -299,9 +335,9 @@ class MainWindow(QWidget):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
 
+    _setup()
+
     try:
-        # this shows the splash screen and can be used to track parameters that have changed
-        monitor = EEGsynth.monitor(name=None, debug=1)
         # initiate the graphical user interface
         app = QApplication(sys.argv)
 
