@@ -49,7 +49,7 @@ from termcolor import colored
 class patch():
     """Class to provide a generalized interface for patching modules using
     command-line arguments, configuration files and Redis.
-    
+
     The patch is initialized like this
       patch = EEGsynth.patch(name=<name>, path=<path>)
     where the name and path point to the ini file. You can also
@@ -97,19 +97,19 @@ class patch():
         parser.add_argument("--general-debug", default=None, help="general debug")
         parser.add_argument("--general-delay", default=None, help="general delay")
         args = parser.parse_args()
-        
+
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
         if preservecase:
             # see https://docs.python.org/3/library/configparser.html#configparser.ConfigParser.optionxform
             config.optionxform = str
         if 'inifile' in args and not args.inifile==None:
             config.read(args.inifile)
-        
+
         # convert the command-line arguments in a dict
         args = vars(args)
         # remove empty items
         args = {k:v for k,v in args.items() if v}
-        
+
         if 'general_broker' in args:
             broker = args['general_broker']
         elif config.has_option('general', 'broker'):
@@ -122,7 +122,7 @@ class patch():
                 broker = 'zeromq'
             else:
                 broker = 'dummy'
-                
+
         if broker=='redis':
             if config.has_option('redis', 'hostname'):
                 hostname = config.get('redis', 'hostname')
@@ -156,7 +156,7 @@ class patch():
             r = ZmqRedis.client(host=hostname, port=port, timeout=timeout)
             if not name=='redis' and not r.connect():
                 raise RuntimeError("cannot connect to ZeroMQ server")
-            
+
         elif broker=='fake':
             # the fake client stores all values in a dictionary
             r = DummyRedis.client()
@@ -387,6 +387,7 @@ class monitor():
 
     monitor.loop()           - to be called on every iteration of the loop
     monitor.update(key, val) - to be used to check whether values change
+    monitor.level(int)       - modify the debug level
 
     monitor.critical(...)  - shows always
     monitor.error(...)     - shows always
@@ -418,9 +419,6 @@ class monitor():
         logging.TRACE = logging.DEBUG - 5
         logging.addLevelName(logging.TRACE, 'TRACE')
 
-        # remember the logger
-        self.logger = logger
-
         if debug==0:
             logger.setLevel(logging.SUCCESS)
         elif debug==1:
@@ -429,6 +427,9 @@ class monitor():
             logger.setLevel(logging.DEBUG)
         elif debug==3:
             logger.setLevel(logging.TRACE)
+
+        # remember the logger
+        self.logger = logger
 
         if name == None:
             fullname = 'This software'
@@ -457,6 +458,16 @@ class monitor():
 
 Press Ctrl-C to stop this module.
         """ % (fullname))
+
+    def level(self, debug):
+        if debug==0:
+            self.logger.setLevel(logging.SUCCESS)
+        elif debug==1:
+            self.logger.setLevel(logging.INFO)
+        elif debug==2:
+            self.logger.setLevel(logging.DEBUG)
+        elif debug==3:
+            self.logger.setLevel(logging.TRACE)
 
     def loop(self, feedback=1.0, duration=None):
         now = time.time()
