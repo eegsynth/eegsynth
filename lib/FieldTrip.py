@@ -787,7 +787,7 @@ class Server():
                 return
             else:
                 raise RuntimeError('Not connected.')
-                
+
         # the timeout is used to return control to the main loop once in a while
         events = self.sel.select(timeout = self.timeout)
         for key, mask in events:

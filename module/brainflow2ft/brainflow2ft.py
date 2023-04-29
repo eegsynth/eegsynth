@@ -110,7 +110,7 @@ def _start():
     board = BoardShim(board_id, params)
     board.prepare_session()
     board.start_stream(45000, streamer_params)
-    
+
     # get all data and remove it from internal buffer
     board.get_board_data()
 
@@ -132,7 +132,7 @@ def _loop_once():
     global patch, name, path, monitor
     global ft_host, ft_port, ft_output, delay, board_id, streamer_params, params, board
     global data
-    
+
     if board.get_board_data_count()>0:
         data = np.transpose(board.get_board_data())
         ft_output.putData(data.astype(np.float32))

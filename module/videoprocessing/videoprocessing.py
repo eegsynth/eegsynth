@@ -59,10 +59,10 @@ def process_frame(frame, downsample, contrast, brightness, mirror):
     # map the values between 0 and 1 such that 0.5 is neutral
     contrast = 3 ** ((contrast-0.5)*2)
     brightness = 2*(brightness-0.5)*127
-    
+
     monitor.update('contrast', contrast)
     monitor.update('brightness', brightness)
-    
+
     # apply contrast and brightness
     # see https://docs.opencv.org/3.4/d3/dc1/tutorial_basic_linear_transform.html
     frame = np.clip(contrast*frame.astype('float') + brightness, 0, 255)
@@ -77,7 +77,7 @@ def process_frame(frame, downsample, contrast, brightness, mirror):
 ###########################################################################################
 
 def mask_frame(frame, top, bottom, left, right):
-    
+
     if len(frame.shape)==2:
         frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
@@ -92,11 +92,11 @@ def mask_frame(frame, top, bottom, left, right):
 
     # insert a cropped selection of the original frame in the mask
     masked[top:bottom, left:right, :] = frame[top:bottom, left:right, :]
-    
+
     if pixels>0:
         # draw a rectangle, see https://www.tutorialspoint.com/draw-rectangle-on-an-image-using-opencv
         cv2.rectangle(masked, (left,top), (right,bottom), (0,0,255), 1)
-        
+
     return masked
 
 ###########################################################################################
@@ -118,7 +118,7 @@ def weighted_position(frame):
     vertical = np.multiply(frame_as_col, pixel_as_col)
     horizontal = np.mean(horizontal)/np.mean(frame_as_row)
     vertical = np.mean(vertical)/np.mean(frame_as_col)
-    
+
     return horizontal, vertical
 
 
@@ -177,7 +177,7 @@ def _start():
         device = None
     else:
         raise RuntimeError('You should specify a device or a file')
-        
+
     # read a single frame to determine the characteristics
     ret, frame = cap.read()
 
@@ -211,7 +211,7 @@ def _loop_once():
 
     # capture frame-by-frame
     ret, frame = cap.read()
-    
+
     if device==None and not ret:
         monitor.warning('rewind to the start of the video')
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -222,7 +222,7 @@ def _loop_once():
 
     # downsample with the specified factor
     frame = process_frame(frame, downsample, contrast, brightness, mirror)
-    
+
     frame_height = frame.shape[0]
     frame_width = frame.shape[1]
     frame_depth = frame.shape[2]
@@ -347,7 +347,7 @@ def _loop_once():
         if metrics_grey:
             # convert the cropped image to grey
             grey = cv2.cvtColor(frame[top:bottom, left:right, :], cv2.COLOR_BGR2GRAY)
-            
+
             key = '%s.grey' % (prefix)
             val = np.mean(grey.flatten())/255.
             patch.setvalue(key, val)
@@ -406,7 +406,7 @@ def _loop_once():
             patch.setvalue(key, horizontal)
             key = '%s.diff.grey.vertical' % (prefix)
             patch.setvalue(key, 1-vertical)
-            
+
         ####################################################################
         # the following section implements the processing of the edges
 
@@ -432,7 +432,7 @@ def _loop_once():
             # crop the image with the optical flow, it is already grey
             flow_horizontal = flow[top:bottom, left:right, 0]
             flow_vertical   = flow[top:bottom, left:right, 1]
-        
+
             horizontal = np.mean(flow_horizontal, axis=(0,1), dtype=np.float, keepdims=False)
             vertical = np.mean(flow_vertical, axis=(0,1), dtype=np.float, keepdims=False)
 
@@ -451,7 +451,7 @@ def _loop_once():
     # remember the frame for the next iteration
     previous = frame
     previous_grey = cv2.cvtColor(previous, cv2.COLOR_BGR2GRAY)
-    
+
     if not device==None:
         key = cv2.waitKey(1)
     else:

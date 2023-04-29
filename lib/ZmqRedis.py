@@ -116,7 +116,7 @@ class client():
             self.socket.send_string("SET %s %f" % (key, val))
             status = self.socket.recv_string()
         return
-        
+
     def get(self, key):
         if self.debug>0:
             print("GET %s" % key)
@@ -158,7 +158,7 @@ class client():
             except:
                 val = False
         return val
-        
+
 
 ###################################################################################################
 class pubsub():

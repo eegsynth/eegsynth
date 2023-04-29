@@ -52,7 +52,7 @@ class BreathingBiofeedback:
 
         # configure and start the patch, this will parse the command-line arguments and the ini file
         self.patch = EEGsynth.patch(name=name, path=path)
-        
+
         # Monitor.
         self.monitor = EEGsynth.monitor(name=name, debug=self.patch.getint('general', 'debug', default=1))
 
