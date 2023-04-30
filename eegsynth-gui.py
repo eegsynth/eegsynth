@@ -28,12 +28,14 @@ import os
 import argparse
 import multiprocessing
 import signal
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
 from version import __version__
 
+
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
+path = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(path, 'lib'))
 import EEGsynth
 import FieldTrip
 
@@ -366,9 +368,10 @@ if __name__ == '__main__':
     try:
         # initiate the graphical user interface
         app = QApplication(sys.argv)
-
+        app.setWindowIcon(QtGui.QIcon(os.path.join(path, 'doc/figures/logo-128.ico')))
         app.aboutToQuit.connect(_stop)
         signal.signal(signal.SIGINT,  _stop)
+
         window = MainWindow()
         window.show()
 

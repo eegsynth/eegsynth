@@ -179,6 +179,7 @@ def _start():
 
     # start the graphical user interface
     app = QApplication(sys.argv)
+    app.setWindowIcon(QtGui.QIcon(os.path.join(path, '../../doc/figures/logo-128.ico')))
     app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
 
