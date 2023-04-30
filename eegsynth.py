@@ -39,6 +39,8 @@ from version import __version__
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
 import EEGsynth
 
+from module import accelerometer, audio2ft, audiomixer, biochill, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, logging, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottopo, plottrigger, polarbelt, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
+
 # this will contain a list of modules and processes
 modules = []
 processes = []
@@ -54,6 +56,8 @@ def _setup():
     parser.add_argument("--general-broker", default=None, help="general broker")
     parser.add_argument("--general-debug", default=None, help="general debug")
     parser.add_argument("--general-delay", default=None, help="general delay")
+    parser.add_argument("--general-logging", default=None, help="general logging, can be 'local' or 'remote'")
+    parser.add_argument("--multiprocessing-fork")
     parser.add_argument("inifile", nargs='+', help="configuration file for a patch")
     args = parser.parse_args()
 
@@ -84,14 +88,183 @@ def _setup():
     args = {k: v for k, v in args.items() if v}
 
     for inifile in inifiles:
-        # convert the string in a reference to the corresponding class
-        module = os.path.split(inifile)[-1]     # keep only the filename
-        module = os.path.splitext(module)[0]    # remove the ini extension
-        module = module.split('-')[0]           # remove whatever comes after a "-" separator
-        module = module.split('_')[0]           # remove whatever comes after a "_" separator
+        if os.path.splitext(inifile)[1]!='.ini':
+            monitor.error('incorrect file', inifile)
+            continue
 
-        # construct the full path
+        # reconstruct the full path
         inifile = os.path.join(os.getcwd(), inifile)
+
+        # convert the string to the corresponding class
+        name = os.path.split(inifile)[-1]   # keep only the filename
+        name = os.path.splitext(name)[0]    # remove the ini extension
+        fullname = name
+        name = name.split('-')[0]           # remove whatever comes after a "-" separator
+        name = name.split('_')[0]           # remove whatever comes after a "_" separator
+
+        if fullname in modules:
+            monitor.error('%s is already running' % fullname)
+            continue
+
+        if name=='accelerometer':
+            module_to_start = accelerometer
+        elif name=='audio2ft':
+            module_to_start = audio2ft
+        elif name=='audiomixer':
+            module_to_start = audiomixer
+        elif name=='biochill':
+            module_to_start = biochill
+        elif name=='bitalino2ft':
+            module_to_start = bitalino2ft
+# This requires the brainflow package, which is not installed by default.
+#            elif name=='brainflow2ft':
+#                module_to_start = brainflow2ft
+        elif name=='buffer':
+            module_to_start = buffer
+        elif name=='clockdivider':
+            module_to_start = clockdivider
+        elif name=='clockmultiplier':
+            module_to_start = clockmultiplier
+        elif name=='cogito':
+            module_to_start = cogito
+# The complexity module has too many dependencies to include by default.
+#            elif name=='complexity':
+#                module_to_start = complexity
+        elif name=='compressor':
+            module_to_start = compressor
+        elif name=='csp':
+            module_to_start = csp
+        elif name=='delaytrigger':
+            module_to_start = delaytrigger
+        elif name=='demodulatetone':
+            module_to_start = demodulatetone
+        elif name=='endorphines':
+            module_to_start = endorphines
+        elif name=='example':
+            module_to_start = example
+        elif name=='generateclock':
+            module_to_start = generateclock
+        elif name=='generatecontrol':
+            module_to_start = generatecontrol
+        elif name=='generatesignal':
+            module_to_start = generatesignal
+        elif name=='generatetrigger':
+            module_to_start = generatetrigger
+        elif name=='geomixer':
+            module_to_start = geomixer
+        elif name=='heartrate':
+            module_to_start = heartrate
+        elif name=='historycontrol':
+            module_to_start = historycontrol
+        elif name=='historysignal':
+            module_to_start = historysignal
+        elif name=='inputcontrol':
+            module_to_start = inputcontrol
+        elif name=='inputlsl':
+            module_to_start = inputlsl
+        elif name=='inputmidi':
+            module_to_start = inputmidi
+        elif name=='inputmqtt':
+            module_to_start = inputmqtt
+        elif name=='inputosc':
+            module_to_start = inputosc
+        elif name=='inputzeromq':
+            module_to_start = inputzeromq
+        elif name=='keyboard':
+            module_to_start = keyboard
+        elif name=='launchcontrol':
+            module_to_start = launchcontrol
+        elif name=='launchpad':
+            module_to_start = launchpad
+        elif name=='logging':
+            module_to_start = logging
+        elif name=='lsl2ft':
+            module_to_start = lsl2ft
+        elif name=='modulatetone':
+            module_to_start = modulatetone
+        elif name=='outputartnet':
+            module_to_start = outputartnet
+        elif name=='outputaudio':
+            module_to_start = outputaudio
+        elif name=='outputcvgate':
+            module_to_start = outputcvgate
+        elif name=='outputdmx':
+            module_to_start = outputdmx
+        elif name=='outputlsl':
+            module_to_start = outputlsl
+        elif name=='outputmidi':
+            module_to_start = outputmidi
+        elif name=='outputmqtt':
+            module_to_start = outputmqtt
+        elif name=='outputosc':
+            module_to_start = outputosc
+        elif name=='outputzeromq':
+            module_to_start = outputzeromq
+        elif name=='playbackcontrol':
+            module_to_start = playbackcontrol
+        elif name=='playbacksignal':
+            module_to_start = playbacksignal
+        elif name=='plotcontrol':
+            module_to_start = plotcontrol
+        elif name=='plotimage':
+            module_to_start = plotimage
+        elif name=='plotsignal':
+            module_to_start = plotsignal
+        elif name=='plotspectral':
+            module_to_start = plotspectral
+        elif name=='plottopo':
+            module_to_start = plottopo
+        elif name=='plottrigger':
+            module_to_start = plottrigger
+        elif name=='polarbelt':
+            module_to_start = polarbelt
+        elif name=='postprocessing':
+            module_to_start = postprocessing
+        elif name=='preprocessing':
+            module_to_start = preprocessing
+        elif name=='processtrigger':
+            module_to_start = processtrigger
+        elif name=='quantizer':
+            module_to_start = quantizer
+        elif name=='recordcontrol':
+            module_to_start = recordcontrol
+        elif name=='recordsignal':
+            module_to_start = recordsignal
+        elif name=='recordtrigger':
+            module_to_start = recordtrigger
+        elif name=='redis':
+            module_to_start = redis
+        elif name=='rms':
+            module_to_start = rms
+        elif name=='sampler':
+            module_to_start = sampler
+        elif name=='sequencer':
+            module_to_start = sequencer
+        elif name=='slewlimiter':
+            module_to_start = slewlimiter
+        elif name=='sonification':
+            module_to_start = sonification
+        elif name=='spectral':
+            module_to_start = spectral
+        elif name=='synthesizer':
+            module_to_start = synthesizer
+        elif name=='threshold':
+            module_to_start = threshold
+        elif name=='unicorn2ft':
+            module_to_start = unicorn2ft
+        elif name=='videoprocessing':
+            module_to_start = videoprocessing
+        elif name=='volcabass':
+            module_to_start = volcabass
+        elif name=='volcabeats':
+            module_to_start = volcabeats
+        elif name=='volcakeys':
+            module_to_start = volcakeys
+        elif name=='vumeter':
+            module_to_start = vumeter
+        else:
+            monitor.error('incorrect module', name)
+            return
 
         # pass only the specific ini file
         args['inifile'] = inifile
@@ -102,15 +275,14 @@ def _setup():
             # reformat them back into command-line arguments
             args_to_pass += ['--' + k.replace('_', '-'), v]
 
-        # import the class that implements the specific module from eegsynth/module
-        # as soon as an object of the class is instantiated, the module will start
-        object = import_module('module.' + module)
-
-        modules.append(module)
-        processes.append(multiprocessing.Process(target=_start_module, args=(object.Executable, args_to_pass)))
-
         # give some feedback
-        monitor.success('setting up ' + module + ' with arguments ' + ' '.join(args_to_pass))
+        monitor.success(name + ' ' + ' '.join(args_to_pass))
+
+        process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_to_pass))
+
+        # keep track of all modules and processes
+        modules.append(fullname)
+        processes.append(process)
 
 
 def _start_module(module, args=None):
@@ -139,9 +311,8 @@ def _stop(*args):
 
 
 if __name__ == '__main__':
-    # see https://stackoverflow.com/questions/64174552/what-does-the-process-has-forked-and-you-cannot-use-this-corefoundation-functio
-    if sys.version_info >= (3, 0):
-        multiprocessing.set_start_method('spawn')
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
 
     signal.signal(signal.SIGINT, _stop)
 
