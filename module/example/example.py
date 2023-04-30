@@ -55,7 +55,7 @@ def _setup():
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -83,7 +83,7 @@ def _loop_once():
     '''Run the main loop once
     '''
     global patch, name, path, monitor
-    global monitor, prefix
+    global prefix, param1, param2
 
     # update the value of input param1, copy it to the output
     param1 = patch.getfloat('input', 'param1', default=0)

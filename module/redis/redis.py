@@ -54,7 +54,7 @@ def _setup():
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
 
 
 def _start():
@@ -65,7 +65,7 @@ def _start():
 
     # get the options from the configuration file
     broker = patch.get('general', 'broker', default='zeromq')
-    
+
     if broker=='zeromq':
         monitor.success('starting the zeromq broker')
         port = patch.getint('zeromq', 'port', default=5555)
@@ -75,7 +75,7 @@ def _start():
         msg = 'the Redis broker should be started using "redis.sh" or by calling it directly'
         monitor.error(msg)
         raise RuntimeError(msg)
-        
+
     elif broker=='fake':
         msg = 'the fake broker does not require a server'
         monitor.error(msg)
@@ -85,7 +85,7 @@ def _start():
         msg = 'the dummy broker does not require a server'
         monitor.error(msg)
         raise RuntimeError(msg)
-        
+
     else:
         msg = 'unknown broker'
         monitor.error(msg)

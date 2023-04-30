@@ -85,7 +85,7 @@ def _setup():
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
@@ -207,7 +207,7 @@ def _loop_forever():
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
-    global monitor, trigger, r
+    global monitor, trigger
     monitor.success('Closing threads')
     for thread in trigger:
         thread.stop()

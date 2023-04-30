@@ -61,7 +61,7 @@ def _setup():
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
 
 
 def _start():
@@ -179,7 +179,6 @@ def _loop_once():
     global ft_host, ft_port, ft_input, timeout, channels, winx, winy, winwidth, winheight, window, clipsize, clipside, stepsize, lrate, ylim, hdr_input, start, filterorder, filter, notchquality, notch, app, win, timeplot, curve, curvemax, plotnr, channr, timer, begsample, endsample
     global dat, timeaxis
 
-    monitor.level(patch.getint('general', 'debug'))
     monitor.loop()
 
     if not patch.getint('general', 'enable', default=True):

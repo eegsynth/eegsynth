@@ -20,9 +20,12 @@ from __future__ import print_function
 import os
 import sys
 
-# exclude the eegsynth/module/redis directory from the path
+# exclude some eegsynth/module directories from the path
 for i, dir in enumerate(sys.path):
     if dir.endswith(os.path.join('module', 'redis')):
+        del sys.path[i]
+        continue
+    if dir.endswith(os.path.join('module', 'logging')):
         del sys.path[i]
         continue
 
@@ -55,7 +58,10 @@ class patch():
     where the name and path point to the ini file. You can also
     pass the --inifile option on the command-line.
 
-    The following methods get the values (as a string) from the commnand-line
+    The following method sets and publishes the value to Redis
+      patch.setvalue(key, value)
+
+    The following method gets the value (as a string) from the command-line
     arguments or from the ini file
       patch.get(section, item, default=None)
 
@@ -96,6 +102,7 @@ class patch():
         parser.add_argument("--general-broker", default=None, help="general broker")
         parser.add_argument("--general-debug", default=None, help="general debug")
         parser.add_argument("--general-delay", default=None, help="general delay")
+        parser.add_argument("--general-logging", default=None, help="general logging")
         args = parser.parse_args()
 
         config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
@@ -387,7 +394,6 @@ class monitor():
 
     monitor.loop()           - to be called on every iteration of the loop
     monitor.update(key, val) - to be used to check whether values change
-    monitor.level(int)       - modify the debug level
 
     monitor.critical(...)  - shows always
     monitor.error(...)     - shows always
@@ -398,18 +404,26 @@ class monitor():
     monitor.trace(...)     - debug level 3
     """
 
-    def __init__(self, name=None, debug=0):
+    def __init__(self, name=None, debug=0, patch=None, target=None):
         self.previous_value = {}
         self.loop_time = None
+        self.patch = patch
+        self.target = target
 
-        # If using Windows,this  will cause anything sent to stdout or stderr will have ANSI color codes converted to the Windows versions
+        # on Windows this will cause anything with ANSI color codes sent to stdout or stderr converted to the Windows versions
         colorama.init()
 
-        logger = logging.getLogger(__name__)
-        handler = logging.StreamHandler()
-        formatter = ColoredFormatter(name)
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        logger = logging.getLogger(name)
+
+        if target and patch:
+            redisHandler = RedisLogger(self.patch.redis, target)
+            redisHandler.setFormatter(logging.Formatter('%(levelname)s: %(name)s: %(message)s'))
+            # '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            logger.addHandler(redisHandler)
+        else:
+            streamHandler = logging.StreamHandler()
+            streamHandler.setFormatter(ColoredFormatter(name))
+            logger.addHandler(streamHandler)
 
         # add a success level
         logging.SUCCESS = logging.INFO + 5
@@ -459,14 +473,20 @@ class monitor():
 Press Ctrl-C to stop this module.
         """ % (fullname))
 
-    def level(self, debug):
-        if debug==0:
+    def setTarget(self, target):
+        self.target = target
+
+    def setPatch(self, patch):
+        self.patch = patch
+
+    def setLevel(self, level):
+        if level==0:
             self.logger.setLevel(logging.SUCCESS)
-        elif debug==1:
+        elif level==1:
             self.logger.setLevel(logging.INFO)
-        elif debug==2:
+        elif level==2:
             self.logger.setLevel(logging.DEBUG)
-        elif debug==3:
+        elif level==3:
             self.logger.setLevel(logging.TRACE)
 
     def loop(self, feedback=1.0, duration=None):
@@ -559,6 +579,22 @@ Press Ctrl-C to stop this module.
             self.logger.log(logging.TRACE, *args)
         else:
             self.logger.log(logging.TRACE, " ".join(map(format, args)))
+
+
+###################################################################################################
+class RedisLogger(logging.Handler):
+    """Class to send logging messages to Redis
+    """
+
+    def __init__(self, server, channel):
+        super().__init__()
+        self.redis = server
+        self.channel = channel
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.redis.set(self.channel, msg)
+        self.redis.publish(self.channel, msg)
 
 ###################################################################################################
 class ColoredFormatter(Formatter):

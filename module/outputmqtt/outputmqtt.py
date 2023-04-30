@@ -123,7 +123,7 @@ def _start():
     global list_input, list_output, list1, list2, list3, i, j, lock, trigger, key1, key2, key3, this, thread, client
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
 
     # get the options from the configuration file
 

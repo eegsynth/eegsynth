@@ -111,9 +111,15 @@ class client():
 
     def set(self, key, val):
         if self.debug>0:
-            print("SET %s %f" % (key, val))
+            if isinstance(val, str):
+                print("SET %s %s" % (key, val))
+            else:
+                print("SET %s %f" % (key, val))
         with self.lock:
-            self.socket.send_string("SET %s %f" % (key, val))
+            if isinstance(val, str):
+                self.socket.send_string("SET %s %s" % (key, val))
+            else:
+                self.socket.send_string("SET %s %f" % (key, val))
             status = self.socket.recv_string()
         return
 
@@ -130,9 +136,15 @@ class client():
 
     def publish(self, key, val):
         if self.debug>0:
-            print("PUBLISH %s %f" % (key, val))
+            if isinstance(val, str):
+                print("PUBLISH %s %s" % (key, val))
+            else:
+                print("PUBLISH %s %f" % (key, val))
         with self.lock:
-            self.socket.send_string("PUBLISH %s %f" % (key, val))
+            if isinstance(val, str):
+                self.socket.send_string("PUBLISH %s %s" % (key, val))
+            else:
+                self.socket.send_string("PUBLISH %s %f" % (key, val))
             status = self.socket.recv_string()
         return status
 
@@ -173,7 +185,7 @@ class pubsub():
 
     def listen(self):
         message = self.socket.recv_string()
-        key, val = message.split()
+        key, val = message.split(' ', 1)
         item = {}
         item['type'] = 'message'
         item['channel'] = key

@@ -204,7 +204,7 @@ def _start():
     global p, device, rate, blocksize, nchans, format, info, stream, lock, control, trigger, devinfo, block, offset, autoscale
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, debug=patch.getint('general', 'debug', default=1))
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
 
     p = pyaudio.PyAudio()
 
