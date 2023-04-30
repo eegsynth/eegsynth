@@ -54,7 +54,8 @@ def _setup():
     patch = EEGsynth.patch(name=name, path=path)
 
     # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=patch.getstring('general', 'logging', default=None))
+    # this module should not use remote logging, as it cannot start logging prior to starting up itself
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint('general', 'debug', default=1), target=None)
 
 
 def _start():
