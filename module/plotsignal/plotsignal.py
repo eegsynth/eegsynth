@@ -23,9 +23,10 @@ from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import os
 import pyqtgraph as pg
+import signal
 import sys
 import time
-import signal
+import traceback
 from scipy.signal import detrend
 
 if hasattr(sys, 'frozen'):
@@ -142,6 +143,9 @@ def _start():
     app = QtGui.QApplication(sys.argv)
     app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
+
+    # deal with uncaught exceptions
+    sys.excepthook = _exception_hook
 
     win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plotsignal'))
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotsignal'))
@@ -271,6 +275,16 @@ def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
     QtGui.QApplication.quit()
+
+
+def _exception_hook(type, value, tb):
+    '''Stop and clean up the PyQt application on uncaught exception
+    '''
+    traceback_formated = traceback.format_exception(type, value, tb)
+    traceback_string = "".join(traceback_formated)
+    print(traceback_string, file=sys.stderr)
+    monitor.error('uncaught exception, stopping...')
+    _stop()
 
 
 if __name__ == '__main__':
