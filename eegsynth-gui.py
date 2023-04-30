@@ -36,7 +36,7 @@ from version import __version__
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
 import EEGsynth
 
-from module import accelerometer, audio2ft, audiomixer, biochill, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottopo, plottrigger, polarbelt, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
+from module import accelerometer, audio2ft, audiomixer, biochill, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, logging, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottopo, plottrigger, polarbelt, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
 
 # this will contain a list of modules and processes
 modules = []
@@ -55,6 +55,8 @@ def _setup():
     parser.add_argument("--general-broker", default=None, help="general broker")
     parser.add_argument("--general-debug", default=None, help="general debug")
     parser.add_argument("--general-delay", default=None, help="general delay")
+    parser.add_argument("--general-logging", default=None, help="general logging, can be 'local' or 'remote'")
+    parser.add_argument("--multiprocessing-fork")
     args = parser.parse_args()
 
     # convert the command-line arguments in a dict
@@ -140,6 +142,9 @@ class MainWindow(QWidget):
                 monitor.error('incorrect file', inifile)
                 continue
 
+            # reconstruct the full path
+            inifile = os.path.join(os.getcwd(), inifile)
+
             # convert the string to the corresponding class
             name = os.path.split(inifile)[-1]   # keep only the filename
             name = os.path.splitext(name)[0]    # remove the ini extension
@@ -150,9 +155,6 @@ class MainWindow(QWidget):
             if fullname in modules:
                 monitor.error('%s is already running' % fullname)
                 continue
-
-            # reconstruct the full path
-            inifile = os.path.join(os.getcwd(), inifile)
 
             if name=='accelerometer':
                 module_to_start = accelerometer
@@ -224,6 +226,8 @@ class MainWindow(QWidget):
                 module_to_start = launchcontrol
             elif name=='launchpad':
                 module_to_start = launchpad
+            elif name=='logging':
+                module_to_start = logging
             elif name=='lsl2ft':
                 module_to_start = lsl2ft
             elif name=='modulatetone':
@@ -334,6 +338,7 @@ class MainWindow(QWidget):
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
 
     _setup()
 
