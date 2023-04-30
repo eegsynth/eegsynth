@@ -35,6 +35,7 @@ from version import __version__
 # eegsynth/lib contains shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
 import EEGsynth
+import FieldTrip
 
 from module import accelerometer, audio2ft, audiomixer, biochill, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, logging, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottopo, plottrigger, polarbelt, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
 
@@ -73,7 +74,6 @@ def _start_module(module, args=None):
     # optional command-line arguments can be passed to specify the ini file
     module(args)
 
-
 def _loop_once():
     '''Run the main loop once
     '''
@@ -92,14 +92,16 @@ def _loop_once():
 
 def _stop(*args):
     global monitor, modules, processes
-    for m,p in zip(modules, processes):
-        monitor.success('terminating ' + m + ' process')
-        p.terminate()
-    for m,p in zip(modules, processes):
-        monitor.success('joining ' + m + ' process')
-        p.join()
-    modules = []
-    processes = []
+    if len(modules):
+        # stop all modules, starting with the last one
+        for m,p in zip(reversed(modules), reversed(processes)):
+            monitor.success('terminating ' + m + ' process')
+            p.terminate()
+        for m,p in zip(reversed(modules), reversed(processes)):
+            monitor.success('joining ' + m + ' process')
+            p.join()
+        modules = []
+        processes = []
     QApplication.quit()
 
 
@@ -118,8 +120,21 @@ class MainWindow(QWidget):
         l2.setStyleSheet("color: red")
         l2.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(l2)
+        b1 = QtWidgets.QPushButton("Stop all modules")
+        b1.clicked.connect(self.stopAllModules)
+        self.layout.addWidget(b1)
         # remember the label so that it can be changes later
         self.label = l2
+
+    def stopAllModules(self):
+        if len(modules):
+            # stop all modules, starting with the last one
+            for m,p in zip(reversed(modules), reversed(processes)):
+                monitor.success('terminating ' + m + ' process')
+                p.terminate()
+            for m,p in zip(reversed(modules), reversed(processes)):
+                monitor.success('joining ' + m + ' process')
+                p.join()
 
     def updateLabel(self):
         if len(modules):
@@ -153,8 +168,14 @@ class MainWindow(QWidget):
             name = name.split('_')[0]           # remove whatever comes after a "_" separator
 
             if fullname in modules:
-                monitor.error('%s is already running' % fullname)
-                continue
+                monitor.warning('%s is already running, restarting ...' % (fullname))
+                index = modules.index(fullname)
+                monitor.success('terminating ' + fullname + ' process')
+                processes[index].terminate()
+                monitor.success('joining ' + fullname + ' process')
+                processes[index].join()
+                del modules[index]
+                del processes[index]
 
             if name=='accelerometer':
                 module_to_start = accelerometer
