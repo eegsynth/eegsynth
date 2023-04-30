@@ -23,7 +23,7 @@
 
 - allow general arguments to be passed on the command-line
 
-# Oct 27, 2022
+## Oct 27, 2022
 
 - released version 0.6.0
 
@@ -39,11 +39,11 @@
 
 - implemented example module
 
-# Jun 12, 2022
+## Jun 12, 2022
 
 - released version 0.5.2
 
-# Jun 6, 2022
+## Jun 6, 2022
 
 - released version 0.5.1
 - released version 0.5.0
@@ -70,7 +70,7 @@
 - released version 0.4.2
 - implemented brainflow2ft module
 
-# Feb 19, 2022
+## Feb 19, 2022
 
 - released version 0.4.1
 - released version 0.4.0
@@ -91,15 +91,15 @@
 
 - implemented polarbelt module
 
-# Apr 11, 2020
+## Apr 11, 2020
 
 - released version 0.3.1
 
-# Apr 4, 2020
+## Apr 4, 2020
 
 - released version 0.3.0
 
-# Mar 26, 2020
+## Mar 26, 2020
 
 - released version 0.2.8
 
