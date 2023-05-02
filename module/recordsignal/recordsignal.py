@@ -83,8 +83,8 @@ def _start():
 
     # get the options from the configuration file
     timeout = patch.getfloat('fieldtrip', 'timeout', default=30)
-    filename = patch.get('recording', 'file')           # do not try to get this from Redis
-    fileformat = patch.get('recording', 'format')       # do not try to get this from Redis
+    filename = patch.getstring('recording', 'file')
+    fileformat = patch.getstring('recording', 'format')
 
     if fileformat is None:
         # determine the file format from the file name
@@ -151,6 +151,8 @@ def _loop_once():
     if not recording and patch.getint('recording', 'record'):
         recording = True
         maxabs = 0
+        # determine the filename, it may have changed
+        filename = patch.getstring('recording', 'file')
         # open a new file
         name, ext = os.path.splitext(filename)
         if len(ext) == 0:
