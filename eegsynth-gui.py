@@ -32,9 +32,11 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget
 from version import __version__
 
+path = os.path.dirname(os.path.realpath(__file__))
+file = os.path.split(__file__)[-1]
+name = os.path.splitext(file)[0]
 
 # eegsynth/lib contains shared modules
-path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(path, 'lib'))
 import EEGsynth
 import FieldTrip
@@ -366,6 +368,9 @@ if __name__ == '__main__':
     _setup()
 
     try:
+        # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
+        EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
+
         # initiate the graphical user interface
         app = QApplication(sys.argv)
         app.setWindowIcon(QtGui.QIcon(os.path.join(path, 'doc/figures/logo-128.ico')))

@@ -35,8 +35,12 @@ import signal
 from importlib import import_module
 from version import __version__
 
+path = os.path.dirname(os.path.realpath(__file__))
+file = os.path.split(__file__)[-1]
+name = os.path.splitext(file)[0]
+
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
+sys.path.insert(0, os.path.join(path, 'lib'))
 import EEGsynth
 import FieldTrip
 
@@ -314,6 +318,9 @@ def _stop(*args):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     multiprocessing.set_start_method('spawn')
+
+    # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
+    EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
 
     signal.signal(signal.SIGINT, _stop)
 

@@ -57,7 +57,7 @@ or on Windows with
 
     pyinstaller --noconfirm --onefile --console --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" --additional-hooks-dir . "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth.py"
 
-    pyinstaller --noconfirm --windowed --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" --additional-hooks-dir . "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth-gui.py"
+    pyinstaller --noconfirm --onefile --windowed --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" --additional-hooks-dir . "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth-gui.py"
 
 ## Version numbering
 

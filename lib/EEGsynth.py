@@ -46,6 +46,8 @@ import FakeRedis      # this offers an alternative to a real redis server
 import DummyRedis     # this offers an alternative to a real redis server
 import string
 import termcolor
+import platform
+import ctypes
 from termcolor import colored
 
 ###################################################################################################
@@ -969,3 +971,9 @@ def trimquotes(option):
 ###################################################################################################
 def uuid(length):
     return ''.join(random.choice(string.hexdigits) for i in range(length))
+
+###################################################################################################
+def appid(myappid):
+    # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
+    if platform.system() == 'Windows':
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
