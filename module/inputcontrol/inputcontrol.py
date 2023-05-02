@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2019 EEGsynth project
+# Copyright (C) 2019-2023 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,6 +48,24 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
+class QLineEditDrop(QtWidgets.QLineEdit):
+    ''' This is a QLineEdit widget that also supports dropping a filename on it
+    '''
+    def __init__(self):
+        super().__init__()
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        self.setText(files[0])
+
+
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
@@ -61,29 +79,38 @@ class Window(QWidget):
         for item in list:
 
             try:
-                # read the previous value from Redis
+                # get the default or previous value from Redis
                 key = '%s.%s' % (prefix, item[0])
-                val = float(patch.redis.get(key))
-                # sliders and dials have an internal value between 0 and 127
-                val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset, reverse=True)
-                # buttons have an internal value of 0, 1, 2, 3, 4
-                if item[1] == 'slap' or item[1] == 'push':
-                    # these should always start as 0, see https://github.com/eegsynth/eegsynth/issues/375
-                    val = 0
-                elif item[1] == 'toggle1':
-                    val = int(1. * val / 127.)
-                elif item[1] == 'toggle2':
-                    val = int(2. * val / 127.)
-                elif item[1] == 'toggle3':
-                    val = int(3. * val / 127.)
-                elif item[1] == 'toggle4':
-                    val = int(4. * val / 127.)
-                elif item[1] == 'text':
-                    # text has an internal value identical to the external value
-                    val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
-                monitor.info('%s = %g' % (key, val))
+                val = patch.redis.get(key)
+                # the value can either be a number or a string
+                try:
+                    val = float(val)
+                    # apply the appropriate scaling
+                    if item[1] == 'slider' or item[1] == 'dial':
+                        # sliders and dials have an internal value between 0 and 127
+                        val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset, reverse=True)
+                    elif item[1] == 'slap' or item[1] == 'push':
+                        # buttons have an internal value of 0, 1, 2, 3, 4 and should always start as 0, see https://github.com/eegsynth/eegsynth/issues/375
+                        val = 0
+                    elif item[1] == 'toggle1':
+                        val = int(1. * val / 127.)
+                    elif item[1] == 'toggle2':
+                        val = int(2. * val / 127.)
+                    elif item[1] == 'toggle3':
+                        val = int(3. * val / 127.)
+                    elif item[1] == 'toggle4':
+                        val = int(4. * val / 127.)
+                    elif item[1] == 'text':
+                        # text has an internal value identical to the external value
+                        val = EEGsynth.rescale(val, slope=output_scale, offset=output_offset)
+                    monitor.info('%s = %g' % (key, val))
+
+                except ValueError:
+                    val = val
+                    monitor.info('%s = %s' % (key, val))
+
             except:
-                # set the default initial value to 0
+                # set the default value to 0
                 val = 0
 
             if item[1] == 'label':
@@ -92,14 +119,23 @@ class Window(QWidget):
                 l.setStyleSheet('color: rgb(200,200,200);')
                 panel.addWidget(l)
 
+            elif item[1] == 'placeholder':
+                l = QtWidgets.QLabel("")
+                panel.addWidget(l)
+
             elif item[1] == 'text':
-                t = QtWidgets.QLineEdit()
+                t = QLineEditDrop() # derived from QtWidgets.QLineEdit()
                 t.name = item[0]
                 t.type = item[1]
-                t.setText("%g" % val)
+                # the value can either be a number or a string
+                if isinstance(val, str):
+                    t.setText(val)
+                else:
+                    t.setText("%g" % val)
                 t.setAlignment(QtCore.Qt.AlignHCenter)
                 t.setStyleSheet('background-color: rgb(64,64,64); color: rgb(200,200,200);')
-                t.editingFinished.connect(self.changevalue)
+                t.editingFinished.connect(self.changevalue) # upon manual edit
+                t.textChanged.connect(self.changevalue)     # upon drag-and-drop
                 l = QtWidgets.QLabel(t.name)
                 l.setAlignment(QtCore.Qt.AlignHCenter)
                 l.setStyleSheet('color: rgb(200,200,200);')
@@ -216,11 +252,12 @@ class Window(QWidget):
         if target.type == 'slider' or target.type == 'dial':
             val = target.value()
         elif target.type == 'text':
+            # it can either be a number or a string
             try:
-                val = float(target.text())  # convert the string into a scalar
+                val = float(target.text())  # convert the string into a number
                 target.setText('%g' % val)  # ensure that the displayed value is consistent
-            except:
-                val = target.text()
+            except ValueError:
+                val = target.text()         # keep it as a string
         elif target.type == 'slap':
             target.value = (target.value + 1) % 2
             val = target.value * 127 / 1
@@ -252,10 +289,10 @@ class Window(QWidget):
     def setcolor(self, target):
         # see https://www.w3schools.com/css/css3_buttons.asp
         grey = 'background-color: rgb(250,250,250); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
-        red = 'background-color: rgb(255,0,0);     border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
-        yellow = 'background-color: rgb(250,250,60);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
-        green = 'background-color: rgb(60,200,60);   border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
-        amber = 'background-color: rgb(250,190,45);  border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        red = 'background-color: rgb(255,0,0); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        yellow = 'background-color: rgb(250,250,60); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        green = 'background-color: rgb(60,200,60); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
+        amber = 'background-color: rgb(250,190,45); border: 1px solid gray; border-radius: 4px; padding: 4px 4px;'
 
         if target.type == 'slap':
             if target.value == 1:
@@ -341,7 +378,14 @@ def _start():
     if 'initial' in patch.config.sections():
         # assign the initial values
         for item in patch.config.items('initial'):
-            val = patch.getfloat('initial', item[0])
+            # the value can either be a number or a string
+            val = patch.getstring('initial', item[0])
+            try:
+                # convert to number
+                val = float(val)
+            except ValueError:
+                # keep as string
+                val = val
             patch.setvalue(item[0], val)
             monitor.update(item[0], val)
 
