@@ -15,6 +15,7 @@ interface/node_modules
 *.spec
 .DS_Store
 misc/
+hook-pylsl.py
 
 # Backup files
 *.m~
@@ -59,7 +60,7 @@ misc/
 # PyCharm project
 .idea/*
 
-# Python packaging 
+# Python packaging
 *.egg-info
 build/*
 dist/*
