@@ -72,7 +72,7 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global ft_host, ft_port, ft_output, filename, fileformat, ext, H, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, f, chanindx, labels, A, blocksize, begsample, endsample, block
+    global ft_host, ft_port, ft_output, filename, fileformat, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, stepsize, playback
 
     try:
         ft_host = patch.getstring('fieldtrip', 'hostname')
@@ -93,10 +93,6 @@ def _start():
         name, ext = os.path.splitext(filename)
         fileformat = ext[1:]
 
-    monitor.info('Reading data from ' + filename)
-
-    H = FieldTrip.Header()
-
     MININT8 = -np.power(2., 7)
     MAXINT8 = np.power(2., 7) - 1
     MININT16 = -np.power(2., 15)
@@ -104,82 +100,11 @@ def _start():
     MININT32 = -np.power(2., 31)
     MAXINT32 = np.power(2., 31) - 1
 
-    if fileformat == 'edf':
-        f = EDF.EDFReader()
-        f.open(filename)
-        for chanindx in range(f.getNSignals()):
-            if f.getSignalFreqs()[chanindx] != f.getSignalFreqs()[0]:
-                raise AssertionError('unequal SignalFreqs')
-            if f.getNSamples()[chanindx] != f.getNSamples()[0]:
-                raise AssertionError('unequal NSamples')
-        H.nChannels = len(f.getSignalFreqs())
-        H.fSample = f.getSignalFreqs()[0]
-        H.nSamples = f.getNSamples()[0]
-        H.nEvents = 0
-        H.dataType = FieldTrip.DATATYPE_FLOAT32
-        # the channel labels will be written to the buffer
-        labels = f.getSignalTextLabels()
-        # read all the data from the file
-        A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
-        for chanindx in range(H.nChannels):
-            monitor.info('reading channel ' + str(chanindx))
-            A[:, chanindx] = f.readSignal(chanindx)
-        f.close()
+    # this value will be updated later
+    stepsize = patch.getfloat('playback', 'blocksize') / patch.getfloat('playback', 'speed')
 
-    elif fileformat == 'wav':
-        try:
-            physical_min = patch.getfloat('playback', 'physical_min')
-        except:
-            physical_min = -1
-        try:
-            physical_max = patch.getfloat('playback', 'physical_max')
-        except:
-            physical_max = 1
-        f = wave.open(filename, 'r')
-        resolution = f.getsampwidth()  # 1, 2 or 4
-        # 8-bit samples are stored as unsigned bytes, ranging from 0 to 255.
-        # 16-bit samples are stored as signed integers in 2's-complement.
-        H.nChannels = f.getnchannels()
-        H.fSample = f.getframerate()
-        H.nSamples = f.getnframes()
-        H.nEvents = 0
-        H.dataType = FieldTrip.DATATYPE_FLOAT32
-        # there are no channel labels
-        labels = None
-        # read all the data from the file
-        x = f.readframes(f.getnframes() * f.getnchannels())
-        f.close()
-        # convert and calibrate
-        if resolution == 2:
-            x = struct.unpack_from('%dh' % f.getnframes() * f.getnchannels(), x)
-            x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
-            y = x / float(MAXINT16)
-        elif resolution == 4:
-            x = struct.unpack_from('%di' % f.getnframes() * f.getnchannels(), x)
-            x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
-            y = x / float(MAXINT32)
-        else:
-            raise NotImplementedError('unsupported resolution')
-        A = y * ((physical_max - physical_min) / 2)
-
-    else:
-        raise NotImplementedError('unsupported file format')
-
-    monitor.debug('nChannels = ' + str(H.nChannels))
-    monitor.debug('nSamples = ' + str(H.nSamples))
-    monitor.debug('fSample = ' + str(H.fSample))
-    monitor.debug('labels = ' + str(labels))
-
-    ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
-
-    blocksize = int(patch.getfloat('playback', 'blocksize') * H.fSample)
-    begsample = 0
-    endsample = blocksize - 1
-    block = 0
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
+    # the playback will start in _loop_once()
+    playback = False
 
 
 def _loop_once():
@@ -187,43 +112,129 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global ft_host, ft_port, ft_output, filename, fileformat, ext, H, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, f, chanindx, labels, A, blocksize, begsample, endsample, block
-    global D, stepsize
+    global ft_host, ft_port, ft_output, filename, fileformat, ext, MININT8, MAXINT8, MININT16, MAXINT16, MININT32, MAXINT32, stepsize, playback
+    global f, H, chanindx, labels, A, blocksize, begsample, endsample, block, D
 
-    if endsample > H.nSamples - 1:
+    if playback and endsample > H.nSamples - 1:
         monitor.info('End of file reached, jumping back to start')
         begsample = 0
         endsample = blocksize - 1
         block = 0
 
-    if patch.getint('playback', 'rewind', default=0):
+    if playback and patch.getint('playback', 'rewind', default=0):
         monitor.info('Rewind pressed, jumping back to start of file')
         begsample = 0
         endsample = blocksize - 1
         block = 0
 
-    if not patch.getint('playback', 'play', default=1):
-        monitor.info('Stopped')
-        time.sleep(0.1)
-        return
-
     if patch.getint('playback', 'pause', default=0):
         monitor.info('Paused')
+        playback = False
         time.sleep(0.1)
         return
 
-    monitor.info('Playing block ' + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
+    if not patch.getint('playback', 'play', default=1):
+        monitor.info('Stopped')
+        playback = False
+        time.sleep(0.1)
+        return
 
-    # copy the selected samples from the in-memory data
-    D = A[begsample:endsample + 1, :]
+    if not playback and patch.getint('playback', 'play'):
+        monitor.info('Reading data from ' + filename)
+        playback = True
 
-    # write the data to the output buffer
-    ft_output.putData(D)
+        # determine the filename, it may have changed
+        filename = patch.getstring('playback', 'file')
 
-    stepsize = blocksize / (H.fSample * patch.getfloat('playback', 'speed'))
-    begsample += blocksize
-    endsample += blocksize
-    block += 1
+        # construct the corresponding EEG header
+        H = FieldTrip.Header()
+
+        if fileformat == 'edf':
+            f = EDF.EDFReader()
+            f.open(filename)
+            for chanindx in range(f.getNSignals()):
+                if f.getSignalFreqs()[chanindx] != f.getSignalFreqs()[0]:
+                    raise AssertionError('unequal SignalFreqs')
+                if f.getNSamples()[chanindx] != f.getNSamples()[0]:
+                    raise AssertionError('unequal NSamples')
+            H.nChannels = len(f.getSignalFreqs())
+            H.fSample = f.getSignalFreqs()[0]
+            H.nSamples = f.getNSamples()[0]
+            H.nEvents = 0
+            H.dataType = FieldTrip.DATATYPE_FLOAT32
+            # the channel labels will be written to the buffer
+            labels = f.getSignalTextLabels()
+            # read all the data from the file
+            A = np.ndarray(shape=(H.nSamples, H.nChannels), dtype=np.float32)
+            for chanindx in range(H.nChannels):
+                monitor.info('reading channel ' + str(chanindx))
+                A[:, chanindx] = f.readSignal(chanindx)
+            f.close()
+
+        elif fileformat == 'wav':
+            try:
+                physical_min = patch.getfloat('playback', 'physical_min')
+            except:
+                physical_min = -1
+            try:
+                physical_max = patch.getfloat('playback', 'physical_max')
+            except:
+                physical_max = 1
+            f = wave.open(filename, 'r')
+            resolution = f.getsampwidth()  # 1, 2 or 4
+            # 8-bit samples are stored as unsigned bytes, ranging from 0 to 255.
+            # 16-bit samples are stored as signed integers in 2's-complement.
+            H.nChannels = f.getnchannels()
+            H.fSample = f.getframerate()
+            H.nSamples = f.getnframes()
+            H.nEvents = 0
+            H.dataType = FieldTrip.DATATYPE_FLOAT32
+            # there are no channel labels
+            labels = None
+            # read all the data from the file
+            x = f.readframes(f.getnframes() * f.getnchannels())
+            f.close()
+            # convert and calibrate
+            if resolution == 2:
+                x = struct.unpack_from('%dh' % f.getnframes() * f.getnchannels(), x)
+                x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
+                y = x / float(MAXINT16)
+            elif resolution == 4:
+                x = struct.unpack_from('%di' % f.getnframes() * f.getnchannels(), x)
+                x = np.asarray(x).astype(np.float32).reshape(f.getnframes(), f.getnchannels())
+                y = x / float(MAXINT32)
+            else:
+                raise NotImplementedError('unsupported resolution')
+            A = y * ((physical_max - physical_min) / 2)
+
+        else:
+            raise NotImplementedError('unsupported file format')
+
+        monitor.debug('nChannels = ' + str(H.nChannels))
+        monitor.debug('nSamples = ' + str(H.nSamples))
+        monitor.debug('fSample = ' + str(H.fSample))
+        monitor.debug('labels = ' + str(labels))
+
+        ft_output.putHeader(H.nChannels, H.fSample, H.dataType, labels=labels)
+
+        blocksize = int(patch.getfloat('playback', 'blocksize') * H.fSample)
+        stepsize = blocksize / (H.fSample * patch.getfloat('playback', 'speed'))
+        begsample = 0
+        endsample = blocksize - 1
+        block = 0
+
+    if playback:
+        monitor.info('Playing block ' + str(block) + ' from ' + str(begsample) + ' to ' + str(endsample))
+
+        # copy the selected samples from the in-memory data
+        D = A[begsample:endsample + 1, :]
+
+        # write the data to the output buffer
+        ft_output.putData(D)
+
+        begsample += blocksize
+        endsample += blocksize
+        block += 1
 
     # there should not be any local variables in this function, they should all be global
     if len(locals()):
