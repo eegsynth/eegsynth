@@ -248,13 +248,15 @@ def _loop_forever():
 def _stop():
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
-    global monitor, trigger, r
+    global monitor, trigger, s
     monitor.success("Closing threads")
     for thread in trigger:
         thread.stop()
     patch.publish('OUTPUTCVGATE_UNBLOCK', 1)
     for thread in trigger:
             thread.join()
+    monitor.success("Closing serial port")
+    s.close()
 
 
 if __name__ == '__main__':

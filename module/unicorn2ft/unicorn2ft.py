@@ -198,6 +198,7 @@ def _stop():
     global s, stop_acq
     # stop the data stream and close the serial port
     s.write(stop_acq)
+    monitor.success("Closing serial port")
     s.close()
 
 
