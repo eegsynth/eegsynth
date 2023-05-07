@@ -49,6 +49,128 @@ sys.path.insert(0, os.path.join(path, '../../lib'))
 import EEGsynth
 
 
+def _setup():
+    '''Initialize the module
+    This adds a set of global variables
+    '''
+    global patch, name, path, monitor
+
+    # configure and start the patch, this will parse the command-line arguments and the ini file
+    patch = EEGsynth.patch(name=name, path=path)
+
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint(
+        'general', 'debug', default=1), target=patch.get('general', 'logging', default=None))
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _start():
+    '''Start the module
+    This uses the global variables from setup and adds a set of global variables
+    '''
+    global patch, name, path, monitor
+    global serialdevice, s
+
+    # get the specified serial device, or the one that is the closest match
+    serialdevice = patch.getstring('serial', 'device')
+    serialdevice = EEGsynth.trimquotes(serialdevice)
+    serialdevice = process.extractOne(serialdevice, [comport.device for comport in serial.tools.list_ports.comports()])[
+        0]  # select the closest match
+
+    try:
+        s = serial.Serial(serialdevice, patch.getint('serial', 'baudrate'), timeout=35)
+        monitor.success("Connected to serial port")
+    except:
+        raise RuntimeError("cannot connect to serial port")
+
+    # remove junk that might be remaing from a previous attempt
+    resetUSB(s)
+    readRemaining(s)
+
+    # there should not be any local variables in this function, they should all be global
+    if len(locals()):
+        print('LOCALS: ' + ', '.join(locals().keys()))
+
+
+def _loop_once():
+    '''Run the main loop once
+    This uses the global variables from setup and start, and adds a set of global variables
+    '''
+    global patch, name, path, monitor
+    global serialdevice, s
+
+    # we can get the data from the PepiPIAF about every 30 seconds
+    try:
+        monitor.info('requesting data...')
+        buf = getData(s)
+        monitor.info('parsing data')
+        data = parseData(buf)
+    except:
+        monitor.error('failed reading data, will try again')
+        # remove junk that might be remaing from a previous attempt
+        resetUSB(s)
+        readRemaining(s)
+        # continue with an empty dictionary for the data
+        data = {}
+
+    for item in data.keys():
+        if isinstance(data[item], list):
+            key = patch.getstring('output', 'prefix') + '.' + item
+            val = data[item]    # this is a list
+            val = val[-1]       # take the last value from the list
+            patch.setvalue(key, val)
+            monitor.update(key, val)
+        else:
+            key = patch.getstring('output', 'prefix') + '.' + item
+            val = data[item]
+            patch.setvalue(key, val)
+            monitor.update(key, val)
+
+
+def _loop_forever():
+    '''Run the main loop forever
+    '''
+    global monitor, patch
+    while True:
+        monitor.loop()
+        _loop_once()
+        time.sleep(patch.getfloat('general', 'delay'))
+
+
+def _stop():
+    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
+    '''
+    global monitor, s
+    monitor.success("Closing serial port")
+    s.close()
+
+
+##################################################################################################
+# the code above is EEGsynth specific
+# the code below is PepiPIAF specific
+##################################################################################################
+
+# resetUSB(serialport)
+# readRemaining(serialport)
+# snifferOn(serialport)
+# snifferOff(serialport)
+# printBattery(serialport)
+# printCardtype(serialport)
+# printClock(serialport)
+# printReboots(serialport)
+# printMeasures(serialport)
+# printMemory(serialport)
+# setMemory(serialport)
+# clearMemory(serialport)
+# buf = getData(serialport)
+# offset = determineOffset(buf)
+# printFirstLine(buf)
+# printBuffer(buf)
+# data = parseData(buf)
+
 OK = b'OK\r'
 
 command = {}
@@ -109,136 +231,13 @@ measurement_type[17] = 'TEMPERATURE EXTERNE'
 measurement_type[18] = 'WATERMARK'
 
 
-def _setup():
-    '''Initialize the module
-    This adds a set of global variables
-    '''
-    global patch, name, path, monitor
-
-    # configure and start the patch, this will parse the command-line arguments and the ini file
-    patch = EEGsynth.patch(name=name, path=path)
-
-    # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=name, patch=patch, debug=patch.getint(
-        'general', 'debug', default=1), target=patch.get('general', 'logging', default=None))
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
-
-def _start():
-    '''Start the module
-    This uses the global variables from setup and adds a set of global variables
-    '''
-    global patch, name, path, monitor
-    global serialdevice, s
-
-    # get the specified serial device, or the one that is the closest match
-    serialdevice = patch.getstring('serial', 'device')
-    serialdevice = EEGsynth.trimquotes(serialdevice)
-    serialdevice = process.extractOne(serialdevice, [comport.device for comport in serial.tools.list_ports.comports()])[
-        0]  # select the closest match
-
-    try:
-        s = serial.Serial(serialdevice, patch.getint('serial', 'baudrate'), timeout=35)
-        monitor.success("Connected to serial port")
-    except:
-        raise RuntimeError("cannot connect to serial port")
-
-    # remove junk that might be remaing from a previous attempt
-    resetUSB()
-    readRemaining()
-
-    # there should not be any local variables in this function, they should all be global
-    if len(locals()):
-        print('LOCALS: ' + ', '.join(locals().keys()))
-
-
-def _loop_once():
-    '''Run the main loop once
-    This uses the global variables from setup and start, and adds a set of global variables
-    '''
-    global patch, name, path, monitor
-    global serialdevice, s
-
-    # we can get the data from the PepiPIAF about every 30 seconds
-    try:
-        monitor.info('requesting data...')
-        buf = getData()
-        monitor.info('parsing data')
-        data = parseData(buf)
-    except:
-        monitor.error('failed reading data, will try again')
-        # remove junk that might be remaing from a previous attempt
-        resetUSB()
-        readRemaining()
-        # construct an empty dictionary
-        data = {}
-
-    for item in data.keys():
-        if isinstance(data[item], list):
-            key = patch.getstring('output', 'prefix') + '.' + item
-            val = data[item]    # this is a list
-            val = val[-1]       # take the last value from the list
-            patch.setvalue(key, val)
-            monitor.update(key, val)
-        else:
-            key = patch.getstring('output', 'prefix') + '.' + item
-            val = data[item]
-            patch.setvalue(key, val)
-            monitor.update(key, val)
-
-
-def _loop_forever():
-    '''Run the main loop forever
-    '''
-    global monitor, patch
-    while True:
-        monitor.loop()
-        _loop_once()
-        time.sleep(patch.getfloat('general', 'delay'))
-
-
-def _stop():
-    '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
-    '''
-    global monitor, s
-    monitor.success("Closing serial port")
-    s.close()
-
-
-##################################################################################################
-# the code above is EEGsynth specific
-# the code below is PepiPIAF specific
-##################################################################################################
-
-# resetUSB()
-# readRemaining()
-# snifferOn()
-# snifferOff()
-# printBattery()
-# printCardtype()
-# printClock()
-# printReboots()
-# printMeasures()
-# printMemory()
-# setMemory()
-# clearMemory()
-# getData()
-# determineOffset(buf)
-# printFirstLine(buf)
-# printBuffer(buf)
-# parseData(buf)
-
-
-def resetUSB():
+def resetUSB(s):
     s.write(b'+\r')
     buf = s.read(3)  # OK\r
     print(buf)
 
 
-def readRemaining():
+def readRemaining(s):
     n = 0
     while s.in_waiting:
         buf = s.read()
@@ -246,15 +245,15 @@ def readRemaining():
     print('read %d bytes' % (n))
 
 
-def snifferOn():
+def snifferOn(s):
     s.write(b'Z1\r')
 
 
-def snifferOff():
+def snifferOff(s):
     s.write(b'Z0\r')
 
 
-def printBattery():
+def printBattery(s):
     # get the battery status
     s.flush()
     s.write(b'P2\r')
@@ -266,7 +265,7 @@ def printBattery():
     print('battery = %f V' % (battery))
 
 
-def printCardtype():
+def printCardtype(s):
     # get the type of card
     s.flush()
     s.write(b'D2\r')
@@ -278,7 +277,7 @@ def printCardtype():
     print('type = %d, version = %d' % (type, version))
 
 
-def printClock():
+def printClock(s):
     s.flush()
     # get the clock
     s.flush()
@@ -295,7 +294,7 @@ def printClock():
     print('clock = %04d-%02d-%02d %02d:%02d:%02d' % (year, month, day, hour, minute, second))
 
 
-def printReboots():
+def printReboots(s):
     s.flush()
     # get the number of reboots
     s.flush()
@@ -307,7 +306,7 @@ def printReboots():
     print('reboots = %d' % (reboots))
 
 
-def printMeasures():
+def printMeasures(s):
     s.flush()
     # get the selected measures and rate
     s.flush()
@@ -318,7 +317,7 @@ def printMeasures():
     print(buf)
 
 
-def printMemory():
+def printMemory(s):
     # get the amount of memory and rate
     s.flush()
     s.write(b'G2\r')
@@ -332,7 +331,7 @@ def printMemory():
     # memory 0=2160, 1=4320, etc
 
 
-def setMemory():
+def setMemory(s):
     # set the rate and memory
     s.flush()
     s.write(b'S2\r')
@@ -347,7 +346,7 @@ def setMemory():
     print(buf)
 
 
-def clearMemory():
+def clearMemory(s):
     # clear the memory
     s.flush()
     s.write(b'C2\r')
@@ -360,7 +359,7 @@ def clearMemory():
     print(buf)
 
 
-def getData():
+def getData(s):
     # transfer all data
     s.flush()
     n = s.write(b'H2\r')
@@ -437,6 +436,7 @@ def parseData(buf):
         byte2 = line[-1]
         # the first four bits of the first byte code the type of measurement
         measure = (byte1 & 0xF0) >> 4
+
         if measure == 0x0:
             # Les mesures de luminosité, PAR 80 ou LICOR
             for i in range(int(length / 2) - 1):
@@ -575,6 +575,7 @@ def parseData(buf):
             pass
         offset += length
 
+    # only store the data that was actually received
     data = {}
     if len(luminosity):
         data['luminosity'] = luminosity
@@ -635,8 +636,10 @@ def parseData(buf):
 
     return data
 
-##################################################################################################
 
+##################################################################################################
+# the following is again EEGsynth specific
+##################################################################################################
 
 if __name__ == '__main__':
     _setup()
