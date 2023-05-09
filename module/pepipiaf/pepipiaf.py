@@ -137,7 +137,7 @@ def _loop_once():
         if len(ext) == 0:
             ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
-        monitor.info('writing to %s' % (fname))
+        monitor.info("Writing to " + fname)
 
         # convert dictionaries-of-lists into list-of-dictionaries
         # see https://stackoverflow.com/questions/5558418/list-of-dicts-to-from-dict-of-lists#comment6342421_5558418
