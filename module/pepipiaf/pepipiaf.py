@@ -23,6 +23,8 @@ import os
 import sys
 import threading
 import time
+import datetime
+import csv
 import serial
 import serial.tools.list_ports
 from fuzzywuzzy import process
@@ -72,7 +74,12 @@ def _start():
     This uses the global variables from setup and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global serialdevice, s
+    global serialdevice, s, address, filename, fileformat
+
+    # get the options from the configuration file
+    address = patch.getint('pepipiaf', 'number')   # number between 1 and 65535
+    filename = patch.getstring('pepipiaf', 'file')
+    fileformat = patch.getstring('pepipiaf', 'format')
 
     # get the specified serial device, or the one that is the closest match
     serialdevice = patch.getstring('serial', 'device')
@@ -86,7 +93,12 @@ def _start():
     except:
         raise RuntimeError("cannot connect to serial port")
 
-    # remove junk that might be remaing from a previous attempt
+    if fileformat is None:
+        # determine the file format from the file name
+        name, ext = os.path.splitext(filename)
+        fileformat = ext[1:]
+
+    # reset and remove junk that might be remaing from a previous attempt
     resetUSB(s)
     readRemaining(s)
 
@@ -100,22 +112,65 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global serialdevice, s
+    global serialdevice, s, address, filename, fileformat
 
     # we can get the data from the PepiPIAF about every 30 seconds
     try:
         monitor.info('requesting data...')
-        buf = getData(s)
+        buf = getData(s, address)
         monitor.info('parsing data')
-        data = parseData(buf)
-    except:
+        data, current_battery, current_clock = parseData(buf)
+    except Exception as e:
+        print(e)
         monitor.error('failed reading data, will try again')
-        # remove junk that might be remaing from a previous attempt
+        # reset and remove junk that might be remaing from a previous attempt
         resetUSB(s)
         readRemaining(s)
-        # continue with an empty dictionary for the data
+        # continue with empty values
         data = {}
+        current_battery = 0
+        current_clock = 'unknown'
 
+    # open a new file and write all measurements to disk
+    if len(data.keys()) and filename!=None and fileformat!=None:
+        name, ext = os.path.splitext(filename)
+        if len(ext) == 0:
+            ext = '.' + fileformat
+        fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
+        monitor.info('writing to %s' % (fname))
+
+        # convert dictionaries-of-lists into list-of-dictionaries
+        # see https://stackoverflow.com/questions/5558418/list-of-dicts-to-from-dict-of-lists#comment6342421_5558418
+        DL = data
+        LD = [dict(zip(DL,t)) for t in zip(*DL.values())]
+
+        preferred = ['month', 'day', 'hour', 'minutes15', 'minutes', 'temperature05', 'temperature01', 'lvdt', 'watermark1', 'watermark2']
+        actual = []
+        # insert the preferred keys first
+        for k in preferred:
+            if k in data:
+                actual.append(k)
+        # append all other keys that are present in the  data
+        for k in data.keys():
+            if not k in actual:
+                actual.append(k)
+
+        if fileformat == 'csv':
+            with open(fname, 'w') as f:
+                f.write('# current date and time = %s\n' % (current_clock))
+                f.write('# current battery = %f\n' % (current_battery))
+                writer = csv.DictWriter(f, fieldnames=actual, delimiter=',')
+                writer.writeheader()
+                writer.writerows(LD)
+        elif fileformat == 'tsv':
+            with open(fname, 'w') as f:
+                f.write('# current date and time = %s\n' % (current_clock))
+                f.write('# current battery = %f\n' % (current_battery))
+                writer = csv.DictWriter(f, fieldnames=actual, delimiter='\t')
+                writer.writeheader()
+                writer.writerows(LD)
+
+    # only transmit the last (i.e., most recent) measurement to Redis
     for item in data.keys():
         if isinstance(data[item], list):
             key = patch.getstring('output', 'prefix') + '.' + item
@@ -253,10 +308,10 @@ def snifferOff(s):
     s.write(b'Z0\r')
 
 
-def printBattery(s):
+def printBattery(s, address):
     # get the battery status
     s.flush()
-    s.write(b'P2\r')
+    s.write(bytearray('P%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(5)  # O<pp>;\r
@@ -265,23 +320,23 @@ def printBattery(s):
     print('battery = %f V' % (battery))
 
 
-def printCardtype(s):
+def printCardtype(s, address):
     # get the type of card
     s.flush()
-    s.write(b'D2\r')
+    s.write(bytearray('D%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(2)
     type = int.from_bytes(buf[0:1], 'big')
     version = int.from_bytes(buf[1:2], 'big')
-    print('type = %d, version = %d' % (type, version))
+    print('type = %d, version = %d\r' % (type, version))
 
 
-def printClock(s):
+def printClock(s, address):
     s.flush()
     # get the clock
     s.flush()
-    s.write(b'T2\r')
+    s.write(bytearray('T%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(19)
@@ -294,33 +349,33 @@ def printClock(s):
     print('clock = %04d-%02d-%02d %02d:%02d:%02d' % (year, month, day, hour, minute, second))
 
 
-def printReboots(s):
+def printReboots(s, address):
     s.flush()
     # get the number of reboots
     s.flush()
-    s.write(b'B2\r')
+    s.write(bytearray('B%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(6)
     reboots = int(buf[0:-2], 32)  # ???
-    print('reboots = %d' % (reboots))
+    print('reboots = %d\r' % (reboots))
 
 
-def printMeasures(s):
+def printMeasures(s, address):
     s.flush()
     # get the selected measures and rate
     s.flush()
-    s.write(b'F2\r')
+    s.write(bytearray('F%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(4)
     print(buf)
 
 
-def printMemory(s):
+def printMemory(s, address):
     # get the amount of memory and rate
     s.flush()
-    s.write(b'G2\r')
+    s.write(bytearray('G%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(2)
@@ -331,10 +386,10 @@ def printMemory(s):
     # memory 0=2160, 1=4320, etc
 
 
-def setMemory(s):
+def setMemory(s, address):
     # set the rate and memory
     s.flush()
-    s.write(b'S2\r')
+    s.write(bytearray('S%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(2)  # OD
@@ -346,10 +401,10 @@ def setMemory(s):
     print(buf)
 
 
-def clearMemory(s):
+def clearMemory(s, address):
     # clear the memory
     s.flush()
-    s.write(b'C2\r')
+    s.write(bytearray('C%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(2)  # OD
@@ -359,10 +414,10 @@ def clearMemory(s):
     print(buf)
 
 
-def getData(s):
+def getData(s, address):
     # transfer all data
     s.flush()
-    n = s.write(b'H2\r')
+    n = s.write(bytearray('H%d\r' % address, 'utf-8'))
     buf = s.read(3)  # OK\r
     print(buf)
     buf = s.read(1)  # O
@@ -429,6 +484,25 @@ def parseData(buf):
     watermark2 = []
     battery = []
 
+    # keep the last value of each measurements
+    last_luminosity = 0
+    last_temperature05 = 0
+    last_minutes = 0
+    last_minutes15 = 0
+    last_hour = 0
+    last_day = 0
+    last_month = 0
+    last_hygro = 0
+    last_temperatureExt = 0
+    last_temperature01 = 0
+    last_temperatureRad = 0
+    last_wind1min = 0
+    last_windAvg = 0
+    last_lvdt = 0
+    last_watermark1 = 0
+    last_watermark2 = 0
+    last_battery = 0
+
     while offset + length < len(buf):
         line = buf[offset:(offset + length)]
         # each line ends with 2 bytes
@@ -445,8 +519,11 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                luminosity.append((byte1 << 8) + byte2)  # uint16
+                    pass # reuse the last value
+                else:
+                    last_luminosity = (byte1 << 8) + byte2  # uint16
+                luminosity.append(last_luminosity)
+
         elif measure == 0x1:
             # Température interne, concaténée avec l’information des minutes
             for i in range(int(length / 2) - 1):
@@ -455,10 +532,14 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                minutes.append((byte1 & 0xFE) >> 1)
-                sign = 1 - 2 * (byte1 & 0x01)
-                temperature05.append(0.5 * sign * byte2)
+                    pass # reuse the last value
+                else:
+                    last_minutes = (byte1 & 0xFE) >> 1
+                    sign = 1 - 2 * (byte1 & 0x01)
+                    last_temperature05 = 0.5 * sign * byte2
+                minutes.append(last_minutes)
+                temperature05.append(last_temperature05)
+
         elif measure == 0x2:
             # La date
             for i in range(int(length / 2) - 1):
@@ -467,11 +548,17 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                minutes15.append((byte2 & 0x03) * 15)  # this seems not to work
-                hour.append((byte2 & 0x7C) >> 2)
-                day.append(((byte1 & 0x0F) << 1) + ((byte2 & 0x80) >> 7))
-                month.append((byte1 & 0xF0) >> 4)
+                    pass # reuse the last value
+                else:
+                    last_minutes15 = (byte2 & 0x03) * 15  # this seems not to work
+                    last_hour = (byte2 & 0x7C) >> 2
+                    last_day = ((byte1 & 0x0F) << 1) + ((byte2 & 0x80) >> 7)
+                    last_month = (byte1 & 0xF0) >> 4
+                minutes15.append(last_minutes15)
+                hour.append(last_hour)
+                day.append(last_day)
+                month.append(last_month)
+
         elif measure == 0x3:
             # L’hygrométrie
             for i in range(int(length / 2) - 1):
@@ -480,8 +567,11 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                hygro.append(0.5 * byte2)
+                    pass # reuse the last value
+                else:
+                    last_hygro = 0.5 * byte2
+                hygro.append(last_hygro)
+
         elif measure == 0x4:
             # La température externe avec une résolution de 0.1°
             for i in range(int(length / 2) - 1):
@@ -490,9 +580,12 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                sign = 1 - 2 * ((byte1 & 0x80) >> 7)
-                temperatureExt.append(0.1 * (sign * (((byte1 & 0x7f) << 8) + byte2)))
+                    pass # reuse the last value
+                else:
+                    sign = 1 - 2 * ((byte1 & 0x80) >> 7)
+                    last_temperatureExt = 0.1 * (sign * (((byte1 & 0x7f) << 8) + byte2))
+                temperatureExt.append(last_temperatureExt)
+
         elif measure == 0x5:
             # La température interne avec une résolution de 0.1°
             for i in range(int(length / 2) - 1):
@@ -501,9 +594,12 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                sign = 1 - 2 * ((byte1 & 0x80) >> 7)
-                temperature01.append(0.1 * (sign * (((byte1 & 0x7f) << 8) + byte2)))
+                    pass # reuse the last value
+                else:
+                    sign = 1 - 2 * ((byte1 & 0x80) >> 7)
+                    last_temperature01 = 0.1 * (sign * (((byte1 & 0x7f) << 8) + byte2))
+                temperature01.append(last_temperature01)
+
         elif measure == 0x6:
             # La température Radiante
             for i in range(int(length / 2) - 1):
@@ -512,9 +608,12 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                sign = 1 - 2 * ((byte1 & 0x80) >> 7)
-                temperatureRad.append(0.1 * (sign * (((byte1 & 0x7f) << 8) + byte2)))
+                    pass # reuse the last value
+                else:
+                    sign = 1 - 2 * ((byte1 & 0x80) >> 7)
+                    last_temperatureRad = 0.1 * (sign * (((byte1 & 0x7f) << 8) + byte2))
+                temperatureRad.append(last_temperatureRad)
+
         elif measure == 0x7:
             # Anémomètre
             for i in range(int(length / 2) - 1):
@@ -523,9 +622,13 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                wind1min.append(byte1)
-                windAvg.append(byte2)
+                    pass # reuse the last value
+                else:
+                    last_wind1min = byte1
+                    last_windAvg = byte2
+                wind1min.append(last_wind1min)
+                windAvg.append(last_windAvg)
+
         elif measure == 0x8:
             # Le LVDT
             for i in range(int(length / 2) - 1):
@@ -534,13 +637,17 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                sign = 1 - 2 * ((byte1 & 0x80) >> 7)
-                value = ((byte1 & 0x7f) << 8) + byte2
-                lvdt.append(0.0005 * sign * value)  # in mm
+                    pass # reuse the last value
+                else:
+                    sign = 1 - 2 * ((byte1 & 0x80) >> 7)
+                    value = ((byte1 & 0x7f) << 8) + byte2
+                    last_lvdt = 0.0005 * sign * value  # in mm
+                lvdt.append(last_lvdt)
+
         elif measure == 0x9:
             # unknown
             pass
+
         elif measure == 0xA:
             # Tensiomètre WATERMARK 1
             for i in range(int(length / 2) - 1):
@@ -549,8 +656,11 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                watermark1.append(10.0 * ((byte1 << 8) + byte2))  # uint16, in Ohm
+                    pass # reuse the last value
+                else:
+                    last_watermark1 = 10.0 * ((byte1 << 8) + byte2)  # uint16, in Ohm
+                watermark1.append(last_watermark1)
+
         elif measure == 0xB:
             # Tensiomètre WATERMARK 2
             for i in range(int(length / 2) - 1):
@@ -559,20 +669,28 @@ def parseData(buf):
                 if (byte1 == 0xFF) and (byte2 == 0xFF):
                     continue
                 elif (byte1 == 0x00) and (byte2 == 0x00):
-                    continue
-                watermark2.append(10.0 * ((byte1 << 8) + byte2))  # uint16, in Ohm
+                    pass # reuse the last value
+                else:
+                    last_watermark2 = 10.0 * ((byte1 << 8) + byte2)  # uint16, in Ohm
+                watermark2.append(last_watermark2)
+
         elif measure == 0xC:
             # unknown
             pass
+
         elif measure == 0xD:
             # unknown
             pass
+
         elif measure == 0xE:
             # unknown
             pass
+
         elif measure == 0xF:
             # unknown
             pass
+
+        # completed the current line, move on to the next line
         offset += length
 
     # only store the data that was actually received
@@ -613,28 +731,28 @@ def parseData(buf):
     # for k in data.keys():
     #    print('data includes', k)
 
+    firstkey = [k for k in data.keys()][0]
+    n = len(data[firstkey])
+    for k in data.keys():
+        m = len(data[k])
+        print("%s has %d measurements" % (k, m))
+        if m != n:
+            raise RuntimeError("invalid number of measurements ")
+
     # the last 8 bytes of the buffer code the battery voltage and current clock
     current_battery = (3.0 / 255) * buf[-8]
     print('current battery = %f V' % (current_battery))
-    current_year = buf[-7] + 2000
-    current_month = buf[-6]
-    current_day = buf[-5]
-    current_hour = buf[-4]
+
+    current_year   = buf[-7] + 2000
+    current_month  = buf[-6]
+    current_day    = buf[-5]
+    current_hour   = buf[-4]
     current_minute = buf[-3]
     current_second = buf[-2]
-    print('current clock = %04d-%02d-%02d %02d:%02d:%02d' %
-          (current_year, current_month, current_day, current_hour, current_minute, current_second))
+    current_clock  = '%04d-%02d-%02d %02d:%02d:%02d' % (current_year, current_month, current_day, current_hour, current_minute, current_second)
+    print('current date and time = %s' % (current_clock))
 
-    data['battery'] = current_battery
-    # the current date and time are confusing, given that the date and time of the measurement are also specified
-    # data['current_year'] = current_year
-    # data['current_month'] = current_month
-    # data['current_day'] = current_day
-    # data['current_hour'] = current_hour
-    # data['current_minute'] = current_minute
-    # data['current_second'] = current_second
-
-    return data
+    return data, current_battery, current_clock
 
 
 ##################################################################################################
