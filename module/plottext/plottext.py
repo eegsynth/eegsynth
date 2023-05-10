@@ -4,7 +4,7 @@
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
-# Copyright (C) 2022 EEGsynth project
+# Copyright (C) 2023 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,53 +55,93 @@ class Window(QWidget):
         self.setGeometry(winx, winy, winwidth, winheight)
         self.setStyleSheet('background-color:black;');
         self.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plottext'))
-        self.layout = QtWidgets.QVBoxLayout()
-        self.setLayout(self.layout)
+        self.drawmain()
 
-        self.label = []
-        for name,key in zip(input_name, input_variable):
-            l = QtWidgets.QLabel("<unknown>")
-            l.setStyleSheet('color: rgb(200,200,200);')
-            l.setAlignment(QtCore.Qt.AlignCenter)
-            self.layout.addWidget(l)
-            self.label.append(l)
+    def drawmain(self):
+        # the left side contains the rows, the right side the columns
+        leftlayout = QtWidgets.QVBoxLayout()
+        rightlayout = QtWidgets.QHBoxLayout()
+        mainlayout = QtWidgets.QHBoxLayout()
+        mainlayout.addLayout(leftlayout)
+        mainlayout.addLayout(rightlayout)
+        self.setLayout(mainlayout)
+        # the list of items correspond to the text elements
+        self.items = []
 
+        for row in range(0, 16):
+            section = 'row%d' % (row + 1)
+            if patch.config.has_section(section):
+                monitor.debug('adding ' + section)
+                sectionlayout = QtWidgets.QHBoxLayout()
+                self.drawpanel(sectionlayout, patch.config.items(section))
+                leftlayout.addLayout(sectionlayout)
 
-    def paintEvent(self, e):
-        for name,key,index in zip(input_name, input_variable, range(len(input_name))):
-            # hide the label while its content and fontsize are being updated
-            self.label[index].setVisible(False)
+        for column in range(0, 16):
+            section = 'column%d' % (column + 1)
+            if patch.config.has_section(section):
+                monitor.debug('adding ' + section)
+                sectionlayout = QtWidgets.QVBoxLayout()
+                self.drawpanel(sectionlayout, patch.config.items(section))
+                rightlayout.addLayout(sectionlayout)
+                
+    def drawpanel(self, panel, list):
+        for item in list:
+            # item[0] is the label, item[1] the redis channel
+            label = item[0]
+            channel = item[1]
+            widget = QtWidgets.QLabel()
+            widget.setStyleSheet('color: rgb(200,200,200);')
+            widget.setAlignment(QtCore.Qt.AlignCenter)
+            panel.addWidget(widget)
+            if len(channel)==0:
+                # this is just an empty placeholder
+                pass
+            else:
+                widget.setText("<unknown>")
+                # remember this as a tuple
+                self.items.append((label, channel, widget))
+
+    def update(self):
+        for item in self.items:
+            label   = item[0]
+            channel = item[1]
+            widget  = item[2]
 
             # the value can either be a number or a string
-            val = patch.redis.get(key)
+            val = patch.redis.get(channel)
             try:
                 val = float(val)
             except:
                 # keep the string as it is
                 pass
 
-            if isinstance(val, str):
+            if val==None:
+                # the requested Redis channel seems not to be present
+                continue
+            elif isinstance(val, str):
                 val = val
             else:
+                # apply the scaling and offset before converting to a string
                 scale = patch.getfloat('scale', name, default=1)
                 offset = patch.getfloat('offset', name, default=0)
                 val = EEGsynth.rescale(val, slope=scale, offset=offset)
                 val = "%g" % (val)
 
-            monitor.update(name, val)
+            monitor.update(label, val)
 
             if patch.getint('display', 'showlabel', default=1):
                 # show the name as specified in the ini file
-                val = name + ' = ' + val
+                val = label + ' = ' + val
 
-            self.label[index].setText(val)
-
+            # hide the widget while its content and fontsize are being updated
+            widget.setVisible(False)
+            widget.setText(val)
+            # update the font size to fill the available space
             font = QtGui.QFont()
-            font.setPixelSize(0.8*self.label[index].geometry().height())
-            self.label[index].setFont(font)
-            self.label[index].setVisible(True)
-
-        self.show()
+            font.setPixelSize(int(0.8 * widget.geometry().height()))
+            widget.setFont(font)
+            # show the updated widget
+            widget.setVisible(True)
 
 
 def _setup():
@@ -134,12 +174,6 @@ def _start():
     winy            = patch.getint('display', 'ypos')
     winwidth        = patch.getint('display', 'width')
     winheight       = patch.getint('display', 'height')
-
-    # get the input options
-    input_name, input_variable = list(zip(*patch.config.items('input')))
-
-    for name,variable in zip(input_name, input_variable):
-        monitor.info("%s = %s" % (name, variable))
 
     # start the graphical user interface
     app = QApplication(sys.argv)
