@@ -132,7 +132,7 @@ def _loop_once():
         current_clock = 'unknown'
 
     # open a new file and write all measurements to disk
-    if len(data.keys()) and filename!=None and fileformat!=None:
+    if len(data.keys()) and len(filename) and len(fileformat):
         name, ext = os.path.splitext(filename)
         if len(ext) == 0:
             ext = '.' + fileformat
