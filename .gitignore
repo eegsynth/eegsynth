@@ -11,6 +11,7 @@ interface/node_modules
 *.pyc
 *.edf
 *.wav
+*.csv
 *.tsv
 *.spec
 .DS_Store
