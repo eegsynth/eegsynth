@@ -189,7 +189,7 @@ class MainWindow(QWidget):
                 module_to_start = audio2ft
             elif name=='audiomixer':
                 module_to_start = audiomixer
-# This does not have an __init__.py
+# This does not have an __init__
 #            elif name=='biochill':
 #                module_to_start = biochill
             elif name=='bitalino2ft':
@@ -298,7 +298,7 @@ class MainWindow(QWidget):
                 module_to_start = plottopo
             elif name=='plottrigger':
                 module_to_start = plottrigger
-# This does not have an __init__.py
+# This does not have an __init__
 #            elif name=='polarbelt':
 #                module_to_start = polarbelt
             elif name=='postprocessing':
@@ -369,10 +369,7 @@ class MainWindow(QWidget):
             processes.append(process)
 
 
-if __name__ == '__main__':
-    multiprocessing.freeze_support()
-    multiprocessing.set_start_method('spawn')
-
+def _main():
     _setup()
 
     try:
@@ -398,3 +395,8 @@ if __name__ == '__main__':
         sys.exit(app.exec_())
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
+    _main()

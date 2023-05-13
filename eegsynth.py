@@ -323,10 +323,7 @@ def _stop(*args):
     processes = []
 
 
-if __name__ == '__main__':
-    multiprocessing.freeze_support()
-    multiprocessing.set_start_method('spawn')
-
+def _main():
     # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
     EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
 
@@ -337,3 +334,9 @@ if __name__ == '__main__':
         _start()
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+
+
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
+    _main()
