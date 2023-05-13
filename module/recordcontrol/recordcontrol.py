@@ -81,8 +81,8 @@ def _start():
 
     # get the options from the configuration file
     delay = patch.getfloat('general', 'delay')
-    filename = patch.get('recording', 'file')           # do not try to get this from Redis
-    fileformat = patch.get('recording', 'format')       # do not try to get this from Redis
+    filename = patch.getstring('recording', 'file')
+    fileformat = patch.getstring('recording', 'format')
 
     if fileformat is None:
         # determine the file format from the file name

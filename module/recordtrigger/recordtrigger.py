@@ -59,6 +59,7 @@ class TriggerThread(threading.Thread):
 
     def run(self):
         global r, monitor, lock
+        global f, csvwriter
         pubsub = patch.pubsub()
         pubsub.subscribe('RECORDTRIGGER_UNBLOCK')  # this message unblocks the Redis listen command
         pubsub.subscribe(self.redischannel)        # this message triggers the event
@@ -81,7 +82,7 @@ class TriggerThread(threading.Thread):
                     if f and not f.closed:
                         # write the value, it can be either a number or a string
                         with lock:
-                            f.write("%s\t%s\t%s\n" % (self.redischannel, val, timestamp))
+                            csvwriter.writerow([self.redischannel, val, timestamp])
                         monitor.info(("%s\t%s\t%s" % (self.redischannel, val, timestamp)))
 
 
@@ -113,8 +114,13 @@ def _start():
     delay = patch.getfloat('general', 'delay')
     input_scale = patch.getfloat('input', 'scale', default=None)
     input_offset = patch.getfloat('input', 'offset', default=None)
-    filename = patch.get('recording', 'file')           # do not try to get this from Redis
-    fileformat = 'tsv'
+    filename = patch.getstring('recording', 'file')
+    fileformat = patch.getstring('recording', 'format')
+
+    if fileformat is None:
+        # determine the file format from the file name
+        name, ext = os.path.splitext(filename)
+        fileformat = ext[1:]
 
     # start with a temporary file which is immediately closed
     f = tempfile.TemporaryFile().close()
@@ -145,8 +151,8 @@ def _loop_once():
     This uses the global variables from setup and start, and adds a set of global variables
     '''
     global patch, name, path, monitor
-    global delay, input_scale, input_offset, filename, fileformat, f, recording, filenumber, lock, trigger, item, thread
-    global fname, ext
+    global delay, input_scale, input_offset, filename, fileformat, recording, filenumber, lock, trigger, item, thread
+    global fname, ext, f, csvwriter
 
     if recording and not patch.getint('recording', 'record'):
         monitor.info("Recording disabled - closing " + fname)
@@ -166,8 +172,13 @@ def _loop_once():
             ext = '.' + fileformat
         fname = name + '_' + datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S") + ext
         monitor.info("Recording enabled - opening " + fname)
+        
         f = open(fname, 'w')
-        f.write("event\tvalue\ttimestamp\n")
+        if fileformat == 'csv':
+            csvwriter = csv.writer(f, delimiter=',')
+        elif fileformat == 'tsv':
+            csvwriter = csv.writer(f, delimiter='\t')
+        csvwriter.writeheader(["event", "value", "timestamp"])
         f.flush()
 
     # there should not be any local variables in this function, they should all be global
