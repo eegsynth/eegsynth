@@ -79,9 +79,11 @@ setuptools.setup(
         "numpy",
         "opencv-python",
         "paho-mqtt",
+        "pandas",
         "pyaudio",
         "pylsl",
-        "pyqtgraph==0.11",
+        "PyQt5",
+        "pyqtgraph==0.12",
         "pyserial",
         "pyzmq",
         "redis",
@@ -98,7 +100,7 @@ setuptools.setup(
     },
     entry_points={
         'console_scripts': [
-            'eegsynth = eegsynth:_main'
+            'eegsynth = eegsynth.bin.eegsynth:_main'
         ],
     },
 )
