@@ -39,12 +39,13 @@ file = os.path.split(__file__)[-1]
 name = os.path.splitext(file)[0]
 
 # eegsynth contains the version
-sys.path.insert(0, os.path.join(path))
+sys.path.insert(0, os.path.join(path, '..'))
+from version import __version__
+
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path, 'lib'))
+sys.path.insert(0, os.path.join(path, '../lib'))
 import EEGsynth
 import FieldTrip
-from version import __version__
 
 from module import accelerometer, audio2ft, audiomixer, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, logging, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, pepipiaf, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottext, plottopo, plottrigger, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
 
@@ -68,9 +69,6 @@ def _setup():
     parser.add_argument("inifile", nargs='+', help="configuration file for a patch")
     args = parser.parse_args()
 
-    # this shows the splash screen and can be used to track parameters that have changed
-    monitor = EEGsynth.monitor(name=None, debug=1)
-
     # the first results in a list of lists, the second flattens it
     args.inifile = [glob(x) for x in args.inifile]
     args.inifile = [item for sublist in args.inifile for item in sublist]
@@ -78,23 +76,22 @@ def _setup():
     if len(args.inifile) == 0:
         raise RuntimeError('You must specify one or multiple ini files.')
 
-    # start with an empty list of files
-    inifiles = []
+    # this shows the splash screen and can be used to track parameters that have changed
+    monitor = EEGsynth.monitor(name=None, debug=1)
 
-    for file_or_dir in args.inifile:
-        if os.path.isfile(file_or_dir):
-            if not file_or_dir.endswith('.ini'):
+    for inifile in args.inifile:
+        if os.path.isfile(inifile):
+            if not inifile.endswith('.ini'):
                 raise RuntimeError('The ini file extension must be .ini')
-            inifiles += [file_or_dir]
         else:
-            raise RuntimeError('Incorrect command line argument ' + file_or_dir)
+            raise RuntimeError('Incorrect command line argument ' + inifile)
 
-    # convert the command-line arguments in a dict
+    # convert the command-line argument namespace into a dict
     args = vars(args)
     # remove empty items
     args = {k: v for k, v in args.items() if v}
 
-    for inifile in inifiles:
+    for inifile in args['inifile']:
         if os.path.splitext(inifile)[1]!='.ini':
             monitor.error('incorrect file', inifile)
             continue
@@ -283,15 +280,15 @@ def _setup():
         args['inifile'] = inifile
 
         # pass all other arguments
-        args_to_pass = []
+        args_list = []
         for k, v in args.items():
             # reformat them back into command-line arguments
-            args_to_pass += ['--' + k.replace('_', '-'), v]
+            args_list += ['--' + k.replace('_', '-'), v]
 
         # give some feedback
-        monitor.success(name + ' ' + ' '.join(args_to_pass))
+        monitor.success(name + ' ' + ' '.join(args_list))
 
-        process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_to_pass))
+        process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_list))
 
         # keep track of all modules and processes
         modules.append(fullname)

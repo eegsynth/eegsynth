@@ -36,12 +36,13 @@ file = os.path.split(__file__)[-1]
 name = os.path.splitext(file)[0]
 
 # eegsynth contains the version
-sys.path.insert(0, os.path.join(path))
+sys.path.insert(0, os.path.join(path, '..'))
+from version import __version__
+
 # eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path, 'lib'))
+sys.path.insert(0, os.path.join(path, '../lib'))
 import EEGsynth
 import FieldTrip
-from version import __version__
 
 from module import accelerometer, audio2ft, audiomixer, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, logging, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, pepipiaf, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottext, plottopo, plottrigger, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
 
@@ -79,6 +80,7 @@ def _start_module(module, args=None):
     # the module starts as soon as it is instantiated
     # optional command-line arguments can be passed to specify the ini file
     module(args)
+
 
 def _loop_once():
     '''Run the main loop once
@@ -353,15 +355,15 @@ class MainWindow(QWidget):
             args['inifile'] = inifile
 
             # pass all other arguments
-            args_to_pass = []
+            args_list = []
             for k, v in args.items():
                 # reformat them back into command-line arguments
-                args_to_pass += ['--' + k.replace('_', '-'), v]
+                args_list += ['--' + k.replace('_', '-'), v]
 
             # give some feedback
-            monitor.success(name + ' ' + ' '.join(args_to_pass))
+            monitor.success(name + ' ' + ' '.join(args_list))
 
-            process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_to_pass))
+            process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_list))
             process.start()
 
             # keep track of all modules and processes
@@ -371,7 +373,6 @@ class MainWindow(QWidget):
 
 def _main():
     _setup()
-
     try:
         # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
         EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
@@ -393,8 +394,10 @@ def _main():
         timer.timeout.connect(window.updateLabel)
 
         sys.exit(app.exec_())
+
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
