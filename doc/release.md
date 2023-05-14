@@ -46,19 +46,19 @@ pip install -e .
 
 ## Creating compiled binaries
 
-Building a stand-alone executable with [pyinstaller](https://pyinstaller.org/) fails with the default environment, but works when `pip nomkl` is used prior to installing all other conda and pip packages.
+Building a stand-alone executable with [pyinstaller](https://pyinstaller.org/) fails with the default environment, but works when `conda install nomkl` is used prior to installing all other conda and pip packages.
 
 Building is done on macOS with
 
-    pyinstaller --noconfirm --onefile --console --icon "/Users/roboos/eegsynth/doc/figures/logo-128.ico" --paths "/Users/roboos/eegsynth/lib" --additional-hooks-dir . "/Users/roboos/eegsynth/eegsynth.py"
+    pyinstaller --noconfirm --onefile --console --icon "/Users/roboos/eegsynth/doc/figures/logo-128.ico" --paths "/Users/roboos/eegsynth" --paths "/Users/roboos/eegsynth/lib" "/Users/roboos/eegsynth/bin/eegsynth.py"
 
-     pyinstaller --noconfirm --windowed --icon "/Users/roboos/eegsynth/doc/figures/logo-128.ico" --paths "/Users/roboos/eegsynth/lib" --additional-hooks-dir . "/Users/roboos/eegsynth/eegsynth-gui.py"
+     pyinstaller --noconfirm --windowed --icon "/Users/roboos/eegsynth/doc/figures/logo-128.ico" --paths "/Users/roboos/eegsynth" --paths "/Users/roboos/eegsynth/lib" "/Users/roboos/eegsynth/bin/eegsynth-gui.py"
 
 or on Windows with
 
-    pyinstaller --noconfirm --onefile --console --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" --additional-hooks-dir . "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth.py"
+    pyinstaller --noconfirm --onefile --console --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth.py"
 
-    pyinstaller --noconfirm --onefile --windowed --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" --additional-hooks-dir . "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth-gui.py"
+    pyinstaller --noconfirm --onefile --windowed --icon "C:\Users\robert\Documents\GitHub\eegsynth\doc\figures\logo-128.ico" --paths "C:\Users\robert\Documents\GitHub\eegsynth" --paths "C:\Users\robert\Documents\GitHub\eegsynth\lib" "C:\Users\robert\Documents\GitHub\eegsynth\eegsynth-gui.py"
 
 ## Version numbering
 
