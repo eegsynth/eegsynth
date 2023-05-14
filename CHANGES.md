@@ -1,5 +1,19 @@
 # Changes
 
+## May 14, 2023
+- released 0.7.5 with working eegsynth and eegsynth-gui command-line executables
+
+## May 13, 2023
+- released 0.7.0 up to 0.7.4 including eegsynth-gui and pepipiaf, logging and plottext modules
+- the packaged versions 0.7.0 to 0.7.4 all had some problems with the command-line executables and/or dependencies
+
+## May 10, 2023
+- implemented plottext module to track slowly changing control values
+- improvements to pepipiaf module
+
+## May 7, 2023
+- implemented pepipiaf module
+
 ## Apr 30, 2023
 
 - add support for remote logging over Redis/ZeroMQ, used by the logging module
