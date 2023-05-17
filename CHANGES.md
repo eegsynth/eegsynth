@@ -1,5 +1,9 @@
 # Changes
 
+## May 17, 2023
+- moved the hardware documentation to its own repository
+- removed the non-Python binaries and scripts
+
 ## May 14, 2023
 - released 0.7.5 with working eegsynth and eegsynth-gui command-line executables
 
