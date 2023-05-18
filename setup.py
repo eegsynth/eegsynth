@@ -88,7 +88,7 @@ setuptools.setup(
         "pyzmq",
         "redis",
         "scipy",
-        "sklearn",
+        "scikit-learn",
         "termcolor",
         "wiringpi; platform_machine == 'armv7l'"
     ],
