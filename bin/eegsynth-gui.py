@@ -363,7 +363,7 @@ class MainWindow(QWidget):
             # give some feedback
             monitor.success(name + ' ' + ' '.join(args_list))
 
-            process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_list))
+            process = multiprocessing.Process(target=_start_module, args=(module_to_start._executable, args_list))
             process.start()
 
             # keep track of all modules and processes
@@ -371,12 +371,14 @@ class MainWindow(QWidget):
             processes.append(process)
 
 
-def _main():
+def _executable():
+    # start the eegsynth graphical user interface application as an executable
+
+    # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
+    EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
+
     _setup()
     try:
-        # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
-        EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
-
         # initiate the graphical user interface
         app = QApplication(sys.argv)
         app.setWindowIcon(QtGui.QIcon(os.path.join(path, 'doc/figures/logo-128.ico')))
@@ -402,4 +404,4 @@ def _main():
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     multiprocessing.set_start_method('spawn')
-    _main()
+    _executable()

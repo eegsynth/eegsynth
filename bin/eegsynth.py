@@ -288,7 +288,7 @@ def _setup():
         # give some feedback
         monitor.success(name + ' ' + ' '.join(args_list))
 
-        process = multiprocessing.Process(target=_start_module, args=(module_to_start.Executable, args_list))
+        process = multiprocessing.Process(target=_start_module, args=(module_to_start._executable, args_list))
 
         # keep track of all modules and processes
         modules.append(fullname)
@@ -320,7 +320,9 @@ def _stop(*args):
     processes = []
 
 
-def _main():
+def _executable():
+    # start the eegsynth command-line application as an executable
+
     # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
     EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
 
@@ -336,4 +338,4 @@ def _main():
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     multiprocessing.set_start_method('spawn')
-    _main()
+    _executable()

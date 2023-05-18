@@ -3,7 +3,8 @@ import time
 
 from .brainflow2ft import _setup, _start, _loop_once, _loop_forever, _stop
 
-class Executable:
+class _executable:
+    # start this module as a stand-alone executable
     def __init__(self, args=None):
         if args!=None:
             # override the command line arguments
