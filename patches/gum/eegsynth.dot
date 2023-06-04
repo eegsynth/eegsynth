@@ -1,0 +1,24 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o eegsynth.png eegsynth.dot
+
+digraph eegsynth{
+    microscope -> videoprocessing [color=blue; label=usb]
+    
+      subgraph cluster_1 {
+        label=eegsynth;color=blue
+        postprocessing ->  outputosc_till
+        postprocessing ->  outputosc_per
+        videoprocessing -> postprocessing -> plotcontrol
+        inputcontrol -> postprocessing
+        }
+
+    subgraph cluster_per {
+        color=lightgrey;label=laptop_per
+        outputosc_per  -> supercollider_per[color=green;label=wifi]
+        }
+
+    subgraph cluster_till {
+      color=lightgrey;label=laptop_till
+      outputosc_till -> supercollider_till [color=green;label=wifi]
+      }
+}

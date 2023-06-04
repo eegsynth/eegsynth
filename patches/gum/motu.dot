@@ -1,0 +1,9 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o motu.png motu.dot
+
+digraph motu {
+  laptop_per -> motu [label=usb_12;color=blue]
+  laptop_till -> motu [label=toslink_34;color=purple]
+  motu -> analog_mixer [label=jack_to_xlr_1234]
+  analog_mixer -> speakers [label=xlr_12]
+}

@@ -1,0 +1,13 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o hardware.png hardware.dot
+
+digraph hardware{
+    microscope -> laptop_robert [color=blue;label=usb]
+    laptop_robert -> videoprojector
+    laptop_robert -> laptop_per [color=green;label=wifi ]
+    laptop_robert -> laptop_till [color=green;label=wifi ]
+    laptop_per -> motu [color=blue;label=usb]
+    laptop_till -> motu [color=purple;label=toslink]
+    motu -> analog_mixer [label=quad]
+    analog_mixer -> speakers  [label=stereo]
+}
