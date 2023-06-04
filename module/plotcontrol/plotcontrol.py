@@ -154,9 +154,19 @@ def _loop_once():
     # shift all historic data with one sample
     inputhistory = np.roll(inputhistory, -1, axis=1)
 
-    # update with current data
     counter = 0
-    for name in input_name:
+    for iplot, name in enumerate(input_name):
+
+        # update the vertical scaling
+        ylim = patch.getfloat('ylim', name, multiple=True, default=None)
+        if ylim==[] or ylim==None:
+            # monitor.info("Ylim empty, will let it flow")
+            pass
+        else:
+            # monitor.info("Setting Ylim according to specified range")
+            inputplot[iplot].setYRange(ylim[0], ylim[1])
+
+        # update the current data
         values = patch.getfloat('input', name, multiple=True, default=np.nan)
         for value in values:
             inputhistory[counter, historysize-1] = value
