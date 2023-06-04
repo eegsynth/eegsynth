@@ -6,10 +6,12 @@ digraph eegsynth{
     
       subgraph cluster_1 {
         label=eegsynth;color=blue
+        videoprocessing -> postprocessing -> plotcontrol
+        inputcontrol_video -> videoprocessing
+        videoprocessing -> historycontrol -> postprocessing
+        inputcontrol_scaling -> postprocessing -> inputcontrol_scaling
         postprocessing ->  outputosc_till
         postprocessing ->  outputosc_per
-        videoprocessing -> postprocessing -> plotcontrol
-        inputcontrol -> postprocessing
         }
 
     subgraph cluster_per {
