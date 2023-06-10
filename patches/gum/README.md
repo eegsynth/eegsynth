@@ -14,6 +14,8 @@ The EEGsynth is running with some modules on Robert's laptop and is used to conv
 
 ![flowchart](eegsynth.png)
 
+_Note: Although initially set up to use fixed scaling, which was set by `inputcontrol_scaling`, during the set-up we switched to using continuous automatic scaling on basis of the last 10 seconds using `historycontrol`._
+
 ## Audio interfacing
 
 The MOTU audio interface is connected both to Per's laptop and to Till's laptop.
