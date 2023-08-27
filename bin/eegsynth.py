@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This command-line application starts all modules in a patch. Each module corresponds
+# This EEGsynth application starts all modules in a patch. Each module corresponds
 # to an ini file that is specified on the command-line. The ini files must start with
 # the name of the corresponding module and can optionally be followed with a "_xxx"
 # or "-xxx". This allows multiple instances of the same module to be started. All ini
@@ -33,6 +33,8 @@ from glob import glob
 import multiprocessing
 import signal
 from importlib import import_module
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5.QtWidgets import QApplication, QWidget
 
 path = os.path.dirname(os.path.realpath(__file__))
 file = os.path.split(__file__)[-1]
@@ -47,51 +49,50 @@ sys.path.insert(0, os.path.join(path, '../lib'))
 import EEGsynth
 import FieldTrip
 
+# some modules are excluded here because of too complex dependencies
 from module import accelerometer, audio2ft, audiomixer, bitalino2ft, buffer, clockdivider, clockmultiplier, cogito, compressor, csp, delaytrigger, demodulatetone, endorphines, example, generateclock, generatecontrol, generatesignal, generatetrigger, geomixer, heartrate, historycontrol, historysignal, inputcontrol, inputlsl, inputmidi, inputmqtt, inputosc, inputzeromq, keyboard, launchcontrol, launchpad, logging, lsl2ft, modulatetone, outputartnet, outputaudio, outputcvgate, outputdmx, outputlsl, outputmidi, outputmqtt, outputosc, outputzeromq, pepipiaf, playbackcontrol, playbacksignal, plotcontrol, plotimage, plotsignal, plotspectral, plottext, plottopo, plottrigger, postprocessing, preprocessing, processtrigger, redis, quantizer, recordcontrol, recordsignal, recordtrigger, rms, sampler, sequencer, slewlimiter, sonification, spectral, synthesizer, threshold, unicorn2ft, videoprocessing, volcabass, volcabeats, volcakeys, vumeter
 
 # this will contain a list of modules and processes
 modules = []
 processes = []
 
-def _setup():
-    global monitor, modules, processes
 
-    # parse command-line options and determine the list of ini files
+def _setup():
+    '''Parse command-line options and determine the list of ini files
+    '''
+    global monitor, modules, processes, args
+
     parser = argparse.ArgumentParser(prog='eegsynth',
                     description='This is a command-line application to start multiple modules that comprise an EEGsynth patch.',
                     epilog='See https://www.eegsynth.org and https://github.com/eegsynth')
     parser.add_argument("--version", action="version", version="eegsynth %s" % __version__)
+    parser.add_argument("--gui", action="store_true", help="start the graphical user interface")
     parser.add_argument("--general-broker", default=None, help="general broker")
     parser.add_argument("--general-debug", default=None, help="general debug")
     parser.add_argument("--general-delay", default=None, help="general delay")
     parser.add_argument("--general-logging", default=None, help="general logging, can be 'local' or 'remote'")
     parser.add_argument("--multiprocessing-fork")
-    parser.add_argument("inifile", nargs='+', help="configuration file for a patch")
+    parser.add_argument("inifile", nargs='*', help="configuration file for each module")
     args = parser.parse_args()
 
     # the first results in a list of lists, the second flattens it
     args.inifile = [glob(x) for x in args.inifile]
     args.inifile = [item for sublist in args.inifile for item in sublist]
 
-    if len(args.inifile) == 0:
-        raise RuntimeError('You must specify one or multiple ini files.')
+    if not args.gui and len(args.inifile) == 0:
+        parser.print_help()
+        sys.exit(0)
 
     # this shows the splash screen and can be used to track parameters that have changed
     monitor = EEGsynth.monitor(name=None, debug=1)
 
+
+def _start():
+    '''Determine which modules to start and initiate a process for each of them
+    '''
+    global monitor, modules, processes, args
+
     for inifile in args.inifile:
-        if os.path.isfile(inifile):
-            if not inifile.endswith('.ini'):
-                raise RuntimeError('The ini file extension must be .ini')
-        else:
-            raise RuntimeError('Incorrect command line argument ' + inifile)
-
-    # convert the command-line argument namespace into a dict
-    args = vars(args)
-    # remove empty items
-    args = {k: v for k, v in args.items() if v}
-
-    for inifile in args['inifile']:
         if os.path.splitext(inifile)[1]!='.ini':
             monitor.error('incorrect file', inifile)
             continue
@@ -105,10 +106,6 @@ def _setup():
         fullname = name
         name = name.split('-')[0]           # remove whatever comes after a "-" separator
         name = name.split('_')[0]           # remove whatever comes after a "_" separator
-
-        if fullname in modules:
-            monitor.error('%s is already running' % fullname)
-            continue
 
         if name=='accelerometer':
             module_to_start = accelerometer
@@ -276,39 +273,69 @@ def _setup():
             monitor.error('incorrect module', name)
             return
 
+        # convert the namespace in a dict
+        args_dict = vars(args)
+        # remove options that do not apply
+        args_dict = {k: v for k, v in args_dict.items() if not k=='gui'}
+        # remove empty items
+        args_dict = {k: v for k, v in args_dict.items() if v}
+
         # pass only the specific ini file
-        args['inifile'] = inifile
+        args_dict['inifile'] = inifile
 
         # pass all other arguments
         args_list = []
-        for k, v in args.items():
+        for k, v in args_dict.items():
             # reformat them back into command-line arguments
             args_list += ['--' + k.replace('_', '-'), v]
 
+        # stop and restart the module in case it is already running 
+        if fullname in modules:
+            monitor.warning('%s is already running, restarting ...' % (fullname))
+            index = modules.index(fullname)
+            monitor.success('terminating ' + fullname + ' process')
+            processes[index].terminate()
+            monitor.success('joining ' + fullname + ' process')
+            processes[index].join()
+            del modules[index]
+            del processes[index]
+
         # give some feedback
         monitor.success(name + ' ' + ' '.join(args_list))
-
+    
         process = multiprocessing.Process(target=_start_module, args=(module_to_start._executable, args_list))
+        process.start()
 
         # keep track of all modules and processes
         modules.append(fullname)
         processes.append(process)
 
 
-def _start_module(module, args=None):
-    # the module starts as soon as it is instantiated
-    # optional command-line arguments can be passed to specify the ini file
-    module(args)
+def _start_module(module, args_list=None):
+    '''The module starts as soon as it is instantiated
+    ''' 
+    module(args_list)
 
 
-def _start():
+def _loop_once():
+    '''Run the main loop once, this only applies to the GUI
+    '''
+    # updating the main figure is done through Qt events
     global monitor, modules, processes
-    for m,p in zip(modules, processes):
-        monitor.success('starting ' + m + ' process')
-        p.start()
+    # remove modules that are not running any more
+    keep      = [p.is_alive() for p in processes]
+    modules   = [m for (m, k) in zip(modules, keep)   if k]
+    processes = [p for (p, k) in zip(processes, keep) if k]
+    monitor.loop(feedback=60)
+    if len(modules):
+        monitor.update('active', ', '.join(modules))
+    else:
+        monitor.update('active', '<none>')
 
 
 def _stop(*args):
+    '''Stop all modules
+    '''
     global monitor, modules, processes
     for m,p in zip(modules, processes):
         monitor.success('terminating ' + m + ' process')
@@ -321,8 +348,6 @@ def _stop(*args):
 
 
 def _executable():
-    # start the eegsynth command-line application as an executable
-
     # the icon in the taskbar should not be the python interpreter but the EEGsynth logo
     EEGsynth.appid('org.eegsynth.%s.%s' % (name, __version__))
 
@@ -330,9 +355,86 @@ def _executable():
 
     _setup()
     try:
-        _start()
+        global args
+        if args.gui:
+            # initiate the graphical user interface
+            app = QApplication(sys.argv)
+            app.setWindowIcon(QtGui.QIcon(os.path.join(path, 'doc/figures/logo-128.ico')))
+            app.aboutToQuit.connect(_stop)
+            signal.signal(signal.SIGINT,  _stop)
+
+            window = MainWindow()
+            window.show()
+
+            # Let the interpreter run every 200 ms
+            # see https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co/6072360#6072360
+            timer = QtCore.QTimer()
+            timer.start(100)
+            timer.timeout.connect(_loop_once)
+            timer.timeout.connect(window.updateLabel)
+
+            # start modules that were specified on the command line
+            _start()
+
+            sys.exit(app.exec_())
+        else:
+            # start modules that were specified on the command line
+            _start()
+
     except (SystemExit, KeyboardInterrupt, RuntimeError):
         _stop()
+
+
+class MainWindow(QWidget):
+    '''Graphical user interface
+    '''
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        self.resize(300, 120)
+        self.setWindowTitle("EEGsynth %s" % __version__)
+        self.setAcceptDrops(True)
+        self.layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.layout)
+        l1 = QtWidgets.QLabel("Drag and drop your ini files here")
+        l1.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(l1)
+        l2 = QtWidgets.QLabel("")
+        l2.setStyleSheet("color: red")
+        l2.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(l2)
+        b1 = QtWidgets.QPushButton("Stop all modules")
+        b1.clicked.connect(self.stopAllModules)
+        self.layout.addWidget(b1)
+        # remember the label so that it can be changes later
+        self.label = l2
+
+    def stopAllModules(self):
+        if len(modules):
+            # stop all modules, starting with the last one
+            for m,p in zip(reversed(modules), reversed(processes)):
+                monitor.success('terminating ' + m + ' process')
+                p.terminate()
+            for m,p in zip(reversed(modules), reversed(processes)):
+                monitor.success('joining ' + m + ' process')
+                p.join()
+
+    def updateLabel(self):
+        if len(modules):
+            self.label.setText('\n'.join(modules))
+        else:
+            self.label.setText('<none>')
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        global args
+        # update the inifile argument and (re)start the corresponding modules
+        args.inifile = [u.toLocalFile() for u in event.mimeData().urls()]
+        _start()
 
 
 if __name__ == '__main__':

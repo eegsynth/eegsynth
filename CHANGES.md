@@ -1,5 +1,9 @@
 # Changes
 
+## Aug 27, 2023
+- merged the eegsynth and eegsynth-gui applications and added the --gui option
+- released 0.7.6 with the combined graphical user interface
+
 ## May 17, 2023
 - moved the hardware documentation to its own repository
 - removed the non-Python binaries and scripts
