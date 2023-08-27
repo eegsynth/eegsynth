@@ -2,6 +2,7 @@
 
 ## Aug 27, 2023
 - merged the eegsynth and eegsynth-gui applications and added the --gui option
+- removed bitalino from default installation, as its dependency PyBluez won't compile
 - released 0.7.6 with the combined graphical user interface
 
 ## May 17, 2023

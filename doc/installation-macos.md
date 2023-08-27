@@ -1,6 +1,6 @@
 # Installation instructions for Mac macOS
 
-NOTE: the general installation instructions using Anaconda should cover most of the installation, the notes below are older notes and probably not needed any more.
+NOTE: the general installation instructions using Anaconda should cover most of the installation, the notes below might be outdated and are probably not needed any more.
 
 ## Python
 
@@ -101,7 +101,7 @@ To make sure the Python package manager is up to date, you should do
 pip install --upgrade pip
 ```
 
-Subsequently you can install the Python modules with `pip install eegsynth` or one by one using
+Subsequently you can install the Python modules with `pip install eegsynth` or install each of the dependencies one by one using
 
 ```
 pip install bitalino

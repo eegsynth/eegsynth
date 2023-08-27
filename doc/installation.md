@@ -7,23 +7,22 @@ The first section consists of the installation of the dependencies, i.e. the ext
 
 ## Using Anaconda
 
-We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in its installation instruction how to install it. Subsequently you should make a new environment, install some larger dependencies as binaries using `conda install`, and subsequently install EEGsynth using `pip install`.
-
+We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in its installation instruction how to install it. Once you installed conda, you should make a new environment, install some larger dependencies as binaries using `conda install`, and subsequently install EEGsynth using `pip install`.
 
 ```
-conda create -n eegsynth python=3.10 anaconda
+conda create -y -n eegsynth python=3.10 anaconda
 conda activate eegsynth
 
-conda install redis     # note that this is not yet sufficient for windows
-conda install redis-py
-conda install numpy
-conda install scipy
-conda install pyqt
-conda install pyqtgraph
-conda install python-levenshtein
-conda install portaudio
-conda install pyaudio
-conda install -c conda-forge liblsl
+conda install -y redis     # note that this is not yet sufficient for windows
+conda install -y redis-py
+conda install -y numpy
+conda install -y scipy
+conda install -y pyqt
+conda install -y pyqtgraph==0.12
+conda install -y python-levenshtein
+conda install -y portaudio
+conda install -y pyaudio
+conda install -y -c conda-forge liblsl
 
 pip install eegsynth
 ```
@@ -42,22 +41,9 @@ After completing any specific dependencies for your operating system, you should
 git clone https://github.com/eegsynth/eegsynth.git
 ```
 
-## Install the binary dependencies on FieldTrip
+## Low-level test
 
-For interfacing between specific EEG amplifiers and the FieldTrip buffer we sometimes use a small executable that is implemented in C and already compiled. These executables are different for each computing platform (i386, ARM, etc.) and for each operating system. In the `eegsynth/bin` directory you can find a small installer script that helps you to select and download the correct ones.
-
-On Linux and macOS you can use the following to install the buffer and the openbci2ft executables.
-
-```
-cd eegsynth/bin
-install.sh
-```
-
-On Windows you have to download them by hand from the [fieldtrip repository](https://github.com/fieldtrip/fieldtrip/tree/master/realtime/bin/win64) and copy them to the `bin` directory.
-
-## Quick test
-
-Start the buffer, redis, and openbci2ft.
+Start redis, buffer, and generatesignal.
 
 Add the FieldTrip Python module to the PYTHONPATH, where \$EEGSYNTHPATH is the eegsynth base folder.
 

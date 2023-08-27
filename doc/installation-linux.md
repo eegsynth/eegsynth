@@ -4,7 +4,7 @@ NOTE: the general installation instructions using Anaconda should cover most of 
 
 ## Raspberry Pi
 
-For Linux we are specifically targetting [Raspbian](http://www.raspbian.org), which is a free Debian-based operating system optimized for the [Raspberry Pi](https://www.raspberrypi.org) hardware. This allows to build a dedicated EEGsynth on the low-cost Raspberry Pi platform.
+For the Raspberry Pi we are specifically targetting [Raspbian](http://www.raspbian.org), which is a free Debian-based operating system optimized for the [Raspberry Pi](https://www.raspberrypi.org) hardware. This allows to build a dedicated EEGsynth on the low-cost Raspberry Pi platform.
 
 ## Installation instructions for Raspbian
 
@@ -125,7 +125,7 @@ To make sure it is up to date, you should do
 sudo pip install --upgrade pip # replace with pip3 for Python 3
 ```
 
-Subsequently you can install the Python modules with `pip install eegsynth` or one by one using
+Subsequently you can install the Python modules with `pip install eegsynth` or install each of the dependencies one by one using
 
 ```
 sudo pip install bitalino
