@@ -1,6 +1,6 @@
 # Slew Limiter Module
 
-The purpose of this module is to limit how fast control values from Redis can change. This can be used to smooth an otherwise rapidly changing noisy signal, e.g. for the [vumeter](../vumeter) module, or to implement portamento.
+The purpose of this module is to limit how fast control values from Redis can change. This can be used to smooth an otherwise rapidly changing noisy signal, e.g., for the [vumeter](../vumeter) module, or to implement portamento.
 
 A `learning_rate` of 0 causes the control values to remain fixed at the historical value. With a `learning_rate` of 1, the control value changes instantly.
 

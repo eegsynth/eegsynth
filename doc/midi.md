@@ -4,9 +4,9 @@ For the EEGsynth we are developing and testing with a variety of hardware, some 
 
 ## Introduction
 
-MIDI, short for Musical Instrument Digital Interface, is a standard for communication with and between electronic,  or rather digital, musical instruments. Its been around since the early eighties, and is one of those rare examples where competing companies decided to maintain a common communication protocol allowing their machines to be easily connected, rather than creating their own protocols, cables, plugs and formats, which is frustratingly common. MIDI carries event messages that specify notation, pitch, velocity, vibrato, panning, and clock signals which set tempo. It is therefor close to an ideal protocol for the output of the EEGsynth, since any pitch, velocity, vibrato and panning are all great sonic parameters to put under BCI control.
+MIDI, short for Musical Instrument Digital Interface, is a standard for communication with and between electronic,  or rather digital, musical instruments. Its been around since the early eighties, and is one of those rare examples where competing companies decided to maintain a common communication protocol allowing their machines to be easily connected, rather than creating their own protocols, cables, plugs and formats, which is frustratingly common. MIDI carries event messages that specify notation, pitch, velocity, vibrato, panning, and clock signals which set tempo. It is therefore close to an ideal protocol for the output of the EEGsynth, since any pitch, velocity, vibrato and panning are all great sonic parameters to put under BCI control.
 
-MIDI is also very useful to tweak parameters of the EEGsynth, such as frequency bands used in the EEG spectral analysis or to adjust thresholds on the fly. For example, we often use knobs and sliders of a MIDI control device (e.g. the Novation [Launch Control XL](https://novationmusic.com/launch/launch-control-xl)) in our live performance, or use it to simulate data in prototyping.
+MIDI is also very useful to tweak parameters of the EEGsynth, such as frequency bands used in the EEG spectral analysis or to adjust thresholds on the fly. For example, we often use knobs and sliders of a MIDI control device (e.g., the Novation [Launch Control XL](https://novationmusic.com/launch/launch-control-xl)) in our live performance, or use it to simulate data in prototyping.
 
 ## MIDI as input
 
@@ -22,7 +22,7 @@ As we said above, MIDI can also be used to set the speed of a musical device, su
 
 ### Tempo
 
-Tempo is the speed at which something is played – e.g. fast and constant in electronic dance music, and slower and more variable in instrumental music. While between humans a drummer might snap his drumsticks to set the tempo, and while Latin (e.g. Adagio) and German words (e.g. kräftig) are using in classical music notation, in digital music we simply use beats per minute (BMP).
+Tempo is the speed at which something is played – e.g., fast and constant in electronic dance music, and slower and more variable in instrumental music. While between humans a drummer might snap his drumsticks to set the tempo, and while Latin (e.g., Adagio) and German words (e.g., kräftig) are using in classical music notation, in digital music we simply use beats per minute (BMP).
 
 ### Beats
 
@@ -30,18 +30,18 @@ But what is a beat? Psychologically it’s that moment at which you tap your fee
 
 ### Time signature
 
-In music theory, beats are organized in blocks of beats called measures or bars, which then repeat themselves throughout (parts of) a song. Within a measure, the way in which beats relate to events (notes) is called its time-signature. The most common time-signature is 4/4, therefor also called ‘common time’. In common time, one bar consists of four beats, and each beat corresponds to the duration of a quarter-note (one forth of a note). Wikipedia has a nice page with examples of different time-signatures, if you are interested. For now it’s just good to know that the elementary sequence of beats is a measure, consisting of a number of beats (commonly 4), which
+In music theory, beats are organized in blocks of beats called measures or bars, which then repeat themselves throughout (parts of) a song. Within a measure, the way in which beats relate to events (notes) is called its time-signature. The most common time-signature is 4/4, therefore also called ‘common time’. In common time, one bar consists of four beats, and each beat corresponds to the duration of a quarter-note (one forth of a note). Wikipedia has a nice page with examples of different time-signatures, if you are interested. For now it’s just good to know that the elementary sequence of beats is a measure, consisting of a number of beats (commonly 4), which
 correspond to a particular note-duration (typically a quarter note).
 
 ### Pulses Per Quarter Note
 
-The time-signature says nothing about how slow or fast the notes are played. As I said earlier, that is determined by its tempo, described in BPM or more subjective descriptions (Andante, i.e. ‘at a walking pace’, referring to 76–108 BPM). The last thing we need to say is a bit technical: for a MIDI instruments to communicate the tempo, they need more than just one signal for every beat (or quarter-note) to code for slight variations in tempo. In MIDI, tempo is therefor defined in a number of Pulses Per Quarter Note (PPQN). In most step-sequencers, we are dealing with a 4/4 time signature with the common default set at 24PPQN, meaning that there are 24 pulses (or ‘ticks’) in a beat (or quarter-note). A single bar/measure will therefor have a total of 4×24=96 pulses. Most MIDI devices can be set at another PPQN rate, but 24 PPQN will suffice for most intends and purposes, especially when dealing with rather dumb step-sequencers.
+The time-signature says nothing about how slow or fast the notes are played. As I said earlier, that is determined by its tempo, described in BPM or more subjective descriptions (Andante, i.e. ‘at a walking pace’, referring to 76–108 BPM). The last thing we need to say is a bit technical: for a MIDI instruments to communicate the tempo, they need more than just one signal for every beat (or quarter-note) to code for slight variations in tempo. In MIDI, tempo is therefore defined in a number of Pulses Per Quarter Note (PPQN). In most step-sequencers, we are dealing with a 4/4 time signature with the common default set at 24PPQN, meaning that there are 24 pulses (or ‘ticks’) in a beat (or quarter-note). A single bar/measure will therefore have a total of 4×24=96 pulses. Most MIDI devices can be set at another PPQN rate, but 24 PPQN will suffice for most intends and purposes, especially when dealing with rather dumb step-sequencers.
 
 ## MIDI hardware interfacing
 
 The MIDI interfaces may show up differently, depending on the computer to which you connect the MIDI device, and depending on the software used on that computer.
 
-The software interface to MIDI devices is often implemented over multiple layers. E.g. on macOS the EEGsynth modules connect with the hardware like this:
+The software interface to MIDI devices is often implemented over multiple layers. e.g., on macOS the EEGsynth modules connect with the hardware like this:
 
 EEGsynth (Python) &rarr; **mido** &rarr; **portmidi** &rarr; **coremidi** &rarr; MIDI hardware
 

@@ -14,7 +14,7 @@ What follows are some things that we would like to have support/input on. Off co
 
 ## Precise timing of light effects
 
-The modules that interface with lighting systems over Art-Net and DMX work fine for slowly changing effects, but are not so good at sudden events. E.g. flashing upon a heartbeat or stroboscopic effects don't really work reliably. It would be nice to have better timing control of light effects.
+The modules that interface with lighting systems over Art-Net and DMX work fine for slowly changing effects, but are not so good at sudden events. e.g., flashing upon a heartbeat or stroboscopic effects don't really work reliably. It would be nice to have better timing control of light effects.
 
 ## More affordable EEG hardware
 

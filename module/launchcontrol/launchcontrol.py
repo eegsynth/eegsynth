@@ -212,7 +212,7 @@ def _loop_once():
             monitor.debug(msg)
 
         if hasattr(msg, "control"):
-            # e.g. prefix.control000=value
+            # e.g., prefix.control000=value
             key = "{}.control{:0>3d}".format(patch.getstring('output', 'prefix'), msg.control)
             val = EEGsynth.rescale(msg.value, slope=scale_control, offset=offset_control)
             patch.setvalue(key, val)

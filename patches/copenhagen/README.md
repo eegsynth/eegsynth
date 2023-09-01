@@ -38,7 +38,7 @@ Open terminal
 cd eegsynth/patches/copenhagen
 ./redis.sh
 
-Open 2nd tab in terminal (e.g. using Command-T)
+Open 2nd tab in terminal (e.g., using Command-T)
 ./buffer.sh
 
 Open 3rd tab in terminal

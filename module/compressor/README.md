@@ -12,4 +12,4 @@ A too large dynamic range of the input control signal can be compressed to use a
 
 ![compress example](../../doc/figures/compress_example.png)
 
-The "lo" and "hi" parameters can be assigned to a fixed value in the ini file. They can also be dynamically adjusted by assigning them to sliders or knobs, e.g. on the Launch Control.
+The "lo" and "hi" parameters can be assigned to a fixed value in the ini file. They can also be dynamically adjusted by assigning them to sliders or knobs, e.g., on the Launch Control.

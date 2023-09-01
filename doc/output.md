@@ -15,7 +15,7 @@ The purpose of the EEGsynth is to control external software and hardware with el
 
 ## Accessing EEGsynth with external software
 
-The output of modules to Redis can also be accessed directly (externally), e.g. for games using [PyGame](https://www.pygame.org/news).
+The output of modules to Redis can also be accessed directly (externally), e.g., for games using [PyGame](https://www.pygame.org/news).
 
 ## Other applications
 

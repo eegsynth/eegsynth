@@ -164,7 +164,7 @@ try:
     ft_input.connect(ftc_host, ftc_port)
 
     if debug>0:
-        print "Connected to FieldTrip buffer"
+        print("Connected to FieldTrip buffer")
 
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
@@ -180,7 +180,7 @@ start = time.time()
 while hdr_input is None:
 
     if debug>0:
-        print "Waiting for data to arrive..."
+        print("Waiting for data to arrive...")
 
     if (time.time()-start)>timeout:
         raise RuntimeError("timeout while waiting for data")
@@ -221,7 +221,7 @@ so that in the code one might use:
 
 ```
 if debug > 1:
-    print "update", update
+    print("update", update)
 ```
 
 (From [generatecontrol.py](../module/generatecontrol/generatecontrol.py))
@@ -331,7 +331,7 @@ while True:
     <MAIN LOOP>
 
 except (KeyboardInterrupt, RuntimeError) as e:
-    print "Closing threads"
+    print("Closing threads")
     clockthread.stop()
     clockthread.join()
     sys.exit()

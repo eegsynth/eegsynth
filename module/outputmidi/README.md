@@ -11,7 +11,7 @@ Under the `[trigger]` section you specify the mapping between MIDI messages and 
 
 You can specify MIDI *note_on* messages using `noteXXX` where XXX is the MIDI note number and the Redis value is mapped onto velocity. For example you can specify `note060` to play the [C4](https://newt.phys.unsw.edu.au/jw/notes.html)).
 
-You can also specify MIDI *note_on* messages using `note` without number, in which case the Redis value is mapped onto pitch and velocity is set to 127. This allows to map a continuous control channel in Redis onto MIDI pitch, which e.g. in the Doepfer A190-3 is subsequently mapped onto the CV1 output voltage.
+You can also specify MIDI *note_on* messages using `note` without number, in which case the Redis value is mapped onto pitch and velocity is set to 127. This allows to map a continuous control channel in Redis onto MIDI pitch, which e.g., in the Doepfer A190-3 is subsequently mapped onto the CV1 output voltage.
 
 You can specify MIDI *control_change* and *polytoch* messages using `controlXXX` and `polytouchXXX`, where XXX is the MIDI control channel.
 
