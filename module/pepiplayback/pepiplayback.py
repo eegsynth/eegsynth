@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This module allows playing back a PepiPiaf CSV file in apprimxately real-time.
+# This module allows playing back a PepiPiaf CSV file in approximately real-time.
 #
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
@@ -74,13 +74,20 @@ def _start():
     speed = patch.getfloat('playback', 'speed', default=1.0)
     filename = patch.getstring('playback', 'file')
 
+    monitor.info("Reading data from " + filename)
+
     d = pandas.read_csv(filename, comment='#')
     # the first few rows tend to be invalid
     d = d[d.month>0]
     c = d.columns
 
+    days_per_month = 365.25/12
+    hours_per_day = 24
+    minutes_per_hour = 60
+    seconds_per_minute = 60
+
     # compute the time in seconds
-    t = ((d.day*24 + d.hour)*60 + d.minutes)*60
+    t = (((d.month*days_per_month + d.day)*hours_per_day + d.hour)*minutes_per_hour + d.minutes)*seconds_per_minute
     # estimate the stepsize as the time between rows
     stepsize = np.mean(np.diff(t.to_numpy()))
     stepsize /= speed
