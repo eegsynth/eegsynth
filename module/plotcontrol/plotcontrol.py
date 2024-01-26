@@ -115,7 +115,7 @@ def _start():
 
         inputplot.append(win.addPlot(title="%s" % name))
         inputplot[iplot].setLabel('bottom', text = 'Time (s)')
-        inputplot[iplot].showGrid(x=False, y=True, alpha=0.5)
+        inputplot[iplot].showGrid(x=False, y=True, alpha=None)
 
         ylim = patch.getfloat('ylim', name, multiple=True, default=None)
         if ylim==[] or ylim==None:
