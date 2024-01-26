@@ -37,12 +37,12 @@ You can specify a more sophisticated layout by including multiple '[rowNUMBER]' 
 
 ## LaunchControl XL and mini
 
-Included are the `launchcontrolxl.ini` and `launchcontrolmini.ini` files, which result in a control interface that mimics the layout of the respective physical MIDI interface. The output values are written to Redis just as they would be using the `launchcontrol` module.
+Included are the `inputcontrol-xl.ini` and `inputcontrol-mini.ini` files, which result in a control interface that mimics the layout of the physical LaunchControl XL or mini interface. The output values are written to Redis just as they would be using the `launchcontrol` module.
 
 You can start them like this
 
-    ./inputcontrol.py -i launchcontrolxl.ini
+    ./inputcontrol.py -i inputcontrol-xl.ini
 
 or
 
-    ./inputcontrol.py -i launchcontrolmini.ini
+    ./inputcontrol.py -i nputcontrol-mini.ini
