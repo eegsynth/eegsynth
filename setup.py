@@ -82,7 +82,7 @@ setuptools.setup(
         "pyaudio",
         "pylsl",
         "PyQt5",
-        "pyqtgraph==0.12",
+        "pyqtgraph",
         "pyserial",
         "pyzmq",
         "redis",
@@ -91,7 +91,7 @@ setuptools.setup(
         "termcolor",
         "wiringpi; platform_machine == 'armv7l'"
     ],
-    python_requires=">=2.7",
+    python_requires=">=3.8",
     extras_require={
         ":python_version<'3.5'": ["pyOSC"],
         ":python_version>='3.5'": ["python-rtmidi"],

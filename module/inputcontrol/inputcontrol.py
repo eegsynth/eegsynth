@@ -175,7 +175,7 @@ class Window(QWidget):
                 s.type = item[1]
                 s.setMinimum(0)
                 s.setMaximum(127)  # default is 100
-                s.setValue(val)
+                s.setValue(int(val))
                 s.setStyleSheet('background-color: rgb(64,64,64);')
                 s.valueChanged.connect(self.changevalue)
                 l = QtWidgets.QLabel(s.name)

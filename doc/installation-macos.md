@@ -127,9 +127,9 @@ pip install python-osc      # for Python >= 3.5
 pip install python-rtmidi   # for Python >= 3.5
 ```
 
-The graphical user interfaces of `plotsignal` and `plotcontrol` are implemented with pyqtgraph, which uses either PyQt4, PyQt5 or PySide.
+The graphical user interfaces of `plotsignal`, `plotcontrol`, `plotspectral` and `plottrigger` are implemented with pyqtgraph, which uses either PyQt5, PyQt6 or PySide.
 
-When using Anaconda and Python2 or Python3, the bindings between Python and Qt can be installed as follows:
+When using Anaconda, the bindings between Python and Qt can be installed as follows:
 
 ```
 conda install pyqt

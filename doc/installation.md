@@ -19,7 +19,7 @@ conda install -y redis-py
 conda install -y numpy
 conda install -y scipy
 conda install -y pyqt
-conda install -y pyqtgraph==0.12
+conda install -y pyqtgraph
 conda install -y python-levenshtein
 conda install -y portaudio
 conda install -y pyaudio

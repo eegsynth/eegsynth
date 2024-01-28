@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -140,7 +140,7 @@ def _start():
             endsample = hdr_input.nSamples - 1
 
     # start the graphical user interface
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(os.path.join(path, '../../doc/figures/logo-128.ico')))
     app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
@@ -148,9 +148,11 @@ def _start():
     # deal with uncaught exceptions
     sys.excepthook = _exception_hook
 
-    win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plotsignal'))
+    win = QtWidgets.QMainWindow()
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotsignal'))
     win.setGeometry(winx, winy, winwidth, winheight)
+    layout = pg.GraphicsLayoutWidget()
+    win.setCentralWidget(layout)
 
     # Enable antialiasing for prettier plots
     pg.setConfigOptions(antialias=True)
@@ -163,11 +165,13 @@ def _start():
     # Create panels for each channel
     for plotnr, channr in enumerate(channels):
 
-        timeplot.append(win.addPlot(title="%s%s" % ('Channel ', channr)))
+        timeplot.append(layout.addPlot(title="%s%s" % ('Channel ', channr)))
         timeplot[plotnr].setLabel('left', text='Amplitude')
         timeplot[plotnr].setLabel('bottom', text='Time (s)')
         curve.append(timeplot[plotnr].plot(pen='w'))
-        win.nextRow()
+        layout.nextRow()
+
+    win.show()
 
     # Set timer for update
     timer = QtCore.QTimer()
@@ -269,13 +273,13 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    QtGui.QApplication.instance().exec_()
+    QtWidgets.QApplication.instance().exec_()
 
 
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
-    QtGui.QApplication.quit()
+    QtWidgets.QApplication.quit()
 
 
 def _exception_hook(type, value, tb):
