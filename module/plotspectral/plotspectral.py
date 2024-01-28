@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -164,7 +164,7 @@ def _start():
             endsample = hdr_input.nSamples - 1
 
     # start the graphical user interface
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(os.path.join(path, '../../doc/figures/logo-128.ico')))
     app.aboutToQuit.connect(_stop)
     signal.signal(signal.SIGINT, _stop)
@@ -172,10 +172,12 @@ def _start():
     # deal with uncaught exceptions
     sys.excepthook = _exception_hook
 
-    win = pg.GraphicsWindow(title=patch.getstring('display', 'title', default='EEGsynth plotspectral'))
+    win = QtWidgets.QMainWindow()
     win.setWindowTitle(patch.getstring('display', 'title', default='EEGsynth plotspectral'))
     win.setGeometry(winx, winy, winwidth, winheight)
-
+    layout = pg.GraphicsLayoutWidget()
+    win.setCentralWidget(layout)
+    
     # initialize graphical elements
     text_redleft_curr   = pg.TextItem("", anchor=( 1,  0), color='r')
     text_redright_curr  = pg.TextItem("", anchor=( 0,  0), color='r')
@@ -212,7 +214,7 @@ def _start():
     # Create panels for each channel
     for plotnr, channr in enumerate(channels):
 
-        plot = win.addPlot(title="%s%s" % ('Spectrum channel ', channr))
+        plot = layout.addPlot(title="%s%s" % ('Spectrum channel ', channr))
         # speeds up the initial axis scaling set the range to something different than [0, 0]
         plot.setXRange(0,1)
         plot.setYRange(0,1)
@@ -232,7 +234,7 @@ def _start():
         blueleft_curr.append(freqplot_curr[plotnr].plot(pen='b'))
         blueright_curr.append(freqplot_curr[plotnr].plot(pen='b'))
 
-        plot = win.addPlot(title="%s%s%s%s%s" % ('Averaged spectrum channel ', channr, ' (', historysize, 's)'))
+        plot = layout.addPlot(title="%s%s%s%s%s" % ('Averaged spectrum channel ', channr, ' (', historysize, 's)'))
         # speeds up the initial axis scaling set the range to something different than [0, 0]
         plot.setXRange(0,1)
         plot.setYRange(0,1)
@@ -252,7 +254,6 @@ def _start():
         redright_hist.append(freqplot_hist[plotnr].plot(pen='r'))
         blueleft_hist.append(freqplot_hist[plotnr].plot(pen='b'))
         blueright_hist.append(freqplot_hist[plotnr].plot(pen='b'))
-        win.nextRow()
 
         # initialize as lists
         specmin_curr.append(None)
@@ -261,6 +262,10 @@ def _start():
         specmax_hist.append(None)
         fft_curr.append(None)
         fft_hist.append(None)
+
+        layout.nextRow()
+
+    win.show()
 
     # print frequency at lines
     freqplot_curr[0].addItem(text_redleft_curr)
@@ -454,13 +459,13 @@ def _loop_once():
 def _loop_forever():
     '''Run the main loop forever
     '''
-    QtGui.QApplication.instance().exec_()
+    QtWidgets.QApplication.instance().exec_()
 
 
 def _stop(*args):
     '''Stop and clean up on SystemExit, KeyboardInterrupt, RuntimeError
     '''
-    QtGui.QApplication.quit()
+    QtWidgets.QApplication.quit()
 
 
 def _exception_hook(type, value, tb):

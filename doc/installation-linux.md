@@ -162,7 +162,7 @@ sudo apt-get install python-scipy
 
 ### Install graphics
 
-The plotsignal and plotcontrol modules are implemented with pyqtgraph, which uses either PyQt4, PyQt5 or PySide. This can be installed with
+The graphical user interfaces of `plotsignal`, `plotcontrol`, `plotspectral` and `plottrigger` are implemented with pyqtgraph, which uses either PyQt5, PyQt6 or PySide. This can be installed with
 
 ```
 sudo apt-get install python-pyqtgraph
