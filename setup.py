@@ -51,6 +51,8 @@ setuptools.setup(
         "EEG",
         "EMG",
         "ECG",
+        "EOG",
+        "ExG",
         "BCI",
         "brain",
         "art",
