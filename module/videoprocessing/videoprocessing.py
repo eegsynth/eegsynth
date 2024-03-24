@@ -110,8 +110,8 @@ def weighted_position(frame):
     frame_height = frame.shape[0]
     frame_width = frame.shape[1]
 
-    frame_as_row = np.mean(frame, axis=0, dtype=np.float, keepdims=False)
-    frame_as_col = np.mean(frame, axis=1, dtype=np.float, keepdims=False)
+    frame_as_row = np.mean(frame, axis=0, dtype=np.float64, keepdims=False)
+    frame_as_col = np.mean(frame, axis=1, dtype=np.float64, keepdims=False)
     pixel_as_row = np.linspace(0, 1, frame_width)
     pixel_as_col = np.linspace(0, 1, frame_height)
     horizontal = np.multiply(frame_as_row, pixel_as_row)
@@ -433,8 +433,8 @@ def _loop_once():
             flow_horizontal = flow[top:bottom, left:right, 0]
             flow_vertical   = flow[top:bottom, left:right, 1]
 
-            horizontal = np.mean(flow_horizontal, axis=(0,1), dtype=np.float, keepdims=False)
-            vertical = np.mean(flow_vertical, axis=(0,1), dtype=np.float, keepdims=False)
+            horizontal = np.mean(flow_horizontal, axis=(0,1), dtype=np.float64, keepdims=False)
+            vertical = np.mean(flow_vertical, axis=(0,1), dtype=np.float64, keepdims=False)
 
             scale = 10/np.sqrt(pixels)
             offset = 0.5
