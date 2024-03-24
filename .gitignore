@@ -53,6 +53,9 @@ dump.rdb
 # PyCharm project
 .idea/*
 
+# VisualStudio project
+.vscode/*
+
 # Python packaging
 *.egg-info
 build/*
