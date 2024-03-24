@@ -1,6 +1,6 @@
 # Gothenburg patch
 
-This directory contains the patches for the February 2019 performance at the folkTheatern in Gothenburg.
+This directory contains the patches for the February 2019 performance at the Folkteatern in Gothenburg.
 
 The EEG goes into the spectral module and then into the `historycontrol` module to construct a well-behaved and slowly changing control signal. Using the `outputcvgate` module, that control signal is converted into a voltage that goes into the analog synthesizer.
 
