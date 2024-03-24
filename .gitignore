@@ -1,11 +1,4 @@
 # Misc files
-bin/buffer
-bin/openbci2ft
-bin/jaga2ft
-bin/gtec2ft
-bin/ft2audio
-dump.rdb
-interface/node_modules
 *.pid
 *.log
 *.pyc
@@ -15,8 +8,7 @@ interface/node_modules
 *.tsv
 *.spec
 .DS_Store
-misc/
-hook-pylsl.py
+dump.rdb
 
 # Backup files
 *.m~
@@ -66,7 +58,7 @@ hook-pylsl.py
 build/*
 dist/*
 */__pycache__/*
+eegsynth.spec
 
 # Test patches
 patches/test_*
-eegsynth.spec
