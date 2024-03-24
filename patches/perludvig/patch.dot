@@ -1,0 +1,17 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+  unicorn2ft -> buffer1972 -> preprocessing -> buffer1973;
+
+  buffer1973 -> plotsignal;
+  buffer1973 -> plotspectral;
+  buffer1973 -> spectral;
+
+  spectral -> postprocessing;
+  
+  inputcontrol -> postprocessing;
+
+  postprocessing -> vumeter;
+  postprocessing -> outputosc;
+}
