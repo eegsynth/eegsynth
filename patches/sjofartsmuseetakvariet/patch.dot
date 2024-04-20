@@ -8,19 +8,18 @@ digraph eegsynth{
         label=laptop_eegsynth;color=blue
         videoprocessing -> postprocessing -> plotcontrol
         videoprocessing -> historycontrol -> postprocessing -> vumeter
-        inputcontrol_video -> videoprocessing
-        inputcontrol_scaling -> postprocessing
-        postprocessing ->  outputosc
-        postprocessing ->  outputmidi
+        inputcontrol -> videoprocessing
+        postprocessing ->  outputosc_touchdesigner
+        postprocessing ->  outputosc_abletonlive
         }
 
     subgraph cluster_touchdesigner {
         color=lightgrey;label=laptop_touchdesigner
-        outputosc  -> touchdesigner[color=red;label=wifi]
+        outputosc_touchdesigner  -> touchdesigner[color=red;label=wifi]
         }
 
     subgraph cluster_abletonlive {
       color=lightgrey;label=laptop_abletonlive
-      outputmidi -> abletonlive [color=red;label=wifi]
+      outputosc_abletonlive -> abletonlive [color=red;label=wifi]
       }
 }
