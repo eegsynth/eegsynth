@@ -164,9 +164,9 @@ def _loop_once():
 
         gyro = np.zeros(3)
         # unpack as a little-endian 16 bit signed integer
-        gyro[0] = float(struct.unpack('<h', payload[27:29])[0]) / 32.8
-        gyro[1] = float(struct.unpack('<h', payload[29:31])[0]) / 32.8
-        gyro[2] = float(struct.unpack('<h', payload[31:33])[0]) / 32.8
+        gyro[0] = float(struct.unpack('<h', payload[33:35])[0]) / 32.8
+        gyro[1] = float(struct.unpack('<h', payload[35:37])[0]) / 32.8
+        gyro[2] = float(struct.unpack('<h', payload[37:39])[0]) / 32.8
 
         counter = struct.unpack('<L', payload[39:43])[0]
 
