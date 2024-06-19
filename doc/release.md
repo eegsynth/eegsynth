@@ -21,7 +21,7 @@ git push --tags
 
 rm -rf build/* dist/*
 python setup.py sdist bdist_wheel
-twine upload dist/*
+twine upload dist/* --repository eegsynth
 ```
 
 _Note: I tried both `setuptools-version-command` and `better-setuptools-git-version` to automatically use the git tag for the version number. They did not work consistently and caused incorrect version numbers upon installation._
