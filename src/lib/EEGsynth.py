@@ -43,7 +43,7 @@ import logging
 from logging import Formatter
 import colorama
 import random
-import redis          # this is NOT eegsynth/module/redis
+import redis          # this is NOT eegsynth/src/module/redis
 import string
 import termcolor
 import platform
