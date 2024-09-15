@@ -2,7 +2,7 @@
 FieldTrip buffer (V1) client and server in pure Python
 
 (C) 2010      S. Klanke
-(C) 2010-2022 R. Oostenveld
+(C) 2010-2024 R. Oostenveld
 
 """
 
