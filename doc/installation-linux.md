@@ -8,14 +8,14 @@ For the Raspberry Pi we are specifically targetting [Raspbian](http://www.raspbi
 
 ## Installation instructions for Raspbian
 
-Use "raspi-config" to configure the correct keyboard, time-zone, to extend the partition on the SD card and to disable the automatic start of the graphical interface upon boot.
+Use "raspi-config" to configure the correct keyboard, timezone, to extend the partition on the SD card and to disable the automatic start of the graphical interface upon boot.
 
 ```
-sudo apt-get update
-sudo apt-get upgrade
-sudo apt-get install screen
-sudo apt-get install vim
-sudo apt-get install git
+sudo apt update
+sudo apt upgrade
+sudo apt install screen
+sudo apt install vim
+sudo apt install git
 ```
 
 ### Reconfigure the Raspberry Pi keyboard layout
@@ -33,18 +33,18 @@ sudo dpkg-reconfigure keyboard-configuration
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Package_manager): _A package manager or package management system is a collection of software tools that automates the process of installing, upgrading, configuring, and removing computer programs for a computer's operating system in a consistent manner._
 
-The general package manager on Linux depends on the distribution you are using. Debian-based distributions (such as Ubuntu, Raspbian, Mint, etc.) use dpkg and apt-get. Redhat-based systems (such as CentOS, Fedora) use rpm and yum.
+The general package manager on Linux depends on the distribution you are using. Debian-based distributions (such as Ubuntu, Raspbian, Mint, etc.) use dpkg and apt. Redhat-based systems (such as CentOS, Fedora) use rpm and yum.
 
 For installing Python packages there are [easy_install](https://setuptools.readthedocs.io/en/latest/easy_install.html) and [pip](https://pip.pypa.io/en/stable/).
 
-In the subsequent Linux installation instructions we assume apt-get and pip as the primary package managers.
+In the subsequent Linux installation instructions we assume apt and pip as the primary package managers.
 
 ### Install Redis
 
 This is used for inter-process communication between modules.
 
 ```
-sudo apt-get install redis-server
+sudo apt install redis-server
 ```
 
 Redis will be automatically started on Linux. If you look for running processes, you should see
@@ -54,7 +54,7 @@ pi@hackpi:~ $ ps aux | grep redis
 redis      434  0.4  2.0  29332  2436 ?        Ssl  10:40   0:14 /usr/bin/redis-server 127.0.0.1:6379
 ```
 
-If you want to connect between different computers, you should edit /etc/redis/redis.conf and specify that it should bind to all network interfaces rather than only 127.0.0.1 (default). Edit the configuration"
+If you want to connect between different computers, you should edit `/etc/redis/redis.conf` and specify that it should bind to all network interfaces rather than only the (default) internal 127.0.0.1 address. Edit the configuration with
 
 ```
 sudo nano /etc/redis/redis.conf
@@ -99,7 +99,7 @@ redis-cli monitor
 This is used for MIDI communication.
 
 ```
-sudo apt-get install libportmidi-dev
+sudo apt install libportmidi-dev
 ```
 
 ### Install dependencies for rtmidi
@@ -107,66 +107,51 @@ sudo apt-get install libportmidi-dev
 This is required for the python-rtmidi package further down
 
 ```
-sudo apt-get install libasound2-dev
-sudo apt-get install libjack-dev
+sudo apt install libasound2-dev
+sudo apt install libjack-dev
 ```
 
 ### Install Python modules
 
-For Python we are using pip as the package manager. To install pip, use the following
+For Python we are using pip as the package manager. You can use either conda or virtualenv to create a virtual environment.
 
 ```
-sudo apt-get install python-pip # replace with pip3 for Python 3
+conda create -n eegsynth python==3.12
+conda activate eegsynth
 ```
 
-To make sure it is up to date, you should do
+or
 
 ```
-sudo pip install --upgrade pip # replace with pip3 for Python 3
+python3 -m venv eegsynth-env 
+source eegsynth-env/bin/activate
 ```
 
-Subsequently you can install the Python modules with `pip install eegsynth` or install each of the dependencies one by one using
+Subsequently you can install EEGsynth and its dependencies with `pip install eegsynth`. A number of dependencies can be installed one-by-one using
 
 ```
-sudo pip install bitalino
-sudo pip install colorama
-sudo pip install configparser
-sudo pip install fuzzywuzzy[speedup]
-sudo pip install matplotlib
-sudo pip install mido
-sudo pip install nilearn
-sudo pip install numpy
-sudo pip install paho-mqtt  
-sudo pip install pyaudio
-sudo pip install pylsl
-sudo pip install pyqtgraph
-sudo pip install pyserial
-sudo pip install pyzmq
-sudo pip install redis
-sudo pip install scipy
-sudo pip install sklearn
-sudo pip install termcolor
-sudo pip install pyOSC          # for Python <= 3.4
-sudo pip install python-osc     # for Python >= 3.5
-sudo pip install python-rtmidi  # for Python >= 3.5
-sudo pip install wiringpi       # only for Raspberry Pi
+pip install bitalino
+pip install mido
+pip install sklearn
+pip install pyOSC          # for Python <= 3.4
+pip install python-osc     # for Python >= 3.5
+pip install python-rtmidi  # for Python >= 3.5
+pip install wiringpi       # only for Raspberry Pi
 ```
 
-Replace pip with pip3 for Python 3 when needed.
-
-Due to the large number of non-Python dependencies, installing the scipy package is easier with apt-get than with pip.
+Due to the large number of non-Python dependencies, installing the scipy package is easier with `apt` or with `conda` than with pip.
 
 ```
-sudo apt-get install python-scipy
+sudo apt install python-scipy
 ```
 
 ### Install graphics
 
-The graphical user interfaces of `plotsignal`, `plotcontrol`, `plotspectral` and `plottrigger` are implemented with pyqtgraph, which uses either PyQt5, PyQt6 or PySide. This can be installed with
+The graphical user interfaces of `plotsignal`, `plotcontrol`, `plotspectral` and `plottrigger` are implemented with pyqtgraph, which uses either PyQt6, PyQt5 or PySide. This can be installed with
 
 ```
-sudo apt-get install python-pyqtgraph
-sudo apt-get install python3-pyqt5 # for Python 3
+sudo apt install python-pyqtgraph
+sudo apt install python3-pyqt5 # for Python 3
 ```
 
 ### Install audio
@@ -174,6 +159,6 @@ sudo apt-get install python3-pyqt5 # for Python 3
 This is only needed for the software synthesizer module. Note that good quality and smooth audio output on the Raspberry Pi requires an external audio card.
 
 ```
-sudo apt-get install python-pyaudio
-sudo apt-get install jackd
+sudo apt install python-pyaudio
+sudo apt install jackd
 ```

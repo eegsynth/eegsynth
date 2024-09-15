@@ -9,7 +9,7 @@ The first section consists of the installation of the dependencies, i.e. the ext
 We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in its installation instruction how to install it. Once you have installed conda, you should create a new environment, install some larger dependencies as binaries using `conda install`, and subsequently install EEGsynth using `pip install`.
 
 ```
-conda create -y -n eegsynth python=3.10
+conda create -y -n eegsynth python=3.12
 
 conda activate eegsynth
 
