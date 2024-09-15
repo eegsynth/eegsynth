@@ -9,7 +9,7 @@ _Boxes depict EEGsynth modules. Orange arrows describe time-series data. Blue ar
 
 After installation of the EEGsynth, the Redis database should be running in the background at startup. To check whether Redis is working you can monitor Redis while adding and reading 'key-value' pairs. For the purpose of the tutorial we will use the LaunchControl MIDI controller to enter values from the LaunchControl to Redis. If you do not have a Launchcontrol, you can enter values by hand. We will discuss this as well (just skip this part).
 
-1. Navigate to launchcontrol module directory _/eegsynth/module/launchcontrol_
+1. Navigate to launchcontrol module directory `~/eegsynth/src/module/launchcontrol`
 2. Copy the `launchcontrol.ini` to your own ini directory, for example to `~/eegsynth/patches/myfirstpatch`
 3. Start up the launchcontrol module, using your own ini file: `python launchcontrol.py -i ~/eegsynth/patches/myfirstpatch/launchcontrol.ini`
 4. You will see the connected MIDI devices printed in the terminal. If you have not set up the `.ini` file correctly yet, read out the MIDI device name from the output, and replace the device name, e.g., `device=Launch Control` under the `[midi]` section of your `.ini` file.

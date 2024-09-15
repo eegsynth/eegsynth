@@ -12,7 +12,7 @@ _Boxes depict EEGsynth modules. Orange arrows describe time-series data. Blue ar
 
 The most important lesson here is actually how to set up proper EEG recordings, but this falls outside of the scope of this tutorial. Please refer to our [recording tutorial](https://braincontrolclub.miraheze.org/wiki/Recording_tutorial "Recording tutorial") to familiarize yourself with the recording procedure first. When you did so, and got some experience (best is to do so under supervision of a more experienced EEG user), we will patch the EEG real-time recording in the pipeline of the previous tutorial, replacing the playback module with the openbci2ft module. If you are using another device, the principle will be the same.
 
-1. Navigate to openbci2ftmodule directory _/eegsynth/module/openbci2ft_
+1. Navigate to openbci2ftmodule directory `~/eegsynth/src/module/openbci2ft`
 2. Copy the `openbci2ft.ini` to your own ini directory, for example to `~/eegsynth/patches/myfirstpatch`
 3. We will need to plug in the OpenBCI dongle into a USB port. But before you do so, do the following:
 
