@@ -13,7 +13,7 @@ _Boxes depict EEGsynth modules. Orange arrows describe time-series data. Blue ar
 The most important lesson here is actually how to set up proper EEG recordings, but this falls outside of the scope of this tutorial. Please refer to our [recording tutorial](https://braincontrolclub.miraheze.org/wiki/Recording_tutorial "Recording tutorial") to familiarize yourself with the recording procedure first. When you did so, and got some experience (best is to do so under supervision of a more experienced EEG user), we will patch the EEG real-time recording in the pipeline of the previous tutorial, replacing the playback module with the openbci2ft module. If you are using another device, the principle will be the same.
 
 1. Navigate to openbci2ftmodule directory _/eegsynth/module/openbci2ft_
-2. Copy the _openbci2ft.ini_ to your own ini directory (e.g., to _/eegsynth/myfirstpatch_, which would be in _../../myfirstpatch_ relative to the openbci2ftmodule directory)
+2. Copy the `openbci2ft.ini` to your own ini directory, for example to `~/eegsynth/patches/myfirstpatch`
 3. We will need to plug in the OpenBCI dongle into a USB port. But before you do so, do the following:
 
     1. Open a new terminal window and list the devices of the kernel, by typing `ls /dev`.
@@ -21,8 +21,8 @@ The most important lesson here is actually how to set up proper EEG recordings, 
     3. List the device again using `ls /dev`
     4. If you compare the two lists, you should see that another device was added after you plugged in the dongle. It will probably start with _ttyUSB_ followed with a number. This is the USB port number at which the dongle is connected. If you unplug or restart your computer, this number might change, and therefore you will probably need to do this check regularly. There might be easier ways of finding the USB port number, but this, at least, is fool-proof.
 
-4. Edit your `openbci2ft.ini` file and enter the right port name for the dongle, which you can find under [General], for example `serial = /dev/ttyUSB1`.
-5. Start up the openbci2ft module, using your own ini file: `openbci2ft.exe ../../myfirstpatch/openbci2ft.ini`. If things are working, you the terminal will print a message that it is waiting to connect.
+4. Edit your copy of `openbci2ft.ini` and enter the right port name for the dongle, which you can find under [General], for example `serial = /dev/ttyUSB1`.
+5. Start up the openbci2ft module, using your own ini file: `openbci2ft.exe ~/eegsynth/patches/myfirstpatch/openbci2ft.ini`. If things are working, you the terminal will print a message that it is waiting to connect.
 6. You can now turn on the EEG board (not the dongle) by moving the little switch to either side. After a couple of second you should see the dongle starting to blink a green and red light. This means it is configuring the EEG board with the settings specified in the `.ini` file, which will take a couple of seconds. After that you should have your data coming in, being transferred into the fieldtrip buffer.
 7. Now you can check the incoming data with the [plotsignal module](../src/module/plotsignal).
 
