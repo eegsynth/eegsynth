@@ -9,9 +9,9 @@
 # include library with helper functions
 . "$(dirname "$0")/../../lib/EEGsynth.sh"
 
-DIR=`dirname "$0"`
-NAME=`basename "$0" .sh`
-BINDIR=$DIR/../../bin
+PATCH=`dirname "$0"`
+MODULE=`basename "$0" .sh`
+BINDIR=$PATCH/../../bin
 
 # set the default
 VERBOSE=notice

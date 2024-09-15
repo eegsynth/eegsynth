@@ -8,7 +8,7 @@
 # /usr/local/bin/forever -w start index.js
 #
 # for MODULE in launchcontrol playbackctrl postprocessing outputartnet ; do
-# $HOME/eegsynth/module/$MODULE/$MODULE.sh start
+# $HOME/eegsynth/src/module/$MODULE/$MODULE.sh start
 # sleep 3
 # done
 

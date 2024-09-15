@@ -35,7 +35,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 import time
 import threading
 import signal
-import logging
+import logging      # this is NOT eegsynth/src/module/logging
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

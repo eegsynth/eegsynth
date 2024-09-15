@@ -7,6 +7,6 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 MODULE=recordsignal
 
 EEGSYNTH=$HOME/eegsynth
-INIDIR=`dirname $0`
+PATCH=`dirname $0`
 
-$EEGSYNTH/module/$MODULE/$MODULE.py -i $INIDIR/recordsignal_eeg.ini
+$EEGSYNTH/src/module/$MODULE/$MODULE.py -i $PATCH/recordsignal_eeg.ini
