@@ -47,7 +47,7 @@ else:
 # the lib directory contains shared code
 sys.path.append(os.path.join(path, '../../lib'))
 import EEGsynth
-import colormap as cm
+import ColorMap as cm
 
 class Window(QWidget):
     def __init__(self):
@@ -90,9 +90,9 @@ class Window(QWidget):
 
             if not value == None and not np.isnan(value):
                 value = EEGsynth.limit(value, 0, 1)
-                r = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,0])
-                g = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,1])
-                b = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,2])
+                r = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,0]).astype(int)
+                g = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,1]).astype(int)
+                b = np.interp(value*(cmap_len-1), np.arange(0,cmap_len), cmap_rgb[:,2]).astype(int)
                 qp.setBrush(QtGui.QColor(r, g, b))
                 qp.setPen(QtGui.QColor('white'))
                 qp.drawEllipse(x, y, diameter*w, diameter*h)

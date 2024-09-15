@@ -47,7 +47,7 @@ else:
 # the lib directory contains shared code
 sys.path.append(os.path.join(path, '../../lib'))
 import EEGsynth
-import colormap as cm
+import ColorMap as cm
 
 class Window(QWidget):
     def __init__(self):
