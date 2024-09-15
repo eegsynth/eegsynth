@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import time
@@ -76,6 +76,15 @@ def _start():
     global patch, name, path, monitor
     global push, toggle1, toggle2, toggle3, toggle4, slap, scale_note, scale_control, offset_note, offset_control, mididevice_input, mididevice_output, port, inputport, Off, Red_Low, Red_Full, Amber_Low, Amber_Full, Yellow_Full, Green_Low, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------- MIDI INPUT ------')
+    for port in mido.get_input_names():
+      monitor.info(port)
+    monitor.info('------ MIDI OUTPUT ------')
+    for port in mido.get_output_names():
+      monitor.info(port)
+    monitor.info('-------------------------')
+
     # get the options from the configuration file
     push        = patch.getint('button', 'push',    multiple=True)      # push-release button
     toggle1     = patch.getint('button', 'toggle1', multiple=True)      # on-off button
@@ -109,24 +118,15 @@ def _start():
     mididevice_input  = process.extractOne(mididevice_input, mido.get_input_names())[0] # select the closest match
     mididevice_output = process.extractOne(mididevice_output, mido.get_output_names())[0] # select the closest match
 
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ INPUT ------')
-    for port in mido.get_input_names():
-      monitor.info(port)
-    monitor.info('------ OUTPUT ------')
-    for port in mido.get_output_names():
-      monitor.info(port)
-    monitor.info('-------------------------')
-
     try:
         inputport = mido.open_input(mididevice_input)
-        monitor.info("Connected to MIDI input")
+        monitor.success("Connected to MIDI input")
     except:
         raise RuntimeError("cannot connect to MIDI input")
 
     try:
         outputport = mido.open_output(mididevice_output)
-        monitor.info("Connected to MIDI output")
+        monitor.success("Connected to MIDI output")
     except:
         raise RuntimeError("cannot connect to MIDI output")
 

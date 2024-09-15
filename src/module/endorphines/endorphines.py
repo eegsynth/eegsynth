@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import threading
@@ -104,16 +104,16 @@ def _start():
     global patch, name, path, monitor
     global mididevice, outputport, lock, trigger, port, channel, previous_val, previous_port_val
 
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------ MIDI OUTPUT ------')
+    for port in mido.get_output_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+
     # get the options from the configuration file
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
     mididevice = process.extractOne(mididevice, mido.get_output_names())[0]  # select the closest match
-
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ OUTPUT ------')
-    for port in mido.get_output_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
 
     try:
         outputport = mido.open_output(mididevice)

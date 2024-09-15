@@ -27,7 +27,7 @@ import datetime
 import csv
 import serial
 import serial.tools.list_ports
-from fuzzywuzzy import process
+from thefuzz import process
 
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]

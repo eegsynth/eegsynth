@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import threading
@@ -156,6 +156,15 @@ def _start():
     global patch, name, path, monitor
     global note_name, note_code, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
 
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------- MIDI INPUT ------')
+    for port in mido.get_input_names():
+        monitor.info(port)
+    monitor.info('------ MIDI OUTPUT ------')
+    for port in mido.get_output_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+
     # the list of MIDI commands is specific to the implementation for a full-scale keyboard
     # see https://newt.phys.unsw.edu.au/jw/notes.html
     note_name = ['C0', 'Db0', 'D0', 'Eb0', 'E0', 'F0', 'Gb0', 'G0', 'Ab0', 'A0', 'Bb0', 'B0', 'C1', 'Db1', 'D1', 'Eb1', 'E1', 'F1', 'Gb1', 'G1', 'Ab1', 'A1', 'Bb1', 'B1', 'C2', 'Db2', 'D2', 'Eb2', 'E2', 'F2', 'Gb2', 'G2', 'Ab2', 'A2', 'Bb2', 'B2', 'C3', 'Db3', 'D3', 'Eb3', 'E3', 'F3', 'Gb3', 'G3', 'Ab3', 'A3', 'Bb3', 'B3', 'C4', 'Db4', 'D4', 'Eb4', 'E4', 'F4', 'Gb4', 'G4', 'Ab4', 'A4', 'Bb4', 'B4', 'C5', 'Db5', 'D5', 'Eb5', 'E5', 'F5',
@@ -183,15 +192,6 @@ def _start():
     # the output scale and offset are used to map MIDI values to Redis values
     output_scale = patch.getfloat('output', 'scale', default=1. / 127)
     output_offset = patch.getfloat('output', 'offset', default=0)
-
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ INPUT ------')
-    for port in mido.get_input_names():
-        monitor.info(port)
-    monitor.info('------ OUTPUT ------')
-    for port in mido.get_output_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
 
     try:
         inputport = mido.open_input(mididevice)

@@ -19,7 +19,7 @@
 
 import math
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import numpy as np
 import os
 import sys

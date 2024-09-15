@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import threading
@@ -102,6 +102,12 @@ def _start():
     global patch, name, path, monitor
     global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
 
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------ MIDI OUTPUT ------')
+    for port in mido.get_output_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+    
     # the list of MIDI commands is the only aspect that is specific to the Volca Bass
     # see http://media.aadl.org/files/catalog_guides/1444141_chart.pdf
     control_name = ['slide_time', 'expression', 'octave', 'lfo_rate', 'lfo_int', 'vco_pitch1',
@@ -111,12 +117,6 @@ def _start():
                  'Gb5', 'G5', 'Ab5', 'A5', 'Bb5', 'B5', 'C6', 'Db6', 'D6', 'Eb6', 'E6', 'F6', 'Gb6', 'G6', 'Ab6', 'A6', 'Bb6', 'B6', 'C7', 'Db7', 'D7', 'Eb7', 'E7', 'F7', 'Gb7', 'G7', 'Ab7', 'A7', 'Bb7', 'B7', 'C8', 'Db8', 'D8', 'Eb8', 'E8', 'F8', 'Gb8', 'G8', 'Ab8', 'A8', 'Bb8', 'B8', 'C9', 'Db9', 'D9', 'Eb9', 'E9', 'F9', 'Gb9', 'G9', 'Ab9', 'A9', 'Bb9', 'B9', 'C10', 'Db10', 'D10', 'Eb10', 'E10', 'F10', 'Gb10', 'G10', 'Ab10', 'A10', 'Bb10', 'B10']
     note_code = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
                  82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
-
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ OUTPUT ------')
-    for port in mido.get_output_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
 
     # get the options from the configuration file
     midichannel = patch.getint('midi', 'channel') - 1  # channel 1-16 get mapped to 0-15

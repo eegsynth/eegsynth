@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import threading
@@ -102,6 +102,12 @@ def _start():
     global patch, name, path, monitor
     global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
 
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------ MIDI OUTPUT ------')
+    for port in mido.get_output_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+    
     # the list of MIDI commands is the only aspect that is specific to the Volca Beats
     # see http://media.aadl.org/files/catalog_guides/1445131_chart.pdf
     control_name = ['kick_level', 'snare_level', 'lo_tom_level', 'hi_tom_level', 'closed_hat_level', 'open_hat_level', 'clap_level', 'claves_level', 'agogo_level', 'crash_level',
@@ -109,13 +115,6 @@ def _start():
     control_code = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
     note_name = ['kick', 'snare', 'lo_tom', 'hi_tom', 'closed_hat', 'open_hat', 'clap']
     note_code = [36, 38, 43, 50, 42, 46, 39]
-
-
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ OUTPUT ------')
-    for port in mido.get_output_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
 
     # get the options from the configuration file
     midichannel = patch.getint('midi', 'channel') - 1  # channel 1-16 get mapped to 0-15

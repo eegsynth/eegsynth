@@ -44,7 +44,7 @@ dependencies = [
     "bleak",
     "colorama",
     "configparser",
-    "fuzzywuzzy[speedup]",
+    "thefuzz",
     "matplotlib",
     "mido",
     "nilearn",

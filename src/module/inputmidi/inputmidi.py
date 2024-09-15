@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import time
@@ -71,19 +71,20 @@ def _start():
     global patch, name, path, monitor
     global mididevice, output_scale, output_offset, port, inputport
 
+    # this is only for debugging, check which MIDI devices are accessible
+    monitor.info('------- MIDI INPUT ------')
+    for port in mido.get_input_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+    
     # get the options from the configuration file
     mididevice = patch.getstring('midi', 'device')
     mididevice = EEGsynth.trimquotes(mididevice)
+    mididevice = process.extractOne(mididevice, mido.get_input_names())[0]  # select the closest match
 
     # the scale and offset are used to map MIDI values to Redis values
     output_scale = patch.getfloat('output', 'scale', default=1. / 127)  # MIDI values are from 0 to 127
     output_offset = patch.getfloat('output', 'offset', default=0.)    # MIDI values are from 0 to 127
-
-    # this is only for debugging, check which MIDI devices are accessible
-    monitor.info('------ INPUT ------')
-    for port in mido.get_input_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
 
     try:
         inputport = mido.open_input(mididevice)

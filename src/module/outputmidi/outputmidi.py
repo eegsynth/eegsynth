@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import mido
-from fuzzywuzzy import process
+from thefuzz import process
 import os
 import sys
 import threading
@@ -207,12 +207,21 @@ def _start():
     global patch, name, path, monitor
     global mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
+    # this is only for debugging, and to check which MIDI devices are accessible
+    monitor.info('------- MIDI INPUT ------')
+    for port in mido.get_input_names():
+        monitor.info(port)
+    monitor.info('------ MIDI OUTPUT ------')
+    for port in mido.get_output_names():
+        monitor.info(port)
+    monitor.info('-------------------------')
+
     # get the options from the configuration file
     monophonic  = patch.getint('general', 'monophonic', default=1)
     midichannel = patch.getint('midi', 'channel')-1  # channel 1-16 get mapped to 0-15
     mididevice  = patch.getstring('midi', 'device')
     mididevice  = EEGsynth.trimquotes(mididevice)
-    mididevice  = process.extractOne(mididevice, mido.get_output_names())[0] # select the closest match
+    mididevice  = process.extractOne(mididevice, mido.get_output_names())[0]  # select the closest match
 
     # values between 0 and 1 work well for the note duration
     scale_duration  = patch.getfloat('scale', 'duration', default=1)
@@ -220,15 +229,6 @@ def _start():
     # values around 64 work well for the note velocity
     scale_velocity  = patch.getfloat('scale', 'velocity', default=1)
     offset_velocity = patch.getfloat('offset', 'velocity', default=0)
-
-    # this is only for debugging, and to check which MIDI devices are accessible
-    monitor.info('------ INPUT ------')
-    for port in mido.get_input_names():
-        monitor.info(port)
-    monitor.info('------ OUTPUT ------')
-    for port in mido.get_output_names():
-        monitor.info(port)
-    monitor.info('-------------------------')
 
     try:
         outputport = mido.open_output(mididevice)
