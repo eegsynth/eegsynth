@@ -156,14 +156,17 @@ def _start():
     global patch, name, path, monitor
     global note_name, note_code, midichannel, mididevice, input_scale, input_offset, scale_velocity, scale_pitch, scale_duration, offset_velocity, offset_pitch, offset_duration, output_scale, output_offset, port, inputport, outputport, lock, trigger, code, onset, velocity, pitch, duration, thread
 
-    # this is only for debugging, check which MIDI devices are accessible
+    # check which MIDI devices are accessible
     monitor.info('------- MIDI INPUT ------')
+    if not len(mido.get_input_names()):
+        raise RuntimeError("no MIDI input devices found")
     for port in mido.get_input_names():
         monitor.info(port)
     monitor.info('------ MIDI OUTPUT ------')
+    if not len(mido.get_output_names()):
+        raise RuntimeError("no MIDI output devices found")
     for port in mido.get_output_names():
         monitor.info(port)
-    monitor.info('-------------------------')
 
     # the list of MIDI commands is specific to the implementation for a full-scale keyboard
     # see https://newt.phys.unsw.edu.au/jw/notes.html

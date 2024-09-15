@@ -71,8 +71,10 @@ def _start():
     global patch, name, path, monitor
     global mididevice, output_scale, output_offset, port, inputport
 
-    # this is only for debugging, check which MIDI devices are accessible
+    # check which MIDI devices are accessible
     monitor.info('------- MIDI INPUT ------')
+    if not len(mido.get_input_names()):
+        raise RuntimeError("no MIDI input devices found")
     for port in mido.get_input_names():
         monitor.info(port)
     monitor.info('-------------------------')

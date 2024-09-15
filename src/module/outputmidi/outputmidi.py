@@ -208,13 +208,11 @@ def _start():
     global mididevice, port, previous_note, trigger_name, trigger_code, code, trigger, this, thread, control_name, control_code, previous_val, duration_note, lock, midichannel, monitor, monophonic, offset_duration, offset_velocity, outputport, scale_duration, scale_velocity, velocity_note
 
     # this is only for debugging, and to check which MIDI devices are accessible
-    monitor.info('------- MIDI INPUT ------')
-    for port in mido.get_input_names():
-        monitor.info(port)
     monitor.info('------ MIDI OUTPUT ------')
+    if not len(mido.get_output_names()):
+        raise RuntimeError("no MIDI output devices found")
     for port in mido.get_output_names():
         monitor.info(port)
-    monitor.info('-------------------------')
 
     # get the options from the configuration file
     monophonic  = patch.getint('general', 'monophonic', default=1)

@@ -76,17 +76,19 @@ def _start():
     global patch, name, path, monitor
     global push, toggle1, toggle2, toggle3, toggle4, slap, model, scale_note, scale_control, offset_note, offset_control, port, mididevice_input, mididevice_output, inputport, Off, Red_Full, Amber_Full, Yellow_Full, Green_Full, ledcolor, note_list, status_list, note, state0change, state0color, state0value, state1change, state1color, state1value, state2change, state2color, state2value, state3change, state3color, state3value, state4change, state4color, state4value, state5change, state5color, state5value, midichannel, outputport
 
-    # this is only for debugging, check which MIDI devices are accessible
+    # check which MIDI devices are accessible
     monitor.info('------- MIDI INPUT ------')
+    if not len(mido.get_input_names()):
+        raise RuntimeError("no MIDI input devices found")
     for port in mido.get_input_names():
         monitor.info(port)
     monitor.info('------ MIDI OUTPUT ------')
+    if not len(mido.get_output_names()):
+        raise RuntimeError("no MIDI output devices found")
     for port in mido.get_output_names():
         monitor.info(port)
-    monitor.info('-------------------------')
 
     # get the options from the configuration file
-    debug       = patch.getint('general','debug')
     push        = patch.getint('button', 'push',    multiple=True)    # push-release button
     toggle1     = patch.getint('button', 'toggle1', multiple=True)    # on-off button
     toggle2     = patch.getint('button', 'toggle2', multiple=True)    # on1-on2-off button

@@ -102,11 +102,12 @@ def _start():
     global patch, name, path, monitor
     global control_name, control_code, note_name, note_code, port, midichannel, mididevice, outputport, scale, offset, lock, trigger, code, this, thread, previous_val
 
-    # this is only for debugging, check which MIDI devices are accessible
+    # check which MIDI devices are accessible
     monitor.info('------ MIDI OUTPUT ------')
+    if not len(mido.get_output_names()):
+        raise RuntimeError("no MIDI output devices found")
     for port in mido.get_output_names():
         monitor.info(port)
-    monitor.info('-------------------------')
     
     # the list of MIDI commands is the only aspect that is specific to the Volca Bass
     # see http://media.aadl.org/files/catalog_guides/1444141_chart.pdf
