@@ -1,3 +1,6 @@
+# This is a collection of classes and methods that are shared by the EEGsynth modules 
+# and application.
+#
 # This software is part of the EEGsynth project, see <https://github.com/eegsynth/eegsynth>.
 #
 # Copyright (C) 2023-2024 EEGsynth project
@@ -20,7 +23,7 @@ from __future__ import print_function
 import os
 import sys
 
-# exclude some eegsynth/module directories from the path
+# exclude some eegsynth/src/module directories from the path
 for i, dir in enumerate(sys.path):
     if dir.endswith(os.path.join('module', 'redis')):
         del sys.path[i]

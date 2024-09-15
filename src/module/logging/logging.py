@@ -22,7 +22,7 @@
 import os
 import sys
 
-# exclude the eegsynth/module/logging directory from the path
+# exclude the eegsynth/src/module/logging directory from the path
 for i, dir in enumerate(sys.path):
     if dir.endswith(os.path.join('module', 'logging')):
         del sys.path[i]

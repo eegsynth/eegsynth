@@ -22,6 +22,12 @@
 import os
 import sys
 
+# exclude the eegsynth/src/module/redis directory from the path
+for i, dir in enumerate(sys.path):
+    if dir.endswith(os.path.join('module', 'redis')):
+        del sys.path[i]
+        continue
+
 if hasattr(sys, 'frozen'):
     path = os.path.split(sys.executable)[0]
     file = os.path.split(__file__)[-1]
