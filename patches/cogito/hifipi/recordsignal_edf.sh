@@ -1,11 +1,11 @@
 #!/bin/bash
 
-DIR=`dirname "$0"`
-NAME=`basename "$0" .sh`
+PATCH=`dirname "$0"`
+MODULE=`basename "$0" .sh`
 
-if [ $DIR == '.' ] ; then 
-  DIR=`pwd`
+if [ $PATCH == '.' ] ; then 
+  PATCH=`pwd`
 fi
 
-cd $HOME/eegsynth/module/recordsignal
-exec ./recordsignal.py -i $DIR/$NAME.ini
+cd $HOME/eegsynth/src/module/recordsignal
+exec ./recordsignal.py -i $PATCH/$MODULE.ini

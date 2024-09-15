@@ -4,68 +4,70 @@ Detailed information about each module can be found in the README.md included in
 
 ## Analysis
 
-- [Spectral](../module/spectral) Analyzes power in frequency bands in the raw data buffer
-- [Muscle](../module/muscle) Calculates RMS from EMG recordings in the raw data buffer
-- [Accelerometer](../module/accelerometer) Extracts accelerometer data (X,Y,Z) from the onboard sensor of the OpenBCI stream in the raw data buffer
-- [Threshold](../module/threshold) Detects event such a eye blinks in the raw data buffer
-- [HeartRate](../module/heartrate) Extracts heart rate in the raw data buffer
+- [Spectral](../src/module/spectral) Analyzes power in frequency bands in the raw data buffer
+- [Muscle](../src/module/muscle) Calculates RMS from EMG recordings in the raw data buffer
+- [Accelerometer](../src/module/accelerometer) Extracts accelerometer data (X,Y,Z) from the onboard sensor of the OpenBCI stream in the raw data buffer
+- [Threshold](../src/module/threshold) Detects event such a eye blinks in the raw data buffer
+- [HeartRate](../src/module/heartrate) Extracts heart rate in the raw data buffer
 
 ## Data acquisition
 
-- [Openbci2ft](../module/openbci2ft) Records raw data from the OpenBCI amplifier and places it in the buffer
-- [Bitalino2ft](../module/bitalino2ft) Records raw data from the Bitalino amplifier and places it in the buffer
-- [Jaga2ft](../module/jaga2ft) Records raw data from the Jaga amplifier and places it in the buffer
-- [Lsl2ft](../module/lsl2ft) Records raw data from Lab Streaming Layer and places it in the buffer
-- [Audio2ft](../module/audio2ft) Records raw data from the computer's audio input and places it in the buffer
-- For more supported acquisition devices [look here](http://www.fieldtriptoolbox.org/development/realtime/implementation)
+- [Audio2ft](../src/module/audio2ft) Records raw data from the computer's audio input and places it in the buffer
+- [Lsl2ft](../src/module/lsl2ft) Records raw data from Lab Streaming Layer and places it in the buffer
+- [Unicorn2ft](../src/module/unicorn2ft) Records raw data from the Unicorn amplifier and places it in the buffer
+- [Openbci2ft](openbci.md) Records raw data from the OpenBCI amplifier and places it in the buffer
+- [Bitalino2ft](../src/module/bitalino2ft) Records raw data from the Bitalino amplifier and places it in the buffer
+
+
+For more supported acquisition devices [look here](http://www.fieldtriptoolbox.org/development/realtime/implementation)
 
 ## Communication between modules
 
-- [Redis](../module/Redis) The database for communicating ccontrol values and messages between modules
-- [Buffer](../module/buffer) FieldTrip buffer for communicating raw data
+- [Redis](../src/module/Redis) The database for communicating ccontrol values and messages between modules
+- [Buffer](../src/module/buffer) FieldTrip buffer for communicating raw data
 
 ## Utilities for optimizing data flow, patching and prototyping
 
-- [Recordsignal](../module/recordsignal) Record raw data to file
-- [Playbacksignal](../module/playbacksignal) Play back pre-recorded raw data
-- [Plotsignal](../module/plotsignal) Plot raw data
-- [Plotspectral](../module/plotspectral) Plot spectrum of raw data
-- [Recordcontrol](../module/recordcontrol) Record control values from Redis to file
-- [Playbackcontrol](../module/playbackcontrol) Play back pre-recorded control values
-- [Plotcontrol](../module/plotcontrol) Plot control signals from Redis
-- [Postprocessing](../module/postprocessing) Allows computations, algorithms and combinations on the control values
-- [Preprocessing](../module/preprocessing) Filtering and preprocessing of raw data, results get written to another raw data buffer
-- [Plottrigger](../module/plottrigger) Plot pub/sub events from Redis
-- [Processtrigger](../module/processtrigger) Allows computations, algorithms and combinations on the pub/sub events
+- [Recordsignal](../src/module/recordsignal) Record raw data to file
+- [Playbacksignal](../src/module/playbacksignal) Play back pre-recorded raw data
+- [Plotsignal](../src/module/plotsignal) Plot raw data
+- [Plotspectral](../src/module/plotspectral) Plot spectrum of raw data
+- [Recordcontrol](../src/module/recordcontrol) Record control values from Redis to file
+- [Playbackcontrol](../src/module/playbackcontrol) Play back pre-recorded control values
+- [Plotcontrol](../src/module/plotcontrol) Plot control signals from Redis
+- [Postprocessing](../src/module/postprocessing) Allows computations, algorithms and combinations on the control values
+- [Preprocessing](../src/module/preprocessing) Filtering and preprocessing of raw data, results get written to another raw data buffer
+- [Plottrigger](../src/module/plottrigger) Plot pub/sub events from Redis
+- [Processtrigger](../src/module/processtrigger) Allows computations, algorithms and combinations on the pub/sub events
 
 # Modules that relate to timing and regular sequences
 
-- [Sequencer](../module/sequencer) Play a monophonic sequence as pub/sub events
-- [Generatetrigger](../module/generatetrigger) Generate pub/sub events at regular intervals
-- [Clockdivider](../module/clockdivider) Pass every N-th trigger of a regular stream of pub/sub events
-- [Clockmultiplier](../module/clockmultiplier) Generate N triggers for each trigger in a regular stream of pub/sub events
-- [Delaytrigger](../module/delaytrigger) Following a pub/sub event, generate a new trigger after a given delay.
+- [Sequencer](../src/module/sequencer) Play a monophonic sequence as pub/sub events
+- [Generatetrigger](../src/module/generatetrigger) Generate pub/sub events at regular intervals
+- [Clockdivider](../src/module/clockdivider) Pass every N-th trigger of a regular stream of pub/sub events
+- [Clockmultiplier](../src/module/clockmultiplier) Generate N triggers for each trigger in a regular stream of pub/sub events
+- [Delaytrigger](../src/module/delaytrigger) Following a pub/sub event, generate a new trigger after a given delay.
 
 ## External interfaces (generic software)
 
-- [InputMIDI](../module/inputmidi) Receive MIDI signals
-- [OutputMIDI](../module/outputmidi) Send MIDI signals
-- [InputOSC](../module/inputosc) Receive data from [Open Sound Control](http://opensoundcontrol.org/introduction-osc) protocol
-- [OutputOSC](../module/outputosc) Send data via [Open Sound Control](http://opensoundcontrol.org/introduction-osc) protocol
-- [InputAudio](../module/InputAudio) Receive (sound) from soundcard
-- [OutputAudio](../module/outputaudio) Send (sound) to soundcard
-- [OutputArtNet](../module/outputartnet) Send data according to [Art-Net protocol](https://en.wikipedia.org/wiki/Art-Net)
+- [InputMIDI](../src/module/inputmidi) Receive MIDI signals
+- [OutputMIDI](../src/module/outputmidi) Send MIDI signals
+- [InputOSC](../src/module/inputosc) Receive data from [Open Sound Control](http://opensoundcontrol.org/introduction-osc) protocol
+- [OutputOSC](../src/module/outputosc) Send data via [Open Sound Control](http://opensoundcontrol.org/introduction-osc) protocol
+- [InputAudio](../src/module/InputAudio) Receive (sound) from soundcard
+- [OutputAudio](../src/module/outputaudio) Send (sound) to soundcard
+- [OutputArtNet](../src/module/outputartnet) Send data according to [Art-Net protocol](https://en.wikipedia.org/wiki/Art-Net)
 
 ## External interfaces (consumer hardware)
 
-- [LaunchControl](../module/launchcontrol) Records and send data to the Novation [LaunchControl](https://global.novationmusic.com/launch/launch-control) and [LaunchControl XL](https://global.novationmusic.com/launch/launch-control-xl) MIDI controllers
-- [LaunchPad](../module/launchpad) Record and send data to the Novation [Launchpad](https://global.novationmusic.com/launch/launchpad) MIDI controller
-- [VolcaBass](../module/volcabass) Interface with the Korg [Volca Bass](http://www.korg.com/us/products/dj/volca_bass/) synthesizer
-- [VolcaBeats](../module/volcabeats) Interface with the Korg [Volca Beats](http://www.korg.com/us/products/dj/volca_beats/) synthesizer
-- [VolcaKeys](../module/volcakeys) Interface with the Korg [Volca Keys](http://www.korg.com/us/products/dj/volca_keys/) synthesizer
-- [Endorphines](../module/endorphines) Interface with Endorphines’ [Shuttle Control](https://endorphin.es/endorphin.es--modules.html) MIDI to CV module
-- [Keyboard](../module/keyboard) Records MIDI keyboard note and velocity input
-- [OutputDMX](../module/outputdmx) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
+- [LaunchControl](../src/module/launchcontrol) Records and send data to the Novation [LaunchControl](https://global.novationmusic.com/launch/launch-control) and [LaunchControl XL](https://global.novationmusic.com/launch/launch-control-xl) MIDI controllers
+- [LaunchPad](../src/module/launchpad) Record and send data to the Novation [Launchpad](https://global.novationmusic.com/launch/launchpad) MIDI controller
+- [VolcaBass](../src/module/volcabass) Interface with the Korg [Volca Bass](http://www.korg.com/us/products/dj/volca_bass/) synthesizer
+- [VolcaBeats](../src/module/volcabeats) Interface with the Korg [Volca Beats](http://www.korg.com/us/products/dj/volca_beats/) synthesizer
+- [VolcaKeys](../src/module/volcakeys) Interface with the Korg [Volca Keys](http://www.korg.com/us/products/dj/volca_keys/) synthesizer
+- [Endorphines](../src/module/endorphines) Interface with Endorphines’ [Shuttle Control](https://endorphin.es/endorphin.es--modules.html) MIDI to CV module
+- [Keyboard](../src/module/keyboard) Records MIDI keyboard note and velocity input
+- [OutputDMX](../src/module/outputdmx) Send data according to [DMX512 protocol](https://en.wikipedia.org/wiki/DMX512)
 
 ## External interfaces (DIY hardware)
 
@@ -74,10 +76,10 @@ Detailed information about each module can be found in the README.md included in
 
 ## Software synthesizer modules
 
-- [Generateclock](../module/generateclock) Generate clock signals, i.e. for gates or for MIDI
-- [Sequencer](../module/sequencer) A basis sequencer to send out sequences of notes
-- [Synthesizer](../module/synthesizer) A basic synthesizer to send our waveforms
-- [Quantizer](../module/quantizer) Quantize output chromatically or according to musical scales
+- [Generateclock](../src/module/generateclock) Generate clock signals, i.e. for gates or for MIDI
+- [Sequencer](../src/module/sequencer) A basis sequencer to send out sequences of notes
+- [Synthesizer](../src/module/synthesizer) A basic synthesizer to send our waveforms
+- [Quantizer](../src/module/quantizer) Quantize output chromatically or according to musical scales
 
 ## Cogito project
 

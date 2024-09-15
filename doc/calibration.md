@@ -6,17 +6,16 @@ To facilitate the interoperability between modules, we follow the convention tha
 
 Some of the control values are not bounded, e.g., when spectral power is computed from the EEG signal. To use such control signals, they need to be calibrated and rescaled to predictable values using one of the following modules:
 
-- The [postprocessing module](../module/compressor) to linearly or non-linearly transform control values.
-- The [compressor module](../module/compressor) to compress or expand control values.
-- The [historycontrol module](../module/historycontrol) to calculate properties from the history of control values,
-  such as the median and the standard deviation, using a sliding window. Can be used together with the [postprocessing module](../module/postprocessing) for dynamic scaling between the minimum and maximum values.
-- The [quantizer module](../module/quantizer) to map continuous values onto a predefined discrete scale.
+- The [postprocessing module](../src/module/postprocessing) to linearly or non-linearly transform control values.
+- The [compressor module](../src/module/compressor) to compress or expand control values.
+- The [historycontrol module](../src/module/historycontrol) to calculate properties from the history of control values, such as the median and the standard deviation, using a sliding window. Can be used together with the [postprocessing module](../src/module/postprocessing) for dynamic scaling between the minimum and maximum values.
+- The [quantizer module](../src/module/quantizer) to map continuous values onto a predefined discrete scale.
 
 ## Control Voltage range for external hardware devices
 
 ### Endorphins Shuttle Control
 
-The EEGsynth uses the [Endorphines Shuttle Control](https://www.modulargrid.net/e/endorphin-es-shuttle-control) optimally with the +/-5V pitchweel setting, which is the maximum range supported by the Shuttle Control. For more info see [this blogpost](http://www.eegsynth.org/?p=480) as well as [the readme](../module/endorphines/README.md). Through the endorphines .ini the output control voltage can be restricted to 0-5V.
+The EEGsynth uses the [Endorphines Shuttle Control](https://www.modulargrid.net/e/endorphin-es-shuttle-control) optimally with the +/-5V pitchweel setting, which is the maximum range supported by the Shuttle Control. For more info see [this blogpost](http://www.eegsynth.org/?p=480) as well as [the readme](../src/module/endorphines/README.md). Through the endorphines `.ini` the output control voltage can be restricted to 0-5V.
 
 ### Doepfer MIDI to CV/Gate interfaces
 

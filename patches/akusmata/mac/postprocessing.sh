@@ -7,6 +7,6 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
 MODULE=`basename $0 .sh`
 
 EEGSYNTH=$HOME/eegsynth
-INIDIR=`dirname $0`
+PATCH=`dirname $0`
 
-$EEGSYNTH/module/$MODULE/$MODULE.py -i $INIDIR/$MODULE.ini
+$EEGSYNTH/src/module/$MODULE/$MODULE.py -i $PATCH/$MODULE.ini

@@ -1,13 +1,12 @@
 # General installation instructions
 
-The EEGsynth software is developed to be executed from the command line terminal. This works smoothly on Linux and macOS (for those used to it), but it also works on Windows.
+The EEGsynth software is developed to be installed and started from the command-line terminal. This works smoothly on Linux and macOS (for those used to it), but it also works on Windows.
 
 The first section consists of the installation of the dependencies, i.e. the external software that EEGsynth builds on.
 
-
 ## Using Anaconda
 
-We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in its installation instruction how to install it. Once you installed conda, you should create a new environment, install some larger dependencies as binaries using `conda install`, and subsequently install EEGsynth using `pip install`.
+We recommend that you use [Anaconda](https://www.anaconda.com) to install Python. Please look in its installation instruction how to install it. Once you have installed conda, you should create a new environment, install some larger dependencies as binaries using `conda install`, and subsequently install EEGsynth using `pip install`.
 
 ```
 conda create -y -n eegsynth python=3.10
@@ -46,10 +45,10 @@ git clone https://github.com/eegsynth/eegsynth.git
 
 Start redis, buffer, and generatesignal.
 
-Add the FieldTrip Python module to the PYTHONPATH, where \$EEGSYNTHPATH is the eegsynth base folder.
+Add the FieldTrip Python module to the PYTHONPATH, where `$EEGSYNTHPATH` is the EEGsynth base folder.
 
 ```
-export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/lib
+    export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/src/lib
 ```
 
 Then, in a Python console:
@@ -67,7 +66,7 @@ Wait some time and then you can plot the EEG signals:
 
 ```
 import matplotlib.pyplot as plt
-import scipy.signal
+import scipy
 
 d = c.getData()
 y = scipy.signal.detrend(d[-2500:,:])

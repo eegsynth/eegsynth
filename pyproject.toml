@@ -1,0 +1,79 @@
+[build-system]
+requires        = ['setuptools >= 62.2.0', 'wheel']
+build-backend   = 'setuptools.build_meta'
+
+[project]
+name = "eegsynth"
+version = "0.8.0"
+description = "Converting real-time EEG into sounds, music and visual effects"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Robert Oostenveld", email = "r.oostenveld@gmail.com" },
+]
+keywords = [
+    "BCI",
+    "ECG",
+    "EEG",
+    "EMG",
+    "EOG",
+    "ExG",
+    "art",
+    "brain",
+    "brain-computer interface",
+    "music",
+    "real-time",
+    "sonification",
+    "sound",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Artistic Software",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "bleak",
+    "colorama",
+    "configparser",
+    "fuzzywuzzy[speedup]",
+    "matplotlib",
+    "mido",
+    "nilearn",
+    "numpy",
+    "opencv-python",
+    "paho-mqtt",
+    "pandas",
+    "pyaudio",
+    "pylsl",
+    "PyQt5",
+    "pyqtgraph",
+    "pyserial",
+    "pyzmq",
+    "redis",
+    "scikit-learn",
+    "scipy",
+    "termcolor",
+    "toml",
+    "wiringpi; platform_machine == 'armv7l'",
+    "pyOSC; python_version < '3.5'",
+    "python-osc; python_version >= '3.5'"
+]
+
+[project.scripts]
+eegsynth = "eegsynth.eegsynth:_executable"
+
+[project.urls]
+Homepage = "http://www.eegsynth.org"
+Documentation = "https://github.com/eegsynth/eegsynth/blob/master/doc/README.md"
+Source = "https://github.com/eegsynth/eegsynth/"
+Tracker = "https://github.com/eegsynth/eegsynth/issues"
+

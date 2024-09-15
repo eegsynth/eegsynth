@@ -39,9 +39,9 @@ cd MidiOSC
 scons
 ```
 
-The _pyliblo_ Pthon package is only needed for testing the example.py script provided in MidiOSC.
+The `pyliblo` Pthon package is only needed for testing the `example.py` script provided in MidiOSC.
 
-I had to make the following changes to the SConstruct file to deal with the liblo header and library being in /opt/local, which is the default place for macports.
+I had to make the following changes to the `SConstruct` file to deal with the `liblo` header and library being in `/opt/local`, which is the default place where macports installs it.
 
 ```
 diff --git a/SConstruct b/SConstruct

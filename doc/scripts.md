@@ -4,7 +4,7 @@ The EEGsynth is designed as a collection of [modules](design.md), where each mod
 
 ## Starting the scripts
 
-The core of each modules consist of a single [Python](https://python.org) script. These scripts are executed in their own terminal window (or tab), with the `-i` option followed by the name of their [ini file](inifile.md).
+The core of each modules consist of a single [Python](https://python.org) script that can be executed by itself in its own terminal window (or tab), with the `-i` option followed by the name of their [ini file](inifile.md).
 
 For example:
 
@@ -12,7 +12,7 @@ For example:
 python launchcontrol.py -i ../../patches/launchcontrol.ini
 ```
 
-If the script is run without the `-i` option, it will default to the ini file in the current directory with the same name as the module. As explained [here](patching.md), we strongly advice you to place your edited [ini files](inifile.md) in a separate patch directory to keep your patches organized and free from conflicts with the EEGsynth repository.
+If the script is run without the `-i` option, it will default to the `.ini` file in the current directory with the same name as the module. As explained [here](patching.md), we strongly advice you to place your edited [ini files](inifile.md) in a separate patch directory to keep your patches organized and free from conflicts with the EEGsynth repository.
 
 ## Design of the scripts
 
@@ -29,7 +29,7 @@ Each script is prefaced with a commented text explaining it's functionality, as 
 #
 # This software is part of the EEGsynth project, see https://github.com/eegsynth/eegsynth
 #
-# Copyright (C) 2017-2022 EEGsynth project
+# Copyright (C) 2017-2024 EEGsynth project
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ Each script is prefaced with a commented text explaining it's functionality, as 
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ```
 
-(From [generatecontrol.py](../module/generatecontrol/generatecontrol.py))
+(From [generatecontrol.py](../src/module/generatecontrol/generatecontrol.py))
 
 ### Importing libraries
 
@@ -75,12 +75,12 @@ else:
     file = os.path.split(__file__)[-1]
     name = os.path.splitext(file)[0]
 
-# eegsynth/lib contains shared modules
-sys.path.insert(0, os.path.join(path,'../../lib'))
+# the lib directory contains shared code
+sys.path.append(os.path.join(path,'../../lib'))
 import EEGsynth
 ```
 
-(From [generatecontrol.py](../module/generatecontrol/generatecontrol.py))
+(From [generatecontrol.py](../src/module/generatecontrol/generatecontrol.py))
 
 ### The patch object
 
@@ -88,9 +88,7 @@ What follows is a couple of lines of code that read and combine settings from bo
 
 - Values can be set by both the ini file and by Redis. None take priority - the last edit remains.
 - Any (running) module can set values in Redis, so multiple modules can read and write to Redis, allowing many-to-many interactions.
-- Rather than values, the ini file can specify the name (a string) of anosther Redis key/attribute.
-  In this way, one can have a values set by the result of an EEG analysis (e.g.: _spectral.channel1.alpha_)
-  or the knob of a MIDI controller (e.g.: _launchcontrol.control077_).
+- Rather than values, the ini file can specify the name (a string) of anosther Redis key/attribute. In this way, one can have a values set by the result of an EEG analysis (e.g.: _spectral.channel1.alpha_) or the knob of a MIDI controller (e.g.: _launchcontrol.control077_).
 - When a value is empty, the _patch object_ returns the default value set in the code.
 
 We try to permit _all_ dynamic values to be set dynamically like this, which is very conveniently
@@ -120,7 +118,7 @@ stepsize          = patch.getfloat('generate', 'stepsize') # in seconds
 
 ```
 
-(From [generatecontrol.py](../module/generatecontrol/generatecontrol.py))
+(From [generatecontrol.py](../src/module/generatecontrol/generatecontrol.py))
 
 ### Connecting to MIDI devices
 
@@ -137,7 +135,7 @@ except:
     raise RuntimeError("cannot connect to MIDI output")
 ```
 
-(From [generateclock.py](../module/generateclock/generateclock.py))
+(From [generateclock.py](../src/module/generateclock/generateclock.py))
 
 Sending MIDI is done using the [MIDO](https://mido.readthedocs.org) library:
 
@@ -145,7 +143,7 @@ Sending MIDI is done using the [MIDO](https://mido.readthedocs.org) library:
 midiport.send(mido.Message('stop'))
 ```
 
-To read MIDI input, please take as an example the [launchcontrol module](../module/launchcontrol)
+To read MIDI input, please take as an example the [launchcontrol module](../src/module/launchcontrol)
 
 ### Connecting to the FieldTrip buffer
 
@@ -169,7 +167,6 @@ try:
 except:
     raise RuntimeError("cannot connect to FieldTrip buffer")
 ```
-
 
 To wait until there is _any_ data we can wait until the data header is available:
 
@@ -211,7 +208,7 @@ begsample = endsample-window+1
 D = ftc.getData([begsample, endsample])
 ```
 
-(From [spectral.py](../module/spectral/spectral.py))
+(From [spectral.py](../src/module/spectral/spectral.py))
 
 ### Printing feedback to terminal
 
@@ -224,7 +221,7 @@ if debug > 1:
     print("update", update)
 ```
 
-(From [generatecontrol.py](../module/generatecontrol/generatecontrol.py))
+(From [generatecontrol.py](../src/module/generatecontrol/generatecontrol.py))
 
 ### Main loop
 
@@ -258,7 +255,7 @@ while True:
         time.sleep(naptime)
 ```
 
-(From [generatecontrol.py](../module/generatecontrol/generatecontrol.py))
+(From [generatecontrol.py](../src/module/generatecontrol/generatecontrol.py))
 
 ### Writing to Redis
 
@@ -270,7 +267,7 @@ Setting a value in Redis using the _patch() obect_ is as simple as:
 patch.setvalue(key, value)
 ```
 
-For example (from [generatesignal.py](../module/generatesignal/generatesignal.py)):
+For example (from [generatesignal.py](../src/module/generatesignal/generatesignal.py)):
 
 ```
 key = patch.getstring('output', 'prefix') + '.sin'
@@ -337,10 +334,10 @@ except (KeyboardInterrupt, RuntimeError) as e:
     sys.exit()
 ```
 
-(From [generateclock.py](../module/generateclock/generateclock.py))
+(From [generateclock.py](../src/module/generateclock/generateclock.py))
 
 ### ADVANCED: Using publish/subscribe
 
-For examples on pub/sub, take a look at the [keyboard module](../module/keyboard) and [launchcontrol module](../module/launchcontrol).
+For examples on pub/sub, take a look at the [keyboard module](../src/module/keyboard) and [launchcontrol module](../src/module/launchcontrol).
 
 _Continue reading: [ini files](inifile.md)_

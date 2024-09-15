@@ -9,23 +9,18 @@ _Boxes depict EEGsynth modules. Orange arrows describe time-series data. Blue ar
 
 After installation of the EEGsynth, the Redis database should be running in the background at startup. To check whether Redis is working you can monitor Redis while adding and reading 'key-value' pairs. For the purpose of the tutorial we will use the LaunchControl MIDI controller to enter values from the LaunchControl to Redis. If you do not have a Launchcontrol, you can enter values by hand. We will discuss this as well (just skip this part).
 
-1.  Navigate to launchcontrol module directory _/eegsynth/module/launchcontrol_
-2.  Copy the _launchcontrol.ini_ to your own ini directory (e.g., to _/eegsynth/myfirstpatch_, which would be in
-    _../../myfirstpatch_ relative to the launchcontrol module directory)
-3.  Start up the launchcontrol module, using your own ini file:
-    `python launchcontrol.py -i ../../myfirstpatch/launchcontrol.ini`
-4.  You will see the connected MIDI devices printed in the terminal. If you have not set up the .ini
-    file correctly yet, read out the MIDI device name from the output, and replace the device name, e.g.
-    `device=Launch Control` under the `[midi]` field of your .ini file.
-5.  Now restart the launchcontrol module. If everything is working correctly, a move of any of the
-    sliders will print a key-value pair in the terminal.
+1. Navigate to launchcontrol module directory `~/eegsynth/src/module/launchcontrol`
+2. Copy the `launchcontrol.ini` to your own ini directory, for example to `~/eegsynth/patches/myfirstpatch`
+3. Start up the launchcontrol module, using your own ini file: `python launchcontrol.py -i ~/eegsynth/patches/myfirstpatch/launchcontrol.ini`
+4. You will see the connected MIDI devices printed in the terminal. If you have not set up the `.ini` file correctly yet, read out the MIDI device name from the output, and replace the device name, e.g., `device=Launch Control` under the `[midi]` section of your `.ini` file.
+5. Now restart the launchcontrol module. If everything is working correctly, a move of any of the sliders will print a key-value pair in the terminal.
 
 You can also add values to Redis directly in Python:
 
-1.  Start up Python, i.e. type `python` in the terminal
-2.  Import Redis, i.e. type `import r as Redis`
-3.  Set a key-value pair, by typing `r.set('test_key','10')`
-4.  Read a key-value pair, by typing `r.set('test_key')`
+1. Start up Python, i.e. type `python` in the terminal
+2. Import Redis, i.e. type `import r as Redis`
+3. Set a key-value pair, by typing `r.set('test_key','10')`
+4. Read a key-value pair, by typing `r.set('test_key')`
 
 ## Patching the plotsignal module
 
@@ -38,7 +33,7 @@ First determine which launchcontrol sliders/rotators you want to use by moving t
 - launchcontrol.control014 will determine the center frequency of blue band
 - launchcontrol.control030 will determine the half-width of blue band
 
-Then edit your _plotsignal.ini_ file to enter these as parameters as follows under `[input]`:
+Then edit your `plotsignal.ini` file to enter these as parameters as follows under `[input]`:
 
 ```
 redfreq=launchcontrol.control013

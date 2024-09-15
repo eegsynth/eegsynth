@@ -3,9 +3,9 @@
 MODULE=`basename $0 .sh`
 
 EEGSYNTH=$HOME/eegsynth
-INIDIR=`dirname $0`
+PATCH=`dirname $0`
 
-# $EEGSYNTH/module/$MODULE/$MODULE.sh -i $INIDIR/$MODULE.ini
+# $EEGSYNTH/src/module/$MODULE/$MODULE.sh -i $PATCH/$MODULE.ini
 
 # the redis.conf contains details on the bind address, writing the database to disk, etc.
 
