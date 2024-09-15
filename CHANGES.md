@@ -1,26 +1,51 @@
 # Changes
 
+## Sep 15, 2024
+
+- reorganized the Python code in a src/eegsynth, src/lib and src/modules directory
+- switched from setup.py to pyproject.toml, which now also includes the version number
+- released 0.8.0 with the automatic publish.yml GitHub action
+
+## Jun 13, 2024
+
+- implemented first patch for Perplexity in Ghent (June 2024)
+- fixed gyro channels
+- released version 0.7.8
+
+## 28 Jan, 2024
+
+- update from pyqtgraph 0.12 to most recent (0.13.3) version
+- do not import Qt objects through pyqtgraph, making an explicit pg.GraphicsLayoutWidge
+- workaround for numpy.float64 error in pyqtgraph 0.12, typecast to int
+- released version 0.7.7
+
 ## Aug 27, 2023
+
 - merged the eegsynth and eegsynth-gui applications and added the --gui option
 - removed bitalino from default installation, as its dependency PyBluez won't compile
 - released 0.7.6 with the combined graphical user interface
 
 ## May 17, 2023
+
 - moved the hardware documentation to its own repository
 - removed the non-Python binaries and scripts
 
 ## May 14, 2023
+
 - released 0.7.5 with working eegsynth and eegsynth-gui command-line executables
 
 ## May 13, 2023
+
 - released 0.7.0 up to 0.7.4 including eegsynth-gui and pepipiaf, logging and plottext modules
 - the packaged versions 0.7.0 to 0.7.4 all had some problems with the command-line executables and/or dependencies
 
 ## May 10, 2023
+
 - implemented plottext module to track slowly changing control values
 - improvements to pepipiaf module
 
 ## May 7, 2023
+
 - implemented pepipiaf module
 
 ## Apr 30, 2023
