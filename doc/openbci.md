@@ -2,6 +2,10 @@
 
 We frequently make use of [OpenBCI](https://openbci.com) boards to record EEG (brain), ECG (heart) or EMG (muscle) signals. Although the boards are commercially available, they are mainly aimed at hackers/makers, very flexible and not so user-friendly. This documentation contains a short summary of the configuration we use.
 
+## Getting data into the EEGsynth
+
+We either use the compiled [openbci2ft](https://www.fieldtriptoolbox.org/development/realtime/openbci/) executable that is part of the FieldTrip software, or we use the OpenBCI graphical user interface with LSL combined with the [lsl2ft](../src/module/lsl2ft) module.
+
 ## Hardware overview
 
 The OpenBCI hardware comes in different varieties, and with different interfaces for data transfer. The main distinction is between the original 8-channel Cyton board and the 4-channel Ganglion board. The Cyton board can be extended to 16 channels using the Daisy module. Both the Cyton and Ganglion can be combined with the WiFi shield.

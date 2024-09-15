@@ -8,7 +8,9 @@ The default MTU size for the loopback interface on Linux has been increased over
 
 You can change the MTU size with
 
-    sudo ifconfig lo mtu 1500
+```
+sudo ifconfig lo mtu 1500
+```
 
 The value of 1500 bytes is default on the other (networked) interfaces, and happens to be the upper limit for network routers that do not support [jumbo frames](https://en.wikipedia.org/wiki/Jumbo_frame). It is a value that works well for local data transfer, allowing for a smooth transfer of approximately 1.000.000 samples per second, corresponding to for example 1 channel at 1MHz, 20 channels at 48KHz (audio) or 1000 channels at 1KHz.
 

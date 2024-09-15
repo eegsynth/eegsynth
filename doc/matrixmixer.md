@@ -1,12 +1,12 @@
 # Matrix mixer
 
-A matrix mixer allows flexible reconfiguration of the patching while all modules are running. This was already used in the [EMS VCS3](https://en.wikipedia.org/wiki/EMS_VCS_3) analog synthesizer in 1969. Here is a more recent example of the Erica Synths [matrix mixer](http://www.ericasynths.lv/en/shop/eurorack-modules/by-series/basic-series/matrix-mixer/):
+A matrix mixer allows flexible reconfiguration of a patch while all modules are running. This was already used in the [EMS VCS3](https://en.wikipedia.org/wiki/EMS_VCS_3) analog synthesizer in 1969. Here is a more recent example of the Erica Synths [matrix mixer](http://www.ericasynths.lv/en/shop/eurorack-modules/by-series/basic-series/matrix-mixer/):
 
 ![matrix mixer](figures/erica_synths_matrix_mixer.jpg)
 
 The [MTX9](http://www.futuresoundsystems.co.uk/mtx9.html) from Future Sound Systems is another nice example, which even comes with a dry-wipe marker to write the labels on the module.
 
-In the EEGsynth the matrix mixer can be implemented using the combination of the [Novation Launchpad](https://novationmusic.com/launch/launchpad) and postprocessing modules. The corresponding `postprocessing.ini` would look like this
+A matrix mixer can be implemented using EEGsynth with the combination of the [Novation Launchpad](https://novationmusic.com/launch/launchpad) and postprocessing modules. The corresponding `postprocessing.ini` would look like this
 
 ```
 [input]

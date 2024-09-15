@@ -20,7 +20,7 @@ The EEGsynth uses the [FieldTrip buffer](buffer.md) to communicate data (e.g., s
 
 ## `[redis]`
 
-The EEGsynth uses a [Redis database](http://Redis.io/) to communicate _control signals_, which are any discrete values that are set and read by the modules. Note that the following settings have to be consistent with the configuration of the Redis server (see [installation](installation.md)).
+The EEGsynth uses a [Redis database](https://redis.io) to communicate _control signals_, which are any discrete values that are set and read by the modules. Note that the following settings have to be consistent with the configuration of the Redis server (see [installation](installation.md)).
 
 `hostname` specifies the location of the FieldTrip buffer server. In the typical scenario when everything runs locally, use: `hostname=localhost`
 
@@ -38,6 +38,6 @@ Although the purpose of the EEGsynth (and BCIs in general) is to control devices
 
 ![](figures/launch-control-xl.png)
 
-_The Novation LaunchControl XL, often used in EEGsynth setups_
+_The Novation LaunchControl XL, often used in EEGsynth patches_
 
 _Continue reading: [Patching](patching.md)_

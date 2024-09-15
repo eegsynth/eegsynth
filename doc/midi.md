@@ -47,16 +47,16 @@ EEGsynth (Python) &rarr; **mido** &rarr; **portmidi** &rarr; **coremidi** &rarr;
 
 ## Modules that directly interface with MIDI
 
-- [generateclock](../module/generateclock)
-- [sequencer](../module/sequencer)
-- [inputmidi](../module/inputmidi)
-- [ouputmidi](../module/ouputmidi)
-- [launchcontrol](../module/launchcontrol)
-- [volcabass](../module/volcabass)
-- [volcabeats](../module/volcabeats)
-- [volcakeys](../module/volcakeys)
+- [generateclock](../src/module/generateclock)
+- [sequencer](../src/module/sequencer)
+- [inputmidi](../src/module/inputmidi)
+- [ouputmidi](../src/module/ouputmidi)
+- [launchcontrol](../src/module/launchcontrol)
+- [volcabass](../src/module/volcabass)
+- [volcabeats](../src/module/volcabeats)
+- [volcakeys](../src/module/volcakeys)
 
-## MIDI hardware we work with (macOS and Linux) for input, output or both
+## MIDI hardware that we have used for input, output or both
 
 - Novation Launch Control, Launch Control XL and Launchpad
 - Korg Volca Beats, Volca Bass and Volca Keys
@@ -76,7 +76,6 @@ EEGsynth (Python) &rarr; **mido** &rarr; **portmidi** &rarr; **coremidi** &rarr;
 - [Python-RtMidi](https://pypi.python.org/pypi/python-rtmidi) is a Python package for RtMidi.
 - [RtMidi-Python](https://pypi.python.org/pypi/rtmidi-python) is another Python wrapper for RtMidi.
 - [MidiOSC](https://github.com/jstutters/MidiOSC) is a small program to bridge the worlds of MIDI and OSC by providing bidirectional conversion of MIDI to OSC. It is available for macOS and for Linux. We explain how we use it [here](midiosc.md).
-
 
 ## Further reading
 
