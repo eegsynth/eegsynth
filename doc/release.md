@@ -6,43 +6,9 @@ Packaged versions of EEGsynth are released on [PyPi](https://pypi.org/project/ee
 
 ## Creating new releases
 
-This [tutorial](https://packaging.python.org/tutorials/packaging-projects/) explains the packaging and release process.
+This [tutorial](https://packaging.python.org/tutorials/packaging-projects/) explains the general packaging and release process.
 
-The following commands are used to publish a new release on PyPi:
-
-```bash
-pip install setuptools
-pip install twine
-
-edit version.py   # insert the correct version number
-git commit -a     # commit the version number change
-git tag -a x.y.z  # tag this commit with the correct version number, see below
-git push --tags
-
-rm -rf build/* dist/*
-python setup.py sdist bdist_wheel
-twine upload dist/* --repository eegsynth
-```
-
-_Note: I tried both `setuptools-version-command` and `better-setuptools-git-version` to automatically use the git tag for the version number. They did not work consistently and caused incorrect version numbers upon installation._
-
-## Testing the release process
-
-It is possible to test the packaging and distribution process using this:
-
-```bash
-twine upload --repository-url https://test.pypi.org/legacy/ dist/*
-```
-
-```bash
-pip install --extra-index-url https://test.pypi.org/simple/ eegsynth
-```
-
-It is possible to test the `setup.py` file by doing an install from the local repository like this:
-
-```bash
-pip install -e .
-```
+The repository contrains a [publish.yml](https://github.com/eegsynth/eegsynth/blob/master/.github/workflows/publish.yml) action that automatically generates and publishes a new version to [PyPi](https://pypi.org/project/eegsynth/) when a new release is made on GitHub.
 
 ## Creating compiled binaries
 

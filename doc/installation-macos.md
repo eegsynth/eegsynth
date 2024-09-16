@@ -1,4 +1,4 @@
-# Installation instructions for Mac macOS
+# Installation instructions for macOS
 
 NOTE: the general installation instructions using Anaconda should cover most of the installation, the notes below might be outdated and are probably not needed any more.
 

@@ -20,7 +20,7 @@ You have to send the "note off" message prior to sending a new "note on" message
 
 This is controlled by MIDI pitch bend. The range can be set to approximately -2.5 to +2.5V (default) or to approximately 0 to +5V using an internal jumper.
 
-Pitch bend MIDI values go from -8192 to 8191. Since all other MIDI messages go from 0 to 127, the [outputmidi module](../src/module/outputmidi) shifts and scales the Redis values with an extra amount to map them onto the full output range.
+Pitch bend MIDI values go from -8192 to 8191. Since all other MIDI messages go from 0 to 127, the [outputmidi](../src/module/outputmidi) module shifts and scales the Redis values with an extra amount to map them onto the full output range.
 
 ### CV3
 

@@ -33,7 +33,7 @@ We will then write some prerecorded data into the buffer as if it was being reco
 If you made it so far the buffer is working. However, we can now also read from the buffer and visualize the data as it comes in, using the plotsignal module. Note you need to be in a graphical environment for this.
 
 1. Navigate to the plotsignal module directory `~/eegsynth/src/module/plotsignal`
-2. Copy the `plotsignal.ini` to your own ini directory, for example to ~/eegsynth/patches/myfirstpatch
+2. Copy the `plotsignal.ini` to your own ini directory, for example to `~/eegsynth/patches/myfirstpatch`
 3. Edit your copy of `plotsignal.ini` to plot the first two channel, by specifying under `[arguments]` that  `channels=1,2`
 4. Now start up the plotsignal module, using your own `.ini` file: `python plotsignal.py -i ~/eegsynth/patches/myfirstpatch/plotsignal.ini`
 5. If you see your data scroll by, bravo!

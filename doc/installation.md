@@ -43,12 +43,12 @@ git clone https://github.com/eegsynth/eegsynth.git
 
 ## Low-level test
 
-Start redis, buffer, and generatesignal.
+Start Redis, buffer, and generatesignal.
 
 Add the FieldTrip Python module to the PYTHONPATH, where `$EEGSYNTHPATH` is the EEGsynth base folder.
 
 ```
-    export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/src/lib
+export PYTHONPATH=$PYTHONPATH:$EEGSYNTHPATH/src/lib
 ```
 
 Then, in a Python console:

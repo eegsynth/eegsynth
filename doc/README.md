@@ -15,7 +15,7 @@
 
 - [General instructions](installation.md)
 - [Instructions for Linux](installation-linux.md)
-- [Instructions for OS-X](installation-macos.md)
+- [Instructions for macOS](installation-macos.md)
 - [Instructions for Windows](installation-windows.md)
 
 ## Tutorials

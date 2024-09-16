@@ -18,6 +18,6 @@ _Example TouchOSC interface, these can be fully configured using an editor_
 
 ## Manual control using GUI on computer
 
-The [inputcontrol module](../src/module/inputcontrol) provides a configurable graphical user interface with sliders and buttons whose value is directly written to the Redis buffer.
+The [inputcontrol](../src/module/inputcontrol) module provides a configurable graphical user interface with sliders and buttons whose value is directly written to the Redis buffer.
 
 _Continue reading: [Visualisation](visualisation.md)_

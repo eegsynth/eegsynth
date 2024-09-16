@@ -1,19 +1,47 @@
 ![](doc/figures/EEGsynth_logo.svg?sanitize=true)
 
-The EEGsynth is a [Python](https://www.python.org/) codebase released under the [GNU general public license]( https://en.wikipedia.org/wiki/GNU_General_Public_License) that provides a real-time interface between (open-hardware) devices for electrophysiological recordings (e.g., EEG, EMG and ECG) and analogue and digital devices (e.g., MIDI, lights, games and analogue synthesizers). The EEGsynth allows one to use electrical activity recorded from the brain or body to flexibly control devices in real-time, i.e. (re)active and passive brain-computer-interfaces (BCIs), biofeedback and neurofeedback.
+The EEGsynth is a [Python](https://www.python.org/) codebase released under the [GNU general public license]( https://en.wikipedia.org/wiki/GNU_General_Public_License) that provides a real-time interface between (open-hardware) devices for electrophysiological recordings (e.g., EEG, EMG and ECG) and analogue and digital devices (e.g., MIDI, lights, games and analogue synthesizers). The EEGsynth allows one to use electrical activity recorded from the brain or body to flexibly control devices in real-time, like (re)active and passive brain-computer-interfaces (BCIs), biofeedback and neurofeedback.
 
 Since December 2018, the EEGsynth is registered as a legal _Association_ with the French authorities.
 
 ## Documentation
 
-The EEGsynth code and documentation are hosted on Github and organized as follows:
+The EEGsynth code and technical documentation are hosted on [Github](https://github.com/eegsynth) and organized as follows:
 
- * [bin](bin) contains binaries for the buffer and for some EEG systems
- * [doc](doc) contains the documentation on the EEGsynth software
- * [hardware](hardware) contains the hardware documentation
- * [lib](lib) contains some libraries
- * [module](module) contains the EEGsynth modules
- * [patches](patches) contains patches for performances
+* [src/eegsynth](https://github.com/eegsynth/eegsynth/tree/master/src/eegsynth) contains the EEGsynth application (see below)
+* [src/module](https://github.com/eegsynth/eegsynth/tree/master/src/modules) contains the individual modules and reference documentation, these can also be executed by themselves
+* [src/lib](https://github.com/eegsynth/eegsynth/tree/master/src/lib) contains some libraries
+* [doc](https://github.com/eegsynth/eegsynth/tree/master/doc) contains the general documentation
+* [patches](https://github.com/eegsynth/eegsynth/tree/master/patches) contains patches for performances
+* [hardware](https://github.com/eegsynth/eegsynth-hardware) contains documentation on some custom hardware
+
+## Installation
+
+You can install the EEGsynth with `pip install eegsynth`. Further installation details can be found in the [documentation](https://github.com/eegsynth/eegsynth/blob/master/doc/installation.md).
+
+## Running the EEGsynth
+
+Following installation of the EEGsynth and starting Redis, you can start `eegsynth *.ini` from a terminal with all ini files contained in a patch, for example like this
+
+```
+eegsynth buffer.ini generatesignal.ini plotsignal.ini
+```
+
+or you can start it one module at a time by starting multiple terminals, each with a separate EEGsynth instance, like this
+
+```
+eegsynth buffer.ini
+eegsynth generatesignal.ini 
+eegsynth plotsignal.ini
+```
+
+or you can start the graphical user interface (GUI) like this
+
+```
+eegsynth --gui
+```
+
+You can subsequently drag-and-drop the ini files that you want to start into the GUI. After editing an ini file, you can simply drop it into the GUI again and the module will automatically restart; there is no need to stop and restart all of them.
 
 ## Disclaimer
 

@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 authors = [
     { name = "Robert Oostenveld", email = "r.oostenveld@gmail.com" },
+    { name = "Stephen Whitmarsh", email = "stephen.whitmarsh@gmail.com" },
 ]
 keywords = [
     "BCI",
@@ -65,7 +66,7 @@ dependencies = [
     "toml",
     "wiringpi; platform_machine == 'armv7l'",
     "pyOSC; python_version < '3.5'",
-    "python-osc; python_version >= '3.5'"
+    "python-osc; python_version >= '3.5'",
 ]
 
 [project.scripts]

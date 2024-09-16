@@ -2,7 +2,7 @@
 
 The Novation Launch Control XL and Launch Control mini are MIDI control surfaces that connect to the computer over USB. They feature a bunch of buttons and knobs, and on the XL also sliders. We often use them for online adjustment of parameters, or to toggle some algorithm on or off. See also the documentation on [manual control](manual-control.md).
 
-As an alternative to a hardware controller, you can also use the [inputcontrol module](../src/module/inputcontrol), which provides a configurable graphical user interface on the computer screen.
+As an alternative to a hardware controller, you can also use the [inputcontrol](../src/module/inputcontrol) module, which provides a configurable graphical user interface on the computer screen.
 
 ## Switch the Launch Control XL to low-power mode
 

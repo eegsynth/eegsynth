@@ -71,8 +71,8 @@ For more supported acquisition devices [look here](http://www.fieldtriptoolbox.o
 
 ## External interfaces (DIY hardware)
 
-- [OutputCVgate](../master/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](../hardware/usb2cvgate_4channel)
-- [OutputGPIO](../master/module/outputgpio) Send triggers and PWM signals using the Raspberry Pi GPIO pins
+- [OutputCVgate](../src/module/outputcvgate) Send continuous voltages for interfacing with analogue synthesizers using [our own hardware](https://github.com/eegsynth/eegsynth-hardware)
+- [OutputGPIO](../src/module/outputgpio) Send triggers and PWM signals using the Raspberry Pi GPIO pins
 
 ## Software synthesizer modules
 
@@ -83,4 +83,4 @@ For more supported acquisition devices [look here](http://www.fieldtriptoolbox.o
 
 ## Cogito project
 
-- [Cogito](../master/module/cogito) Streaming EEG data from the Gtec EEG system to audio for interstellar transmission, as part of the [Cogito](http://www.cogitoinspace.org/) project
+- [Cogito](../src/module/cogito) Streaming EEG data from the Gtec EEG system to audio for interstellar transmission, as part of the [Cogito](http://www.cogitoinspace.org/) project

@@ -79,4 +79,4 @@ To summarize, the EEGsynth is an open-source code-base that functions as an inte
 
 It is strongly advised to work within you own cloned repository and keep up to date with EEGsynth commits, as the EEGsynth is in constant development.
 
-- For installation please follow our installation instructions for [Linux](../doc/installation-linux.md), [macOS](../doc/installation-macos.md) and [Windows](../master/doc/installation-windows.md). Please note that Windows and macOS are not actively supported. Linux is the main target, partly because we want the EEGsynth to be compatible with the [Raspberry Pi](http://raspberrypi.org), partly because some Python libraries do not support Windows, and partly because we rely on the command-line interface anyway.
+- For installation please follow our general [installation](../doc/installation.md) and the specific instructions for [Linux](../doc/installation-linux.md), [macOS](../doc/installation-macos.md) and [Windows](../doc/installation-windows.md).
