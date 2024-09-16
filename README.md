@@ -9,10 +9,10 @@ Since December 2018, the EEGsynth is registered as a legal _Association_ with th
 The EEGsynth code and technical documentation are hosted on [Github](https://github.com/eegsynth) and organized as follows:
 
 * [src/eegsynth](https://github.com/eegsynth/eegsynth/tree/master/src/eegsynth) contains the EEGsynth application (see below)
-* [src/module](https://github.com/eegsynth/eegsynth/tree/master/src/modules) contains the individual modules and reference documentation, these can also be executed by themselves
+* [src/module](https://github.com/eegsynth/eegsynth/tree/master/src/module) contains individual modules and reference dopcumentation
 * [src/lib](https://github.com/eegsynth/eegsynth/tree/master/src/lib) contains some libraries
 * [doc](https://github.com/eegsynth/eegsynth/tree/master/doc) contains the general documentation
-* [patches](https://github.com/eegsynth/eegsynth/tree/master/patches) contains patches for performances
+* [patches](https://github.com/eegsynth/eegsynth/tree/master/patches) contains patches and documentation of past performances
 * [hardware](https://github.com/eegsynth/eegsynth-hardware) contains documentation on some custom hardware
 
 ## Installation
