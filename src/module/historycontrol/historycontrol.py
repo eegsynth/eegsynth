@@ -103,7 +103,7 @@ def _start():
     numhistory  = int(round(window/stepsize))
 
     # this will contain the full list of historic_stat values
-    historic_data = np.empty((numchannel, numhistory)) * np.NAN
+    historic_data = np.empty((numchannel, numhistory)) * np.nan
 
     # this will contain the statistics of the historic_stat values
     historic_stat = {}

@@ -118,7 +118,7 @@ def _start():
     numchannel  = len(inputlist)
 
     # this will contain the full list of historic values
-    history = np.empty((numhistory, numchannel)) * np.NAN
+    history = np.empty((numhistory, numchannel)) * np.nan
 
     # this will contain the statistics of the historic values
     historic = {}
