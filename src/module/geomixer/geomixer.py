@@ -126,7 +126,7 @@ def _loop_once():
     monitor.update('precision', switch_precision)
 
     # get the input value and scale between 0 and 1
-    input = patch.getfloat('input', 'channel', default=np.NaN)
+    input = patch.getfloat('input', 'channel', default=np.nan)
     input = EEGsynth.rescale(input, slope=scale_input, offset=offset_input)
 
     if switch_precision > 0:

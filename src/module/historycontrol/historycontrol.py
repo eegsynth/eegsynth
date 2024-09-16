@@ -135,7 +135,7 @@ def _loop_once():
         try:
             historic_data[channel, numhistory-1] = float(patch.redis.get(inputlist[channel]))
         except:
-            historic_data[channel, numhistory-1] = np.NaN
+            historic_data[channel, numhistory-1] = np.nan
 
     if metrics_mean or metrics_max_att or metrics_min_att:
         historic_stat['mean']    = np.nanmean(historic_data, axis=1)

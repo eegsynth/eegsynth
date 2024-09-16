@@ -133,7 +133,7 @@ class TriggerThread(threading.Thread):
                                 patch.setvalue(key, val)
                             except ZeroDivisionError:
                                 # division by zero is not a serious error
-                                patch.setvalue(equation[0], np.NaN)
+                                patch.setvalue(equation[0], np.nan)
                             except:
                                 monitor.error('Error in evaluation: %s = %s' % (key, equation))
 
