@@ -1,4 +1,6 @@
-![](doc/figures/EEGsynth_logo.svg?sanitize=true)
+# README
+
+![logo](doc/figures/EEGsynth_logo.svg?sanitize=true)
 
 The EEGsynth is a [Python](https://www.python.org/) codebase released under the [GNU general public license]( https://en.wikipedia.org/wiki/GNU_General_Public_License) that provides a real-time interface between (open-hardware) devices for electrophysiological recordings (e.g., EEG, EMG and ECG) and analogue and digital devices (e.g., MIDI, lights, games and analogue synthesizers). The EEGsynth allows one to use electrical activity recorded from the brain or body to flexibly control devices in real-time, like (re)active and passive brain-computer-interfaces (BCIs), biofeedback and neurofeedback.
 
@@ -23,13 +25,13 @@ You can install the EEGsynth with `pip install eegsynth`. Further installation d
 
 Following installation of the EEGsynth and starting Redis, you can start `eegsynth *.ini` from a terminal with all ini files contained in a patch, for example like this
 
-```
+```console
 eegsynth buffer.ini generatesignal.ini plotsignal.ini
 ```
 
 or you can start it one module at a time by starting multiple terminals, each with a separate EEGsynth instance, like this
 
-```
+```console
 eegsynth buffer.ini
 eegsynth generatesignal.ini 
 eegsynth plotsignal.ini
@@ -37,7 +39,7 @@ eegsynth plotsignal.ini
 
 or you can start the graphical user interface (GUI) like this
 
-```
+```console
 eegsynth --gui
 ```
 
