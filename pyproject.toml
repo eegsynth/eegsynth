@@ -49,7 +49,7 @@ dependencies = [
     "matplotlib",
     "mido",
     "nilearn",
-    "numpy < 2.0.0",
+    "numpy",
     "opencv-python",
     "paho-mqtt",
     "pandas",

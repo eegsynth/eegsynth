@@ -391,6 +391,13 @@ class patch():
 
     ####################################################################
     def setvalue(self, item, val, duration=0):
+        # map numpy types onto plain Python types, see https://github.com/eegsynth/eegsynth/issues/429
+        if isinstance(val, (np.float32, np.float64)):
+            val = float(val)
+        elif isinstance(val, (np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64)):
+            val = int(val)
+        elif isinstance(val, np.bool):
+            val = bool(val)
         self.redis.set(item, val)      # set it as control channel
         self.redis.publish(item, val)  # send it as trigger
         if duration > 0:
