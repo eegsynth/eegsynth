@@ -5,7 +5,7 @@ broker='zeromq'
 
 if broker=='redis':
     import redis
-    r = redis.StrictRedis(host='localhost', db=0, charset='utf-8', decode_responses=True)
+    r = redis.StrictRedis(host='localhost', db=0, encoding='utf-8', decode_responses=True)
     r.client_list()
 elif broker=='dummy':
     import DummyRedis

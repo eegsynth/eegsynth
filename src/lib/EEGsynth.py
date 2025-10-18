@@ -150,7 +150,7 @@ class patch():
             else:
                 port = 6379
             try:
-                r = redis.StrictRedis(host=hostname, port=port, db=0, charset='utf-8', decode_responses=True)
+                r = redis.StrictRedis(host=hostname, port=port, db=0, encoding='utf-8', decode_responses=True)
                 response = r.client_list()
             except redis.ConnectionError:
                 raise RuntimeError("cannot connect to Redis server")
