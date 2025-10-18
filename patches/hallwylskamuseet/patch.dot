@@ -1,0 +1,25 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+
+digraph eegsynth{
+    
+      subgraph cluster_1 {
+        label=laptop_microscope;color=blue
+        microscope -> videoprocessing [color=red; label=usb]
+        videoprocessing -> postprocessing -> plotcontrol
+        videoprocessing -> historycontrol -> postprocessing -> vumeter
+        inputcontrol -> videoprocessing
+        postprocessing ->  outputosc_touchdesigner
+        postprocessing ->  outputosc_abletonlive
+        }
+
+    subgraph cluster_touchdesigner {
+        color=lightgrey;label=laptop_touchdesigner
+        outputosc_touchdesigner  -> touchdesigner[color=red;label=wifi]
+        }
+
+    subgraph cluster_abletonlive {
+      color=lightgrey;label=laptop_abletonlive
+      outputosc_abletonlive -> abletonlive [color=red;label=wifi]
+      }
+}
