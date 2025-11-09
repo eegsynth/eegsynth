@@ -12,7 +12,7 @@ See the website of the [Hallwylska Museet](https://hallwylskamuseet.se/en/pa-gan
 
 We are using a Euromex BioBlue.lab microscope with a CMEX 5.0 MP USB camera to observe the microbes. The live video stream is processed using the EEGsynth and changes in the video (due to the microbes moving around) are sent over OSC as control signals to TouchDesigner (running on another laptop) and Ableton Live (running on yet another computer).
 
-The live video stream from the microscope is also shared with TouchDesigner through an HDMI splitter and a HDMI-to-USB capture card. TouchDesigner is used for video-mixing and creating visuals.
+The live video stream from the microscope is also shared as-is with TouchDesigner on the other computer for creating visuals and video-mixing. To share the video, we are using NDI Scan Converter to capture the videoprocessing window. The NDI stream is subsequently displayed on a second "virtual" screen using NDI Video Monitor. The second screen is actually a Macrosilicon HDMI-to-USB capture card plugged into the computer running TouchDesigner. On the TouchDesigner computer we capture the live video stream as if it were a webcam and crop it a bit to remove the menu bar and the window borders.
 
 ## EEGsynth screenshot
 
