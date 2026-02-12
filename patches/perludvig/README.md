@@ -26,7 +26,6 @@ open a terminal and type
 
     sudo pkill bluetoothd
 
-
 ## Schematic representation of the patch
 
 ![flowchart](patch.png)

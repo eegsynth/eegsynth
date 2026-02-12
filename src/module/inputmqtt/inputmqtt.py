@@ -59,6 +59,7 @@ def on_connect(client, userdata, flags, rc):
 # The callback for when a PUBLISH message is received from the server
 def on_message(client, userdata, msg):
     if not msg.topic.startswith('$SYS'):
+        monitor.debug("Received message on topic " + msg.topic + " with payload " + str(msg.payload))
         try:
             key = msg.topic.replace('/', '.').lower()
             if len(prefix):

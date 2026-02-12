@@ -178,6 +178,8 @@ def _loop_once():
             csvwriter = csv.writer(f, delimiter=',')
         elif fileformat == 'tsv':
             csvwriter = csv.writer(f, delimiter='\t')
+        else:
+            raise RuntimeError("unsupported file format: " + fileformat)
         csvwriter.writeheader(["event", "value", "timestamp"])
         f.flush()
 

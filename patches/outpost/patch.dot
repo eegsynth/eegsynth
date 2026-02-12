@@ -1,0 +1,12 @@
+# To convert this into a bitmap representation, do this
+#   dot -Tpng -o patch.png patch.dot
+#
+digraph {
+  temperature -> zigbee;
+  humidity -> zigbee;
+  airpressure -> zigbee;
+  illuminance -> zigbee;
+  force -> zigbee;
+
+  zigbee -> tasmota -> mqtt -> tsvfile;
+}
