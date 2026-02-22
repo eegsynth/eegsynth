@@ -1,5 +1,12 @@
 # Changes
 
+## Feb 22, 2026
+
+- added patches for BodyMind, Aspet, OffOff, Halwyllska, Outpost
+- deal with numpy 1.x to 2.x changes
+- use encoding rather than charset for Redis
+- released version 0.8.1
+
 ## Sep 15, 2024
 
 - reorganized the Python code in a src/eegsynth, src/lib and src/modules directory
